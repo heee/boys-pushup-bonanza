@@ -1,24 +1,4 @@
 {
-  "sessions": [
-    {
-      "id": "ea856167-fad9-4b87-b778-d533473092d9",
-      "user": "Henning",
-      "timestamp": "2026-07-10T20:24:21.984Z",
-      "count": 14
-    },
-    {
-      "id": "7ed67173-08d2-43a7-a53d-3f3706d05d3e",
-      "user": "Henning",
-      "timestamp": "2026-07-10T21:03:34.721Z",
-      "count": 6
-    },
-    {
-      "id": "b0ac0d34-52e9-4fa9-ba6e-653805146953",
-      "user": "Henning",
-      "timestamp": "2026-07-10T21:40:41.542Z",
-      "count": 1,
-      "avatar": "zany"
-    }
-  ],
+  "sessions": [],
   "avatars": {}
 }
