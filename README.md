@@ -115,8 +115,11 @@ do. No GitHub account, no token, nothing to type into Settings.
 6. Pick a name on the first screen and start doing pushups. That's the whole setup.
 
 If you update the code later, pushing to GitHub Pages updates the live site
-immediately — the installed home screen icon just reopens that same URL. If the
-service worker cached old files, force-refresh once (or reinstall) after a big update.
+immediately — the installed home screen icon just reopens that same URL. Devices
+that already have it installed may still see the old cached version for a bit
+because of the service worker — bump `CACHE_NAME` in `sw.js` (e.g. `bpb-shell-v2`)
+whenever you ship a meaningful change, so installed copies pick up the update
+promptly instead of serving stale files indefinitely.
 
 ---
 
