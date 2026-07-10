@@ -19,6 +19,7 @@ const APP_KEY = "Bonanza";
 const LS = {
   theme: "bpb-theme",
   lastUser: "bpb-last-user",
+  lastAvatar: "bpb-last-avatar",
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
   calibrationReadout: "bpb-calibration-readout",
@@ -29,6 +30,19 @@ const LS = {
 const DEFAULT_DOWN = 0.55;
 const DEFAULT_UP = 0.32;
 const FACE_LOST_TIMEOUT_MS = 3000;
+
+const AVATARS = [
+  { id: "flex", emoji: "💪", bg: "#c9852f" },
+  { id: "fire", emoji: "🔥", bg: "#b5482f" },
+  { id: "goat", emoji: "🐐", bg: "#7a9b57" },
+  { id: "gorilla", emoji: "🦍", bg: "#8a6a3a" },
+  { id: "bolt", emoji: "⚡", bg: "#e8c468" },
+  { id: "trophy", emoji: "🏆", bg: "#a9781f" },
+  { id: "crown", emoji: "👑", bg: "#b9822f" },
+  { id: "mech", emoji: "🦾", bg: "#6b5a3e" },
+  { id: "hot", emoji: "😤", bg: "#cf6a2e" },
+  { id: "rocket", emoji: "🚀", bg: "#9c5a3c" },
+];
 
 // ------------------- small helpers -------------------
 
@@ -42,6 +56,42 @@ function uuid() {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function getAvatar(id) {
+  return AVATARS.find((a) => a.id === id) || AVATARS[hashString(id || "") % AVATARS.length];
+}
+
+// Everyone's avatar is whatever they last picked, derived from their most
+// recent synced session. Falls back to a name-based pick so even sessions
+// saved before this feature still get a consistent-looking avatar.
+function avatarForUser(name) {
+  const sessions = getAllSessionsForDisplay()
+    .filter((s) => s.user === name && s.avatar)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  if (sessions.length) return getAvatar(sessions[0].avatar);
+  return AVATARS[hashString(name) % AVATARS.length];
+}
+
+function avatarCircleHTML(avatar, size) {
+  return `<span class="avatar-circle" style="background:${avatar.bg};width:${size};height:${size};font-size:calc(${size} * 0.55)">${avatar.emoji}</span>`;
+}
+
+function setAvatarEl(el, avatarId, size) {
+  const a = getAvatar(avatarId);
+  el.textContent = a.emoji;
+  el.style.background = a.bg;
+  if (size) {
+    el.style.width = size;
+    el.style.height = size;
+    el.style.fontSize = `calc(${size} * 0.55)`;
+  }
 }
 
 function toast(msg, ms = 2600) {
@@ -224,6 +274,7 @@ async function refreshFromRemote() {
 
 const state = {
   currentUser: localStorage.getItem(LS.lastUser) || "",
+  currentAvatar: "",
   screen: "screen-user",
   workoutActive: false,
   faceDetector: null,
@@ -265,6 +316,7 @@ function showScreen(id) {
   if (id === "screen-settings") renderSettings();
   if (id === "screen-workout" && !state.workoutActive) {
     $("workout-username").textContent = state.currentUser || "Friend";
+    setAvatarEl($("workout-avatar"), state.currentAvatar, "2rem");
   }
 }
 
@@ -295,18 +347,40 @@ function renderUserList() {
     list.appendChild(p);
   }
   for (const name of names) {
+    const avatar = avatarForUser(name);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "user-chip" + (name === state.currentUser ? " selected" : "");
-    btn.textContent = name;
+    btn.innerHTML = `${avatarCircleHTML(avatar, "2.2rem")}<span>${escapeHtml(name)}</span>`;
     btn.addEventListener("click", () => selectUser(name));
     list.appendChild(btn);
   }
   $("new-user-input").value = "";
+  populateAvatarSelect();
 }
 
-function selectUser(name) {
+function populateAvatarSelect() {
+  const sel = $("new-user-avatar");
+  if (sel.options.length === 0) {
+    sel.innerHTML = AVATARS.map((a) => `<option value="${a.id}">${a.emoji}</option>`).join("");
+    sel.addEventListener("change", () => {
+      updateAvatarSelectSwatch();
+      localStorage.setItem(LS.lastAvatar, sel.value);
+    });
+  }
+  const last = localStorage.getItem(LS.lastAvatar);
+  sel.value = AVATARS.some((a) => a.id === last) ? last : AVATARS[0].id;
+  updateAvatarSelectSwatch();
+}
+
+function updateAvatarSelectSwatch() {
+  const sel = $("new-user-avatar");
+  sel.style.background = getAvatar(sel.value).bg;
+}
+
+function selectUser(name, avatarId) {
   state.currentUser = name;
+  state.currentAvatar = avatarId || avatarForUser(name).id;
   localStorage.setItem(LS.lastUser, name);
   showScreen("screen-workout");
 }
@@ -315,7 +389,7 @@ $("new-user-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = $("new-user-input").value.trim();
   if (!name) return;
-  selectUser(name);
+  selectUser(name, $("new-user-avatar").value);
 });
 
 // ------------------- settings screen -------------------
@@ -433,6 +507,7 @@ function paintDashboard(sessions) {
       row.innerHTML = `
         <div class="leaderboard-rank">${i + 1}</div>
         <div class="leaderboard-trophy">${TROPHIES[i] || ""}</div>
+        ${avatarCircleHTML(avatarForUser(user), "1.8rem")}
         <div class="leaderboard-name">${escapeHtml(user)}</div>
         <div class="leaderboard-total">${total}</div>
       `;
@@ -457,7 +532,7 @@ function paintDashboard(sessions) {
       group.className = "history-user-group";
       const header = document.createElement("div");
       header.className = "history-user-header";
-      header.innerHTML = `<span>${escapeHtml(user)} — ${totals.get(user)} total</span><span class="chev">▸</span>`;
+      header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span>${escapeHtml(user)} — ${totals.get(user)} total</span></span><span class="chev">▸</span>`;
       header.addEventListener("click", () => group.classList.toggle("open"));
       const sessionsWrap = document.createElement("div");
       sessionsWrap.className = "history-sessions";
@@ -738,6 +813,7 @@ async function completeWorkout() {
     user: state.currentUser,
     timestamp: new Date().toISOString(),
     count,
+    avatar: state.currentAvatar,
   };
 
   // Optimistically reflect it locally right away so it shows up immediately.
@@ -748,6 +824,7 @@ async function completeWorkout() {
   const message = FUN_MESSAGES[Math.floor(Math.random() * FUN_MESSAGES.length)](count);
   $("summary-count").textContent = String(count);
   $("summary-user").textContent = state.currentUser;
+  setAvatarEl($("summary-avatar"), state.currentAvatar, "1.6rem");
   $("summary-message").textContent = message;
   $("summary-sync-status").textContent = "Saving…";
   showScreen("screen-summary");

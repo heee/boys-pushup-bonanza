@@ -90,7 +90,11 @@ function validateSession(body) {
     timestamp = new Date().toISOString();
   }
 
-  return { id, user, timestamp, count };
+  const session = { id, user, timestamp, count };
+  if (typeof body.avatar === "string" && body.avatar.length > 0 && body.avatar.length <= 20) {
+    session.avatar = body.avatar;
+  }
+  return session;
 }
 
 async function ghHeaders(env) {
