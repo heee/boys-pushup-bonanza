@@ -93,6 +93,7 @@
 
     <!-- ============ SCREEN: SUMMARY ============ -->
     <section id="screen-summary" class="screen">
+      <div id="confetti" class="confetti" aria-hidden="true"></div>
       <h1 class="screen-title">Session complete! 🎉</h1>
       <div class="summary-count" id="summary-count">0</div>
       <p class="summary-sub">
@@ -135,6 +136,12 @@
         <button id="btn-gh-test" class="btn btn-secondary">Check connection</button>
         <p id="gh-status" class="settings-status"></p>
         <p id="pending-status" class="settings-status"></p>
+      </div>
+
+      <div class="settings-block">
+        <h2 class="section-title">Manage users</h2>
+        <p class="settings-hint">Remove someone's sessions from the shared leaderboard. This can't be undone.</p>
+        <div id="manage-users-list" class="manage-users-list"></div>
       </div>
 
       <div class="settings-block">

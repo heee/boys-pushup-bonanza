@@ -42,6 +42,20 @@ const AVATARS = [
   { id: "mech", emoji: "🦾", bg: "#6b5a3e" },
   { id: "hot", emoji: "😤", bg: "#cf6a2e" },
   { id: "rocket", emoji: "🚀", bg: "#9c5a3c" },
+  { id: "clown", emoji: "🤡", bg: "#a8493f" },
+  { id: "orangutan", emoji: "🦧", bg: "#96632e" },
+  { id: "boxing", emoji: "🥊", bg: "#8a3a2e" },
+  { id: "lifter", emoji: "🏋️", bg: "#5c4f3a" },
+  { id: "cartwheel", emoji: "🤸", bg: "#6f8a52" },
+  { id: "turtle", emoji: "🐢", bg: "#587a4a" },
+  { id: "chicken", emoji: "🐔", bg: "#c79a3a" },
+  { id: "brain", emoji: "🧠", bg: "#9c6b5a" },
+  { id: "sweat", emoji: "🥵", bg: "#d1652e" },
+  { id: "zany", emoji: "🤪", bg: "#c98a3a" },
+  { id: "devil", emoji: "😈", bg: "#7a2e2e" },
+  { id: "burger", emoji: "🍔", bg: "#a0692e" },
+  { id: "hotdog", emoji: "🌭", bg: "#b8622e" },
+  { id: "cheese", emoji: "🧀", bg: "#d1a23a" },
 ];
 
 // ------------------- small helpers -------------------
@@ -181,6 +195,20 @@ async function workerPostSession(session) {
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Save failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+async function deleteUserRemote(name) {
+  if (!workerConfigured()) throw new Error("Worker URL not configured yet.");
+  const res = await fetch(`${WORKER_URL}/delete-user`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-App-Key": APP_KEY },
+    body: JSON.stringify({ user: name }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Delete failed (${res.status}): ${text.slice(0, 200)}`);
   }
   return res.json();
 }
@@ -351,7 +379,7 @@ function renderUserList() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "user-chip" + (name === state.currentUser ? " selected" : "");
-    btn.innerHTML = `${avatarCircleHTML(avatar, "2.2rem")}<span>${escapeHtml(name)}</span>`;
+    btn.innerHTML = `${avatarCircleHTML(avatar, "1.7rem")}<span>${escapeHtml(name)}</span>`;
     btn.addEventListener("click", () => selectUser(name));
     list.appendChild(btn);
   }
@@ -403,6 +431,51 @@ function renderSettings() {
 
   renderPendingStatus();
   testSyncConnection();
+  renderManageUsers();
+}
+
+function renderManageUsers() {
+  const sessions = getAllSessionsForDisplay();
+  const names = Array.from(new Set(sessions.map((s) => s.user))).sort((a, b) => a.localeCompare(b));
+  const list = $("manage-users-list");
+  list.innerHTML = "";
+  if (!names.length) {
+    list.innerHTML = '<p class="settings-hint">No users yet.</p>';
+    return;
+  }
+  for (const name of names) {
+    const avatar = avatarForUser(name);
+    const row = document.createElement("div");
+    row.className = "manage-user-row";
+    row.innerHTML = `
+      ${avatarCircleHTML(avatar, "1.7rem")}
+      <span class="manage-user-name">${escapeHtml(name)}</span>
+      <button type="button" class="btn-delete-user" aria-label="Delete ${escapeHtml(name)}">🗑️</button>
+    `;
+    row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteUser(name));
+    list.appendChild(row);
+  }
+}
+
+async function confirmDeleteUser(name) {
+  const ok = confirm(`Delete all of ${name}'s sessions from the shared leaderboard? This can't be undone.`);
+  if (!ok) return;
+  try {
+    await deleteUserRemote(name);
+  } catch (e) {
+    toast(`Couldn't delete right now — check your connection.`, 4000);
+    return;
+  }
+  const cached = getCachedData();
+  cached.sessions = cached.sessions.filter((s) => s.user !== name);
+  cacheData(cached);
+  setQueue(getQueue().filter((s) => s.user !== name));
+  if (state.currentUser === name) {
+    state.currentUser = "";
+    localStorage.removeItem(LS.lastUser);
+  }
+  toast(`Deleted ${name}'s sessions.`);
+  renderManageUsers();
 }
 
 function renderPendingStatus() {
@@ -798,7 +871,45 @@ const FUN_MESSAGES = [
   (n) => `${n}! The floor never stood a chance.`,
   (n) => `Boom. ${n} pushups. Tell your friends before they check the leaderboard.`,
   (n) => `${n} reps in the books. Absolute unit behavior.`,
+  (n) => `${n} pushups. Certified gym bro moment.`,
+  (n) => `The floor is filing a restraining order after ${n} pushups.`,
+  (n) => `${n} reps deep. Somebody get this man a protein shake.`,
+  (n) => `Legendary. ${n} pushups and not a single excuse.`,
+  (n) => `${n} down. Your future self just texted "thank you."`,
+  (n) => `That's ${n} reps of chaotic gains energy.`,
+  (n) => `${n} pushups. The gains gremlins are pleased.`,
+  (n) => `Absolute unit alert: ${n} pushups completed.`,
+  (n) => `${n} reps. Somewhere a protein shake shed a single tear of joy.`,
+  (n) => `${n} pushups in. You may now flex responsibly.`,
+  (n) => `${n} down. The leaderboard trembles.`,
 ];
+let lastFunMessageIndex = -1;
+function pickFunMessage(n) {
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * FUN_MESSAGES.length);
+  } while (idx === lastFunMessageIndex && FUN_MESSAGES.length > 1);
+  lastFunMessageIndex = idx;
+  return FUN_MESSAGES[idx](n);
+}
+
+const CONFETTI_EMOJI = ["🎉", "💪", "🔥", "⭐", "🏆", "😤", "🚀", "👑"];
+function launchConfetti() {
+  const el = $("confetti");
+  el.innerHTML = "";
+  for (let i = 0; i < 24; i++) {
+    const span = document.createElement("span");
+    span.className = "confetti-piece";
+    span.textContent = CONFETTI_EMOJI[Math.floor(Math.random() * CONFETTI_EMOJI.length)];
+    span.style.left = `${Math.random() * 100}%`;
+    span.style.fontSize = `${1 + Math.random() * 1.2}rem`;
+    span.style.animationDuration = `${1.8 + Math.random() * 1.4}s`;
+    span.style.animationDelay = `${Math.random() * 0.4}s`;
+    el.appendChild(span);
+  }
+  clearTimeout(launchConfetti._t);
+  launchConfetti._t = setTimeout(() => { el.innerHTML = ""; }, 4000);
+}
 
 async function completeWorkout() {
   const count = repState.count;
@@ -821,18 +932,18 @@ async function completeWorkout() {
   cached.sessions.push(session);
   cacheData(cached);
 
-  const message = FUN_MESSAGES[Math.floor(Math.random() * FUN_MESSAGES.length)](count);
+  const message = pickFunMessage(count);
   $("summary-count").textContent = String(count);
   $("summary-user").textContent = state.currentUser;
   setAvatarEl($("summary-avatar"), state.currentAvatar, "1.6rem");
   $("summary-message").textContent = message;
-  $("summary-sync-status").textContent = "Saving…";
+  $("summary-sync-status").textContent = "";
   showScreen("screen-summary");
+  launchConfetti();
   speak(`Session complete. ${message}`);
 
   try {
     await commitSession(session);
-    $("summary-sync-status").textContent = "Synced to the shared leaderboard ✓";
   } catch (e) {
     enqueueSession(session);
     $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";

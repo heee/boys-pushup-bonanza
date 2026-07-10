@@ -3,8 +3,9 @@
 // Holds the one GitHub token server-side so friends never see or enter a
 // token on their phones. The client only ever talks to this Worker.
 //
-//   GET  /data     -> current data.json contents (no auth required to read)
-//   POST /session  -> { id, user, timestamp, count } -> merges into data.json
+//   GET  /data         -> current data.json contents (no auth required to read)
+//   POST /session      -> { id, user, timestamp, count, avatar? } -> merges into data.json
+//   POST /delete-user  -> { user } -> removes all of that user's sessions from data.json
 //
 // Required Worker secrets/variables (set in the Cloudflare dashboard under
 // Settings -> Variables and Secrets):
@@ -48,8 +49,35 @@ export default {
       if (!session) return json({ error: "invalid session payload" }, 400, cors);
 
       try {
-        await commitSession(env, session);
+        await commitMutation(env, (data) => {
+          if (!data.sessions.some((s) => s.id === session.id)) {
+            data.sessions.push(session);
+          }
+        }, `Add session: ${session.user} (${session.count} reps)`);
         return json({ ok: true, session }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/delete-user" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!user) return json({ error: "invalid user" }, 400, cors);
+
+      try {
+        await commitMutation(env, (data) => {
+          data.sessions = data.sessions.filter((s) => s.user !== user);
+        }, `Delete user: ${user}`);
+        return json({ ok: true }, 200, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
       }
@@ -153,17 +181,15 @@ async function putGithubFile(env, data, sha, message) {
 }
 
 // Re-fetches immediately before writing (and retries a few times) so two
-// friends finishing sessions at nearly the same moment don't clobber each
-// other's `sha`.
-async function commitSession(env, session, attempts = 4) {
+// friends finishing sessions (or a delete) at nearly the same moment don't
+// clobber each other's `sha`. `mutate` edits `data` in place.
+async function commitMutation(env, mutate, message, attempts = 4) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try {
       const { data, sha } = await fetchGithubFile(env);
-      if (!data.sessions.some((s) => s.id === session.id)) {
-        data.sessions.push(session);
-      }
-      await putGithubFile(env, data, sha, `Add session: ${session.user} (${session.count} reps)`);
+      mutate(data);
+      await putGithubFile(env, data, sha, message);
       return;
     } catch (e) {
       lastErr = e;
