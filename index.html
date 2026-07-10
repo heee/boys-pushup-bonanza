@@ -8,8 +8,8 @@
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#12162b" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#fff6e8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1a14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5efe1" media="(prefers-color-scheme: light)">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -46,6 +46,40 @@
 
     <!-- ============ SCREEN: USER SELECT ============ -->
     <section id="screen-user" class="screen active">
+      <svg class="mascot-badge" viewBox="0 0 240 240" role="img" aria-label="Bonanza mascot">
+        <defs>
+          <radialGradient id="mascotBg" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#8f9277"/>
+            <stop offset="100%" stop-color="#5f6249"/>
+          </radialGradient>
+          <linearGradient id="mascotBronze" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#e8c47a"/>
+            <stop offset="55%" stop-color="#b9822f"/>
+            <stop offset="100%" stop-color="#7a5322"/>
+          </linearGradient>
+        </defs>
+        <circle cx="120" cy="120" r="118" fill="url(#mascotBg)"/>
+        <circle cx="120" cy="120" r="118" fill="none" stroke="#d9c98f" stroke-opacity="0.35" stroke-width="3"/>
+        <g fill="url(#mascotBronze)">
+          <!-- back leg -->
+          <rect x="122" y="145" width="17" height="52" rx="8" transform="rotate(6 130 145)"/>
+          <!-- front leg -->
+          <rect x="141" y="145" width="17" height="52" rx="8" transform="rotate(-8 149 145)"/>
+          <!-- torso, leaning forward from the hip -->
+          <rect x="125" y="90" width="30" height="55" rx="15" transform="rotate(20 140 145)"/>
+          <!-- head -->
+          <circle cx="160" cy="76" r="18"/>
+          <!-- hair tuft -->
+          <path d="M 146,66 Q 152,52 166,55 Q 176,58 173,69 Q 163,60 153,64 Q 148,66 146,66 Z"/>
+          <!-- arm hanging down toward the pot -->
+          <rect x="145" y="100" width="11" height="85" rx="5.5" transform="rotate(20 150 100)"/>
+        </g>
+        <g fill="url(#mascotBronze)">
+          <ellipse cx="100" cy="196" rx="26" ry="10"/>
+          <path d="M 74,196 A 26,16 0 0 0 126,196 L 124,211 A 24,11 0 0 1 76,211 Z"/>
+          <path d="M 123,190 Q 140,183 140,199 Q 140,211 126,209" fill="none" stroke="url(#mascotBronze)" stroke-width="5" stroke-linecap="round"/>
+        </g>
+      </svg>
       <h1 class="screen-title">Who's flexing today? 💪</h1>
       <p class="screen-sub">Pick your name or join the bonanza.</p>
 

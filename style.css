@@ -4,45 +4,45 @@
    =========================================================== */
 
 :root, :root[data-theme="dark"] {
-  --bg: #12162b;
-  --bg-elevated: #1b2040;
-  --bg-elevated-2: #232a52;
-  --text: #f5f3ff;
-  --text-dim: #a9aecb;
-  --border: #333a63;
+  --bg: #1c1a14;
+  --bg-elevated: #26231a;
+  --bg-elevated-2: #322d20;
+  --text: #f3ead9;
+  --text-dim: #a89a80;
+  --border: #453f2e;
 
-  --primary: #ff6b35;
-  --primary-dim: #ff8c5c;
-  --accent: #ffd23f;
-  --accent-2: #7c5cff;
-  --success: #2ecc71;
-  --danger: #ff4d6d;
+  --primary: #c9852f;
+  --primary-dim: #e0a355;
+  --accent: #e8c468;
+  --accent-2: #8a6a3a;
+  --success: #7a9b57;
+  --danger: #b5482f;
 
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --gold: #ffd23f;
-  --silver: #d8dce6;
-  --bronze: #d98a4a;
+  --gold: #e8c468;
+  --silver: #c9c2b0;
+  --bronze: #a86a3d;
 }
 
 :root[data-theme="light"] {
-  --bg: #fff6e8;
-  --bg-elevated: #ffffff;
-  --bg-elevated-2: #fff0da;
-  --text: #201c1c;
-  --text-dim: #6b6458;
-  --border: #ecdcc0;
+  --bg: #f5efe1;
+  --bg-elevated: #fffaf0;
+  --bg-elevated-2: #ece0c8;
+  --text: #2b2416;
+  --text-dim: #7a6f57;
+  --border: #ddd0ae;
 
-  --primary: #ff5722;
-  --primary-dim: #ff7a4d;
-  --accent: #ffb100;
-  --accent-2: #6a3df5;
-  --success: #1fa564;
-  --danger: #e0294c;
+  --primary: #b8722e;
+  --primary-dim: #cf8a44;
+  --accent: #c9992c;
+  --accent-2: #7a5a2e;
+  --success: #4f7a34;
+  --danger: #a83f26;
 
   --shadow: 0 8px 24px rgba(80, 60, 20, 0.15);
-  --gold: #e0a800;
-  --silver: #9199a8;
-  --bronze: #b9702f;
+  --gold: #c9992c;
+  --silver: #9b9484;
+  --bronze: #966235;
 }
 
 * { box-sizing: border-box; }
@@ -148,6 +148,14 @@ button, input {
 .screen { display: none; flex: 1; flex-direction: column; }
 .screen.active { display: flex; }
 
+.mascot-badge {
+  width: 7.5rem;
+  height: 7.5rem;
+  margin: 0 auto 1rem;
+  display: block;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+}
+
 .screen-title {
   font-size: 1.6rem;
   font-weight: 900;
@@ -230,11 +238,23 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- User select screen ---------------- */
 
+#screen-user {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+#screen-user .screen-title,
+#screen-user .screen-sub {
+  text-align: center;
+}
+
 .user-list {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.7rem;
-  margin-bottom: 1.4rem;
+  width: 100%;
+  max-width: 22rem;
+  margin: 1.6rem auto;
 }
 
 .user-chip {
@@ -255,8 +275,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .user-chip:active { transform: scale(0.96); }
 
 .new-user-form {
-  margin-top: auto;
-  padding-top: 1rem;
+  width: 100%;
+  max-width: 22rem;
+  margin: 0.5rem auto 0;
 }
 
 /* ---------------- Workout screen ---------------- */

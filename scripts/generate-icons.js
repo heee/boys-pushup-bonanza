@@ -4,9 +4,9 @@ const zlib = require("zlib");
 const fs = require("fs");
 const path = require("path");
 
-const BG = [18, 18, 35];
-const FG = [255, 107, 53];
-const FG2 = [255, 179, 71];
+const BG = [28, 26, 20];
+const FG = [201, 133, 47];
+const FG2 = [232, 196, 104];
 
 function makeCanvas(size, bg) {
   const canvas = [];
