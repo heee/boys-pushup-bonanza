@@ -11,6 +11,14 @@
       "user": "Henning",
       "timestamp": "2026-07-10T21:03:34.721Z",
       "count": 6
+    },
+    {
+      "id": "b0ac0d34-52e9-4fa9-ba6e-653805146953",
+      "user": "Henning",
+      "timestamp": "2026-07-10T21:40:41.542Z",
+      "count": 1,
+      "avatar": "zany"
     }
-  ]
+  ],
+  "avatars": {}
 }
