@@ -56,6 +56,10 @@ const AVATARS = [
   { id: "burger", emoji: "🍔", bg: "#a0692e" },
   { id: "hotdog", emoji: "🌭", bg: "#b8622e" },
   { id: "cheese", emoji: "🧀", bg: "#d1a23a" },
+  { id: "beer", emoji: "🍺", bg: "#c9982e" },
+  { id: "beers", emoji: "🍻", bg: "#d4a83a" },
+  { id: "cheers", emoji: "🥂", bg: "#d9b66a" },
+  { id: "eggplant", emoji: "🍆", bg: "#5e3d7a" },
 ];
 
 // ------------------- small helpers -------------------
