@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Boys Push Up Bonanza</title>
+<meta name="description" content="Pushup counter and leaderboard for the boys. Phone on the floor, face over the camera, let's go.">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12162b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fff6e8" media="(prefers-color-scheme: light)">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="style.css">
+<script>
+  // Apply saved theme before first paint to avoid a flash of the wrong theme.
+  try {
+    var t = localStorage.getItem('bpb-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
+  <header id="app-header" class="app-header">
+    <button id="btn-home" class="brand" aria-label="Home">
+      <span class="brand-emoji">💪</span>
+      <span class="brand-text">Boys Push Up <em>Bonanza</em></span>
+    </button>
+    <nav class="header-actions">
+      <button id="btn-nav-dashboard" class="icon-btn" aria-label="Leaderboard" title="Leaderboard">🏆</button>
+      <button id="btn-nav-settings" class="icon-btn" aria-label="Settings" title="Settings">⚙️</button>
+      <button id="btn-theme-toggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    </nav>
+  </header>
+
+  <main id="app-main">
+
+    <!-- ============ SCREEN: USER SELECT ============ -->
+    <section id="screen-user" class="screen active">
+      <h1 class="screen-title">Who's flexing today? 💪</h1>
+      <p class="screen-sub">Pick your name or join the bonanza.</p>
+
+      <div id="user-list" class="user-list"></div>
+
+      <form id="new-user-form" class="new-user-form">
+        <input id="new-user-input" class="text-input" type="text" placeholder="Enter your name" maxlength="24" autocomplete="off" required>
+        <button type="submit" class="btn btn-primary">Let's go</button>
+      </form>
+    </section>
+
+    <!-- ============ SCREEN: WORKOUT ============ -->
+    <section id="screen-workout" class="screen">
+
+      <div id="workout-idle" class="workout-idle">
+        <p class="workout-hello">Ready, <span id="workout-username">Friend</span>?</p>
+        <p class="workout-instructions">Lay your phone flat on the floor, screen up, and get in push-up position with your face over the camera.</p>
+        <button id="btn-start" class="btn btn-giant btn-primary">START</button>
+        <p class="workout-hint">We'll ask for camera access to count your reps.</p>
+      </div>
+
+      <div id="workout-active" class="workout-active hidden">
+        <div class="camera-wrap">
+          <video id="camera-video" playsinline muted autoplay></video>
+          <div id="face-box" class="face-box hidden"></div>
+        </div>
+
+        <div id="status-banner" class="status-banner hidden">PAUSED — find your face</div>
+
+        <div class="rep-count-wrap">
+          <div id="rep-count" class="rep-count">0</div>
+          <div class="rep-label">PUSHUPS</div>
+          <div id="calibration-readout" class="calibration-readout hidden"></div>
+        </div>
+
+        <button id="btn-complete" class="btn btn-giant btn-complete">COMPLETE</button>
+      </div>
+
+    </section>
+
+    <!-- ============ SCREEN: SUMMARY ============ -->
+    <section id="screen-summary" class="screen">
+      <h1 class="screen-title">Session complete! 🎉</h1>
+      <div class="summary-count" id="summary-count">0</div>
+      <p class="summary-sub">pushups by <strong id="summary-user">you</strong></p>
+      <p id="summary-message" class="summary-message"></p>
+      <div id="summary-sync-status" class="sync-status"></div>
+      <div class="summary-actions">
+        <button id="btn-summary-again" class="btn btn-primary btn-large">Go again</button>
+        <button id="btn-summary-leaderboard" class="btn btn-secondary btn-large">View leaderboard 🏆</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: DASHBOARD ============ -->
+    <section id="screen-dashboard" class="screen">
+      <h1 class="screen-title">Leaderboard 🏆</h1>
+
+      <div id="period-select" class="segmented" role="tablist">
+        <button class="segment active" data-period="day">Day</button>
+        <button class="segment" data-period="week">Week</button>
+        <button class="segment" data-period="month">Month</button>
+        <button class="segment" data-period="quarter">Quarter</button>
+        <button class="segment" data-period="year">Year</button>
+      </div>
+
+      <div id="leaderboard-list" class="leaderboard-list"></div>
+
+      <h2 class="section-title">Session history</h2>
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS ============ -->
+    <section id="screen-settings" class="screen">
+      <h1 class="screen-title">Settings ⚙️</h1>
+
+      <div class="settings-block">
+        <h2 class="section-title">Shared data (GitHub)</h2>
+        <p class="settings-hint">Points at the GitHub repo storing <code>data.json</code>. See the README for how to create a fine-grained token.</p>
+        <label class="field-label">Repo owner</label>
+        <input id="gh-owner" class="text-input" type="text" placeholder="e.g. henning">
+        <label class="field-label">Repo name</label>
+        <input id="gh-repo" class="text-input" type="text" placeholder="e.g. boys-pushup-bonanza">
+        <label class="field-label">Branch</label>
+        <input id="gh-branch" class="text-input" type="text" placeholder="main" value="main">
+        <label class="field-label">Fine-grained token</label>
+        <div class="token-input-row">
+          <input id="gh-token" class="text-input" type="password" placeholder="github_pat_...">
+          <button id="btn-token-show" type="button" class="btn btn-small">Show</button>
+        </div>
+        <button id="btn-gh-save" class="btn btn-primary">Save connection</button>
+        <button id="btn-gh-test" class="btn btn-secondary">Test connection</button>
+        <p id="gh-status" class="settings-status"></p>
+        <p id="pending-status" class="settings-status"></p>
+      </div>
+
+      <div class="settings-block">
+        <h2 class="section-title">Calibration</h2>
+        <p class="settings-hint">Tune how close your face must get to the phone to register the "down" and "up" positions of a rep. Values are the face height as a fraction of the camera frame height.</p>
+
+        <label class="field-label">Down threshold: <span id="val-down">0.55</span></label>
+        <input id="range-down" type="range" min="0.15" max="0.95" step="0.01" value="0.55">
+
+        <label class="field-label">Up threshold: <span id="val-up">0.32</span></label>
+        <input id="range-up" type="range" min="0.10" max="0.90" step="0.01" value="0.32">
+
+        <label class="field-label toggle-row">
+          <span>Show live calibration readout during workout</span>
+          <input id="chk-calibration-readout" type="checkbox">
+        </label>
+
+        <button id="btn-calibration-defaults" class="btn btn-secondary">Reset to defaults</button>
+      </div>
+
+      <div class="settings-block">
+        <h2 class="section-title">About</h2>
+        <p class="settings-hint">Boys Push Up Bonanza — a client-side pushup counter and leaderboard. No servers, no accounts, just reps.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

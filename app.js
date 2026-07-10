@@ -1,0 +1,859 @@
+// ===========================================================
+// Boys Push Up Bonanza — app logic
+// Vanilla JS, no build step. Face detection via MediaPipe Tasks Vision (CDN).
+// ===========================================================
+
+const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
+const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
+const GH_PATH = "data.json";
+
+const LS = {
+  theme: "bpb-theme",
+  lastUser: "bpb-last-user",
+  ghOwner: "bpb-gh-owner",
+  ghRepo: "bpb-gh-repo",
+  ghBranch: "bpb-gh-branch",
+  ghToken: "bpb-gh-token",
+  thresholdDown: "bpb-threshold-down",
+  thresholdUp: "bpb-threshold-up",
+  calibrationReadout: "bpb-calibration-readout",
+  pendingQueue: "bpb-pending-queue",
+  cacheData: "bpb-cache-data",
+};
+
+const DEFAULT_DOWN = 0.55;
+const DEFAULT_UP = 0.32;
+const FACE_LOST_TIMEOUT_MS = 3000;
+
+// ------------------- small helpers -------------------
+
+function $(id) { return document.getElementById(id); }
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function uuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function b64EncodeUnicode(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16))));
+}
+function b64DecodeUnicode(str) {
+  return decodeURIComponent(
+    atob(str)
+      .split("")
+      .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+      .join("")
+  );
+}
+
+function toast(msg, ms = 2600) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.add("hidden"), ms);
+}
+
+const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+function numberToWords(n) {
+  if (n < 20) return ONES[n];
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? "-" + ONES[n % 10] : "");
+  if (n < 1000) return ONES[Math.floor(n / 100)] + " hundred" + (n % 100 ? " " + numberToWords(n % 100) : "");
+  return String(n);
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05;
+    speechSynthesis.speak(u);
+  } catch (e) { /* ignore */ }
+}
+
+function vibrate(ms) {
+  if (navigator.vibrate) {
+    try { navigator.vibrate(ms); } catch (e) { /* ignore */ }
+  }
+}
+
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+    " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+// ------------------- theme -------------------
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  $("btn-theme-toggle").textContent = theme === "dark" ? "🌙" : "☀️";
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(LS.theme) || "dark";
+  applyTheme(saved);
+  $("btn-theme-toggle").addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    const next = current === "dark" ? "light" : "dark";
+    localStorage.setItem(LS.theme, next);
+    applyTheme(next);
+  });
+}
+
+// ------------------- GitHub storage -------------------
+
+function getGhConfig() {
+  return {
+    owner: localStorage.getItem(LS.ghOwner) || "",
+    repo: localStorage.getItem(LS.ghRepo) || "",
+    branch: localStorage.getItem(LS.ghBranch) || "main",
+    token: localStorage.getItem(LS.ghToken) || "",
+  };
+}
+
+function ghConfigured() {
+  const c = getGhConfig();
+  return !!(c.owner && c.repo);
+}
+
+async function ghFetchFile() {
+  const c = getGhConfig();
+  if (!ghConfigured()) throw new Error("GitHub repo not configured yet — check Settings.");
+  const url = `https://api.github.com/repos/${c.owner}/${c.repo}/contents/${GH_PATH}?ref=${encodeURIComponent(c.branch)}`;
+  const headers = { Accept: "application/vnd.github+json" };
+  if (c.token) headers.Authorization = `Bearer ${c.token}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`GitHub fetch failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  const json = await res.json();
+  const decoded = b64DecodeUnicode(json.content.replace(/\n/g, ""));
+  let data;
+  try { data = JSON.parse(decoded); } catch (e) { data = { sessions: [] }; }
+  if (!Array.isArray(data.sessions)) data.sessions = [];
+  return { data, sha: json.sha };
+}
+
+async function ghPutFile(data, sha, message) {
+  const c = getGhConfig();
+  if (!c.token) throw new Error("No GitHub token configured — check Settings.");
+  const url = `https://api.github.com/repos/${c.owner}/${c.repo}/contents/${GH_PATH}`;
+  const body = {
+    message: message || "Update data.json",
+    content: b64EncodeUnicode(JSON.stringify(data, null, 2)),
+    sha,
+    branch: c.branch,
+  };
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${c.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const err = new Error(`GitHub write failed (${res.status}): ${text.slice(0, 200)}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+function cacheData(data) {
+  localStorage.setItem(LS.cacheData, JSON.stringify(data));
+}
+function getCachedData() {
+  try {
+    const raw = localStorage.getItem(LS.cacheData);
+    if (!raw) return { sessions: [] };
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.sessions)) data.sessions = [];
+    return data;
+  } catch (e) {
+    return { sessions: [] };
+  }
+}
+
+function getQueue() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS.pendingQueue) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) { return []; }
+}
+function setQueue(q) { localStorage.setItem(LS.pendingQueue, JSON.stringify(q)); }
+function enqueueSession(session) {
+  const q = getQueue();
+  q.push(session);
+  setQueue(q);
+}
+
+// Merge a single session into the shared data.json, retrying on sha conflicts.
+async function commitSession(session, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const { data, sha } = await ghFetchFile();
+      if (!data.sessions.some((s) => s.id === session.id)) {
+        data.sessions.push(session);
+      }
+      await ghPutFile(data, sha, `Add session: ${session.user} (${session.count} reps)`);
+      cacheData(data);
+      return true;
+    } catch (e) {
+      lastErr = e;
+      await sleep(350 * (i + 1));
+    }
+  }
+  throw lastErr;
+}
+
+// Retries anything queued locally from failed writes. Safe to call often.
+async function flushQueue() {
+  if (!ghConfigured()) return { flushed: 0, remaining: getQueue().length };
+  const q = getQueue();
+  if (!q.length) return { flushed: 0, remaining: 0 };
+  const stillPending = [];
+  let flushed = 0;
+  for (const session of q) {
+    try {
+      await commitSession(session);
+      flushed++;
+    } catch (e) {
+      stillPending.push(session);
+    }
+  }
+  setQueue(stillPending);
+  return { flushed, remaining: stillPending.length };
+}
+
+// All sessions currently known to this device: last successful remote fetch,
+// unioned with anything still queued (not yet confirmed written remotely).
+function getAllSessionsForDisplay() {
+  const cached = getCachedData().sessions;
+  const queued = getQueue();
+  const byId = new Map();
+  for (const s of cached) byId.set(s.id, s);
+  for (const s of queued) byId.set(s.id, s);
+  return Array.from(byId.values());
+}
+
+async function refreshFromRemote() {
+  if (!ghConfigured()) return getAllSessionsForDisplay();
+  try {
+    const { data } = await ghFetchFile();
+    cacheData(data);
+  } catch (e) {
+    // offline or misconfigured — fall back to cache silently
+  }
+  return getAllSessionsForDisplay();
+}
+
+// ------------------- app state -------------------
+
+const state = {
+  currentUser: localStorage.getItem(LS.lastUser) || "",
+  screen: "screen-user",
+  workoutActive: false,
+  faceDetector: null,
+  faceDetectorLoading: null,
+  stream: null,
+  wakeLock: null,
+  detectionRunning: false,
+  lastSessionResult: null,
+  dashboardPeriod: "day",
+};
+
+const repState = {
+  phase: "up",
+  count: 0,
+  smoothedRatio: null,
+  lastSeenAt: 0,
+  paused: false,
+};
+
+function getThresholdDown() {
+  const v = parseFloat(localStorage.getItem(LS.thresholdDown));
+  return Number.isFinite(v) ? v : DEFAULT_DOWN;
+}
+function getThresholdUp() {
+  const v = parseFloat(localStorage.getItem(LS.thresholdUp));
+  return Number.isFinite(v) ? v : DEFAULT_UP;
+}
+
+// ------------------- screen navigation -------------------
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+  $(id).classList.add("active");
+  state.screen = id;
+  $("app-header").classList.toggle("minimized", id === "screen-workout" && state.workoutActive);
+
+  if (id === "screen-user") renderUserList();
+  if (id === "screen-dashboard") renderDashboard();
+  if (id === "screen-settings") renderSettings();
+  if (id === "screen-workout" && !state.workoutActive) {
+    $("workout-username").textContent = state.currentUser || "Friend";
+  }
+}
+
+function guardLeaveWorkout(next) {
+  if (state.screen === "screen-workout" && state.workoutActive) {
+    const ok = confirm("Leave this workout? Your in-progress reps won't be saved.");
+    if (!ok) return;
+    stopWorkoutHard();
+  }
+  next();
+}
+
+$("btn-home").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
+$("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-dashboard")));
+$("btn-nav-settings").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-settings")));
+
+// ------------------- user select screen -------------------
+
+function renderUserList() {
+  const sessions = getAllSessionsForDisplay();
+  const names = Array.from(new Set(sessions.map((s) => s.user))).sort((a, b) => a.localeCompare(b));
+  const list = $("user-list");
+  list.innerHTML = "";
+  if (!names.length) {
+    const p = document.createElement("p");
+    p.className = "screen-sub";
+    p.textContent = "No one's flexed yet — be the first!";
+    list.appendChild(p);
+  }
+  for (const name of names) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "user-chip" + (name === state.currentUser ? " selected" : "");
+    btn.textContent = name;
+    btn.addEventListener("click", () => selectUser(name));
+    list.appendChild(btn);
+  }
+  $("new-user-input").value = "";
+}
+
+function selectUser(name) {
+  state.currentUser = name;
+  localStorage.setItem(LS.lastUser, name);
+  showScreen("screen-workout");
+}
+
+$("new-user-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("new-user-input").value.trim();
+  if (!name) return;
+  selectUser(name);
+});
+
+// ------------------- settings screen -------------------
+
+function renderSettings() {
+  const c = getGhConfig();
+  $("gh-owner").value = c.owner;
+  $("gh-repo").value = c.repo;
+  $("gh-branch").value = c.branch;
+  $("gh-token").value = c.token;
+  $("gh-status").textContent = "";
+  $("gh-status").className = "settings-status";
+
+  $("range-down").value = getThresholdDown();
+  $("range-up").value = getThresholdUp();
+  $("val-down").textContent = getThresholdDown().toFixed(2);
+  $("val-up").textContent = getThresholdUp().toFixed(2);
+  $("chk-calibration-readout").checked = localStorage.getItem(LS.calibrationReadout) === "1";
+
+  renderPendingStatus();
+}
+
+function renderPendingStatus() {
+  const n = getQueue().length;
+  $("pending-status").textContent = n > 0
+    ? `${n} session${n === 1 ? "" : "s"} saved locally, waiting to sync…`
+    : "";
+}
+
+function saveGhConfig() {
+  localStorage.setItem(LS.ghOwner, $("gh-owner").value.trim());
+  localStorage.setItem(LS.ghRepo, $("gh-repo").value.trim());
+  localStorage.setItem(LS.ghBranch, $("gh-branch").value.trim() || "main");
+  localStorage.setItem(LS.ghToken, $("gh-token").value.trim());
+}
+
+$("btn-gh-save").addEventListener("click", () => {
+  saveGhConfig();
+  $("gh-status").textContent = "Saved.";
+  $("gh-status").className = "settings-status ok";
+});
+
+$("btn-gh-test").addEventListener("click", async () => {
+  saveGhConfig();
+  const statusEl = $("gh-status");
+  statusEl.textContent = "Testing…";
+  statusEl.className = "settings-status";
+  try {
+    const { data } = await ghFetchFile();
+    cacheData(data);
+    statusEl.textContent = `Connected — found ${data.sessions.length} session(s).`;
+    statusEl.className = "settings-status ok";
+    const flushResult = await flushQueue();
+    if (flushResult.flushed) toast(`Synced ${flushResult.flushed} queued session(s).`);
+    renderPendingStatus();
+  } catch (e) {
+    statusEl.textContent = e.message || "Connection failed.";
+    statusEl.className = "settings-status err";
+  }
+});
+
+$("btn-token-show").addEventListener("click", () => {
+  const input = $("gh-token");
+  const showing = input.type === "text";
+  input.type = showing ? "password" : "text";
+  $("btn-token-show").textContent = showing ? "Show" : "Hide";
+});
+
+$("range-down").addEventListener("input", (e) => {
+  localStorage.setItem(LS.thresholdDown, e.target.value);
+  $("val-down").textContent = parseFloat(e.target.value).toFixed(2);
+});
+$("range-up").addEventListener("input", (e) => {
+  localStorage.setItem(LS.thresholdUp, e.target.value);
+  $("val-up").textContent = parseFloat(e.target.value).toFixed(2);
+});
+$("chk-calibration-readout").addEventListener("change", (e) => {
+  localStorage.setItem(LS.calibrationReadout, e.target.checked ? "1" : "0");
+});
+$("btn-calibration-defaults").addEventListener("click", () => {
+  localStorage.setItem(LS.thresholdDown, DEFAULT_DOWN);
+  localStorage.setItem(LS.thresholdUp, DEFAULT_UP);
+  renderSettings();
+});
+
+// ------------------- dashboard / leaderboard -------------------
+
+function periodStart(period) {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch (period) {
+    case "day": return d;
+    case "week": {
+      const day = d.getDay();
+      const diff = day === 0 ? 6 : day - 1;
+      d.setDate(d.getDate() - diff);
+      return d;
+    }
+    case "month": return new Date(now.getFullYear(), now.getMonth(), 1);
+    case "quarter": {
+      const q = Math.floor(now.getMonth() / 3);
+      return new Date(now.getFullYear(), q * 3, 1);
+    }
+    case "year": return new Date(now.getFullYear(), 0, 1);
+    default: return d;
+  }
+}
+
+const TROPHIES = ["🥇", "🥈", "🥉"];
+
+async function renderDashboard() {
+  await flushQueue().catch(() => {});
+  const sessions = await refreshFromRemote();
+  renderPendingStatus();
+  paintDashboard(sessions);
+}
+
+function paintDashboard(sessions) {
+  const start = periodStart(state.dashboardPeriod);
+  const filtered = sessions.filter((s) => new Date(s.timestamp) >= start);
+
+  const totals = new Map();
+  for (const s of filtered) {
+    totals.set(s.user, (totals.get(s.user) || 0) + s.count);
+  }
+  const ranked = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+
+  const lbList = $("leaderboard-list");
+  lbList.innerHTML = "";
+  if (!ranked.length) {
+    lbList.innerHTML = '<p class="leaderboard-empty">No pushups logged for this period yet. Get moving! 💪</p>';
+  } else {
+    ranked.forEach(([user, total], i) => {
+      const row = document.createElement("div");
+      row.className = "leaderboard-row" + (i < 3 ? ` rank-${i + 1}` : "");
+      row.innerHTML = `
+        <div class="leaderboard-rank">${i + 1}</div>
+        <div class="leaderboard-trophy">${TROPHIES[i] || ""}</div>
+        <div class="leaderboard-name">${escapeHtml(user)}</div>
+        <div class="leaderboard-total">${total}</div>
+      `;
+      lbList.appendChild(row);
+    });
+  }
+
+  const historyList = $("history-list");
+  historyList.innerHTML = "";
+  if (!filtered.length) {
+    historyList.innerHTML = '<p class="history-empty">No sessions in this period.</p>';
+  } else {
+    const byUser = new Map();
+    for (const s of filtered) {
+      if (!byUser.has(s.user)) byUser.set(s.user, []);
+      byUser.get(s.user).push(s);
+    }
+    const usersSorted = Array.from(byUser.keys()).sort((a, b) => (totals.get(b) || 0) - (totals.get(a) || 0));
+    for (const user of usersSorted) {
+      const userSessions = byUser.get(user).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const group = document.createElement("div");
+      group.className = "history-user-group";
+      const header = document.createElement("div");
+      header.className = "history-user-header";
+      header.innerHTML = `<span>${escapeHtml(user)} — ${totals.get(user)} total</span><span class="chev">▸</span>`;
+      header.addEventListener("click", () => group.classList.toggle("open"));
+      const sessionsWrap = document.createElement("div");
+      sessionsWrap.className = "history-sessions";
+      sessionsWrap.innerHTML = userSessions
+        .map((s) => `<div class="history-session-row"><span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${s.count}</span></div>`)
+        .join("");
+      group.appendChild(header);
+      group.appendChild(sessionsWrap);
+      historyList.appendChild(group);
+    }
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+$("period-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll(".segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.dashboardPeriod = btn.dataset.period;
+  const sessions = getAllSessionsForDisplay();
+  paintDashboard(sessions);
+});
+
+// ------------------- workout screen: camera + face detection -------------------
+
+async function ensureFaceDetector() {
+  if (state.faceDetector) return state.faceDetector;
+  if (state.faceDetectorLoading) return state.faceDetectorLoading;
+  state.faceDetectorLoading = (async () => {
+    const visionModule = await import(FACE_DETECTOR_MODULE_URL);
+    const { FaceDetector, FilesetResolver } = visionModule;
+    const vision = await FilesetResolver.forVisionTasks(FACE_DETECTOR_WASM_URL);
+    const detector = await FaceDetector.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: FACE_DETECTOR_MODEL_URL,
+        delegate: "CPU",
+      },
+      runningMode: "VIDEO",
+      minDetectionConfidence: 0.5,
+    });
+    state.faceDetector = detector;
+    return detector;
+  })();
+  return state.faceDetectorLoading;
+}
+
+async function acquireWakeLock() {
+  if (!("wakeLock" in navigator)) {
+    toast("Screen auto-lock can't be prevented on this browser — disable auto-lock in Settings if the screen dims.", 4500);
+    return;
+  }
+  try {
+    state.wakeLock = await navigator.wakeLock.request("screen");
+    state.wakeLock.addEventListener("release", () => { state.wakeLock = null; });
+  } catch (e) {
+    toast("Couldn't keep the screen awake automatically.", 3500);
+  }
+}
+
+async function releaseWakeLock() {
+  if (state.wakeLock) {
+    try { await state.wakeLock.release(); } catch (e) { /* ignore */ }
+    state.wakeLock = null;
+  }
+}
+
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && state.workoutActive && !state.wakeLock) {
+    await acquireWakeLock();
+  }
+});
+
+function resetRepState() {
+  repState.phase = "up";
+  repState.count = 0;
+  repState.smoothedRatio = null;
+  repState.lastSeenAt = performance.now();
+  repState.paused = false;
+  $("rep-count").textContent = "0";
+  hideStatusBanner();
+}
+
+function hideStatusBanner() { $("status-banner").classList.add("hidden"); }
+function showStatusBanner(text) {
+  $("status-banner").textContent = text;
+  $("status-banner").classList.remove("hidden");
+}
+
+function updateFaceBox(bbox) {
+  const video = $("camera-video");
+  const container = document.querySelector(".camera-wrap");
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const scale = Math.max(cw / vw, ch / vh);
+  const scaledW = vw * scale, scaledH = vh * scale;
+  const offsetX = (cw - scaledW) / 2, offsetY = (ch - scaledH) / 2;
+  const box = $("face-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+function hideFaceBox() { $("face-box").classList.add("hidden"); }
+
+function processRatio(ratio) {
+  const now = performance.now();
+  repState.lastSeenAt = now;
+
+  if (repState.smoothedRatio == null) repState.smoothedRatio = ratio;
+  else repState.smoothedRatio = repState.smoothedRatio * 0.7 + ratio * 0.3;
+
+  if (repState.paused) {
+    repState.paused = false;
+    repState.smoothedRatio = ratio;
+    hideStatusBanner();
+    speak("Back to it");
+  }
+
+  if (localStorage.getItem(LS.calibrationReadout) === "1") {
+    $("calibration-readout").textContent =
+      `ratio ${repState.smoothedRatio.toFixed(2)} · phase ${repState.phase}`;
+    $("calibration-readout").classList.remove("hidden");
+  } else {
+    $("calibration-readout").classList.add("hidden");
+  }
+
+  const down = getThresholdDown();
+  const up = getThresholdUp();
+
+  if (repState.phase === "up" && repState.smoothedRatio >= down) {
+    repState.phase = "down";
+  } else if (repState.phase === "down" && repState.smoothedRatio <= up) {
+    repState.phase = "up";
+    repState.count += 1;
+    onRepCounted(repState.count);
+  }
+}
+
+function onRepCounted(count) {
+  $("rep-count").textContent = String(count);
+  speak(numberToWords(count));
+  vibrate(45);
+}
+
+function checkFaceLostTimeout() {
+  if (repState.paused) return;
+  const now = performance.now();
+  if (now - repState.lastSeenAt > FACE_LOST_TIMEOUT_MS) {
+    repState.paused = true;
+    showStatusBanner("PAUSED — find your face");
+    speak("Paused");
+  }
+}
+
+function runDetectionOnce() {
+  const video = $("camera-video");
+  if (!state.faceDetector || !video.videoWidth) return;
+  let result;
+  try {
+    result = state.faceDetector.detectForVideo(video, performance.now());
+  } catch (e) {
+    return;
+  }
+  if (result && result.detections && result.detections.length > 0) {
+    const bbox = result.detections[0].boundingBox;
+    updateFaceBox(bbox);
+    processRatio(bbox.height / video.videoHeight);
+  } else {
+    hideFaceBox();
+    checkFaceLostTimeout();
+  }
+}
+
+function startDetectionLoop() {
+  const video = $("camera-video");
+  const useRVFC = typeof video.requestVideoFrameCallback === "function";
+  let lastProcessed = 0;
+  const minIntervalMs = 100;
+
+  function onFrame(now) {
+    if (!state.detectionRunning) return;
+    if (now - lastProcessed >= minIntervalMs) {
+      lastProcessed = now;
+      runDetectionOnce();
+    }
+    if (useRVFC) video.requestVideoFrameCallback(onFrame);
+    else requestAnimationFrame(onFrame);
+  }
+  if (useRVFC) video.requestVideoFrameCallback(onFrame);
+  else requestAnimationFrame(onFrame);
+}
+
+async function startWorkout() {
+  speak("Let's go");
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false,
+    });
+  } catch (e) {
+    toast("Camera access is required to count reps. Please allow camera permission.", 4000);
+    return;
+  }
+
+  toast("Loading face detector…", 2000);
+  let detector;
+  try {
+    detector = await ensureFaceDetector();
+  } catch (e) {
+    toast("Couldn't load the face detection model. Check your connection and try again.", 4500);
+    stream.getTracks().forEach((t) => t.stop());
+    return;
+  }
+
+  state.stream = stream;
+  const video = $("camera-video");
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) { /* autoplay quirks */ }
+
+  await acquireWakeLock();
+
+  resetRepState();
+  state.workoutActive = true;
+  state.detectionRunning = true;
+  $("workout-idle").classList.add("hidden");
+  $("workout-active").classList.remove("hidden");
+  $("app-header").classList.add("minimized");
+
+  startDetectionLoop();
+}
+
+function stopCameraAndDetection() {
+  state.detectionRunning = false;
+  if (state.stream) {
+    state.stream.getTracks().forEach((t) => t.stop());
+    state.stream = null;
+  }
+  $("camera-video").srcObject = null;
+}
+
+function stopWorkoutHard() {
+  stopCameraAndDetection();
+  releaseWakeLock();
+  state.workoutActive = false;
+  $("workout-active").classList.add("hidden");
+  $("workout-idle").classList.remove("hidden");
+  $("app-header").classList.remove("minimized");
+}
+
+const FUN_MESSAGES = [
+  (n) => `${n} pushups down. Somewhere, a gym bro just shed a single tear.`,
+  (n) => `That's ${n} reps of pure bonanza energy.`,
+  (n) => `${n}! The floor never stood a chance.`,
+  (n) => `Boom. ${n} pushups. Tell your friends before they check the leaderboard.`,
+  (n) => `${n} reps in the books. Absolute unit behavior.`,
+];
+
+async function completeWorkout() {
+  const count = repState.count;
+  stopCameraAndDetection();
+  await releaseWakeLock();
+  state.workoutActive = false;
+  $("workout-active").classList.add("hidden");
+  $("workout-idle").classList.remove("hidden");
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count,
+  };
+
+  // Optimistically reflect it locally right away so it shows up immediately.
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  const message = FUN_MESSAGES[Math.floor(Math.random() * FUN_MESSAGES.length)](count);
+  $("summary-count").textContent = String(count);
+  $("summary-user").textContent = state.currentUser;
+  $("summary-message").textContent = message;
+  $("summary-sync-status").textContent = "Saving…";
+  showScreen("screen-summary");
+  speak(`Session complete. ${message}`);
+
+  try {
+    await commitSession(session);
+    $("summary-sync-status").textContent = "Synced to the shared leaderboard ✓";
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = ghConfigured()
+      ? "Saved on this device — will sync automatically when back online."
+      : "Saved on this device — connect GitHub in Settings to sync with everyone.";
+  }
+}
+
+$("btn-start").addEventListener("click", startWorkout);
+$("btn-complete").addEventListener("click", completeWorkout);
+$("btn-summary-again").addEventListener("click", () => showScreen("screen-workout"));
+$("btn-summary-leaderboard").addEventListener("click", () => showScreen("screen-dashboard"));
+
+// ------------------- init -------------------
+
+async function init() {
+  initTheme();
+  showScreen(state.currentUser ? "screen-user" : "screen-user");
+  await flushQueue().catch(() => {});
+  renderPendingStatus();
+
+  if (ghConfigured()) {
+    try {
+      const { data } = await ghFetchFile();
+      cacheData(data);
+      renderUserList();
+    } catch (e) {
+      // offline or misconfigured; cached data (if any) is already shown
+    }
+  }
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+
+init();
