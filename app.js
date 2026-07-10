@@ -10,11 +10,11 @@ const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models
 // Every device talks to this one Worker instead of GitHub directly — it
 // holds the GitHub token server-side so no one has to paste a token in.
 // Replace with your deployed Worker URL (see README) before shipping.
-const WORKER_URL = "https://boys-pushup-bonanza-worker.YOUR-SUBDOMAIN.workers.dev";
+const WORKER_URL = "https://boys-pushup-bonanza-worker.jhenningbuchholz.workers.dev";
 // Must match the APP_KEY secret set on the Worker. Not real security (it's
 // visible in this public source) — just a deterrent against casual randoms
 // who stumble on the Worker URL.
-const APP_KEY = "let-the-boys-cook";
+const APP_KEY = "Bonanza";
 
 const LS = {
   theme: "bpb-theme",
