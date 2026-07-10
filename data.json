@@ -1,4 +1,12 @@
 {
-  "sessions": [],
+  "sessions": [
+    {
+      "id": "16401ffe-9002-4211-874e-ea26908af723",
+      "user": "Henning",
+      "timestamp": "2026-07-10T21:43:23.523Z",
+      "count": 13,
+      "avatar": "chicken"
+    }
+  ],
   "avatars": {}
 }
