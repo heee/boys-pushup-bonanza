@@ -23,6 +23,7 @@ const LS = {
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
   calibrationReadout: "bpb-calibration-readout",
+  showHighscore: "bpb-show-highscore",
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
 };
@@ -335,6 +336,7 @@ const state = {
   detectionRunning: false,
   lastSessionResult: null,
   dashboardPeriod: "day",
+  highScore: 0,
 };
 
 const repState = {
@@ -451,6 +453,7 @@ function renderSettings() {
   $("val-down").textContent = getThresholdDown().toFixed(2);
   $("val-up").textContent = getThresholdUp().toFixed(2);
   $("chk-calibration-readout").checked = localStorage.getItem(LS.calibrationReadout) === "1";
+  $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
 
   renderPendingStatus();
   testSyncConnection();
@@ -566,6 +569,9 @@ $("range-up").addEventListener("input", (e) => {
 });
 $("chk-calibration-readout").addEventListener("change", (e) => {
   localStorage.setItem(LS.calibrationReadout, e.target.checked ? "1" : "0");
+});
+$("chk-highscore-message").addEventListener("change", (e) => {
+  localStorage.setItem(LS.showHighscore, e.target.checked ? "1" : "0");
 });
 $("btn-calibration-defaults").addEventListener("click", () => {
   localStorage.setItem(LS.thresholdDown, DEFAULT_DOWN);
@@ -737,7 +743,31 @@ function resetRepState() {
   repState.lastSeenAt = performance.now();
   repState.paused = false;
   $("rep-count").textContent = "0";
+  updateHighscoreMessage(0);
   hideStatusBanner();
+}
+
+function getHighScore(name) {
+  return getAllSessionsForDisplay()
+    .filter((s) => s.user === name)
+    .reduce((max, s) => Math.max(max, s.count), 0);
+}
+
+function updateHighscoreMessage(count) {
+  const el = $("highscore-message");
+  const enabled = localStorage.getItem(LS.showHighscore) !== "0";
+  if (!enabled || !state.highScore) {
+    el.textContent = "";
+    return;
+  }
+  const remaining = state.highScore - count;
+  if (remaining > 0) {
+    el.textContent = `${remaining} pushup${remaining === 1 ? "" : "s"} away from your high score!`;
+  } else if (remaining === 0) {
+    el.textContent = "Tied your high score — one more!";
+  } else {
+    el.textContent = "New high score! 🔥";
+  }
 }
 
 function hideStatusBanner() { $("status-banner").classList.add("hidden"); }
@@ -800,6 +830,7 @@ function processRatio(ratio) {
 
 function onRepCounted(count) {
   $("rep-count").textContent = String(count);
+  updateHighscoreMessage(count);
   speak(numberToWords(count));
   vibrate(45);
 }
@@ -883,6 +914,7 @@ async function startWorkout() {
 
   await acquireWakeLock();
 
+  state.highScore = getHighScore(state.currentUser);
   resetRepState();
   state.workoutActive = true;
   state.detectionRunning = true;

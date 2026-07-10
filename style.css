@@ -205,6 +205,11 @@ button, input {
   color: #fff;
   box-shadow: var(--shadow);
 }
+.workout-active .btn-complete {
+  font-size: 1.5rem;
+  padding: 1.15rem;
+  margin-top: 0.9rem;
+}
 
 .text-input {
   width: 100%;
@@ -430,6 +435,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-size: 0.85rem;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+}
+
+.highscore-message {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 0.6rem;
+  min-height: 1.2rem;
 }
 
 /* ---------------- Summary screen ---------------- */
