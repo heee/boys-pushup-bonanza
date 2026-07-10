@@ -599,6 +599,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   border-radius: 12px;
 }
 .manage-user-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manage-avatar-select { width: 2.2rem; height: 2.2rem; font-size: 1.05rem; }
 .btn-delete-user {
   background: none;
   border: none;

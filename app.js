@@ -86,10 +86,13 @@ function getAvatar(id) {
   return AVATARS.find((a) => a.id === id) || AVATARS[hashString(id || "") % AVATARS.length];
 }
 
-// Everyone's avatar is whatever they last picked, derived from their most
-// recent synced session. Falls back to a name-based pick so even sessions
-// saved before this feature still get a consistent-looking avatar.
+// A user's avatar is: an explicit override set from Settings, else whatever
+// they last picked (derived from their most recent synced session), else a
+// name-based fallback so even sessions saved before this feature still get
+// a consistent-looking avatar.
 function avatarForUser(name) {
+  const override = getCachedData().avatars?.[name];
+  if (override) return getAvatar(override);
   const sessions = getAllSessionsForDisplay()
     .filter((s) => s.user === name && s.avatar)
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -186,7 +189,22 @@ async function workerFetchData() {
   }
   const data = await res.json();
   if (!Array.isArray(data.sessions)) data.sessions = [];
+  if (!data.avatars || typeof data.avatars !== "object") data.avatars = {};
   return data;
+}
+
+async function workerSetAvatar(user, avatar) {
+  if (!workerConfigured()) throw new Error("Worker URL not configured yet.");
+  const res = await fetch(`${WORKER_URL}/set-avatar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-App-Key": APP_KEY },
+    body: JSON.stringify({ user, avatar }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Update failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  return res.json();
 }
 
 async function workerPostSession(session) {
@@ -223,12 +241,13 @@ function cacheData(data) {
 function getCachedData() {
   try {
     const raw = localStorage.getItem(LS.cacheData);
-    if (!raw) return { sessions: [] };
+    if (!raw) return { sessions: [], avatars: {} };
     const data = JSON.parse(raw);
     if (!Array.isArray(data.sessions)) data.sessions = [];
+    if (!data.avatars || typeof data.avatars !== "object") data.avatars = {};
     return data;
   } catch (e) {
-    return { sessions: [] };
+    return { sessions: [], avatars: {} };
   }
 }
 
@@ -452,13 +471,35 @@ function renderManageUsers() {
     const row = document.createElement("div");
     row.className = "manage-user-row";
     row.innerHTML = `
-      ${avatarCircleHTML(avatar, "1.7rem")}
+      <select class="avatar-select manage-avatar-select" aria-label="Change ${escapeHtml(name)}'s avatar"></select>
       <span class="manage-user-name">${escapeHtml(name)}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete ${escapeHtml(name)}">🗑️</button>
     `;
+    const avatarSelect = row.querySelector(".manage-avatar-select");
+    avatarSelect.innerHTML = AVATARS.map((a) => `<option value="${a.id}">${a.emoji}</option>`).join("");
+    avatarSelect.value = avatar.id;
+    avatarSelect.style.background = avatar.bg;
+    avatarSelect.addEventListener("change", () => {
+      avatarSelect.style.background = getAvatar(avatarSelect.value).bg;
+      changeUserAvatar(name, avatarSelect.value);
+    });
     row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteUser(name));
     list.appendChild(row);
   }
+}
+
+async function changeUserAvatar(name, avatarId) {
+  try {
+    await workerSetAvatar(name, avatarId);
+  } catch (e) {
+    toast(`Couldn't update avatar — check your connection.`, 4000);
+    renderManageUsers();
+    return;
+  }
+  const cached = getCachedData();
+  cached.avatars[name] = avatarId;
+  cacheData(cached);
+  toast(`Updated ${name}'s avatar.`);
 }
 
 async function confirmDeleteUser(name) {
@@ -472,6 +513,7 @@ async function confirmDeleteUser(name) {
   }
   const cached = getCachedData();
   cached.sessions = cached.sessions.filter((s) => s.user !== name);
+  if (cached.avatars) delete cached.avatars[name];
   cacheData(cached);
   setQueue(getQueue().filter((s) => s.user !== name));
   if (state.currentUser === name) {

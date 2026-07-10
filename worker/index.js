@@ -6,6 +6,7 @@
 //   GET  /data         -> current data.json contents (no auth required to read)
 //   POST /session      -> { id, user, timestamp, count, avatar? } -> merges into data.json
 //   POST /delete-user  -> { user } -> removes all of that user's sessions from data.json
+//   POST /set-avatar   -> { user, avatar } -> sets/overrides that user's avatar
 //
 // Required Worker secrets/variables (set in the Cloudflare dashboard under
 // Settings -> Variables and Secrets):
@@ -76,7 +77,33 @@ export default {
       try {
         await commitMutation(env, (data) => {
           data.sessions = data.sessions.filter((s) => s.user !== user);
+          if (data.avatars) delete data.avatars[user];
         }, `Delete user: ${user}`);
+        return json({ ok: true }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/set-avatar" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      const avatar = typeof body?.avatar === "string" ? body.avatar.trim().slice(0, 20) : "";
+      if (!user || !avatar) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        await commitMutation(env, (data) => {
+          if (!data.avatars || typeof data.avatars !== "object") data.avatars = {};
+          data.avatars[user] = avatar;
+        }, `Set avatar: ${user} -> ${avatar}`);
         return json({ ok: true }, 200, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
@@ -158,6 +185,7 @@ async function fetchGithubFile(env) {
     data = { sessions: [] };
   }
   if (!Array.isArray(data.sessions)) data.sessions = [];
+  if (!data.avatars || typeof data.avatars !== "object") data.avatars = {};
   return { data, sha: fileJson.sha };
 }
 
