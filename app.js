@@ -6,15 +6,19 @@
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
-const GH_PATH = "data.json";
+
+// Every device talks to this one Worker instead of GitHub directly — it
+// holds the GitHub token server-side so no one has to paste a token in.
+// Replace with your deployed Worker URL (see README) before shipping.
+const WORKER_URL = "https://boys-pushup-bonanza-worker.YOUR-SUBDOMAIN.workers.dev";
+// Must match the APP_KEY secret set on the Worker. Not real security (it's
+// visible in this public source) — just a deterrent against casual randoms
+// who stumble on the Worker URL.
+const APP_KEY = "let-the-boys-cook";
 
 const LS = {
   theme: "bpb-theme",
   lastUser: "bpb-last-user",
-  ghOwner: "bpb-gh-owner",
-  ghRepo: "bpb-gh-repo",
-  ghBranch: "bpb-gh-branch",
-  ghToken: "bpb-gh-token",
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
   calibrationReadout: "bpb-calibration-readout",
@@ -38,18 +42,6 @@ function uuid() {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
-}
-
-function b64EncodeUnicode(str) {
-  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16))));
-}
-function b64DecodeUnicode(str) {
-  return decodeURIComponent(
-    atob(str)
-      .split("")
-      .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-      .join("")
-  );
 }
 
 function toast(msg, ms = 2600) {
@@ -111,65 +103,34 @@ function initTheme() {
   });
 }
 
-// ------------------- GitHub storage -------------------
+// ------------------- shared data (via Worker) -------------------
 
-function getGhConfig() {
-  return {
-    owner: localStorage.getItem(LS.ghOwner) || "",
-    repo: localStorage.getItem(LS.ghRepo) || "",
-    branch: localStorage.getItem(LS.ghBranch) || "main",
-    token: localStorage.getItem(LS.ghToken) || "",
-  };
+function workerConfigured() {
+  return !WORKER_URL.includes("YOUR-SUBDOMAIN");
 }
 
-function ghConfigured() {
-  const c = getGhConfig();
-  return !!(c.owner && c.repo);
-}
-
-async function ghFetchFile() {
-  const c = getGhConfig();
-  if (!ghConfigured()) throw new Error("GitHub repo not configured yet — check Settings.");
-  const url = `https://api.github.com/repos/${c.owner}/${c.repo}/contents/${GH_PATH}?ref=${encodeURIComponent(c.branch)}`;
-  const headers = { Accept: "application/vnd.github+json" };
-  if (c.token) headers.Authorization = `Bearer ${c.token}`;
-  const res = await fetch(url, { headers });
+async function workerFetchData() {
+  if (!workerConfigured()) throw new Error("Worker URL not configured yet.");
+  const res = await fetch(`${WORKER_URL}/data`);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`GitHub fetch failed (${res.status}): ${text.slice(0, 200)}`);
+    throw new Error(`Fetch failed (${res.status}): ${text.slice(0, 200)}`);
   }
-  const json = await res.json();
-  const decoded = b64DecodeUnicode(json.content.replace(/\n/g, ""));
-  let data;
-  try { data = JSON.parse(decoded); } catch (e) { data = { sessions: [] }; }
+  const data = await res.json();
   if (!Array.isArray(data.sessions)) data.sessions = [];
-  return { data, sha: json.sha };
+  return data;
 }
 
-async function ghPutFile(data, sha, message) {
-  const c = getGhConfig();
-  if (!c.token) throw new Error("No GitHub token configured — check Settings.");
-  const url = `https://api.github.com/repos/${c.owner}/${c.repo}/contents/${GH_PATH}`;
-  const body = {
-    message: message || "Update data.json",
-    content: b64EncodeUnicode(JSON.stringify(data, null, 2)),
-    sha,
-    branch: c.branch,
-  };
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${c.token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+async function workerPostSession(session) {
+  if (!workerConfigured()) throw new Error("Worker URL not configured yet.");
+  const res = await fetch(`${WORKER_URL}/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-App-Key": APP_KEY },
+    body: JSON.stringify(session),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    const err = new Error(`GitHub write failed (${res.status}): ${text.slice(0, 200)}`);
-    err.status = res.status;
-    throw err;
+    throw new Error(`Save failed (${res.status}): ${text.slice(0, 200)}`);
   }
   return res.json();
 }
@@ -202,17 +163,13 @@ function enqueueSession(session) {
   setQueue(q);
 }
 
-// Merge a single session into the shared data.json, retrying on sha conflicts.
-async function commitSession(session, attempts = 3) {
+// Sends a session to the Worker (which handles the GitHub merge/retry
+// server-side). A couple of client-side retries just for network flakiness.
+async function commitSession(session, attempts = 2) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try {
-      const { data, sha } = await ghFetchFile();
-      if (!data.sessions.some((s) => s.id === session.id)) {
-        data.sessions.push(session);
-      }
-      await ghPutFile(data, sha, `Add session: ${session.user} (${session.count} reps)`);
-      cacheData(data);
+      await workerPostSession(session);
       return true;
     } catch (e) {
       lastErr = e;
@@ -224,7 +181,7 @@ async function commitSession(session, attempts = 3) {
 
 // Retries anything queued locally from failed writes. Safe to call often.
 async function flushQueue() {
-  if (!ghConfigured()) return { flushed: 0, remaining: getQueue().length };
+  if (!workerConfigured()) return { flushed: 0, remaining: getQueue().length };
   const q = getQueue();
   if (!q.length) return { flushed: 0, remaining: 0 };
   const stillPending = [];
@@ -253,12 +210,12 @@ function getAllSessionsForDisplay() {
 }
 
 async function refreshFromRemote() {
-  if (!ghConfigured()) return getAllSessionsForDisplay();
+  if (!workerConfigured()) return getAllSessionsForDisplay();
   try {
-    const { data } = await ghFetchFile();
+    const data = await workerFetchData();
     cacheData(data);
   } catch (e) {
-    // offline or misconfigured — fall back to cache silently
+    // offline or Worker unreachable — fall back to cache silently
   }
   return getAllSessionsForDisplay();
 }
@@ -364,14 +321,6 @@ $("new-user-form").addEventListener("submit", (e) => {
 // ------------------- settings screen -------------------
 
 function renderSettings() {
-  const c = getGhConfig();
-  $("gh-owner").value = c.owner;
-  $("gh-repo").value = c.repo;
-  $("gh-branch").value = c.branch;
-  $("gh-token").value = c.token;
-  $("gh-status").textContent = "";
-  $("gh-status").className = "settings-status";
-
   $("range-down").value = getThresholdDown();
   $("range-up").value = getThresholdUp();
   $("val-down").textContent = getThresholdDown().toFixed(2);
@@ -379,6 +328,7 @@ function renderSettings() {
   $("chk-calibration-readout").checked = localStorage.getItem(LS.calibrationReadout) === "1";
 
   renderPendingStatus();
+  testSyncConnection();
 }
 
 function renderPendingStatus() {
@@ -388,26 +338,17 @@ function renderPendingStatus() {
     : "";
 }
 
-function saveGhConfig() {
-  localStorage.setItem(LS.ghOwner, $("gh-owner").value.trim());
-  localStorage.setItem(LS.ghRepo, $("gh-repo").value.trim());
-  localStorage.setItem(LS.ghBranch, $("gh-branch").value.trim() || "main");
-  localStorage.setItem(LS.ghToken, $("gh-token").value.trim());
-}
-
-$("btn-gh-save").addEventListener("click", () => {
-  saveGhConfig();
-  $("gh-status").textContent = "Saved.";
-  $("gh-status").className = "settings-status ok";
-});
-
-$("btn-gh-test").addEventListener("click", async () => {
-  saveGhConfig();
+async function testSyncConnection() {
   const statusEl = $("gh-status");
-  statusEl.textContent = "Testing…";
+  if (!workerConfigured()) {
+    statusEl.textContent = "Shared leaderboard isn't set up yet.";
+    statusEl.className = "settings-status err";
+    return;
+  }
+  statusEl.textContent = "Checking connection…";
   statusEl.className = "settings-status";
   try {
-    const { data } = await ghFetchFile();
+    const data = await workerFetchData();
     cacheData(data);
     statusEl.textContent = `Connected — found ${data.sessions.length} session(s).`;
     statusEl.className = "settings-status ok";
@@ -415,17 +356,12 @@ $("btn-gh-test").addEventListener("click", async () => {
     if (flushResult.flushed) toast(`Synced ${flushResult.flushed} queued session(s).`);
     renderPendingStatus();
   } catch (e) {
-    statusEl.textContent = e.message || "Connection failed.";
+    statusEl.textContent = "Can't reach the shared leaderboard right now.";
     statusEl.className = "settings-status err";
   }
-});
+}
 
-$("btn-token-show").addEventListener("click", () => {
-  const input = $("gh-token");
-  const showing = input.type === "text";
-  input.type = showing ? "password" : "text";
-  $("btn-token-show").textContent = showing ? "Show" : "Hide";
-});
+$("btn-gh-test").addEventListener("click", testSyncConnection);
 
 $("range-down").addEventListener("input", (e) => {
   localStorage.setItem(LS.thresholdDown, e.target.value);
@@ -822,9 +758,7 @@ async function completeWorkout() {
     $("summary-sync-status").textContent = "Synced to the shared leaderboard ✓";
   } catch (e) {
     enqueueSession(session);
-    $("summary-sync-status").textContent = ghConfigured()
-      ? "Saved on this device — will sync automatically when back online."
-      : "Saved on this device — connect GitHub in Settings to sync with everyone.";
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
   }
 }
 
@@ -841,13 +775,13 @@ async function init() {
   await flushQueue().catch(() => {});
   renderPendingStatus();
 
-  if (ghConfigured()) {
+  if (workerConfigured()) {
     try {
-      const { data } = await ghFetchFile();
+      const data = await workerFetchData();
       cacheData(data);
       renderUserList();
     } catch (e) {
-      // offline or misconfigured; cached data (if any) is already shown
+      // offline or Worker unreachable; cached data (if any) is already shown
     }
   }
 

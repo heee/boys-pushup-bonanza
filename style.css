@@ -226,9 +226,6 @@ button, input {
 }
 .toggle-row input { width: 1.3rem; height: 1.3rem; }
 
-.token-input-row { display: flex; gap: 0.5rem; align-items: flex-start; }
-.token-input-row .text-input { flex: 1; }
-
 input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- User select screen ---------------- */

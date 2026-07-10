@@ -122,21 +122,9 @@
       <h1 class="screen-title">Settings ⚙️</h1>
 
       <div class="settings-block">
-        <h2 class="section-title">Shared data (GitHub)</h2>
-        <p class="settings-hint">Points at the GitHub repo storing <code>data.json</code>. See the README for how to create a fine-grained token.</p>
-        <label class="field-label">Repo owner</label>
-        <input id="gh-owner" class="text-input" type="text" placeholder="e.g. henning">
-        <label class="field-label">Repo name</label>
-        <input id="gh-repo" class="text-input" type="text" placeholder="e.g. boys-pushup-bonanza">
-        <label class="field-label">Branch</label>
-        <input id="gh-branch" class="text-input" type="text" placeholder="main" value="main">
-        <label class="field-label">Fine-grained token</label>
-        <div class="token-input-row">
-          <input id="gh-token" class="text-input" type="password" placeholder="github_pat_...">
-          <button id="btn-token-show" type="button" class="btn btn-small">Show</button>
-        </div>
-        <button id="btn-gh-save" class="btn btn-primary">Save connection</button>
-        <button id="btn-gh-test" class="btn btn-secondary">Test connection</button>
+        <h2 class="section-title">Shared leaderboard</h2>
+        <p class="settings-hint">Everyone's sessions sync automatically — nothing to set up on this device.</p>
+        <button id="btn-gh-test" class="btn btn-secondary">Check connection</button>
         <p id="gh-status" class="settings-status"></p>
         <p id="pending-status" class="settings-status"></p>
       </div>
