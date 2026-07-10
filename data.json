@@ -8,5 +8,7 @@
       "avatar": "chicken"
     }
   ],
-  "avatars": {}
+  "avatars": {
+    "EndpointTest": "beer"
+  }
 }
