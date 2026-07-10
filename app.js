@@ -409,6 +409,22 @@ function renderUserList() {
     btn.addEventListener("click", () => selectUser(name));
     list.appendChild(btn);
   }
+
+  if (names.length) {
+    const newBtn = document.createElement("button");
+    newBtn.type = "button";
+    newBtn.className = "user-chip new-user-chip";
+    newBtn.innerHTML = `<span class="new-user-plus">＋</span><span>New user</span>`;
+    newBtn.addEventListener("click", () => {
+      $("new-user-form").classList.remove("hidden");
+      $("new-user-input").focus();
+    });
+    list.appendChild(newBtn);
+    $("new-user-form").classList.add("hidden");
+  } else {
+    $("new-user-form").classList.remove("hidden");
+  }
+
   $("new-user-input").value = "";
   populateAvatarSelect();
 }

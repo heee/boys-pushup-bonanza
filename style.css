@@ -294,6 +294,23 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .user-chip:active { transform: scale(0.96); }
 
+.new-user-chip {
+  background: none;
+  border-style: dashed;
+  color: var(--text-dim);
+}
+.new-user-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 2px dashed var(--border);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
 .new-user-form {
   display: flex;
   gap: 0.6rem;
