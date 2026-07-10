@@ -122,8 +122,13 @@
 
       <div id="leaderboard-list" class="leaderboard-list"></div>
 
-      <h2 class="section-title">Session history</h2>
-      <div id="history-list" class="history-list"></div>
+      <div id="history-view-select" class="segmented" role="tablist">
+        <button class="segment active" data-view="recent">Last flexers</button>
+        <button class="segment" data-view="history">Session history</button>
+      </div>
+
+      <div id="recent-list" class="history-list"></div>
+      <div id="history-list" class="history-list hidden"></div>
     </section>
 
     <!-- ============ SCREEN: SETTINGS ============ -->

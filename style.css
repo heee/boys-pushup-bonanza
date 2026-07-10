@@ -528,6 +528,21 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 .leaderboard-list { display: flex; flex-direction: column; gap: 0.6rem; }
 
+#history-view-select { margin-top: 1.6rem; }
+
+.recent-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.6rem 0.85rem;
+}
+.recent-name { flex: 1; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-count { font-weight: 900; font-size: 1.1rem; color: var(--primary); }
+.recent-time { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; }
+
 .leaderboard-row {
   display: flex;
   align-items: center;

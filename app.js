@@ -336,6 +336,7 @@ const state = {
   detectionRunning: false,
   lastSessionResult: null,
   dashboardPeriod: "day",
+  historyView: "recent",
   highScore: 0,
 };
 
@@ -669,7 +670,45 @@ function paintDashboard(sessions) {
       historyList.appendChild(group);
     }
   }
+
+  renderRecentList(sessions);
+  updateHistoryViewVisibility();
 }
+
+function renderRecentList(sessions) {
+  const recentList = $("recent-list");
+  const recent = [...sessions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+  recentList.innerHTML = "";
+  if (!recent.length) {
+    recentList.innerHTML = '<p class="history-empty">No pushups logged yet. Get moving! 💪</p>';
+    return;
+  }
+  for (const s of recent) {
+    const row = document.createElement("div");
+    row.className = "recent-row";
+    row.innerHTML = `
+      ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
+      <div class="recent-name">${escapeHtml(s.user)}</div>
+      <div class="recent-count">${s.count}</div>
+      <div class="recent-time">${formatDateTime(s.timestamp)}</div>
+    `;
+    recentList.appendChild(row);
+  }
+}
+
+function updateHistoryViewVisibility() {
+  $("recent-list").classList.toggle("hidden", state.historyView !== "recent");
+  $("history-list").classList.toggle("hidden", state.historyView !== "history");
+}
+
+$("history-view-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#history-view-select .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.historyView = btn.dataset.view;
+  updateHistoryViewVisibility();
+});
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -680,7 +719,7 @@ function escapeHtml(str) {
 $("period-select").addEventListener("click", (e) => {
   const btn = e.target.closest(".segment");
   if (!btn) return;
-  document.querySelectorAll(".segment").forEach((s) => s.classList.remove("active"));
+  document.querySelectorAll("#period-select .segment").forEach((s) => s.classList.remove("active"));
   btn.classList.add("active");
   state.dashboardPeriod = btn.dataset.period;
   const sessions = getAllSessionsForDisplay();
