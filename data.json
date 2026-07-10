@@ -1,3 +1,10 @@
 {
-  "sessions": []
+  "sessions": [
+    {
+      "id": "ea856167-fad9-4b87-b778-d533473092d9",
+      "user": "Henning",
+      "timestamp": "2026-07-10T20:24:21.984Z",
+      "count": 14
+    }
+  ]
 }
