@@ -11,6 +11,12 @@
       "user": "Henning",
       "timestamp": "2026-07-10T21:03:34.721Z",
       "count": 6
+    },
+    {
+      "id": "ce97e1e4-e112-42db-bc92-30fdabdb2b2c",
+      "user": "WorkerAvatarTest",
+      "timestamp": "2026-07-10T21:11:56.855Z",
+      "count": 1
     }
   ]
 }
