@@ -55,13 +55,6 @@
       "timestamp": "2026-07-11T19:10:44.505Z",
       "count": 2,
       "avatar": "burger"
-    },
-    {
-      "id": "2d26e875-5e0a-4160-ad33-a531f3458bab",
-      "user": "WorkerTest",
-      "timestamp": "2026-07-11T19:01:30.000Z",
-      "count": 1,
-      "startedAt": "2026-07-11T19:00:00.000Z"
     }
   ],
   "avatars": {
