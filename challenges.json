@@ -1,0 +1,242 @@
+{
+  "challenges": [
+    {
+      "id": "worldcup-2026",
+      "title": "World Cup Final Push",
+      "emoji": "⚽",
+      "tagline": "The World Cup is on home soil. Every rep is a penalty saved.",
+      "start": "2026-07-11",
+      "end": "2026-07-19",
+      "goalType": "individual",
+      "goal": 250,
+      "gradient": [
+        "#1a5c2e",
+        "#7ec850"
+      ]
+    },
+    {
+      "id": "back-to-school-2026",
+      "title": "Back to School: Report Card",
+      "emoji": "🎒",
+      "tagline": "Earn your A in pump class. No summer slacking on the transcript.",
+      "start": "2026-08-01",
+      "end": "2026-08-31",
+      "goalType": "individual",
+      "goal": 600,
+      "gradient": [
+        "#8a3a2e",
+        "#e8a04a"
+      ]
+    },
+    {
+      "id": "stein-hoist-2026",
+      "title": "Stein Hoist September",
+      "emoji": "🍺",
+      "tagline": "Oktoberfest arm insurance. 10,000 together before the first Maß.",
+      "start": "2026-09-01",
+      "end": "2026-09-30",
+      "goalType": "collective",
+      "goal": 10000,
+      "gradient": [
+        "#c9982e",
+        "#f5e19a"
+      ]
+    },
+    {
+      "id": "pumpkin-spice-2026",
+      "title": "Pump-kin Spice",
+      "emoji": "🎃",
+      "tagline": "No tricks, all pecs. 666 reps before the witching hour.",
+      "start": "2026-10-01",
+      "end": "2026-10-31",
+      "goalType": "individual",
+      "goal": 666,
+      "gradient": [
+        "#4a2a5e",
+        "#e8762e"
+      ]
+    },
+    {
+      "id": "club-180-2026",
+      "title": "The 180 Club",
+      "emoji": "🎯",
+      "tagline": "One week, 180 reps — a perfect checkout. Dart tournament rules: lose a leg, owe ten.",
+      "start": "2026-10-12",
+      "end": "2026-10-18",
+      "goalType": "individual",
+      "goal": 180,
+      "gradient": [
+        "#2e4a2e",
+        "#a83232"
+      ]
+    },
+    {
+      "id": "earn-your-bird-2026",
+      "title": "Earn Your Bird",
+      "emoji": "🦃",
+      "tagline": "Ends Thanksgiving. Every rep is a guilt-free bite of stuffing.",
+      "start": "2026-11-01",
+      "end": "2026-11-26",
+      "goalType": "individual",
+      "goal": 500,
+      "gradient": [
+        "#6b4a2e",
+        "#c98a3a"
+      ]
+    },
+    {
+      "id": "spoetzl-sprint-2026",
+      "title": "Spoetzl Sprint",
+      "emoji": "🍻",
+      "tagline": "1,909 together before the Shiner pilgrimage — the year Cosmo fired up the brewery. Prost.",
+      "start": "2026-11-09",
+      "end": "2026-11-22",
+      "goalType": "collective",
+      "goal": 1909,
+      "gradient": [
+        "#6b4a2e",
+        "#e8b23a"
+      ]
+    },
+    {
+      "id": "turkey-trot-day-2026",
+      "title": "Turkey Trot Day",
+      "emoji": "🏃",
+      "tagline": "Flash challenge: 100 reps on Thanksgiving Day. Phil has a podium to defend.",
+      "start": "2026-11-26",
+      "end": "2026-11-26",
+      "goalType": "individual",
+      "goal": 100,
+      "gradient": [
+        "#8a5a2e",
+        "#d99a4a"
+      ]
+    },
+    {
+      "id": "fitmas-2026",
+      "title": "12 Days of Fitmas",
+      "emoji": "🎅",
+      "tagline": "Survive the holidays. Twelve straight days, no excuses under the tree.",
+      "start": "2026-12-13",
+      "end": "2026-12-24",
+      "goalType": "streak",
+      "goal": 12,
+      "gradient": [
+        "#8a2e2e",
+        "#2e6b3a"
+      ]
+    },
+    {
+      "id": "every-damn-day-2027",
+      "title": "Every Damn Day January",
+      "emoji": "🔥",
+      "tagline": "The resolution flagship. 31 days, zero misses. Who actually shows up?",
+      "start": "2027-01-01",
+      "end": "2027-01-31",
+      "goalType": "streak",
+      "goal": 31,
+      "gradient": [
+        "#b5482f",
+        "#e8c468"
+      ]
+    },
+    {
+      "id": "buck-the-floor-2027",
+      "title": "Buck the Floor",
+      "emoji": "🤠",
+      "tagline": "Rodeo Run training season through the last day of RodeoHouston. 8 seconds is a ride, 8 pushups is a warmup.",
+      "start": "2027-02-01",
+      "end": "2027-03-14",
+      "goalType": "individual",
+      "goal": 1000,
+      "gradient": [
+        "#7a4a2e",
+        "#d9b66a"
+      ]
+    },
+    {
+      "id": "super-bowl-sunday-2027",
+      "title": "Super Bowl Sunday",
+      "emoji": "🏈",
+      "tagline": "Flash challenge: 200 reps between kickoff and the final whistle. Halftime show optional, pushups aren't.",
+      "start": "2027-02-14",
+      "end": "2027-02-14",
+      "goalType": "individual",
+      "goal": 200,
+      "gradient": [
+        "#2e5e3a",
+        "#8a6a3a"
+      ]
+    },
+    {
+      "id": "mudbug-madness-2027",
+      "title": "Mudbug Madness",
+      "emoji": "🦞",
+      "tagline": "Crawfish season, baby. Peel. Pinch. Push. Earn your spot at the boil.",
+      "start": "2027-03-15",
+      "end": "2027-04-05",
+      "goalType": "individual",
+      "goal": 640,
+      "gradient": [
+        "#8a2e2e",
+        "#e8623a"
+      ]
+    },
+    {
+      "id": "go-low-get-high-2027",
+      "title": "420: Go Low to Get High",
+      "emoji": "🌿",
+      "tagline": "Exactly 420 reps. Ends 4/20. Blaze through it.",
+      "start": "2027-04-01",
+      "end": "2027-04-20",
+      "goalType": "individual",
+      "goal": 420,
+      "gradient": [
+        "#2e5e3a",
+        "#8ac850"
+      ]
+    },
+    {
+      "id": "memorial-murph-2027",
+      "title": "Memorial May Murph-ish",
+      "emoji": "🎖️",
+      "tagline": "Honor the fallen the hard way. 900 reps across May.",
+      "start": "2027-05-01",
+      "end": "2027-05-31",
+      "goalType": "individual",
+      "goal": 900,
+      "gradient": [
+        "#3a4a2e",
+        "#a8b45e"
+      ]
+    },
+    {
+      "id": "pterodactyls-2027",
+      "title": "Make Pterodactyls Fly",
+      "emoji": "🦖",
+      "tagline": "5,000 combined reps — enough collective thrust for takeoff.",
+      "start": "2027-06-01",
+      "end": "2027-06-30",
+      "goalType": "collective",
+      "goal": 5000,
+      "gradient": [
+        "#2e5e5e",
+        "#7ac8a8"
+      ]
+    },
+    {
+      "id": "club-1776-2027",
+      "title": "The 1776 Club",
+      "emoji": "🎆",
+      "tagline": "Texas-sized America challenge. 1,776 reps. Hardcore tier. God bless.",
+      "start": "2027-07-01",
+      "end": "2027-07-31",
+      "goalType": "individual",
+      "goal": 1776,
+      "gradient": [
+        "#8a2e2e",
+        "#2e3a8a"
+      ]
+    }
+  ]
+}

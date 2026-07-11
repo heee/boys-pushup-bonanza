@@ -1,6 +1,6 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v16";
+const CACHE_NAME = "bpb-shell-v17";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -31,6 +31,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return; // let GitHub API / CDN requests pass through
   if (event.request.method !== "GET") return;
+  if (url.pathname.endsWith("/challenges.json")) return; // always fetch fresh — never cache-first
 
   event.respondWith(
     caches.match(event.request).then((cached) => {

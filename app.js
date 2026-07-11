@@ -63,6 +63,20 @@ const AVATARS = [
   { id: "eggplant", emoji: "🍆", bg: "#5e3d7a" },
 ];
 
+// Prepopulated challenge calendar — static, curated via git, never mutated
+// by the client. Only participant lists (in the shared data store) change.
+const CHALLENGES_URL = "challenges.json";
+let challengeDefs = [];
+async function loadChallenges() {
+  try {
+    const res = await fetch(CHALLENGES_URL, { cache: "no-cache" });
+    const json = await res.json();
+    challengeDefs = Array.isArray(json.challenges) ? json.challenges : [];
+  } catch (e) {
+    // keep whatever we had before; an empty list just renders empty states
+  }
+}
+
 // ------------------- small helpers -------------------
 
 function $(id) { return document.getElementById(id); }
@@ -210,6 +224,7 @@ async function workerFetchData() {
   const data = await res.json();
   if (!Array.isArray(data.sessions)) data.sessions = [];
   if (!data.avatars || typeof data.avatars !== "object") data.avatars = {};
+  if (!data.challengeParticipants || typeof data.challengeParticipants !== "object") data.challengeParticipants = {};
   return data;
 }
 
@@ -269,19 +284,34 @@ async function deleteSessionRemote(id) {
   return res.json();
 }
 
+async function workerJoinChallenge(user, challengeId) {
+  if (!workerConfigured()) throw new Error("Worker URL not configured yet.");
+  const res = await fetch(`${WORKER_URL}/join-challenge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-App-Key": APP_KEY },
+    body: JSON.stringify({ user, challengeId }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Join failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
 function cacheData(data) {
   localStorage.setItem(LS.cacheData, JSON.stringify(data));
 }
 function getCachedData() {
   try {
     const raw = localStorage.getItem(LS.cacheData);
-    if (!raw) return { sessions: [], avatars: {} };
+    if (!raw) return { sessions: [], avatars: {}, challengeParticipants: {} };
     const data = JSON.parse(raw);
     if (!Array.isArray(data.sessions)) data.sessions = [];
     if (!data.avatars || typeof data.avatars !== "object") data.avatars = {};
+    if (!data.challengeParticipants || typeof data.challengeParticipants !== "object") data.challengeParticipants = {};
     return data;
   } catch (e) {
-    return { sessions: [], avatars: {} };
+    return { sessions: [], avatars: {}, challengeParticipants: {} };
   }
 }
 
@@ -375,6 +405,8 @@ const state = {
   lastSessions: [],
   mySessionsShown: 5,
   sessionStartedAt: null,
+  challengeTab: "active",
+  openChallengeId: null,
 };
 
 const repState = {
@@ -424,6 +456,7 @@ function showScreen(id) {
 
   if (id === "screen-user") renderUserList();
   if (id === "screen-dashboard") renderDashboard();
+  if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-settings") renderSettings();
   if (id === "screen-workout" && !state.workoutActive) {
     $("workout-username").textContent = state.currentUser || "Friend";
@@ -452,6 +485,7 @@ function goToDashboard(mode) {
 
 $("btn-home").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
 $("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
+$("btn-nav-challenges").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-challenges")));
 $("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("boys")));
 $("btn-nav-settings").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-settings")));
 
@@ -970,6 +1004,398 @@ $("period-select").addEventListener("click", (e) => {
   paintDashboard(state.lastSessions);
 });
 
+// ------------------- challenges -------------------
+
+// Dates are YYYY-MM-DD, inclusive, in the device's local timezone.
+function challengeWindow(c) {
+  const [sy, sm, sd] = c.start.split("-").map(Number);
+  const [ey, em, ed] = c.end.split("-").map(Number);
+  return {
+    startDate: new Date(sy, sm - 1, sd, 0, 0, 0, 0),
+    endDate: new Date(ey, em - 1, ed, 23, 59, 59, 999),
+  };
+}
+
+function challengeStatus(c, now = new Date()) {
+  const { startDate, endDate } = challengeWindow(c);
+  if (now < startDate) return "upcoming";
+  if (now > endDate) return "past";
+  return "active";
+}
+
+function challengeParticipantsOf(c) {
+  return getCachedData().challengeParticipants[c.id] || [];
+}
+
+function challengeSessions(c) {
+  const participants = new Set(challengeParticipantsOf(c));
+  if (!participants.size) return [];
+  const { startDate, endDate } = challengeWindow(c);
+  return getAllSessionsForDisplay().filter((s) => {
+    if (!participants.has(s.user)) return false;
+    const t = new Date(s.timestamp);
+    return t >= startDate && t <= endDate;
+  });
+}
+
+function challengeTotal(c) {
+  return challengeSessions(c).reduce((sum, s) => sum + s.count, 0);
+}
+
+function userChallengeTotal(c, name) {
+  return challengeSessions(c)
+    .filter((s) => s.user === name)
+    .reduce((sum, s) => sum + s.count, 0);
+}
+
+// best = longest run of consecutive local days with >=1 session, anywhere in
+// the window. current = run ending today (or yesterday if today has none),
+// clamped to the window.
+function windowStreak(sessions, name, startDate, endDate) {
+  const daySet = new Set(sessions.filter((s) => s.user === name).map((s) => new Date(s.timestamp).toDateString()));
+
+  let current = 0;
+  let cursor = new Date();
+  if (cursor > endDate) cursor = new Date(endDate);
+  if (!daySet.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1);
+  while (cursor >= startDate && daySet.has(cursor.toDateString())) {
+    current++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let best = 0;
+  let run = 0;
+  const dayCursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const lastDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  while (dayCursor <= lastDay) {
+    if (daySet.has(dayCursor.toDateString())) {
+      run++;
+      best = Math.max(best, run);
+    } else {
+      run = 0;
+    }
+    dayCursor.setDate(dayCursor.getDate() + 1);
+  }
+  return { best, current };
+}
+
+function challengeLeaderboard(c) {
+  const participants = challengeParticipantsOf(c);
+  const sessions = challengeSessions(c);
+  const { startDate, endDate } = challengeWindow(c);
+  return participants
+    .map((name) => ({
+      name,
+      score: c.goalType === "streak"
+        ? windowStreak(sessions, name, startDate, endDate).best
+        : sessions.filter((s) => s.user === name).reduce((sum, s) => sum + s.count, 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+function challengeWinners(c) {
+  const board = challengeLeaderboard(c);
+  if (!board.length || board[0].score <= 0) return [];
+  const top = board[0].score;
+  return board.filter((row) => row.score === top).map((row) => row.name);
+}
+
+function daysLeft(c, now = new Date()) {
+  const { endDate } = challengeWindow(c);
+  return Math.max(0, Math.ceil((endDate - now) / (24 * 60 * 60 * 1000)));
+}
+
+function daysUntilStart(c, now = new Date()) {
+  const { startDate } = challengeWindow(c);
+  return Math.max(0, Math.ceil((startDate - now) / (24 * 60 * 60 * 1000)));
+}
+
+function formatChallengeDates(c) {
+  const { startDate, endDate } = challengeWindow(c);
+  const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return startDate.toDateString() === endDate.toDateString() ? fmt(startDate) : `${fmt(startDate)} – ${fmt(endDate)}`;
+}
+
+async function renderChallengesScreen() {
+  await loadChallenges();
+  await flushQueue().catch(() => {});
+  await refreshFromRemote();
+  paintChallengeList();
+}
+
+function paintChallengeList() {
+  const now = new Date();
+  const tab = state.challengeTab;
+  const list = challengeDefs.filter((c) => challengeStatus(c, now) === tab);
+  if (tab === "active") list.sort((a, b) => daysLeft(a, now) - daysLeft(b, now));
+  else if (tab === "upcoming") list.sort((a, b) => daysUntilStart(a, now) - daysUntilStart(b, now));
+  else list.sort((a, b) => challengeWindow(b).endDate - challengeWindow(a).endDate);
+
+  const el = $("challenge-list");
+  el.innerHTML = "";
+  if (!list.length) {
+    const msg = tab === "active"
+      ? "No challenge running right now — check Upcoming."
+      : tab === "upcoming"
+        ? "Nothing on the calendar yet. Tell Henning."
+        : "No completed challenges yet.";
+    el.innerHTML = `<p class="leaderboard-empty">${msg}</p>`;
+    return;
+  }
+  for (const c of list) el.appendChild(buildChallengeCard(c, now));
+}
+
+function buildChallengeCard(c, now) {
+  const status = challengeStatus(c, now);
+  const participants = challengeParticipantsOf(c);
+  const joined = participants.includes(state.currentUser);
+  const total = challengeTotal(c);
+
+  const card = document.createElement("div");
+  card.className = "challenge-card";
+  card.style.background = `linear-gradient(135deg, ${c.gradient[0]}, ${c.gradient[1]})`;
+  card.addEventListener("click", () => openChallengeDetail(c.id));
+
+  let dateLabel;
+  if (status === "active") {
+    const d = daysLeft(c, now);
+    dateLabel = `${d} day${d === 1 ? "" : "s"} left`;
+  } else if (status === "upcoming") {
+    const d = daysUntilStart(c, now);
+    dateLabel = `Starts in ${d} day${d === 1 ? "" : "s"}`;
+  } else {
+    dateLabel = `Ended ${challengeWindow(c).endDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  }
+
+  let html = `
+    <div class="challenge-card-emoji">${c.emoji}</div>
+    <div class="challenge-card-title">${escapeHtml(c.title)}</div>
+    <div class="challenge-card-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${dateLabel}</span></div>
+    <div class="challenge-card-meta">👥 ${participants.length} joined · ∑ ${total} pushups</div>
+  `;
+
+  if (status !== "past" && joined) {
+    html += `<span class="challenge-joined-chip">✓ In</span>`;
+  } else if (status === "past") {
+    const winners = challengeWinners(c);
+    if (winners.length) {
+      const board = challengeLeaderboard(c);
+      const scoreText = c.goalType === "streak" ? `${board[0].score} days` : `${board[0].score}`;
+      html += `<div class="challenge-winner-line">🥇 ${winners.map(escapeHtml).join(" & ")} — ${scoreText}</div>`;
+    }
+  }
+
+  card.innerHTML = html;
+
+  if (status !== "past" && !joined) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary challenge-join-btn";
+    btn.textContent = "JOIN";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      joinChallenge(c.id);
+    });
+    card.appendChild(btn);
+  }
+
+  return card;
+}
+
+function openChallengeDetail(id) {
+  state.openChallengeId = id;
+  renderChallengeDetail();
+  showScreen("screen-challenge-detail");
+}
+
+function renderChallengeDetail() {
+  const c = challengeDefs.find((x) => x.id === state.openChallengeId);
+  const body = $("challenge-detail-body");
+  if (!c) {
+    body.innerHTML = '<p class="leaderboard-empty">Challenge not found.</p>';
+    return;
+  }
+
+  const now = new Date();
+  const status = challengeStatus(c, now);
+  const participants = challengeParticipantsOf(c);
+  const joined = participants.includes(state.currentUser);
+  const total = challengeTotal(c);
+  const sessions = challengeSessions(c);
+  const { startDate, endDate } = challengeWindow(c);
+
+  let statusLabel;
+  if (status === "active") statusLabel = `${daysLeft(c, now)} day${daysLeft(c, now) === 1 ? "" : "s"} left`;
+  else if (status === "upcoming") statusLabel = `Starts in ${daysUntilStart(c, now)} day${daysUntilStart(c, now) === 1 ? "" : "s"}`;
+  else statusLabel = "Ended";
+
+  let html = `
+    <div class="challenge-hero" style="background: linear-gradient(135deg, ${c.gradient[0]}, ${c.gradient[1]})">
+      <div class="challenge-hero-emoji">${c.emoji}</div>
+      <div class="challenge-hero-title">${escapeHtml(c.title)}</div>
+      <div class="challenge-hero-tagline">${escapeHtml(c.tagline)}</div>
+      <div class="challenge-hero-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${statusLabel}</span></div>
+    </div>
+  `;
+
+  if (status !== "past" && !joined) {
+    html += `<button type="button" id="btn-challenge-join" class="btn btn-primary btn-large">JOIN this challenge</button>`;
+  }
+
+  if (joined) {
+    const daysLeftLabel = status === "active"
+      ? `${daysLeft(c, now)} days left`
+      : status === "upcoming"
+        ? `starts in ${daysUntilStart(c, now)} days`
+        : "ended";
+    if (c.goalType === "individual") {
+      const mine = userChallengeTotal(c, state.currentUser);
+      const pct = Math.min(100, Math.round((mine / c.goal) * 100));
+      html += `
+        <div class="challenge-progress-card">
+          <div class="challenge-progress-label">${mine} / ${c.goal} · ${daysLeftLabel}</div>
+          <div class="thermometer-wrap">
+            <div class="thermometer-track">
+              <div class="thermometer-fill${mine >= c.goal ? " thermometer-win" : ""}" style="width:${pct}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (c.goalType === "collective") {
+      const mine = userChallengeTotal(c, state.currentUser);
+      const pct = Math.min(100, Math.round((total / c.goal) * 100));
+      html += `
+        <div class="challenge-progress-card">
+          <div class="challenge-progress-label">${total} / ${c.goal} together · ${daysLeftLabel}</div>
+          <div class="thermometer-wrap">
+            <div class="thermometer-track">
+              <div class="thermometer-fill${total >= c.goal ? " thermometer-win" : ""}" style="width:${pct}%"></div>
+            </div>
+          </div>
+          <div class="challenge-contribution">Your contribution: ${mine}</div>
+        </div>
+      `;
+    } else {
+      const { best, current } = windowStreak(sessions, state.currentUser, startDate, endDate);
+      const pct = Math.min(100, Math.round((best / c.goal) * 100));
+      html += `
+        <div class="challenge-progress-card">
+          <div class="challenge-progress-label">Current streak: ${current} day${current === 1 ? "" : "s"} · Best: ${best} / ${c.goal} days</div>
+          <div class="thermometer-wrap">
+            <div class="thermometer-track">
+              <div class="thermometer-fill${best >= c.goal ? " thermometer-win" : ""}" style="width:${pct}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  const overviewValue = status === "past" ? "Ended" : status === "upcoming" ? daysUntilStart(c, now) : daysLeft(c, now);
+  const overviewLabel = status === "past" ? "Status" : status === "upcoming" ? "Days until start" : "Days left";
+
+  html += `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value stat-value-sm">${formatChallengeDates(c)}</div><div class="stat-label">Duration</div></div>
+      <div class="stat-card"><div class="stat-value">${participants.length}</div><div class="stat-label">Participants</div></div>
+      <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total pushups</div></div>
+      <div class="stat-card"><div class="stat-value">${overviewValue}</div><div class="stat-label">${overviewLabel}</div></div>
+    </div>
+
+    <h2 class="section-title">Leaderboard</h2>
+    <div id="challenge-leaderboard-list" class="leaderboard-list"></div>
+
+    <h2 class="section-title">Recent flexes</h2>
+    <div id="challenge-recent-list" class="challenge-recent-list"></div>
+  `;
+
+  body.innerHTML = html;
+
+  if (status !== "past" && !joined) {
+    $("btn-challenge-join").addEventListener("click", () => joinChallenge(c.id));
+  }
+
+  paintChallengeLeaderboard(c);
+  paintChallengeRecent(sessions);
+}
+
+function paintChallengeLeaderboard(c) {
+  const board = challengeLeaderboard(c);
+  const el = $("challenge-leaderboard-list");
+  el.innerHTML = "";
+  if (!board.length) {
+    el.innerHTML = '<p class="leaderboard-empty">No participants yet.</p>';
+    return;
+  }
+  board.forEach((row, i) => {
+    const scoreText = c.goalType === "streak" ? `${row.score} day${row.score === 1 ? "" : "s"}` : `${row.score}`;
+    const rowEl = document.createElement("div");
+    rowEl.className = "leaderboard-row" + (i < 3 ? ` rank-${i + 1}` : "");
+    rowEl.innerHTML = `
+      <div class="leaderboard-rank">${i + 1}</div>
+      <div class="leaderboard-trophy">${TROPHIES[i] || ""}</div>
+      ${avatarCircleHTML(avatarForUser(row.name), "1.8rem")}
+      <div class="leaderboard-name">${escapeHtml(row.name)}</div>
+      <div class="leaderboard-total">${scoreText}</div>
+    `;
+    el.appendChild(rowEl);
+  });
+}
+
+function paintChallengeRecent(sessions) {
+  const el = $("challenge-recent-list");
+  const recent = [...sessions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+  el.innerHTML = "";
+  if (!recent.length) {
+    el.innerHTML = '<p class="history-empty">No sessions yet.</p>';
+    return;
+  }
+  for (const s of recent) {
+    const row = document.createElement("div");
+    row.className = "recent-row";
+    row.innerHTML = `
+      ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
+      <div class="recent-name">${escapeHtml(s.user)}</div>
+      <div class="recent-count">${s.count}</div>
+      <div class="recent-time">${formatDateTime(s.timestamp)}</div>
+    `;
+    el.appendChild(row);
+  }
+}
+
+async function joinChallenge(id) {
+  if (!state.currentUser) {
+    toast("Pick your name on the home screen first.");
+    return;
+  }
+  try {
+    await workerJoinChallenge(state.currentUser, id);
+  } catch (e) {
+    toast("Couldn't join — check your connection.", 4000);
+    return;
+  }
+  const cached = getCachedData();
+  if (!cached.challengeParticipants[id]) cached.challengeParticipants[id] = [];
+  if (!cached.challengeParticipants[id].includes(state.currentUser)) {
+    cached.challengeParticipants[id].push(state.currentUser);
+  }
+  cacheData(cached);
+  toast("You're in! 💪");
+  if (state.screen === "screen-challenge-detail") renderChallengeDetail();
+  else paintChallengeList();
+}
+
+$("challenge-tab-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#challenge-tab-select .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.challengeTab = btn.dataset.ctab;
+  paintChallengeList();
+});
+
+$("btn-challenge-back").addEventListener("click", () => showScreen("screen-challenges"));
+
 // ------------------- workout screen: camera + face detection -------------------
 
 async function ensureFaceDetector() {
@@ -1416,6 +1842,7 @@ async function init() {
   showScreen(state.currentUser ? "screen-user" : "screen-user");
   await flushQueue().catch(() => {});
   renderPendingStatus();
+  loadChallenges();
 
   if (workerConfigured()) {
     try {

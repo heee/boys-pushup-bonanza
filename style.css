@@ -650,6 +650,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   color: var(--primary);
   font-variant-numeric: tabular-nums;
 }
+.stat-value.stat-value-sm { font-size: 1.05rem; }
 .stat-label {
   font-size: 0.78rem;
   color: var(--text-dim);
@@ -786,6 +787,94 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .my-session-row > span:first-child { flex: 1; color: var(--text-dim); }
 .my-session-count { font-weight: 800; }
+
+/* ---------------- Challenges ---------------- */
+
+#challenge-tab-select { margin-bottom: 1.2rem; }
+
+.challenge-list { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.challenge-card {
+  position: relative;
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+  color: #fff;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.challenge-card:active { transform: scale(0.98); }
+.challenge-card-emoji { font-size: 2.6rem; line-height: 1; }
+.challenge-card-title { font-size: 1.15rem; font-weight: 900; margin-top: 0.35rem; padding-right: 3.5rem; }
+.challenge-card-dates { font-size: 0.82rem; font-weight: 700; opacity: 0.92; margin-top: 0.15rem; }
+.challenge-card-meta { font-size: 0.85rem; font-weight: 700; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-winner-line { margin-top: 0.5rem; font-weight: 800; font-size: 0.9rem; }
+
+.challenge-join-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.challenge-joined-chip {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.challenge-status-chip {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-left: 0.4rem;
+}
+
+.challenge-hero {
+  border-radius: 18px;
+  padding: 1.5rem 1.2rem;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+.challenge-hero-emoji { font-size: 3.4rem; line-height: 1; }
+.challenge-hero-title { font-size: 1.4rem; font-weight: 900; margin-top: 0.4rem; }
+.challenge-hero-tagline { font-size: 0.92rem; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-hero-dates { font-size: 0.85rem; font-weight: 700; margin-top: 0.7rem; opacity: 0.92; }
+
+.challenge-progress-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.challenge-progress-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+.challenge-progress-card .thermometer-wrap { max-width: none; margin: 0; }
+.challenge-contribution {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  margin-top: 0.6rem;
+}
+
+.challenge-recent-list { display: flex; flex-direction: column; gap: 0.5rem; }
 
 /* ---------------- Toast ---------------- */
 

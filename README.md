@@ -192,6 +192,31 @@ there's enough ambient light.
 - The only credential that can write to the repo (`GITHUB_TOKEN`) lives in the
   Worker's environment and is never sent to or visible from any phone.
 
+## Challenges
+
+Themed, opt-in competitions with their own leaderboard, time window, and goal —
+"World Cup Final Push," "12 Days of Fitmas," and so on.
+
+- Definitions live in **`challenges.json`** at the repo root — a plain array, no
+  build step, no admin UI. To add or edit a challenge, edit that file and push;
+  it's fetched fresh on every visit to the Challenges tab (never cached by the
+  service worker), so there's nothing to redeploy or cache-bust.
+- Each entry: `id` (kebab-case, must match `/^[a-z0-9-]+$/`), `title`, `emoji`,
+  `tagline`, `start`/`end` (`YYYY-MM-DD`, **inclusive**, interpreted in the
+  device's local timezone — a challenge can be a single day by setting
+  `start === end`), `goalType` (`individual` | `collective` | `streak`), `goal`
+  (reps per person / combined reps / consecutive days, depending on
+  `goalType`), and `gradient` (two hex colors for the card background).
+- Everything else — totals, leaderboards, streaks, "recent flexes" — is
+  derived on the fly from the same `sessions` array used everywhere else in
+  the app, filtered to each challenge's participant list and date window.
+  Joining a challenge mid-run counts your sessions from the whole window
+  retroactively; there's no per-user join timestamp.
+- Who's opted into what is the one new piece of shared state:
+  `challengeParticipants` in `data.json` (`{ [challengeId]: ["Name", ...] }`),
+  written through the Worker's `/join-challenge` endpoint the same way
+  sessions and avatars are.
+
 ## Notes & limitations
 
 - iOS Safari has never implemented the Vibration API, so the haptic buzz on each rep

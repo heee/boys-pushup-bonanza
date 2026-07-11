@@ -36,6 +36,7 @@
     </button>
     <nav class="header-actions">
       <button id="streak-badge" type="button" class="streak-badge hidden" aria-label="My Bonanza" title="My Bonanza"></button>
+      <button id="btn-nav-challenges" class="icon-btn" aria-label="Challenges" title="Challenges">🎯</button>
       <button id="btn-nav-dashboard" class="icon-btn" aria-label="Boys Bonanza" title="Boys Bonanza">🏆</button>
       <button id="btn-nav-settings" class="icon-btn" aria-label="Settings" title="Settings">⚙️</button>
     </nav>
@@ -149,6 +150,25 @@
         </div>
         <div id="personal-stats" class="stats-grid"></div>
       </div>
+    </section>
+
+    <!-- ============ SCREEN: CHALLENGES ============ -->
+    <section id="screen-challenges" class="screen">
+      <h1 class="screen-title">Challenges 🎯</h1>
+
+      <div id="challenge-tab-select" class="segmented" role="tablist">
+        <button class="segment active" data-ctab="active">Active</button>
+        <button class="segment" data-ctab="upcoming">Upcoming</button>
+        <button class="segment" data-ctab="past">Past</button>
+      </div>
+
+      <div id="challenge-list" class="challenge-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: CHALLENGE DETAIL ============ -->
+    <section id="screen-challenge-detail" class="screen">
+      <button id="btn-challenge-back" type="button" class="btn btn-small">← All challenges</button>
+      <div id="challenge-detail-body"></div>
     </section>
 
     <!-- ============ SCREEN: SETTINGS ============ -->
