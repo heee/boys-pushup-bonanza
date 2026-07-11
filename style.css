@@ -120,7 +120,7 @@ button, input {
 
 .icon-btn {
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 10px;
   width: 2.4rem;
   height: 2.4rem;
@@ -137,12 +137,16 @@ button, input {
   align-items: center;
   gap: 0.2rem;
   background: var(--bg-elevated);
+  border: none;
   border-radius: 10px;
   padding: 0 0.55rem;
   height: 2.4rem;
   font-size: 1.05rem;
   font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
 }
+.streak-badge:active { transform: scale(0.92); }
 .streak-badge .streak-num { font-size: 0.95rem; color: var(--text); }
 .streak-badge .streak-num.streak-zero { color: #4a90d9; }
 

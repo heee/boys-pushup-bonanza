@@ -440,8 +440,19 @@ function guardLeaveWorkout(next) {
   next();
 }
 
+function goToDashboard(mode) {
+  state.bonanzaMode = mode;
+  document.querySelectorAll("#bonanza-mode-select .segment").forEach((s) => {
+    s.classList.toggle("active", s.dataset.mode === mode);
+  });
+  $("boys-bonanza-view").classList.toggle("hidden", mode !== "boys");
+  $("my-bonanza-view").classList.toggle("hidden", mode !== "mine");
+  showScreen("screen-dashboard");
+}
+
 $("btn-home").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
-$("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-dashboard")));
+$("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
+$("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("boys")));
 $("btn-nav-settings").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-settings")));
 
 // ------------------- user select screen -------------------
