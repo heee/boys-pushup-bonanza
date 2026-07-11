@@ -244,6 +244,20 @@ async function deleteUserRemote(name) {
   return res.json();
 }
 
+async function deleteSessionRemote(id) {
+  if (!workerConfigured()) throw new Error("Worker URL not configured yet.");
+  const res = await fetch(`${WORKER_URL}/delete-session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-App-Key": APP_KEY },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Delete failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
 function cacheData(data) {
   localStorage.setItem(LS.cacheData, JSON.stringify(data));
 }
@@ -348,6 +362,7 @@ const state = {
   highScore: 0,
   bonanzaMode: "boys",
   lastSessions: [],
+  mySessionsShown: 5,
 };
 
 const repState = {
@@ -356,6 +371,9 @@ const repState = {
   smoothedRatio: null,
   lastSeenAt: 0,
   paused: false,
+  halfHit: false,
+  threeQuarterHit: false,
+  recordBroken: false,
 };
 
 function getThresholdDown() {
@@ -369,11 +387,28 @@ function getThresholdUp() {
 
 // ------------------- screen navigation -------------------
 
+function renderStreakBadge() {
+  const el = $("streak-badge");
+  if (!state.currentUser) {
+    el.classList.add("hidden");
+    return;
+  }
+  const mine = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser);
+  const streak = computeStreak(mine);
+  el.classList.remove("hidden");
+  if (streak > 0) {
+    el.innerHTML = `🔥<span class="streak-num">${streak}</span>`;
+  } else {
+    el.innerHTML = `❄️<span class="streak-num streak-zero">0</span>`;
+  }
+}
+
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(id).classList.add("active");
   state.screen = id;
   $("app-header").classList.toggle("minimized", id === "screen-workout" && state.workoutActive);
+  renderStreakBadge();
 
   if (id === "screen-user") renderUserList();
   if (id === "screen-dashboard") renderDashboard();
@@ -487,6 +522,8 @@ function renderSettings() {
   renderPendingStatus();
   testSyncConnection();
   renderManageUsers();
+  state.mySessionsShown = 5;
+  renderMySessions();
 }
 
 function renderManageUsers() {
@@ -554,6 +591,54 @@ async function confirmDeleteUser(name) {
   }
   toast(`Deleted ${name}'s sessions.`);
   renderManageUsers();
+}
+
+function renderMySessions() {
+  const mine = getAllSessionsForDisplay()
+    .filter((s) => s.user === state.currentUser)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const list = $("my-sessions-list");
+  list.innerHTML = "";
+  if (!mine.length) {
+    list.innerHTML = '<p class="settings-hint">No sessions yet.</p>';
+    $("btn-my-sessions-more").classList.add("hidden");
+    return;
+  }
+  for (const s of mine.slice(0, state.mySessionsShown)) {
+    const row = document.createElement("div");
+    row.className = "my-session-row";
+    row.innerHTML = `
+      <span>${formatDateTime(s.timestamp)}</span>
+      <span class="my-session-count">${s.count}</span>
+      <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
+    `;
+    row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteSession(s.id));
+    list.appendChild(row);
+  }
+  $("btn-my-sessions-more").classList.toggle("hidden", mine.length <= state.mySessionsShown);
+}
+
+$("btn-my-sessions-more").addEventListener("click", () => {
+  state.mySessionsShown += 5;
+  renderMySessions();
+});
+
+async function confirmDeleteSession(id) {
+  const ok = confirm("Delete this session from the shared leaderboard? This can't be undone.");
+  if (!ok) return;
+  try {
+    await deleteSessionRemote(id);
+  } catch (e) {
+    toast("Couldn't delete right now — check your connection.", 4000);
+    return;
+  }
+  const cached = getCachedData();
+  cached.sessions = cached.sessions.filter((s) => s.id !== id);
+  cacheData(cached);
+  setQueue(getQueue().filter((s) => s.id !== id));
+  toast("Session deleted.");
+  renderMySessions();
+  renderStreakBadge();
 }
 
 function renderPendingStatus() {
@@ -639,6 +724,7 @@ async function renderDashboard() {
   state.lastSessions = sessions;
   renderPendingStatus();
   paintActiveBonanzaView();
+  renderStreakBadge();
 }
 
 function paintActiveBonanzaView() {
@@ -892,9 +978,61 @@ function resetRepState() {
   repState.smoothedRatio = null;
   repState.lastSeenAt = performance.now();
   repState.paused = false;
+  repState.halfHit = false;
+  repState.threeQuarterHit = false;
+  repState.recordBroken = false;
   $("rep-count").textContent = "0";
   updateHighscoreMessage(0);
+  updateThermometer(0);
   hideStatusBanner();
+}
+
+const ENCOURAGE_HALF = [
+  "Halfway to your personal best — keep grinding!",
+  "That's the halfway mark! Let's gooo!",
+  "Halfway there, don't you dare stop now!",
+  "Halfway to a new record. Push through!",
+];
+const ENCOURAGE_THREE_QUARTER = [
+  "Three quarters to your best — almost there!",
+  "Seventy five percent! You can smell the record now!",
+  "Just a few more! You're so close!",
+  "Three quarters done. Finish strong!",
+];
+
+function pickFrom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Returns an encouragement line the first time a rep crosses the halfway or
+// three-quarter mark of the user's personal best for this session, else null.
+function maybeEncourage(count) {
+  if (!state.highScore || state.highScore <= 1) return null;
+  const half = state.highScore / 2;
+  const threeQuarter = state.highScore * 0.75;
+  if (!repState.threeQuarterHit && count >= threeQuarter) {
+    repState.threeQuarterHit = true;
+    repState.halfHit = true;
+    return pickFrom(ENCOURAGE_THREE_QUARTER);
+  }
+  if (!repState.halfHit && count >= half) {
+    repState.halfHit = true;
+    return pickFrom(ENCOURAGE_HALF);
+  }
+  return null;
+}
+
+function updateThermometer(count) {
+  const wrap = $("thermometer-wrap");
+  if (!state.highScore) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const fill = $("thermometer-fill");
+  const pct = Math.min(100, Math.round((count / state.highScore) * 100));
+  fill.style.width = `${pct}%`;
+  fill.classList.toggle("thermometer-win", count > state.highScore);
 }
 
 function getHighScore(name) {
@@ -981,7 +1119,17 @@ function processRatio(ratio) {
 function onRepCounted(count) {
   $("rep-count").textContent = String(count);
   updateHighscoreMessage(count);
-  speak(numberToWords(count));
+  updateThermometer(count);
+
+  let spoken = null;
+  if (state.highScore && count === state.highScore + 1 && !repState.recordBroken) {
+    repState.recordBroken = true;
+    spoken = "New personal record! Absolute legend!";
+    launchConfetti("workout-confetti");
+  } else {
+    spoken = maybeEncourage(count);
+  }
+  speak(spoken || numberToWords(count));
   vibrate(45);
 }
 
@@ -1122,8 +1270,8 @@ function pickFunMessage(n) {
 }
 
 const CONFETTI_EMOJI = ["🎉", "💪", "🔥", "⭐", "🏆", "😤", "🚀", "👑"];
-function launchConfetti() {
-  const el = $("confetti");
+function launchConfetti(targetId = "confetti") {
+  const el = $(targetId);
   el.innerHTML = "";
   for (let i = 0; i < 24; i++) {
     const span = document.createElement("span");
@@ -1196,6 +1344,7 @@ async function init() {
       const data = await workerFetchData();
       cacheData(data);
       renderUserList();
+      renderStreakBadge();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }

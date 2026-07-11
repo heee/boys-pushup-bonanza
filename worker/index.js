@@ -5,8 +5,9 @@
 //
 //   GET  /data         -> current data.json contents (no auth required to read)
 //   POST /session      -> { id, user, timestamp, count, avatar? } -> merges into data.json
-//   POST /delete-user  -> { user } -> removes all of that user's sessions from data.json
-//   POST /set-avatar   -> { user, avatar } -> sets/overrides that user's avatar
+//   POST /delete-user     -> { user } -> removes all of that user's sessions from data.json
+//   POST /delete-session  -> { id } -> removes a single session from data.json
+//   POST /set-avatar      -> { user, avatar } -> sets/overrides that user's avatar
 //
 // Required Worker secrets/variables (set in the Cloudflare dashboard under
 // Settings -> Variables and Secrets):
@@ -79,6 +80,29 @@ export default {
           data.sessions = data.sessions.filter((s) => s.user !== user);
           if (data.avatars) delete data.avatars[user];
         }, `Delete user: ${user}`);
+        return json({ ok: true }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/delete-session" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const id = typeof body?.id === "string" ? body.id.trim().slice(0, 64) : "";
+      if (!id) return json({ error: "invalid id" }, 400, cors);
+
+      try {
+        await commitMutation(env, (data) => {
+          data.sessions = data.sessions.filter((s) => s.id !== id);
+        }, `Delete session: ${id}`);
         return json({ ok: true }, 200, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);

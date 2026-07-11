@@ -132,6 +132,21 @@ button, input {
 }
 .icon-btn:active { transform: scale(0.92); }
 
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 0.55rem;
+  height: 2.4rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.streak-badge .streak-num { font-size: 0.95rem; color: var(--text); }
+.streak-badge .streak-num.streak-zero { color: #4a90d9; }
+
 /* ---------------- Main / screens ---------------- */
 
 #app-main {
@@ -355,7 +370,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Workout screen ---------------- */
 
-#screen-workout { justify-content: center; align-items: stretch; }
+#screen-workout { position: relative; justify-content: center; align-items: stretch; }
 
 .workout-idle {
   display: flex;
@@ -461,6 +476,28 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-top: 0.6rem;
   min-height: 1.2rem;
 }
+
+.thermometer-wrap {
+  width: 100%;
+  max-width: 16rem;
+  margin: 0.7rem auto 0;
+}
+.thermometer-track {
+  width: 100%;
+  height: 0.9rem;
+  background: var(--bg-elevated-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.thermometer-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+.thermometer-fill.thermometer-win { background: var(--success); }
 
 /* ---------------- Summary screen ---------------- */
 
@@ -732,6 +769,20 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   flex-shrink: 0;
 }
 .btn-delete-user:active { transform: scale(0.9); }
+
+.my-sessions-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.8rem; }
+.my-session-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg-elevated-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.88rem;
+}
+.my-session-row > span:first-child { flex: 1; color: var(--text-dim); }
+.my-session-count { font-weight: 800; }
 
 /* ---------------- Toast ---------------- */
 

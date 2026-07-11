@@ -32,9 +32,10 @@
   <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
   <header id="app-header" class="app-header">
     <button id="btn-home" class="brand" aria-label="Home">
-      <span class="brand-text">Boys Push Up <em>Bonanza</em></span>
+      <span class="brand-text">Boys Pushup <em>Bonanza</em></span>
     </button>
     <nav class="header-actions">
+      <span id="streak-badge" class="streak-badge hidden"></span>
       <button id="btn-nav-dashboard" class="icon-btn" aria-label="Leaderboard" title="Leaderboard">🏆</button>
       <button id="btn-nav-settings" class="icon-btn" aria-label="Settings" title="Settings">⚙️</button>
     </nav>
@@ -59,6 +60,7 @@
 
     <!-- ============ SCREEN: WORKOUT ============ -->
     <section id="screen-workout" class="screen">
+      <div id="workout-confetti" class="confetti" aria-hidden="true"></div>
 
       <div id="workout-idle" class="workout-idle">
         <p class="workout-hello">
@@ -81,6 +83,11 @@
         <div class="rep-count-wrap">
           <div id="rep-count" class="rep-count">0</div>
           <div class="rep-label">PUSHUPS</div>
+          <div id="thermometer-wrap" class="thermometer-wrap hidden">
+            <div class="thermometer-track">
+              <div id="thermometer-fill" class="thermometer-fill"></div>
+            </div>
+          </div>
           <div id="highscore-message" class="highscore-message"></div>
           <div id="calibration-readout" class="calibration-readout hidden"></div>
         </div>
@@ -159,8 +166,15 @@
 
       <div class="settings-block">
         <h2 class="section-title">Manage users</h2>
-        <p class="settings-hint">Remove someone's sessions from the shared leaderboard. This can't be undone.</p>
+        <p class="settings-hint">Tap someone's icon to change their avatar. The trash icon removes all of their sessions from the shared leaderboard — this can't be undone.</p>
         <div id="manage-users-list" class="manage-users-list"></div>
+      </div>
+
+      <div class="settings-block">
+        <h2 class="section-title">My sessions</h2>
+        <p class="settings-hint">Your own session history. Delete any you logged by mistake.</p>
+        <div id="my-sessions-list" class="my-sessions-list"></div>
+        <button id="btn-my-sessions-more" type="button" class="btn btn-secondary hidden">Show more</button>
       </div>
 
       <div class="settings-block">
