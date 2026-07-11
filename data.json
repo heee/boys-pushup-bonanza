@@ -48,6 +48,13 @@
       "timestamp": "2026-07-11T19:03:19.148Z",
       "count": 4,
       "avatar": "burger"
+    },
+    {
+      "id": "7c59d299-2805-4d3b-9066-7439bcb8456d",
+      "user": "Henning",
+      "timestamp": "2026-07-11T19:10:44.505Z",
+      "count": 2,
+      "avatar": "burger"
     }
   ],
   "avatars": {
