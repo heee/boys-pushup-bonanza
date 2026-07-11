@@ -160,6 +160,13 @@ function vibrate(ms) {
   }
 }
 
+function formatDuration(ms) {
+  const totalSeconds = Math.round(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function formatDateTime(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
@@ -170,14 +177,18 @@ function formatDateTime(iso) {
 
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  $("chk-dark-theme").checked = theme === "dark";
+  document.querySelectorAll("#theme-select .segment").forEach((s) => {
+    s.classList.toggle("active", s.dataset.theme === theme);
+  });
 }
 
 function initTheme() {
   const saved = localStorage.getItem(LS.theme) || "dark";
   applyTheme(saved);
-  $("chk-dark-theme").addEventListener("change", (e) => {
-    const next = e.target.checked ? "dark" : "light";
+  $("theme-select").addEventListener("click", (e) => {
+    const btn = e.target.closest(".segment");
+    if (!btn) return;
+    const next = btn.dataset.theme;
     localStorage.setItem(LS.theme, next);
     applyTheme(next);
   });
@@ -360,9 +371,10 @@ const state = {
   dashboardPeriod: "day",
   historyView: "recent",
   highScore: 0,
-  bonanzaMode: "boys",
+  bonanzaMode: "mine",
   lastSessions: [],
   mySessionsShown: 5,
+  sessionStartedAt: null,
 };
 
 const repState = {
@@ -795,6 +807,24 @@ function paintMyBonanza(sessions) {
   const avgPerSession = Math.round(allTimeTotal / mine.length);
   const streak = computeStreak(mine);
 
+  // Duration-based stats only use sessions that recorded both a start and
+  // end time, and only sane durations (protects against a backgrounded app
+  // making a session look like it took an hour).
+  const timedSessions = mine.filter((s) => {
+    if (!s.startedAt) return false;
+    const ms = new Date(s.timestamp) - new Date(s.startedAt);
+    return ms > 0 && ms < 30 * 60 * 1000;
+  });
+  let avgDurationMs = null;
+  let avgPace = null;
+  if (timedSessions.length) {
+    const durationsMs = timedSessions.map((s) => new Date(s.timestamp) - new Date(s.startedAt));
+    avgDurationMs = durationsMs.reduce((a, b) => a + b, 0) / durationsMs.length;
+    const totalTimedReps = timedSessions.reduce((sum, s) => sum + s.count, 0);
+    const totalMinutes = durationsMs.reduce((a, b) => a + b, 0) / 60000;
+    avgPace = totalMinutes > 0 ? totalTimedReps / totalMinutes : null;
+  }
+
   const stats = [
     { label: "All-time total", value: allTimeTotal },
     { label: "Personal best", value: personalBest },
@@ -802,6 +832,12 @@ function paintMyBonanza(sessions) {
     { label: "Avg per session", value: avgPerSession },
     { label: "Sessions logged", value: mine.length },
   ];
+  if (avgDurationMs != null) {
+    stats.push({ label: "Avg session time", value: formatDuration(avgDurationMs) });
+  }
+  if (avgPace != null) {
+    stats.push({ label: "Avg pace", value: `${avgPace.toFixed(1)}/min` });
+  }
   statsEl.innerHTML = stats.map((s) => `
     <div class="stat-card">
       <div class="stat-value">${s.value}</div>
@@ -1216,6 +1252,7 @@ async function startWorkout() {
   resetRepState();
   state.workoutActive = true;
   state.detectionRunning = true;
+  state.sessionStartedAt = new Date();
   $("workout-idle").classList.add("hidden");
   $("workout-active").classList.remove("hidden");
   $("app-header").classList.add("minimized");
@@ -1301,6 +1338,7 @@ async function completeWorkout() {
     timestamp: new Date().toISOString(),
     count,
     avatar: state.currentAvatar,
+    startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
   };
 
   // Optimistically reflect it locally right away so it shows up immediately.
@@ -1328,8 +1366,37 @@ async function completeWorkout() {
 
 $("btn-start").addEventListener("click", startWorkout);
 $("btn-complete").addEventListener("click", completeWorkout);
+const SHARE_MESSAGES = [
+  (n) => `${n} pushups! Come beat my pump 💪`,
+  (n) => `Just banged out ${n} pushups. Who's next?`,
+  (n) => `${n} reps in the bank. Leaderboard's calling your name.`,
+  (n) => `${n} pushups down. Beat that, if you can.`,
+  (n) => `${n} reps deep. Your move, boys.`,
+  (n) => `${n} pushups logged. The bonanza continues.`,
+];
+
+async function shareFlex() {
+  const count = $("summary-count").textContent;
+  const message = pickFrom(SHARE_MESSAGES)(count);
+  const url = location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — paste it in the group chat!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy your result manually.", 4000);
+  }
+}
+
 $("btn-summary-again").addEventListener("click", () => showScreen("screen-workout"));
-$("btn-summary-leaderboard").addEventListener("click", () => showScreen("screen-dashboard"));
+$("btn-summary-share").addEventListener("click", shareFlex);
 
 // ------------------- init -------------------
 
