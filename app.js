@@ -77,6 +77,15 @@ function uuid() {
   });
 }
 
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function hashString(str) {
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
@@ -161,15 +170,14 @@ function formatDateTime(iso) {
 
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  $("btn-theme-toggle").textContent = theme === "dark" ? "🌙" : "☀️";
+  $("chk-dark-theme").checked = theme === "dark";
 }
 
 function initTheme() {
   const saved = localStorage.getItem(LS.theme) || "dark";
   applyTheme(saved);
-  $("btn-theme-toggle").addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-    const next = current === "dark" ? "light" : "dark";
+  $("chk-dark-theme").addEventListener("change", (e) => {
+    const next = e.target.checked ? "dark" : "light";
     localStorage.setItem(LS.theme, next);
     applyTheme(next);
   });
@@ -338,6 +346,8 @@ const state = {
   dashboardPeriod: "day",
   historyView: "recent",
   highScore: 0,
+  bonanzaMode: "boys",
+  lastSessions: [],
 };
 
 const repState = {
@@ -391,7 +401,9 @@ $("btn-nav-settings").addEventListener("click", () => guardLeaveWorkout(() => sh
 
 function renderUserList() {
   const sessions = getAllSessionsForDisplay();
-  const names = Array.from(new Set(sessions.map((s) => s.user))).sort((a, b) => a.localeCompare(b));
+  const allNames = Array.from(new Set(sessions.map((s) => s.user)));
+  const others = shuffleArray(allNames.filter((n) => n !== state.currentUser));
+  const names = allNames.includes(state.currentUser) ? [state.currentUser, ...others] : others;
   const list = $("user-list");
   list.innerHTML = "";
   if (!names.length) {
@@ -624,8 +636,92 @@ const TROPHIES = ["🥇", "🥈", "🥉"];
 async function renderDashboard() {
   await flushQueue().catch(() => {});
   const sessions = await refreshFromRemote();
+  state.lastSessions = sessions;
   renderPendingStatus();
-  paintDashboard(sessions);
+  paintActiveBonanzaView();
+}
+
+function paintActiveBonanzaView() {
+  if (state.bonanzaMode === "mine") paintMyBonanza(state.lastSessions);
+  else paintDashboard(state.lastSessions);
+}
+
+$("bonanza-mode-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#bonanza-mode-select .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.bonanzaMode = btn.dataset.mode;
+  $("boys-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "boys");
+  $("my-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "mine");
+  paintActiveBonanzaView();
+});
+
+function computeStreak(sessionsForUser) {
+  const daySet = new Set(sessionsForUser.map((s) => new Date(s.timestamp).toDateString()));
+  let streak = 0;
+  const cursor = new Date();
+  if (!daySet.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1);
+  while (daySet.has(cursor.toDateString())) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function paintMyBonanza(sessions) {
+  const mine = sessions.filter((s) => s.user === state.currentUser);
+
+  const now = new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+  }
+  const dayTotals = days.map((d) => {
+    const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    const total = mine
+      .filter((s) => { const t = new Date(s.timestamp); return t >= d && t < next; })
+      .reduce((sum, s) => sum + s.count, 0);
+    return { date: d, total };
+  });
+  const maxTotal = Math.max(1, ...dayTotals.map((d) => d.total));
+
+  $("week-chart").innerHTML = dayTotals.map(({ date, total }) => {
+    const isToday = date.toDateString() === now.toDateString();
+    const label = isToday ? "Today" : date.toLocaleDateString(undefined, { weekday: "short" });
+    const heightPct = total > 0 ? Math.max(6, Math.round((total / maxTotal) * 100)) : 3;
+    return `
+      <div class="week-bar-col">
+        <div class="week-bar-value">${total || ""}</div>
+        <div class="week-bar" style="height:${heightPct}%"></div>
+        <div class="week-bar-label">${label}</div>
+      </div>
+    `;
+  }).join("");
+
+  const statsEl = $("personal-stats");
+  if (!mine.length) {
+    statsEl.innerHTML = '<p class="leaderboard-empty">No sessions yet — go do some pushups! 💪</p>';
+    return;
+  }
+  const allTimeTotal = mine.reduce((sum, s) => sum + s.count, 0);
+  const personalBest = Math.max(...mine.map((s) => s.count));
+  const avgPerSession = Math.round(allTimeTotal / mine.length);
+  const streak = computeStreak(mine);
+
+  const stats = [
+    { label: "All-time total", value: allTimeTotal },
+    { label: "Personal best", value: personalBest },
+    { label: "Current streak", value: `${streak} day${streak === 1 ? "" : "s"}` },
+    { label: "Avg per session", value: avgPerSession },
+    { label: "Sessions logged", value: mine.length },
+  ];
+  statsEl.innerHTML = stats.map((s) => `
+    <div class="stat-card">
+      <div class="stat-value">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join("");
 }
 
 function paintDashboard(sessions) {
@@ -738,8 +834,7 @@ $("period-select").addEventListener("click", (e) => {
   document.querySelectorAll("#period-select .segment").forEach((s) => s.classList.remove("active"));
   btn.classList.add("active");
   state.dashboardPeriod = btn.dataset.period;
-  const sessions = getAllSessionsForDisplay();
-  paintDashboard(sessions);
+  paintDashboard(state.lastSessions);
 });
 
 // ------------------- workout screen: camera + face detection -------------------

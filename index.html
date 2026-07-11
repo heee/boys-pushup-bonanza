@@ -37,7 +37,6 @@
     <nav class="header-actions">
       <button id="btn-nav-dashboard" class="icon-btn" aria-label="Leaderboard" title="Leaderboard">🏆</button>
       <button id="btn-nav-settings" class="icon-btn" aria-label="Settings" title="Settings">⚙️</button>
-      <button id="btn-theme-toggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
     </nav>
   </header>
 
@@ -112,23 +111,38 @@
     <section id="screen-dashboard" class="screen">
       <h1 class="screen-title">Leaderboard 🏆</h1>
 
-      <div id="period-select" class="segmented" role="tablist">
-        <button class="segment active" data-period="day">Day</button>
-        <button class="segment" data-period="week">Week</button>
-        <button class="segment" data-period="month">Month</button>
-        <button class="segment" data-period="quarter">Quarter</button>
-        <button class="segment" data-period="year">Year</button>
+      <div id="bonanza-mode-select" class="segmented" role="tablist">
+        <button class="segment" data-mode="mine">My Bonanza</button>
+        <button class="segment active" data-mode="boys">Boys Bonanza</button>
       </div>
 
-      <div id="leaderboard-list" class="leaderboard-list"></div>
+      <div id="boys-bonanza-view">
+        <div id="period-select" class="segmented" role="tablist">
+          <button class="segment active" data-period="day">Day</button>
+          <button class="segment" data-period="week">Week</button>
+          <button class="segment" data-period="month">Month</button>
+          <button class="segment" data-period="quarter">Quarter</button>
+          <button class="segment" data-period="year">Year</button>
+        </div>
 
-      <div id="history-view-select" class="segmented" role="tablist">
-        <button class="segment active" data-view="recent">Last flexers</button>
-        <button class="segment" data-view="history">Session history</button>
+        <div id="leaderboard-list" class="leaderboard-list"></div>
+
+        <div id="history-view-select" class="segmented" role="tablist">
+          <button class="segment active" data-view="recent">Last flexers</button>
+          <button class="segment" data-view="history">Session history</button>
+        </div>
+
+        <div id="recent-list" class="history-list"></div>
+        <div id="history-list" class="history-list hidden"></div>
       </div>
 
-      <div id="recent-list" class="history-list"></div>
-      <div id="history-list" class="history-list hidden"></div>
+      <div id="my-bonanza-view" class="hidden">
+        <div class="mybonanza-chart-card">
+          <h2 class="section-title">Last 7 days</h2>
+          <div id="week-chart" class="week-chart"></div>
+        </div>
+        <div id="personal-stats" class="stats-grid"></div>
+      </div>
     </section>
 
     <!-- ============ SCREEN: SETTINGS ============ -->
@@ -136,11 +150,11 @@
       <h1 class="screen-title">Settings ⚙️</h1>
 
       <div class="settings-block">
-        <h2 class="section-title">Shared leaderboard</h2>
-        <p class="settings-hint">Everyone's sessions sync automatically — nothing to set up on this device.</p>
-        <button id="btn-gh-test" class="btn btn-secondary">Check connection</button>
-        <p id="gh-status" class="settings-status"></p>
-        <p id="pending-status" class="settings-status"></p>
+        <h2 class="section-title">Appearance</h2>
+        <label class="field-label toggle-row">
+          <span>Dark theme</span>
+          <input id="chk-dark-theme" type="checkbox">
+        </label>
       </div>
 
       <div class="settings-block">
@@ -176,9 +190,14 @@
       </div>
 
       <div class="settings-block">
-        <h2 class="section-title">About</h2>
-        <p class="settings-hint">Boys Push Up Bonanza — a client-side pushup counter and leaderboard. No servers, no accounts, just reps.</p>
+        <h2 class="section-title">Shared leaderboard</h2>
+        <p class="settings-hint">Everyone's sessions sync automatically — nothing to set up on this device.</p>
+        <button id="btn-gh-test" class="btn btn-secondary">Check connection</button>
+        <p id="gh-status" class="settings-status"></p>
+        <p id="pending-status" class="settings-status"></p>
       </div>
+
+      <p class="settings-footer">Made in Texas with love 🇺🇸</p>
     </section>
 
   </main>
