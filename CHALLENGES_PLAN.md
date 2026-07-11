@@ -85,6 +85,17 @@ Create with exactly this content (goals are Henning-tuned starting values):
       "gradient": ["#4a2a5e", "#e8762e"]
     },
     {
+      "id": "club-180-2026",
+      "title": "The 180 Club",
+      "emoji": "🎯",
+      "tagline": "One week, 180 reps — a perfect checkout. Dart tournament rules: lose a leg, owe ten.",
+      "start": "2026-10-12",
+      "end": "2026-10-18",
+      "goalType": "individual",
+      "goal": 180,
+      "gradient": ["#2e4a2e", "#a83232"]
+    },
+    {
       "id": "earn-your-bird-2026",
       "title": "Earn Your Bird",
       "emoji": "🦃",
@@ -94,6 +105,28 @@ Create with exactly this content (goals are Henning-tuned starting values):
       "goalType": "individual",
       "goal": 500,
       "gradient": ["#6b4a2e", "#c98a3a"]
+    },
+    {
+      "id": "spoetzl-sprint-2026",
+      "title": "Spoetzl Sprint",
+      "emoji": "🍻",
+      "tagline": "1,909 together before the Shiner pilgrimage — the year Cosmo fired up the brewery. Prost.",
+      "start": "2026-11-09",
+      "end": "2026-11-22",
+      "goalType": "collective",
+      "goal": 1909,
+      "gradient": ["#6b4a2e", "#e8b23a"]
+    },
+    {
+      "id": "turkey-trot-day-2026",
+      "title": "Turkey Trot Day",
+      "emoji": "🏃",
+      "tagline": "Flash challenge: 100 reps on Thanksgiving Day. Phil has a podium to defend.",
+      "start": "2026-11-26",
+      "end": "2026-11-26",
+      "goalType": "individual",
+      "goal": 100,
+      "gradient": ["#8a5a2e", "#d99a4a"]
     },
     {
       "id": "fitmas-2026",
@@ -121,23 +154,34 @@ Create with exactly this content (goals are Henning-tuned starting values):
       "id": "buck-the-floor-2027",
       "title": "Buck the Floor",
       "emoji": "🤠",
-      "tagline": "RodeoHouston is in town. 8 seconds is a ride, 8 pushups is a warmup.",
-      "start": "2027-02-23",
+      "tagline": "Rodeo Run training season through the last day of RodeoHouston. 8 seconds is a ride, 8 pushups is a warmup.",
+      "start": "2027-02-01",
       "end": "2027-03-14",
       "goalType": "individual",
-      "goal": 800,
+      "goal": 1000,
       "gradient": ["#7a4a2e", "#d9b66a"]
     },
     {
-      "id": "full-court-press-2027",
-      "title": "Full-Court Press",
-      "emoji": "🏀",
-      "tagline": "March Madness. 64 teams, 10 reps each. Fill out the bracket with sweat.",
+      "id": "super-bowl-sunday-2027",
+      "title": "Super Bowl Sunday",
+      "emoji": "🏈",
+      "tagline": "Flash challenge: 200 reps between kickoff and the final whistle. Halftime show optional, pushups aren't.",
+      "start": "2027-02-14",
+      "end": "2027-02-14",
+      "goalType": "individual",
+      "goal": 200,
+      "gradient": ["#2e5e3a", "#8a6a3a"]
+    },
+    {
+      "id": "mudbug-madness-2027",
+      "title": "Mudbug Madness",
+      "emoji": "🦞",
+      "tagline": "Crawfish season, baby. Peel. Pinch. Push. Earn your spot at the boil.",
       "start": "2027-03-15",
       "end": "2027-04-05",
       "goalType": "individual",
       "goal": 640,
-      "gradient": ["#c9622e", "#2e3a6b"]
+      "gradient": ["#8a2e2e", "#e8623a"]
     },
     {
       "id": "go-low-get-high-2027",
@@ -197,6 +241,12 @@ Schema notes:
 - `goalType: "streak"` → `goal` = consecutive days (a day counts if the
   participant logged ≥ 1 session that local day within the window).
 - `gradient` = two hex colors for the card background.
+- `start` = `end` produces a one-day **flash challenge** — no special code
+  path needed; the window math handles it. Challenges may overlap freely
+  (sprints and flash days layer on top of monthly challenges by design).
+- Placeholder dates to revisit: `club-180-2026` (sync to the actual dart
+  tournament night when scheduled) and `spoetzl-sprint-2026` (sync to the
+  booked Shiner brewery trip).
 
 ## 2. Worker changes (`worker/index.js`)
 
