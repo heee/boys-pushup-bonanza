@@ -1804,12 +1804,12 @@ async function completeWorkout() {
 $("btn-start").addEventListener("click", startWorkout);
 $("btn-complete").addEventListener("click", completeWorkout);
 const SHARE_MESSAGES = [
-  (n) => `${n} pushups! Come beat my pump 💪`,
-  (n) => `Just banged out ${n} pushups. Who's next?`,
-  (n) => `${n} reps in the bank. Leaderboard's calling your name.`,
-  (n) => `${n} pushups down. Beat that, if you can.`,
-  (n) => `${n} reps deep. Your move, boys.`,
-  (n) => `${n} pushups logged. The bonanza continues.`,
+  (n) => `${n} pushups! 💪 Come beat my pump 🔥`,
+  (n) => `Just banged out ${n} pushups 😤 Who's next?`,
+  (n) => `${n} reps in the bank 🏦 Leaderboard's calling your name 🏆`,
+  (n) => `${n} pushups down 📉 Beat that, if you can 😏`,
+  (n) => `${n} reps deep 💦 Your move, boys 👀`,
+  (n) => `${n} pushups logged ✅ The bonanza continues 🚀`,
 ];
 
 async function shareFlex() {
