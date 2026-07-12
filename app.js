@@ -26,6 +26,7 @@ const LS = {
   showHighscore: "bpb-show-highscore",
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
+  plankUnlocked: "bpb-plank-unlocked",
 };
 
 const DEFAULT_DOWN = 0.55;
@@ -407,6 +408,11 @@ const state = {
   sessionStartedAt: null,
   challengeTab: "active",
   openChallengeId: null,
+  activityType: "pushups",
+  lastSessionType: "pushup",
+  plankActive: false,
+  plankBest: 0,
+  plankStartedAt: null,
 };
 
 const repState = {
@@ -417,6 +423,12 @@ const repState = {
   paused: false,
   halfHit: false,
   threeQuarterHit: false,
+  recordBroken: false,
+};
+
+const plankState = {
+  seconds: 0,
+  intervalId: null,
   recordBroken: false,
 };
 
@@ -437,7 +449,7 @@ function renderStreakBadge() {
     el.classList.add("hidden");
     return;
   }
-  const mine = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser);
+  const mine = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser && s.type !== "plank");
   const streak = computeStreak(mine);
   el.classList.remove("hidden");
   if (streak > 0) {
@@ -451,7 +463,9 @@ function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(id).classList.add("active");
   state.screen = id;
-  $("app-header").classList.toggle("minimized", id === "screen-workout" && state.workoutActive);
+  const minimized = (id === "screen-workout" && state.workoutActive) ||
+    (id === "screen-plank-workout" && state.plankActive);
+  $("app-header").classList.toggle("minimized", minimized);
   renderStreakBadge();
 
   if (id === "screen-user") renderUserList();
@@ -462,6 +476,10 @@ function showScreen(id) {
     $("workout-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("workout-avatar"), state.currentAvatar, "2rem");
   }
+  if (id === "screen-plank-workout" && !state.plankActive) {
+    $("plank-username").textContent = state.currentUser || "Friend";
+    setAvatarEl($("plank-avatar"), state.currentAvatar, "2rem");
+  }
 }
 
 function guardLeaveWorkout(next) {
@@ -469,6 +487,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this workout? Your in-progress reps won't be saved.");
     if (!ok) return;
     stopWorkoutHard();
+  } else if (state.screen === "screen-plank-workout" && state.plankActive) {
+    const ok = confirm("Leave this plank? Your in-progress time won't be saved.");
+    if (!ok) return;
+    stopPlankHard();
   }
   next();
 }
@@ -666,7 +688,7 @@ function renderMySessions() {
     row.className = "my-session-row";
     row.innerHTML = `
       <span>${formatDateTime(s.timestamp)}</span>
-      <span class="my-session-count">${s.count}</span>
+      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.count}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
     `;
     row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteSession(s.id));
@@ -780,13 +802,22 @@ async function renderDashboard() {
   const sessions = await refreshFromRemote();
   state.lastSessions = sessions;
   renderPendingStatus();
+  $("activity-type-select").classList.toggle("hidden", localStorage.getItem(LS.plankUnlocked) !== "1");
   paintActiveBonanzaView();
   renderStreakBadge();
 }
 
+// Plank sessions and pushup sessions are stored in the same array; every
+// dashboard view is scoped to whichever activity type is currently selected.
+function filterByActivityType(sessions) {
+  const wantPlank = state.activityType === "planks";
+  return sessions.filter((s) => (s.type === "plank") === wantPlank);
+}
+
 function paintActiveBonanzaView() {
-  if (state.bonanzaMode === "mine") paintMyBonanza(state.lastSessions);
-  else paintDashboard(state.lastSessions);
+  const typed = filterByActivityType(state.lastSessions);
+  if (state.bonanzaMode === "mine") paintMyBonanza(typed);
+  else paintDashboard(typed);
 }
 
 $("bonanza-mode-select").addEventListener("click", (e) => {
@@ -797,6 +828,15 @@ $("bonanza-mode-select").addEventListener("click", (e) => {
   state.bonanzaMode = btn.dataset.mode;
   $("boys-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "boys");
   $("my-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "mine");
+  paintActiveBonanzaView();
+});
+
+$("activity-type-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#activity-type-select .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.activityType = btn.dataset.activity;
   paintActiveBonanzaView();
 });
 
@@ -813,6 +853,8 @@ function computeStreak(sessionsForUser) {
 }
 
 function paintMyBonanza(sessions) {
+  const isPlank = state.activityType === "planks";
+  const activityWord = isPlank ? "planks" : "pushups";
   const mine = sessions.filter((s) => s.user === state.currentUser);
 
   const now = new Date();
@@ -833,9 +875,10 @@ function paintMyBonanza(sessions) {
     const isToday = date.toDateString() === now.toDateString();
     const label = isToday ? "Today" : date.toLocaleDateString(undefined, { weekday: "short" });
     const heightPct = total > 0 ? Math.max(6, Math.round((total / maxTotal) * 100)) : 3;
+    const valueDisplay = total > 0 ? (isPlank ? formatDuration(total * 1000) : total) : "";
     return `
       <div class="week-bar-col">
-        <div class="week-bar-value">${total || ""}</div>
+        <div class="week-bar-value">${valueDisplay}</div>
         <div class="week-bar" style="height:${heightPct}%"></div>
         <div class="week-bar-label">${label}</div>
       </div>
@@ -844,13 +887,30 @@ function paintMyBonanza(sessions) {
 
   const statsEl = $("personal-stats");
   if (!mine.length) {
-    statsEl.innerHTML = '<p class="leaderboard-empty">No sessions yet — go do some pushups! 💪</p>';
+    statsEl.innerHTML = `<p class="leaderboard-empty">No sessions yet — go do some ${activityWord}! 💪</p>`;
     return;
   }
   const allTimeTotal = mine.reduce((sum, s) => sum + s.count, 0);
   const personalBest = Math.max(...mine.map((s) => s.count));
   const avgPerSession = Math.round(allTimeTotal / mine.length);
   const streak = computeStreak(mine);
+
+  if (isPlank) {
+    const stats = [
+      { icon: "🔢", label: "All-time total", value: formatDuration(allTimeTotal * 1000) },
+      { icon: "🏆", label: "Personal best", value: formatDuration(personalBest * 1000) },
+      { icon: "🔥", label: "Current streak", value: `${streak} day${streak === 1 ? "" : "s"}` },
+      { icon: "📊", label: "Avg per session", value: formatDuration(avgPerSession * 1000) },
+      { icon: "📅", label: "Sessions logged", value: mine.length },
+    ];
+    statsEl.innerHTML = stats.map((s) => `
+      <div class="stats-table-row">
+        <span class="stats-table-label">${s.icon} ${s.label}</span>
+        <span class="stats-table-value">${s.value}</span>
+      </div>
+    `).join("");
+    return;
+  }
 
   // Duration-based stats only use sessions that recorded both a start and
   // end time, and only sane durations (protects against a backgrounded app
@@ -892,6 +952,9 @@ function paintMyBonanza(sessions) {
 }
 
 function paintDashboard(sessions) {
+  const isPlank = state.activityType === "planks";
+  const activityWord = isPlank ? "planks" : "pushups";
+  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : n);
   const start = periodStart(state.dashboardPeriod);
   const filtered = sessions.filter((s) => new Date(s.timestamp) >= start);
 
@@ -904,7 +967,7 @@ function paintDashboard(sessions) {
   const lbList = $("leaderboard-list");
   lbList.innerHTML = "";
   if (!ranked.length) {
-    lbList.innerHTML = '<p class="leaderboard-empty">No pushups logged for this period yet. Get moving! 💪</p>';
+    lbList.innerHTML = `<p class="leaderboard-empty">No ${activityWord} logged for this period yet. Get moving! 💪</p>`;
   } else {
     ranked.forEach(([user, total], i) => {
       const row = document.createElement("div");
@@ -914,7 +977,7 @@ function paintDashboard(sessions) {
         <div class="leaderboard-trophy">${TROPHIES[i] || ""}</div>
         ${avatarCircleHTML(avatarForUser(user), "1.8rem")}
         <div class="leaderboard-name">${escapeHtml(user)}</div>
-        <div class="leaderboard-total">${total}</div>
+        <div class="leaderboard-total">${fmtCount(total)}</div>
       `;
       lbList.appendChild(row);
     });
@@ -937,12 +1000,12 @@ function paintDashboard(sessions) {
       group.className = "history-user-group";
       const header = document.createElement("div");
       header.className = "history-user-header";
-      header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span>${escapeHtml(user)} — ${totals.get(user)} total</span></span><span class="chev">▸</span>`;
+      header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span>${escapeHtml(user)} — ${fmtCount(totals.get(user))} total</span></span><span class="chev">▸</span>`;
       header.addEventListener("click", () => group.classList.toggle("open"));
       const sessionsWrap = document.createElement("div");
       sessionsWrap.className = "history-sessions";
       sessionsWrap.innerHTML = userSessions
-        .map((s) => `<div class="history-session-row"><span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${s.count}</span></div>`)
+        .map((s) => `<div class="history-session-row"><span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${fmtCount(s.count)}</span></div>`)
         .join("");
       group.appendChild(header);
       group.appendChild(sessionsWrap);
@@ -955,11 +1018,12 @@ function paintDashboard(sessions) {
 }
 
 function renderRecentList(sessions) {
+  const isPlank = state.activityType === "planks";
   const recentList = $("recent-list");
   const recent = [...sessions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
   recentList.innerHTML = "";
   if (!recent.length) {
-    recentList.innerHTML = '<p class="history-empty">No pushups logged yet. Get moving! 💪</p>';
+    recentList.innerHTML = `<p class="history-empty">No ${isPlank ? "planks" : "pushups"} logged yet. Get moving! 💪</p>`;
     return;
   }
   for (const s of recent) {
@@ -968,7 +1032,7 @@ function renderRecentList(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${s.count}</div>
+      <div class="recent-count">${isPlank ? formatDuration(s.count * 1000) : s.count}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     recentList.appendChild(row);
@@ -1001,7 +1065,7 @@ $("period-select").addEventListener("click", (e) => {
   document.querySelectorAll("#period-select .segment").forEach((s) => s.classList.remove("active"));
   btn.classList.add("active");
   state.dashboardPeriod = btn.dataset.period;
-  paintDashboard(state.lastSessions);
+  paintDashboard(filterByActivityType(state.lastSessions));
 });
 
 // ------------------- challenges -------------------
@@ -1032,6 +1096,7 @@ function challengeSessions(c) {
   if (!participants.size) return [];
   const { startDate, endDate } = challengeWindow(c);
   return getAllSessionsForDisplay().filter((s) => {
+    if (s.type === "plank") return false; // challenges are pushup-rep goals only
     if (!participants.has(s.user)) return false;
     const t = new Date(s.timestamp);
     return t >= startDate && t <= endDate;
@@ -1510,7 +1575,13 @@ function updateThermometer(count) {
 
 function getHighScore(name) {
   return getAllSessionsForDisplay()
-    .filter((s) => s.user === name)
+    .filter((s) => s.user === name && s.type !== "plank")
+    .reduce((max, s) => Math.max(max, s.count), 0);
+}
+
+function getPlankBest(name) {
+  return getAllSessionsForDisplay()
+    .filter((s) => s.user === name && s.type === "plank")
     .reduce((max, s) => Math.max(max, s.count), 0);
 }
 
@@ -1744,13 +1815,14 @@ function pickFunMessage(n) {
 }
 
 const CONFETTI_EMOJI = ["🎉", "💪", "🔥", "⭐", "🏆", "😤", "🚀", "👑"];
-function launchConfetti(targetId = "confetti") {
+const PLANK_EMOJI = ["🪵", "🪓", "🧱", "📏", "🪚"];
+function launchConfetti(targetId = "confetti", emojiSet = CONFETTI_EMOJI) {
   const el = $(targetId);
   el.innerHTML = "";
   for (let i = 0; i < 24; i++) {
     const span = document.createElement("span");
     span.className = "confetti-piece";
-    span.textContent = CONFETTI_EMOJI[Math.floor(Math.random() * CONFETTI_EMOJI.length)];
+    span.textContent = emojiSet[Math.floor(Math.random() * emojiSet.length)];
     span.style.left = `${Math.random() * 100}%`;
     span.style.fontSize = `${1 + Math.random() * 1.2}rem`;
     span.style.animationDuration = `${1.8 + Math.random() * 1.4}s`;
@@ -1784,7 +1856,9 @@ async function completeWorkout() {
   cacheData(cached);
 
   const message = pickFunMessage(count);
+  state.lastSessionType = "pushup";
   $("summary-count").textContent = String(count);
+  $("summary-unit-label").textContent = "pushups";
   $("summary-user").textContent = state.currentUser;
   setAvatarEl($("summary-avatar"), state.currentAvatar, "1.6rem");
   $("summary-message").textContent = message;
@@ -1811,10 +1885,18 @@ const SHARE_MESSAGES = [
   (n) => `${n} reps deep 💦 Your move, boys 👀`,
   (n) => `${n} pushups logged ✅ The bonanza continues 🚀`,
 ];
+const SHARE_MESSAGES_PLANK = [
+  (t) => `Held a ${t} plank! 🪵 Beat that 💪`,
+  (t) => `${t} plank in the books 🧱 Your move, boys 👀`,
+  (t) => `Just planked for ${t} 😤 Who's next?`,
+  (t) => `${t} of pure core chaos 🔥 Come get some`,
+  (t) => `${t} plank logged ✅ The bonanza continues 🚀`,
+];
 
 async function shareFlex() {
   const count = $("summary-count").textContent;
-  const message = pickFrom(SHARE_MESSAGES)(count);
+  const isPlank = state.lastSessionType === "plank";
+  const message = isPlank ? pickFrom(SHARE_MESSAGES_PLANK)(count) : pickFrom(SHARE_MESSAGES)(count);
   const url = location.href;
   if (navigator.share) {
     try {
@@ -1832,8 +1914,163 @@ async function shareFlex() {
   }
 }
 
-$("btn-summary-again").addEventListener("click", () => showScreen("screen-workout"));
+$("btn-summary-again").addEventListener("click", () => {
+  showScreen(state.lastSessionType === "plank" ? "screen-plank-workout" : "screen-workout");
+});
 $("btn-summary-share").addEventListener("click", shareFlex);
+
+// ------------------- plank mode (hidden easter egg) -------------------
+
+$("mascot-badge").addEventListener("click", () => {
+  if (localStorage.getItem(LS.plankUnlocked) === "1") {
+    showScreen("screen-plank-workout");
+    return;
+  }
+  localStorage.setItem(LS.plankUnlocked, "1");
+  showScreen("screen-plank-unlock");
+  launchConfetti("plank-unlock-confetti", PLANK_EMOJI);
+  speak("Hidden plank mode unlocked!");
+  setTimeout(() => showScreen("screen-plank-workout"), 2800);
+});
+
+function updatePlankThermometer(seconds) {
+  const wrap = $("plank-thermometer-wrap");
+  if (!state.plankBest) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const fill = $("plank-thermometer-fill");
+  const pct = Math.min(100, Math.round((seconds / state.plankBest) * 100));
+  fill.style.width = `${pct}%`;
+  fill.classList.toggle("thermometer-win", seconds > state.plankBest);
+}
+
+function updatePlankHighscoreMessage(seconds) {
+  const el = $("plank-highscore-message");
+  if (!state.plankBest) {
+    el.textContent = "";
+    return;
+  }
+  const remaining = state.plankBest - seconds;
+  if (remaining > 0) {
+    el.textContent = `${remaining} second${remaining === 1 ? "" : "s"} away from your best plank!`;
+  } else if (remaining === 0) {
+    el.textContent = "Tied your best plank — hold on!";
+  } else {
+    el.textContent = "New plank record! 🔥";
+  }
+}
+
+function stopPlankInterval() {
+  if (plankState.intervalId) {
+    clearInterval(plankState.intervalId);
+    plankState.intervalId = null;
+  }
+}
+
+async function startPlank() {
+  state.plankBest = getPlankBest(state.currentUser);
+  plankState.seconds = 0;
+  plankState.recordBroken = false;
+  $("plank-timer").textContent = "0:00";
+  updatePlankThermometer(0);
+  updatePlankHighscoreMessage(0);
+  hideStatusBanner();
+
+  await acquireWakeLock();
+
+  state.plankActive = true;
+  state.plankStartedAt = new Date();
+  $("plank-idle").classList.add("hidden");
+  $("plank-active").classList.remove("hidden");
+  $("app-header").classList.add("minimized");
+
+  stopPlankInterval();
+  plankState.intervalId = setInterval(() => {
+    plankState.seconds += 1;
+    $("plank-timer").textContent = formatDuration(plankState.seconds * 1000);
+    updatePlankThermometer(plankState.seconds);
+    updatePlankHighscoreMessage(plankState.seconds);
+    if (state.plankBest && plankState.seconds === state.plankBest + 1 && !plankState.recordBroken) {
+      plankState.recordBroken = true;
+      launchConfetti("plank-confetti", PLANK_EMOJI);
+    }
+  }, 1000);
+}
+
+function stopPlankHard() {
+  stopPlankInterval();
+  releaseWakeLock();
+  state.plankActive = false;
+  $("plank-active").classList.add("hidden");
+  $("plank-idle").classList.remove("hidden");
+  $("app-header").classList.remove("minimized");
+}
+
+const FUN_MESSAGES_PLANK = [
+  (s) => `${s} second plank! Somewhere, a yoga instructor sheds a single tear.`,
+  (s) => `Held it for ${s} seconds. Absolute plank behavior.`,
+  (s) => `${s} seconds of pure core chaos.`,
+  (s) => `${s} seconds down. The floor is still shaking.`,
+  (s) => `That's ${s} seconds of plank supremacy.`,
+  (s) => `${s} seconds. Your abs just filed a complaint.`,
+];
+let lastPlankFunMessageIndex = -1;
+function pickPlankFunMessage(s) {
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * FUN_MESSAGES_PLANK.length);
+  } while (idx === lastPlankFunMessageIndex && FUN_MESSAGES_PLANK.length > 1);
+  lastPlankFunMessageIndex = idx;
+  return FUN_MESSAGES_PLANK[idx](s);
+}
+
+async function completePlank() {
+  const seconds = plankState.seconds;
+  stopPlankInterval();
+  await releaseWakeLock();
+  state.plankActive = false;
+  $("plank-active").classList.add("hidden");
+  $("plank-idle").classList.remove("hidden");
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count: seconds,
+    avatar: state.currentAvatar,
+    startedAt: state.plankStartedAt ? state.plankStartedAt.toISOString() : undefined,
+    type: "plank",
+  };
+
+  // Optimistically reflect it locally right away so it shows up immediately.
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  const message = pickPlankFunMessage(seconds);
+  state.lastSessionType = "plank";
+  $("summary-count").textContent = formatDuration(seconds * 1000);
+  $("summary-unit-label").textContent = "plank";
+  $("summary-user").textContent = state.currentUser;
+  setAvatarEl($("summary-avatar"), state.currentAvatar, "1.6rem");
+  $("summary-message").textContent = message;
+  $("summary-sync-status").textContent = "";
+  showScreen("screen-summary");
+  launchConfetti("confetti", PLANK_EMOJI);
+  speak(`Plank complete. ${message}`);
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-plank-start").addEventListener("click", startPlank);
+$("btn-plank-stop").addEventListener("click", completePlank);
 
 // ------------------- init -------------------
 

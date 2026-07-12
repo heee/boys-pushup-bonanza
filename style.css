@@ -374,6 +374,15 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 /* ---------------- Workout screen ---------------- */
 
 #screen-workout { position: relative; justify-content: center; align-items: stretch; }
+#screen-plank-workout { position: relative; justify-content: center; align-items: stretch; }
+
+#screen-plank-unlock {
+  position: relative;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+}
+.plank-unlock-emoji { font-size: 4rem; line-height: 1; margin-bottom: 0.5rem; }
 
 .workout-idle {
   display: flex;

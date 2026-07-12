@@ -46,7 +46,7 @@
 
     <!-- ============ SCREEN: USER SELECT ============ -->
     <section id="screen-user" class="screen active">
-      <img class="mascot-badge" src="assets/mascot.jpg" alt="Bonanza mascot">
+      <img id="mascot-badge" class="mascot-badge" src="assets/mascot.jpg" alt="Bonanza mascot">
       <h1 class="screen-title">Who's flexing today? 💪</h1>
       <p class="screen-sub">Pick your name or join the bonanza.</p>
 
@@ -97,6 +97,42 @@
 
     </section>
 
+    <!-- ============ SCREEN: PLANK UNLOCK (easter egg celebration) ============ -->
+    <section id="screen-plank-unlock" class="screen">
+      <div id="plank-unlock-confetti" class="confetti" aria-hidden="true"></div>
+      <div class="plank-unlock-emoji">🪵</div>
+      <h1 class="screen-title">Hidden plank mode unlocked!</h1>
+      <p class="screen-sub">Welcome to the plank club.</p>
+    </section>
+
+    <!-- ============ SCREEN: PLANK WORKOUT ============ -->
+    <section id="screen-plank-workout" class="screen">
+      <div id="plank-confetti" class="confetti" aria-hidden="true"></div>
+
+      <div id="plank-idle" class="workout-idle">
+        <p class="workout-hello">
+          <span id="plank-avatar" class="avatar-circle"></span>
+          Ready to plank, <span id="plank-username">Friend</span>?</p>
+        <p class="workout-instructions">Get into plank position, tap start, and hold as long as you can.</p>
+        <button id="btn-plank-start" class="btn btn-giant btn-primary">START</button>
+      </div>
+
+      <div id="plank-active" class="workout-active hidden">
+        <div class="rep-count-wrap">
+          <div id="plank-timer" class="rep-count">0:00</div>
+          <div class="rep-label">PLANK TIME</div>
+          <div id="plank-thermometer-wrap" class="thermometer-wrap hidden">
+            <div class="thermometer-track">
+              <div id="plank-thermometer-fill" class="thermometer-fill"></div>
+            </div>
+          </div>
+          <div id="plank-highscore-message" class="highscore-message"></div>
+        </div>
+
+        <button id="btn-plank-stop" class="btn btn-giant btn-complete">STOP</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: SUMMARY ============ -->
     <section id="screen-summary" class="screen">
       <div id="confetti" class="confetti" aria-hidden="true"></div>
@@ -104,7 +140,7 @@
       <div class="summary-count" id="summary-count">0</div>
       <p class="summary-sub">
         <span id="summary-avatar" class="avatar-circle"></span>
-        pushups by <strong id="summary-user">you</strong>
+        <span id="summary-unit-label">pushups</span> by <strong id="summary-user">you</strong>
       </p>
       <p id="summary-message" class="summary-message"></p>
       <div id="summary-sync-status" class="sync-status"></div>
@@ -121,6 +157,11 @@
       <div id="bonanza-mode-select" class="segmented" role="tablist">
         <button class="segment active" data-mode="mine">My Bonanza</button>
         <button class="segment" data-mode="boys">Boys Bonanza</button>
+      </div>
+
+      <div id="activity-type-select" class="segmented hidden" role="tablist">
+        <button class="segment active" data-activity="pushups">Pushups</button>
+        <button class="segment" data-activity="planks">Planks</button>
       </div>
 
       <div id="boys-bonanza-view" class="hidden">

@@ -4,7 +4,9 @@
 // token on their phones. The client only ever talks to this Worker.
 //
 //   GET  /data         -> current data.json contents (no auth required to read)
-//   POST /session      -> { id, user, timestamp, count, avatar?, startedAt? } -> merges into data.json
+//   POST /session      -> { id, user, timestamp, count, avatar?, startedAt?, type? } -> merges into data.json
+//                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session;
+//                          count is reps for pushups, seconds held for planks)
 //   POST /delete-user     -> { user } -> removes all of that user's sessions from data.json
 //   POST /delete-session  -> { id } -> removes a single session from data.json
 //   POST /set-avatar      -> { user, avatar } -> sets/overrides that user's avatar
@@ -212,6 +214,9 @@ function validateSession(body) {
   }
   if (typeof body.startedAt === "string" && !isNaN(new Date(body.startedAt).getTime())) {
     session.startedAt = body.startedAt;
+  }
+  if (body.type === "plank") {
+    session.type = "plank";
   }
   return session;
 }
