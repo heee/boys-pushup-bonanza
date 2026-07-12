@@ -65,6 +65,14 @@
       "count": 11,
       "avatar": "burger",
       "startedAt": "2026-07-12T13:14:07.496Z"
+    },
+    {
+      "id": "13d45aea-8364-4273-81e9-1b02182fcdbb",
+      "user": "Henning",
+      "timestamp": "2026-07-12T19:47:04.053Z",
+      "count": 9,
+      "startedAt": "2026-07-12T19:46:54.225Z",
+      "type": "plank"
     }
   ],
   "avatars": {
