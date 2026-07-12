@@ -871,22 +871,22 @@ function paintMyBonanza(sessions) {
   }
 
   const stats = [
-    { label: "All-time total", value: allTimeTotal },
-    { label: "Personal best", value: personalBest },
-    { label: "Current streak", value: `${streak} day${streak === 1 ? "" : "s"}` },
-    { label: "Avg per session", value: avgPerSession },
-    { label: "Sessions logged", value: mine.length },
+    { icon: "🔢", label: "All-time total", value: allTimeTotal },
+    { icon: "🏆", label: "Personal best", value: personalBest },
+    { icon: "🔥", label: "Current streak", value: `${streak} day${streak === 1 ? "" : "s"}` },
+    { icon: "📊", label: "Avg per session", value: avgPerSession },
+    { icon: "📅", label: "Sessions logged", value: mine.length },
   ];
   if (avgDurationMs != null) {
-    stats.push({ label: "Avg session time", value: formatDuration(avgDurationMs) });
+    stats.push({ icon: "⏱️", label: "Avg session time", value: formatDuration(avgDurationMs) });
   }
   if (avgPace != null) {
-    stats.push({ label: "Avg pace", value: `${avgPace.toFixed(1)}/min` });
+    stats.push({ icon: "⚡", label: "Avg pace", value: `${avgPace.toFixed(1)}/min` });
   }
   statsEl.innerHTML = stats.map((s) => `
-    <div class="stat-card">
-      <div class="stat-value">${s.value}</div>
-      <div class="stat-label">${s.label}</div>
+    <div class="stats-table-row">
+      <span class="stats-table-label">${s.icon} ${s.label}</span>
+      <span class="stats-table-value">${s.value}</span>
     </div>
   `).join("");
 }
@@ -1171,7 +1171,7 @@ function buildChallengeCard(c, now) {
     <div class="challenge-card-emoji">${c.emoji}</div>
     <div class="challenge-card-title">${escapeHtml(c.title)}</div>
     <div class="challenge-card-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${dateLabel}</span></div>
-    <div class="challenge-card-meta">👥 ${participants.length} joined · ∑ ${total} pushups</div>
+    <div class="challenge-card-meta">👥 ${participants.length} joined · ${total} total pushups so far</div>
   `;
 
   if (status !== "past" && joined) {

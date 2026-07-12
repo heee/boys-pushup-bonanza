@@ -658,6 +658,34 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-top: 0.2rem;
 }
 
+.stats-table {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.stats-table-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.85rem 1.1rem;
+  border-top: 1px dashed var(--border);
+}
+.stats-table-row:first-child { border-top: none; }
+.stats-table-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.stats-table-value {
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .recent-row {
   display: flex;
   align-items: center;
@@ -806,9 +834,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .challenge-card:active { transform: scale(0.98); }
 .challenge-card-emoji { font-size: 2.6rem; line-height: 1; }
 .challenge-card-title { font-size: 1.15rem; font-weight: 900; margin-top: 0.35rem; padding-right: 3.5rem; }
-.challenge-card-dates { font-size: 0.82rem; font-weight: 700; opacity: 0.92; margin-top: 0.15rem; }
-.challenge-card-meta { font-size: 0.85rem; font-weight: 700; margin-top: 0.5rem; opacity: 0.95; }
-.challenge-winner-line { margin-top: 0.5rem; font-weight: 800; font-size: 0.9rem; }
+.challenge-card-dates { font-size: 0.82rem; font-weight: 400; opacity: 0.92; margin-top: 0.15rem; }
+.challenge-card-meta { font-size: 0.85rem; font-weight: 400; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-winner-line { margin-top: 0.5rem; font-weight: 400; font-size: 0.9rem; }
 
 .challenge-join-btn {
   position: absolute;
@@ -826,7 +854,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   background: rgba(0, 0, 0, 0.35);
   border-radius: 999px;
   padding: 0.3rem 0.7rem;
-  font-weight: 800;
+  font-weight: 400;
   font-size: 0.8rem;
 }
 
@@ -836,9 +864,11 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   border-radius: 999px;
   padding: 0.2rem 0.65rem;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 400;
   margin-left: 0.4rem;
 }
+
+#btn-challenge-back { margin-bottom: 1rem; }
 
 .challenge-hero {
   border-radius: 18px;
