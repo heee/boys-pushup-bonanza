@@ -401,6 +401,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-weight: 800;
   margin: 0;
 }
+/* Some bold fonts render a wide left-bearing on "?", making it look like a
+   stray space after the preceding name — pull it back in. */
+.tight-q { margin-left: -0.4em; }
 .workout-hello .avatar-circle { width: 2rem; height: 2rem; font-size: 1.1rem; }
 .workout-instructions { color: var(--text-dim); max-width: 30rem; margin: 0 0 1rem; }
 .workout-hint { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.6rem; }
@@ -466,6 +469,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   color: var(--primary);
   font-variant-numeric: tabular-nums;
 }
+
+/* The plank timer shows "M:SS" (wider than a bare rep count), so it needs a
+   smaller cap than .rep-count's default or it overflows the screen width. */
+#plank-timer { font-size: min(24vw, 7rem); }
 
 .rep-label {
   font-size: 1.1rem;
