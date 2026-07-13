@@ -73,6 +73,14 @@
       "count": 2,
       "startedAt": "2026-07-12T20:14:16.456Z",
       "type": "plank"
+    },
+    {
+      "id": "8bfda981-8bfc-4bc2-a8cc-809c1425f904",
+      "user": "Henning",
+      "timestamp": "2026-07-13T11:06:44.618Z",
+      "count": 12,
+      "avatar": "burger",
+      "startedAt": "2026-07-13T11:05:43.486Z"
     }
   ],
   "avatars": {
