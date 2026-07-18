@@ -1299,18 +1299,42 @@ function openChallengeDetail(id) {
   showScreen("screen-challenge-detail");
 }
 
+// Bundles everything a share message might reference so the variations
+// below can freely mix and match without recomputing anything.
+function buildChallengeShareContext(c) {
+  const titleWithEmoji = `${c.emoji} ${c.title}`;
+  const { endDate } = challengeWindow(c);
+  const deadlineText = endDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const goalAmountText = c.goalType === "streak" ? `${c.goal}-day streak` : `${c.goal} pushups`;
+  const board = challengeLeaderboard(c);
+  const leader = board[0];
+  const hasLeader = !!leader && leader.score > 0;
+  const leaderPct = hasLeader ? Math.round((leader.score / c.goal) * 100) : 0;
+  const leaderScoreText = hasLeader
+    ? (c.goalType === "streak" ? `${leader.score} day${leader.score === 1 ? "" : "s"}` : `${leader.score}`)
+    : "";
+  const exceeded = hasLeader && leader.score >= c.goal;
+  return { titleWithEmoji, deadlineText, goalAmountText, hasLeader, leaderName: leader?.name, leaderScoreText, leaderPct, exceeded };
+}
+
 const CHALLENGE_INVITE_MESSAGES = [
-  (title) => `Yo, come join "${title}" 🎯 Let's go!`,
-  (title) => `Just jumped into "${title}" — you in? 💪`,
-  (title) => `"${title}" is live. Get in before it's over 🔥`,
-  (title) => `Boys, "${title}" needs you. Tap in 🚀`,
-  (title) => `Don't sleep on "${title}" — join the bonanza 🏆`,
+  (ctx) => `Yo, come join ${ctx.titleWithEmoji} 🎯 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? ` — ${ctx.leaderName}'s leading with ${ctx.leaderScoreText} (${ctx.leaderPct}%)` : ""}. Let's go!`,
+  (ctx) => `Just jumped into ${ctx.titleWithEmoji} — you in? 💪 ${ctx.goalAmountText} by ${ctx.deadlineText}.`,
+  (ctx) => ctx.exceeded
+    ? `${ctx.titleWithEmoji} is live and ${ctx.leaderName} already smashed the ${ctx.goalAmountText} goal with ${ctx.leaderScoreText} (${ctx.leaderPct}%) 🔥 Go beat them before it's over!`
+    : `${ctx.titleWithEmoji} is live. Get in before it's over 🔥 ${ctx.goalAmountText} by ${ctx.deadlineText}.`,
+  (ctx) => `Boys, ${ctx.titleWithEmoji} needs you 🚀 ${ctx.hasLeader ? `${ctx.leaderName}'s out front with ${ctx.leaderScoreText} (${ctx.leaderPct}%) — ` : ""}tap in before ${ctx.deadlineText}.`,
+  (ctx) => `Don't sleep on ${ctx.titleWithEmoji} 🏆 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} leading at ${ctx.leaderPct}%` : ""}.`,
+  (ctx) => ctx.exceeded
+    ? `${ctx.leaderName} already crushed ${ctx.titleWithEmoji}'s goal (${ctx.leaderScoreText}, ${ctx.leaderPct}%) 😤 Go beat them before it's over!`
+    : `${ctx.titleWithEmoji}: ${ctx.goalAmountText} by ${ctx.deadlineText}. Join the bonanza before it's too late 👀`,
 ];
 
 async function shareChallengeInvite() {
   const c = challengeDefs.find((x) => x.id === state.openChallengeId);
   if (!c) return;
-  const message = pickFrom(CHALLENGE_INVITE_MESSAGES)(c.title);
+  const ctx = buildChallengeShareContext(c);
+  const message = pickFrom(CHALLENGE_INVITE_MESSAGES)(ctx);
   const url = `${location.origin}${location.pathname}#challenge=${c.id}`;
   if (navigator.share) {
     try {
@@ -1432,12 +1456,21 @@ function renderChallengeDetail() {
   const overviewValue = status === "past" ? "Ended" : status === "upcoming" ? daysUntilStart(c, now) : daysLeft(c, now);
   const overviewLabel = status === "past" ? "Status" : status === "upcoming" ? "Days until start" : "Days left";
 
+  const challengeStats = [
+    { icon: "📅", label: "Duration", value: formatChallengeDates(c) },
+    { icon: "👥", label: "Participants", value: participants.length },
+    { icon: "🔢", label: "Total pushups", value: total },
+    { icon: "⏳", label: overviewLabel, value: overviewValue },
+  ];
+
   html += `
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-value stat-value-sm">${formatChallengeDates(c)}</div><div class="stat-label">Duration</div></div>
-      <div class="stat-card"><div class="stat-value">${participants.length}</div><div class="stat-label">Participants</div></div>
-      <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total pushups</div></div>
-      <div class="stat-card"><div class="stat-value">${overviewValue}</div><div class="stat-label">${overviewLabel}</div></div>
+    <div class="stats-table">
+      ${challengeStats.map((s) => `
+        <div class="stats-table-row">
+          <span class="stats-table-label">${s.icon} ${s.label}</span>
+          <span class="stats-table-value">${s.value}</span>
+        </div>
+      `).join("")}
     </div>
 
     <h2 class="section-title">Leaderboard</h2>
