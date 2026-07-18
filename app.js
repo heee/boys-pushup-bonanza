@@ -416,7 +416,11 @@ const state = {
   plankBest: 0,
   plankStartedAt: null,
   homeActivityMode: "pushups",
+  summarySessionId: null,
+  summaryBaseCount: 0,
+  summaryExtra: 0,
 };
+let summaryReconcileTimer = null;
 
 const repState = {
   phase: "up",
@@ -898,7 +902,7 @@ function paintMyBonanza(sessions) {
     const heightPct = total > 0 ? Math.max(6, Math.round((total / maxTotal) * 100)) : 3;
     const valueDisplay = total > 0 ? (isPlank ? formatDuration(total * 1000) : total) : "";
     return `
-      <div class="week-bar-col">
+      <div class="week-bar-col${isToday ? " week-bar-col-today" : ""}">
         <div class="week-bar-value">${valueDisplay}</div>
         <div class="week-bar" style="height:${heightPct}%"></div>
         <div class="week-bar-label">${label}</div>
@@ -1932,7 +1936,12 @@ async function completeWorkout() {
 
   const message = pickFunMessage(count);
   state.lastSessionType = "pushup";
+  state.summarySessionId = session.id;
+  state.summaryBaseCount = count;
+  state.summaryExtra = 0;
   $("summary-count").textContent = String(count);
+  $("missed-reps-count").textContent = "0";
+  $("missed-reps-wrap").classList.remove("hidden");
   $("summary-sync-status").textContent = "";
   showScreen("screen-summary");
   launchConfetti();
@@ -1945,6 +1954,76 @@ async function completeWorkout() {
     $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
   }
 }
+
+function adjustMissedReps(delta) {
+  if (!state.summarySessionId) return;
+  if (delta < 0 && state.summaryExtra <= 0) return;
+  state.summaryExtra = Math.max(0, state.summaryExtra + delta);
+  $("missed-reps-count").textContent = String(state.summaryExtra);
+  const newTotal = state.summaryBaseCount + state.summaryExtra;
+  $("summary-count").textContent = String(newTotal);
+
+  const cached = getCachedData();
+  const cachedSession = cached.sessions.find((s) => s.id === state.summarySessionId);
+  if (cachedSession) {
+    cachedSession.count = newTotal;
+    cacheData(cached);
+  }
+  scheduleSummaryReconcile();
+}
+
+function scheduleSummaryReconcile() {
+  clearTimeout(summaryReconcileTimer);
+  summaryReconcileTimer = setTimeout(reconcileSummaryCount, 900);
+}
+
+// The Worker's /session endpoint only inserts (no update), so a corrected
+// count is synced by deleting the old session id and creating a fresh one.
+// If the original never made it past the local queue yet, just patch it
+// in place instead — no remote write to undo.
+async function reconcileSummaryCount() {
+  const id = state.summarySessionId;
+  if (!id) return;
+  const newTotal = state.summaryBaseCount + state.summaryExtra;
+
+  const queue = getQueue();
+  const queuedIdx = queue.findIndex((s) => s.id === id);
+  if (queuedIdx !== -1) {
+    queue[queuedIdx] = { ...queue[queuedIdx], count: newTotal };
+    setQueue(queue);
+    return;
+  }
+
+  const cached = getCachedData();
+  const idx = cached.sessions.findIndex((s) => s.id === id);
+  const existing = idx !== -1 ? cached.sessions[idx] : null;
+  const newSession = {
+    id: uuid(),
+    user: existing?.user || state.currentUser,
+    timestamp: existing?.timestamp || new Date().toISOString(),
+    count: newTotal,
+    avatar: existing?.avatar || state.currentAvatar,
+    startedAt: existing?.startedAt,
+  };
+  if (idx !== -1) cached.sessions[idx] = newSession;
+  else cached.sessions.push(newSession);
+  cacheData(cached);
+  state.summarySessionId = newSession.id;
+
+  try {
+    await deleteSessionRemote(id);
+  } catch (e) {
+    // best effort — worst case a stale duplicate lingers until the next reconcile
+  }
+  try {
+    await commitSession(newSession);
+  } catch (e) {
+    enqueueSession(newSession);
+  }
+}
+
+$("btn-missed-plus").addEventListener("click", () => adjustMissedReps(1));
+$("btn-missed-minus").addEventListener("click", () => adjustMissedReps(-1));
 
 $("btn-start").addEventListener("click", startWorkout);
 $("btn-complete").addEventListener("click", completeWorkout);
@@ -2196,7 +2275,9 @@ async function completePlank() {
 
   const message = pickPlankFunMessage(seconds);
   state.lastSessionType = "plank";
+  state.summarySessionId = null;
   $("summary-count").textContent = formatDuration(seconds * 1000);
+  $("missed-reps-wrap").classList.add("hidden");
   $("summary-sync-status").textContent = "";
   showScreen("screen-summary");
   launchConfetti("confetti", PLANK_EMOJI);
