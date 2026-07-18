@@ -336,6 +336,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   max-width: 22rem;
   margin: 0.5rem auto 0;
 }
+
+.home-activity-select {
+  width: 100%;
+  max-width: 12rem;
+  margin: auto auto 0;
+  opacity: 0.55;
+  padding: 0.15rem;
+}
+.home-activity-select .segment {
+  padding: 0.35rem 0.2rem;
+  font-size: 0.75rem;
+}
 .new-user-form .text-input {
   flex: 1;
   min-width: 0;
@@ -601,6 +613,13 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 .leaderboard-list { display: flex; flex-direction: column; gap: 0.6rem; }
 
+/* Secondary information relative to the main leaderboard above — deliberately
+   muted so the ranked leaderboard reads as the primary content. */
+#history-view-select,
+#recent-list,
+#history-list {
+  opacity: 0.5;
+}
 #history-view-select { margin-top: 1.6rem; }
 
 #bonanza-mode-select { margin-bottom: 1.4rem; }

@@ -27,6 +27,7 @@ const LS = {
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
   plankUnlocked: "bpb-plank-unlocked",
+  soundEnabled: "bpb-sound-enabled",
 };
 
 const DEFAULT_DOWN = 0.55;
@@ -160,6 +161,7 @@ function numberToWords(n) {
 }
 
 function speak(text) {
+  if (localStorage.getItem(LS.soundEnabled) === "0") return;
   if (!("speechSynthesis" in window)) return;
   try {
     speechSynthesis.cancel();
@@ -413,6 +415,7 @@ const state = {
   plankActive: false,
   plankBest: 0,
   plankStartedAt: null,
+  homeActivityMode: "pushups",
 };
 
 const repState = {
@@ -421,13 +424,13 @@ const repState = {
   smoothedRatio: null,
   lastSeenAt: 0,
   paused: false,
-  halfHit: false,
-  threeQuarterHit: false,
+  lastCheerAtCount: 0,
   recordBroken: false,
 };
 
 const plankState = {
   seconds: 0,
+  lastCheerAtSecond: 0,
   intervalId: null,
   recordBroken: false,
 };
@@ -553,7 +556,21 @@ function renderUserList() {
 
   $("new-user-input").value = "";
   populateAvatarSelect();
+
+  // Plank mode stays a hidden easter egg until unlocked once; the picker
+  // always resets to Pushups when you land back on this screen.
+  state.homeActivityMode = "pushups";
+  document.querySelectorAll("#home-activity-select .segment").forEach((s, i) => s.classList.toggle("active", i === 0));
+  $("home-activity-select").classList.toggle("hidden", localStorage.getItem(LS.plankUnlocked) !== "1");
 }
+
+$("home-activity-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#home-activity-select .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.homeActivityMode = btn.dataset.activity;
+});
 
 function populateAvatarSelect() {
   const sel = $("new-user-avatar");
@@ -578,7 +595,7 @@ function selectUser(name, avatarId) {
   state.currentUser = name;
   state.currentAvatar = avatarId || avatarForUser(name).id;
   localStorage.setItem(LS.lastUser, name);
-  showScreen("screen-workout");
+  showScreen(state.homeActivityMode === "planks" ? "screen-plank-workout" : "screen-workout");
 }
 
 $("new-user-form").addEventListener("submit", (e) => {
@@ -597,6 +614,7 @@ function renderSettings() {
   $("val-up").textContent = getThresholdUp().toFixed(2);
   $("chk-calibration-readout").checked = localStorage.getItem(LS.calibrationReadout) === "1";
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
+  $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
 
   renderPendingStatus();
   testSyncConnection();
@@ -765,6 +783,9 @@ $("chk-calibration-readout").addEventListener("change", (e) => {
 });
 $("chk-highscore-message").addEventListener("change", (e) => {
   localStorage.setItem(LS.showHighscore, e.target.checked ? "1" : "0");
+});
+$("chk-sound-enabled").addEventListener("change", (e) => {
+  localStorage.setItem(LS.soundEnabled, e.target.checked ? "1" : "0");
 });
 $("btn-calibration-defaults").addEventListener("click", () => {
   localStorage.setItem(LS.thresholdDown, DEFAULT_DOWN);
@@ -1516,8 +1537,7 @@ function resetRepState() {
   repState.smoothedRatio = null;
   repState.lastSeenAt = performance.now();
   repState.paused = false;
-  repState.halfHit = false;
-  repState.threeQuarterHit = false;
+  repState.lastCheerAtCount = 0;
   repState.recordBroken = false;
   $("rep-count").textContent = "0";
   updateHighscoreMessage(0);
@@ -1525,37 +1545,41 @@ function resetRepState() {
   hideStatusBanner();
 }
 
-const ENCOURAGE_HALF = [
-  "Halfway to your personal best — keep grinding!",
-  "That's the halfway mark! Let's gooo!",
-  "Halfway there, don't you dare stop now!",
-  "Halfway to a new record. Push through!",
-];
-const ENCOURAGE_THREE_QUARTER = [
-  "Three quarters to your best — almost there!",
-  "Seventy five percent! You can smell the record now!",
+const ENCOURAGE_LINES = [
+  "Keep grinding!",
+  "Let's gooo!",
+  "Don't you dare stop now!",
+  "Push through!",
+  "Almost there — you can smell the record!",
   "Just a few more! You're so close!",
-  "Three quarters done. Finish strong!",
+  "Finish strong!",
+  "You've got this!",
+  "Dig deep!",
+  "One more! One more!",
 ];
 
 function pickFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Returns an encouragement line the first time a rep crosses the halfway or
-// three-quarter mark of the user's personal best for this session, else null.
+// Chance of a random cheer, as a function of progress toward personal best
+// (0..1+). Low and steady in the first half, then ramps up so cheers land
+// more and more often as the record gets close.
+function cheerProbability(fraction) {
+  const f = Math.max(0, fraction);
+  if (f < 0.5) return 0.07;
+  return 0.15 + Math.min(1.3, f - 0.5) * 0.5;
+}
+
+// Returns a random encouragement line, more likely (and more often) the
+// closer `count` is to the user's personal best — else null. A small
+// cooldown (in reps) keeps cheers from clustering back-to-back.
 function maybeEncourage(count) {
   if (!state.highScore || state.highScore <= 1) return null;
-  const half = state.highScore / 2;
-  const threeQuarter = state.highScore * 0.75;
-  if (!repState.threeQuarterHit && count >= threeQuarter) {
-    repState.threeQuarterHit = true;
-    repState.halfHit = true;
-    return pickFrom(ENCOURAGE_THREE_QUARTER);
-  }
-  if (!repState.halfHit && count >= half) {
-    repState.halfHit = true;
-    return pickFrom(ENCOURAGE_HALF);
+  if (count - repState.lastCheerAtCount < 3) return null;
+  if (Math.random() < cheerProbability(count / state.highScore)) {
+    repState.lastCheerAtCount = count;
+    return pickFrom(ENCOURAGE_LINES);
   }
   return null;
 }
@@ -1892,11 +1916,68 @@ const SHARE_MESSAGES_PLANK = [
   (t) => `${t} of pure core chaos 🔥 Come get some`,
   (t) => `${t} plank logged ✅ The bonanza continues 🚀`,
 ];
+const SHARE_MESSAGES_STREAK = [
+  (n, ctx) => `${n} pushups and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
+  (n, ctx) => `${ctx.streak} days straight, ${n} pushups today 😤 Consistency is the cheat code.`,
+  (n, ctx) => `Day ${ctx.streak} of the streak. ${n} pushups banked 💪`,
+];
+const SHARE_MESSAGES_PLANK_STREAK = [
+  (t, ctx) => `${t} plank and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
+  (t, ctx) => `Day ${ctx.streak} of the streak, held ${t} today 💪`,
+];
+const SHARE_MESSAGES_WEEK = [
+  (n, ctx) => `${n} pushups today, ${ctx.weekTotalDisplay} this week 📈 The bonanza never sleeps.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} pushups this week and counting 🚀 Today's ${n} of them.`,
+];
+const SHARE_MESSAGES_PLANK_WEEK = [
+  (t, ctx) => `${t} today, ${ctx.weekTotalDisplay} of plank time this week 📈 The bonanza never sleeps.`,
+];
+const BREAD_EMOJI = ["🍞", "🥖", "🥯", "🫓", "🥨"];
+const SHARE_MESSAGES_BREAD = [
+  (n) => `${n} pushups. Time to get the bread ${pickFrom(BREAD_EMOJI)}`,
+  (n) => `Getting that bread ${pickFrom(BREAD_EMOJI)} — ${n} pushups deep.`,
+  (n) => `${n} reps, ${pickFrom(BREAD_EMOJI)} secured. Who's hungry?`,
+];
+const SHARE_MESSAGES_PLANK_BREAD = [
+  (t) => `${t} plank. Time to get the bread ${pickFrom(BREAD_EMOJI)}`,
+  (t) => `Getting that bread ${pickFrom(BREAD_EMOJI)} — ${t} plank held.`,
+];
+
+// Streak + this-week totals for whichever activity type the just-finished
+// session belongs to (pushup sessions and plank sessions each get their own
+// streak/weekly total, same as the My Bonanza dashboard).
+function buildShareContext() {
+  const isPlank = state.lastSessionType === "plank";
+  const mine = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser && (s.type === "plank") === isPlank);
+  const weekStart = periodStart("week");
+  const weekTotalRaw = mine
+    .filter((s) => new Date(s.timestamp) >= weekStart)
+    .reduce((sum, s) => sum + s.count, 0);
+  return {
+    isPlank,
+    streak: computeStreak(mine),
+    weekTotalRaw,
+    weekTotalDisplay: isPlank ? formatDuration(weekTotalRaw * 1000) : String(weekTotalRaw),
+  };
+}
+
+// Randomly weaves in streak/weekly-total callouts and "get the bread" jokes
+// alongside the plain messages, when there's a meaningful streak/week to brag about.
+function pickShareMessage(count, ctx) {
+  const pools = [
+    ctx.isPlank ? SHARE_MESSAGES_PLANK : SHARE_MESSAGES,
+    ctx.isPlank ? SHARE_MESSAGES_PLANK_BREAD : SHARE_MESSAGES_BREAD,
+  ];
+  if (ctx.streak >= 2) pools.push(ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK : SHARE_MESSAGES_STREAK);
+  if (ctx.weekTotalRaw > 0) pools.push(ctx.isPlank ? SHARE_MESSAGES_PLANK_WEEK : SHARE_MESSAGES_WEEK);
+  const template = pickFrom(pools.flat());
+  return template(count, ctx);
+}
 
 async function shareFlex() {
   const count = $("summary-count").textContent;
-  const isPlank = state.lastSessionType === "plank";
-  const message = isPlank ? pickFrom(SHARE_MESSAGES_PLANK)(count) : pickFrom(SHARE_MESSAGES)(count);
+  const ctx = buildShareContext();
+  const message = pickShareMessage(count, ctx);
   const url = location.href;
   if (navigator.share) {
     try {
@@ -1969,9 +2050,22 @@ function stopPlankInterval() {
   }
 }
 
+// Same shape as maybeEncourage, but for plank seconds instead of pushup reps,
+// with a longer cooldown since ticks are once per second rather than per rep.
+function maybeEncouragePlank(seconds) {
+  if (!state.plankBest || state.plankBest <= 1) return null;
+  if (seconds - plankState.lastCheerAtSecond < 5) return null;
+  if (Math.random() < cheerProbability(seconds / state.plankBest)) {
+    plankState.lastCheerAtSecond = seconds;
+    return pickFrom(ENCOURAGE_LINES);
+  }
+  return null;
+}
+
 async function startPlank() {
   state.plankBest = getPlankBest(state.currentUser);
   plankState.seconds = 0;
+  plankState.lastCheerAtSecond = 0;
   plankState.recordBroken = false;
   $("plank-timer").textContent = "0:00";
   updatePlankThermometer(0);
@@ -1995,6 +2089,10 @@ async function startPlank() {
     if (state.plankBest && plankState.seconds === state.plankBest + 1 && !plankState.recordBroken) {
       plankState.recordBroken = true;
       launchConfetti("plank-confetti", PLANK_EMOJI);
+      speak("New plank record! Absolute legend!");
+    } else {
+      const cheer = maybeEncouragePlank(plankState.seconds);
+      if (cheer) speak(cheer);
     }
   }, 1000);
 }

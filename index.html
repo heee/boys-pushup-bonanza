@@ -57,6 +57,11 @@
         <input id="new-user-input" class="text-input" type="text" placeholder="Enter your name" maxlength="24" autocomplete="off" required>
         <button type="submit" class="btn btn-primary">Let's go</button>
       </form>
+
+      <div id="home-activity-select" class="segmented home-activity-select hidden" role="tablist">
+        <button class="segment active" data-activity="pushups">Pushups</button>
+        <button class="segment" data-activity="planks">Planks</button>
+      </div>
     </section>
 
     <!-- ============ SCREEN: WORKOUT ============ -->
@@ -261,6 +266,10 @@
         <label class="field-label toggle-row">
           <span>Show "pushups away from your high score" message</span>
           <input id="chk-highscore-message" type="checkbox">
+        </label>
+        <label class="field-label toggle-row">
+          <span>Voice cheer-ons during pushup and plank sessions</span>
+          <input id="chk-sound-enabled" type="checkbox">
         </label>
       </div>
 
