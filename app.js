@@ -185,6 +185,10 @@ function formatDuration(ms) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function formatNumber(n) {
+  return Number(n).toLocaleString("en-US");
+}
+
 function formatDateTime(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
@@ -807,7 +811,7 @@ function renderMySessions() {
     row.className = "my-session-row";
     row.innerHTML = `
       <span>${formatDateTime(s.timestamp)}</span>
-      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.count}${s.weightLbs ? " 🏋️" : ""}</span>
+      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
     `;
     row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteSession(s.id));
@@ -997,7 +1001,7 @@ function paintMyBonanza(sessions) {
     const isToday = date.toDateString() === now.toDateString();
     const label = isToday ? "Today" : date.toLocaleDateString(undefined, { weekday: "short" });
     const heightPct = total > 0 ? Math.max(6, Math.round((total / maxTotal) * 100)) : 3;
-    const valueDisplay = total > 0 ? (isPlank ? formatDuration(total * 1000) : total) : "";
+    const valueDisplay = total > 0 ? (isPlank ? formatDuration(total * 1000) : formatNumber(total)) : "";
     return `
       <div class="week-bar-col${isToday ? " week-bar-col-today" : ""}">
         <div class="week-bar-value">${valueDisplay}</div>
@@ -1023,7 +1027,7 @@ function paintMyBonanza(sessions) {
       { icon: "🏆", label: "Personal best", value: formatDuration(personalBest * 1000) },
       { icon: "🔥", label: "Current streak", value: `${streak} day${streak === 1 ? "" : "s"}` },
       { icon: "📊", label: "Avg per session", value: formatDuration(avgPerSession * 1000) },
-      { icon: "📅", label: "Sessions logged", value: mine.length },
+      { icon: "📅", label: "Sessions logged", value: formatNumber(mine.length) },
     ];
     statsEl.innerHTML = stats.map((s) => `
       <div class="stats-table-row">
@@ -1053,11 +1057,11 @@ function paintMyBonanza(sessions) {
   }
 
   const stats = [
-    { icon: "🔢", label: "All-time total", value: allTimeTotal },
-    { icon: "🏆", label: "Personal best", value: personalBest },
+    { icon: "🔢", label: "All-time total", value: formatNumber(allTimeTotal) },
+    { icon: "🏆", label: "Personal best", value: formatNumber(personalBest) },
     { icon: "🔥", label: "Current streak", value: `${streak} day${streak === 1 ? "" : "s"}` },
-    { icon: "📊", label: "Avg per session", value: avgPerSession },
-    { icon: "📅", label: "Sessions logged", value: mine.length },
+    { icon: "📊", label: "Avg per session", value: formatNumber(avgPerSession) },
+    { icon: "📅", label: "Sessions logged", value: formatNumber(mine.length) },
   ];
   if (avgDurationMs != null) {
     stats.push({ icon: "⏱️", label: "Avg session time", value: formatDuration(avgDurationMs) });
@@ -1076,7 +1080,7 @@ function paintMyBonanza(sessions) {
 function paintDashboard(sessions) {
   const isPlank = state.activityType === "planks";
   const activityWord = isPlank ? "planks" : "pushups";
-  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : n);
+  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : formatNumber(n));
   const start = periodStart(state.dashboardPeriod);
   const filtered = sessions.filter((s) => new Date(s.timestamp) >= start);
 
@@ -1154,7 +1158,7 @@ function renderRecentList(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${isPlank ? formatDuration(s.count * 1000) : s.count}</div>
+      <div class="recent-count">${isPlank ? formatDuration(s.count * 1000) : formatNumber(s.count)}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     recentList.appendChild(row);
@@ -1358,7 +1362,7 @@ function buildChallengeCard(c, now) {
     <div class="challenge-card-emoji">${c.emoji}</div>
     <div class="challenge-card-title">${escapeHtml(c.title)}</div>
     <div class="challenge-card-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${dateLabel}</span></div>
-    <div class="challenge-card-meta">👥 ${participants.length} joined · ${total} total pushups so far</div>
+    <div class="challenge-card-meta">👥 ${participants.length} joined · ${formatNumber(total)} total pushups so far</div>
   `;
 
   if (status !== "past" && joined) {
@@ -1367,7 +1371,7 @@ function buildChallengeCard(c, now) {
     const winners = challengeWinners(c);
     if (winners.length) {
       const board = challengeLeaderboard(c);
-      const scoreText = c.goalType === "streak" ? `${board[0].score} days` : `${board[0].score}`;
+      const scoreText = c.goalType === "streak" ? `${formatNumber(board[0].score)} days` : formatNumber(board[0].score);
       html += `<div class="challenge-winner-line">🥇 ${winners.map(escapeHtml).join(" & ")} — ${scoreText}</div>`;
     }
   }
@@ -1402,13 +1406,13 @@ function buildChallengeShareContext(c) {
   const titleWithEmoji = `${c.emoji} ${c.title}`;
   const { endDate } = challengeWindow(c);
   const deadlineText = endDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const goalAmountText = c.goalType === "streak" ? `${c.goal}-day streak` : `${c.goal} pushups`;
+  const goalAmountText = c.goalType === "streak" ? `${formatNumber(c.goal)}-day streak` : `${formatNumber(c.goal)} pushups`;
   const board = challengeLeaderboard(c);
   const leader = board[0];
   const hasLeader = !!leader && leader.score > 0;
   const leaderPct = hasLeader ? Math.round((leader.score / c.goal) * 100) : 0;
   const leaderScoreText = hasLeader
-    ? (c.goalType === "streak" ? `${leader.score} day${leader.score === 1 ? "" : "s"}` : `${leader.score}`)
+    ? (c.goalType === "streak" ? `${formatNumber(leader.score)} day${leader.score === 1 ? "" : "s"}` : formatNumber(leader.score))
     : "";
   const exceeded = hasLeader && leader.score >= c.goal;
   return { titleWithEmoji, deadlineText, goalAmountText, hasLeader, leaderName: leader?.name, leaderScoreText, leaderPct, exceeded };
@@ -1524,7 +1528,7 @@ function renderChallengeDetail() {
       const pctDisplay = Math.round((mine / c.goal) * 100);
       html += `
         <div class="challenge-progress-card">
-          <div class="challenge-progress-label">${mine} / ${c.goal} (${pctDisplay}%) · ${daysLeftLabel}</div>
+          <div class="challenge-progress-label">${formatNumber(mine)} / ${formatNumber(c.goal)} (${pctDisplay}%) · ${daysLeftLabel}</div>
           ${buildProgressThermometer(mine, c.goal)}
         </div>
       `;
@@ -1533,9 +1537,9 @@ function renderChallengeDetail() {
       const pctDisplay = Math.round((total / c.goal) * 100);
       html += `
         <div class="challenge-progress-card">
-          <div class="challenge-progress-label">${total} / ${c.goal} together (${pctDisplay}%) · ${daysLeftLabel}</div>
+          <div class="challenge-progress-label">${formatNumber(total)} / ${formatNumber(c.goal)} together (${pctDisplay}%) · ${daysLeftLabel}</div>
           ${buildProgressThermometer(total, c.goal)}
-          <div class="challenge-contribution">Your contribution: ${mine}</div>
+          <div class="challenge-contribution">Your contribution: ${formatNumber(mine)}</div>
         </div>
       `;
     } else {
@@ -1543,7 +1547,7 @@ function renderChallengeDetail() {
       const pctDisplay = Math.round((best / c.goal) * 100);
       html += `
         <div class="challenge-progress-card">
-          <div class="challenge-progress-label">Current streak: ${current} day${current === 1 ? "" : "s"} · Best: ${best} / ${c.goal} days (${pctDisplay}%)</div>
+          <div class="challenge-progress-label">Current streak: ${current} day${current === 1 ? "" : "s"} · Best: ${formatNumber(best)} / ${formatNumber(c.goal)} days (${pctDisplay}%)</div>
           ${buildProgressThermometer(best, c.goal)}
         </div>
       `;
@@ -1555,9 +1559,9 @@ function renderChallengeDetail() {
 
   const challengeStats = [
     { icon: "📅", label: "Duration", value: formatChallengeDates(c) },
-    { icon: "👥", label: "Participants", value: participants.length },
-    { icon: "🔢", label: "Total pushups", value: total },
-    { icon: "⏳", label: overviewLabel, value: overviewValue },
+    { icon: "👥", label: "Participants", value: formatNumber(participants.length) },
+    { icon: "🔢", label: "Total pushups", value: formatNumber(total) },
+    { icon: "⏳", label: overviewLabel, value: typeof overviewValue === "number" ? formatNumber(overviewValue) : overviewValue },
   ];
 
   html += `
@@ -1596,7 +1600,7 @@ function paintChallengeLeaderboard(c) {
     return;
   }
   board.forEach((row, i) => {
-    const scoreText = c.goalType === "streak" ? `${row.score} day${row.score === 1 ? "" : "s"}` : `${row.score}`;
+    const scoreText = c.goalType === "streak" ? `${formatNumber(row.score)} day${row.score === 1 ? "" : "s"}` : formatNumber(row.score);
     const rowEl = document.createElement("div");
     rowEl.className = "leaderboard-row" + (i < 3 ? ` rank-${i + 1}` : "");
     rowEl.innerHTML = `
@@ -1624,7 +1628,7 @@ function paintChallengeRecent(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${s.count}</div>
+      <div class="recent-count">${formatNumber(s.count)}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     el.appendChild(row);
@@ -2077,7 +2081,7 @@ async function completeWorkout() {
   state.summaryExtra = 0;
   state.summaryMultiplier = multiplier;
   state.summaryWeightLbs = weighted ? (profile.addedWeightLbs || 0) : 0;
-  $("summary-count").textContent = String(count);
+  $("summary-count").textContent = formatNumber(count);
   $("missed-reps-count").textContent = "0";
   $("missed-reps-wrap").classList.remove("hidden");
   renderSummaryWeightedNote(rawCount, count);
@@ -2102,7 +2106,7 @@ function renderSummaryWeightedNote(rawTotal, adjustedTotal) {
     return;
   }
   el.classList.remove("hidden");
-  el.textContent = `🏋️ +${state.summaryWeightLbs} lbs · ${rawTotal} raw × ${state.summaryMultiplier.toFixed(2)} = ${adjustedTotal}`;
+  el.textContent = `🏋️ +${state.summaryWeightLbs} lbs · ${formatNumber(rawTotal)} raw × ${state.summaryMultiplier.toFixed(2)} = ${formatNumber(adjustedTotal)}`;
 }
 
 function adjustMissedReps(delta) {
@@ -2112,7 +2116,7 @@ function adjustMissedReps(delta) {
   $("missed-reps-count").textContent = String(state.summaryExtra);
   const rawTotal = state.summaryBaseCount + state.summaryExtra;
   const newTotal = Math.round(rawTotal * state.summaryMultiplier);
-  $("summary-count").textContent = String(newTotal);
+  $("summary-count").textContent = formatNumber(newTotal);
   renderSummaryWeightedNote(rawTotal, newTotal);
 
   const cached = getCachedData();
@@ -2246,7 +2250,7 @@ function buildShareContext() {
     isPlank,
     streak: computeStreak(mine),
     weekTotalRaw,
-    weekTotalDisplay: isPlank ? formatDuration(weekTotalRaw * 1000) : String(weekTotalRaw),
+    weekTotalDisplay: isPlank ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
   };
 }
 
