@@ -217,6 +217,14 @@
       "count": 38,
       "avatar": "fire",
       "startedAt": "2026-07-18T14:48:10.908Z"
+    },
+    {
+      "id": "39e6ac75-5971-4fb1-9c2c-6bef319ca115",
+      "user": "Henning",
+      "timestamp": "2026-07-18T13:00:16.000Z",
+      "count": 30,
+      "avatar": "burger",
+      "startedAt": "2026-07-18T12:59:13.300Z"
     }
   ],
   "avatars": {
