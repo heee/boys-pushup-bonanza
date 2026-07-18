@@ -177,6 +177,14 @@
       "count": 30,
       "avatar": "burger",
       "startedAt": "2026-07-18T14:26:10.401Z"
+    },
+    {
+      "id": "d0d571cb-aece-45dd-8448-da8aa09e7e9d",
+      "user": "Danger D",
+      "timestamp": "2026-07-18T14:29:29.985Z",
+      "count": 15,
+      "avatar": "beer",
+      "startedAt": "2026-07-18T14:28:43.891Z"
     }
   ],
   "avatars": {
