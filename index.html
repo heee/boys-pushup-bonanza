@@ -143,11 +143,6 @@
       <div id="confetti" class="confetti" aria-hidden="true"></div>
       <h1 class="screen-title">Session complete! 🎉</h1>
       <div class="summary-count" id="summary-count">0</div>
-      <p class="summary-sub">
-        <span id="summary-avatar" class="avatar-circle"></span>
-        <span id="summary-unit-label">pushups</span> by <strong id="summary-user">you</strong>
-      </p>
-      <p id="summary-message" class="summary-message"></p>
       <div id="summary-sync-status" class="sync-status"></div>
       <div class="summary-actions">
         <button id="btn-summary-again" class="btn btn-primary btn-large">Go again 🔁</button>
@@ -213,7 +208,10 @@
 
     <!-- ============ SCREEN: CHALLENGE DETAIL ============ -->
     <section id="screen-challenge-detail" class="screen">
-      <button id="btn-challenge-back" type="button" class="btn btn-small">← All challenges</button>
+      <div class="challenge-detail-header">
+        <button id="btn-challenge-back" type="button" class="btn btn-small challenge-detail-back">← All challenges</button>
+        <button id="btn-challenge-share" type="button" class="btn btn-small challenge-detail-share">Share 📤</button>
+      </div>
       <div id="challenge-detail-body"></div>
     </section>
 

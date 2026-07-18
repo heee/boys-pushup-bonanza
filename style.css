@@ -558,17 +558,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   color: var(--primary);
   line-height: 1;
 }
-.summary-sub {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  color: var(--text-dim);
-  margin: 0.3rem 0 1.2rem;
-}
-.summary-sub .avatar-circle { width: 1.6rem; height: 1.6rem; font-size: 0.9rem; }
-.summary-message { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
-.sync-status { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1.4rem; min-height: 1.2rem; }
+.sync-status { font-size: 0.85rem; color: var(--text-dim); margin: 0.6rem 0 1.4rem; min-height: 1.2rem; }
 .summary-actions {
   display: flex;
   gap: 0.7rem;
@@ -903,7 +893,17 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-left: 0.4rem;
 }
 
-#btn-challenge-back { margin-bottom: 1rem; }
+.challenge-detail-header {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.challenge-detail-back { flex: 7; }
+.challenge-detail-share {
+  flex: 3;
+  background: var(--primary);
+  color: #fff;
+}
 
 .challenge-hero {
   border-radius: 18px;
@@ -932,6 +932,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-bottom: 0.6rem;
 }
 .challenge-progress-card .thermometer-wrap { max-width: none; margin: 0; }
+
+.thermometer-wrap-flame {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.thermometer-wrap-flame .thermometer-track { flex: 1; }
+.thermometer-track-segmented { display: flex; }
+.thermometer-segment { height: 100%; }
+.thermometer-segment-goal { background: var(--success); }
+.thermometer-segment-excess { background: var(--danger); }
+.thermometer-flame { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
 .challenge-contribution {
   font-size: 0.85rem;
   color: var(--text-dim);

@@ -1290,8 +1290,68 @@ function buildChallengeCard(c, now) {
 
 function openChallengeDetail(id) {
   state.openChallengeId = id;
+  history.replaceState(null, "", `#challenge=${id}`);
   renderChallengeDetail();
   showScreen("screen-challenge-detail");
+}
+
+const CHALLENGE_INVITE_MESSAGES = [
+  (title) => `Yo, come join "${title}" 🎯 Let's go!`,
+  (title) => `Just jumped into "${title}" — you in? 💪`,
+  (title) => `"${title}" is live. Get in before it's over 🔥`,
+  (title) => `Boys, "${title}" needs you. Tap in 🚀`,
+  (title) => `Don't sleep on "${title}" — join the bonanza 🏆`,
+];
+
+async function shareChallengeInvite() {
+  const c = challengeDefs.find((x) => x.id === state.openChallengeId);
+  if (!c) return;
+  const message = pickFrom(CHALLENGE_INVITE_MESSAGES)(c.title);
+  const url = `${location.origin}${location.pathname}#challenge=${c.id}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — paste it in the group chat!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy the link manually.", 4000);
+  }
+}
+
+$("btn-challenge-share").addEventListener("click", shareChallengeInvite);
+
+// Normally a single-color fill toward the goal. Once `current` exceeds
+// `goal`, the bar's 100% becomes `current` itself, split into a green
+// "goal" segment and a red "excess" segment, with a flame next to it.
+function buildProgressThermometer(current, goal) {
+  const safeGoal = Math.max(1, goal);
+  if (current <= safeGoal) {
+    const pct = Math.min(100, Math.round((current / safeGoal) * 100));
+    return `
+      <div class="thermometer-wrap">
+        <div class="thermometer-track">
+          <div class="thermometer-fill${current >= safeGoal ? " thermometer-win" : ""}" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }
+  const goalPct = Math.round((safeGoal / current) * 100);
+  const excessPct = 100 - goalPct;
+  return `
+    <div class="thermometer-wrap thermometer-wrap-flame">
+      <div class="thermometer-track thermometer-track-segmented">
+        <div class="thermometer-segment thermometer-segment-goal" style="width:${goalPct}%"></div>
+        <div class="thermometer-segment thermometer-segment-excess" style="width:${excessPct}%"></div>
+      </div>
+      <span class="thermometer-flame" aria-hidden="true">🔥</span>
+    </div>
+  `;
 }
 
 function renderChallengeDetail() {
@@ -1336,42 +1396,30 @@ function renderChallengeDetail() {
         : "ended";
     if (c.goalType === "individual") {
       const mine = userChallengeTotal(c, state.currentUser);
-      const pct = Math.min(100, Math.round((mine / c.goal) * 100));
+      const pctDisplay = Math.round((mine / c.goal) * 100);
       html += `
         <div class="challenge-progress-card">
-          <div class="challenge-progress-label">${mine} / ${c.goal} · ${daysLeftLabel}</div>
-          <div class="thermometer-wrap">
-            <div class="thermometer-track">
-              <div class="thermometer-fill${mine >= c.goal ? " thermometer-win" : ""}" style="width:${pct}%"></div>
-            </div>
-          </div>
+          <div class="challenge-progress-label">${mine} / ${c.goal} (${pctDisplay}%) · ${daysLeftLabel}</div>
+          ${buildProgressThermometer(mine, c.goal)}
         </div>
       `;
     } else if (c.goalType === "collective") {
       const mine = userChallengeTotal(c, state.currentUser);
-      const pct = Math.min(100, Math.round((total / c.goal) * 100));
+      const pctDisplay = Math.round((total / c.goal) * 100);
       html += `
         <div class="challenge-progress-card">
-          <div class="challenge-progress-label">${total} / ${c.goal} together · ${daysLeftLabel}</div>
-          <div class="thermometer-wrap">
-            <div class="thermometer-track">
-              <div class="thermometer-fill${total >= c.goal ? " thermometer-win" : ""}" style="width:${pct}%"></div>
-            </div>
-          </div>
+          <div class="challenge-progress-label">${total} / ${c.goal} together (${pctDisplay}%) · ${daysLeftLabel}</div>
+          ${buildProgressThermometer(total, c.goal)}
           <div class="challenge-contribution">Your contribution: ${mine}</div>
         </div>
       `;
     } else {
       const { best, current } = windowStreak(sessions, state.currentUser, startDate, endDate);
-      const pct = Math.min(100, Math.round((best / c.goal) * 100));
+      const pctDisplay = Math.round((best / c.goal) * 100);
       html += `
         <div class="challenge-progress-card">
-          <div class="challenge-progress-label">Current streak: ${current} day${current === 1 ? "" : "s"} · Best: ${best} / ${c.goal} days</div>
-          <div class="thermometer-wrap">
-            <div class="thermometer-track">
-              <div class="thermometer-fill${best >= c.goal ? " thermometer-win" : ""}" style="width:${pct}%"></div>
-            </div>
-          </div>
+          <div class="challenge-progress-label">Current streak: ${current} day${current === 1 ? "" : "s"} · Best: ${best} / ${c.goal} days (${pctDisplay}%)</div>
+          ${buildProgressThermometer(best, c.goal)}
         </div>
       `;
     }
@@ -1480,7 +1528,10 @@ $("challenge-tab-select").addEventListener("click", (e) => {
   paintChallengeList();
 });
 
-$("btn-challenge-back").addEventListener("click", () => showScreen("screen-challenges"));
+$("btn-challenge-back").addEventListener("click", () => {
+  history.replaceState(null, "", location.pathname + location.search);
+  showScreen("screen-challenges");
+});
 
 // ------------------- workout screen: camera + face detection -------------------
 
@@ -1882,10 +1933,6 @@ async function completeWorkout() {
   const message = pickFunMessage(count);
   state.lastSessionType = "pushup";
   $("summary-count").textContent = String(count);
-  $("summary-unit-label").textContent = "pushups";
-  $("summary-user").textContent = state.currentUser;
-  setAvatarEl($("summary-avatar"), state.currentAvatar, "1.6rem");
-  $("summary-message").textContent = message;
   $("summary-sync-status").textContent = "";
   showScreen("screen-summary");
   launchConfetti();
@@ -2150,10 +2197,6 @@ async function completePlank() {
   const message = pickPlankFunMessage(seconds);
   state.lastSessionType = "plank";
   $("summary-count").textContent = formatDuration(seconds * 1000);
-  $("summary-unit-label").textContent = "plank";
-  $("summary-user").textContent = state.currentUser;
-  setAvatarEl($("summary-avatar"), state.currentAvatar, "1.6rem");
-  $("summary-message").textContent = message;
   $("summary-sync-status").textContent = "";
   showScreen("screen-summary");
   launchConfetti("confetti", PLANK_EMOJI);
@@ -2177,7 +2220,7 @@ async function init() {
   showScreen(state.currentUser ? "screen-user" : "screen-user");
   await flushQueue().catch(() => {});
   renderPendingStatus();
-  loadChallenges();
+  await loadChallenges();
 
   if (workerConfigured()) {
     try {
@@ -2188,6 +2231,14 @@ async function init() {
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }
+  }
+
+  // A shared challenge link (#challenge=id) jumps straight to that challenge's
+  // detail screen — but only if this device already has a remembered name;
+  // otherwise fall back to the normal pick-a-name flow.
+  const hashMatch = location.hash.match(/^#challenge=([a-z0-9-]+)$/);
+  if (hashMatch && state.currentUser && challengeDefs.some((c) => c.id === hashMatch[1])) {
+    openChallengeDetail(hashMatch[1]);
   }
 
   if ("serviceWorker" in navigator) {
