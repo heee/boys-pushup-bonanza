@@ -46,17 +46,19 @@
 
     <!-- ============ SCREEN: USER SELECT ============ -->
     <section id="screen-user" class="screen active">
-      <img id="mascot-badge" class="mascot-badge" src="assets/mascot.jpg" alt="Bonanza mascot">
-      <h1 class="screen-title">Who's flexing today? 💪</h1>
-      <p class="screen-sub">Pick your name or join the bonanza.</p>
+      <div class="home-body">
+        <img id="mascot-badge" class="mascot-badge" src="assets/mascot.jpg" alt="Bonanza mascot">
+        <h1 class="screen-title">Who's flexing today? 💪</h1>
+        <p class="screen-sub">Pick your name or join the bonanza.</p>
 
-      <div id="user-list" class="user-list"></div>
+        <div id="user-list" class="user-list"></div>
 
-      <form id="new-user-form" class="new-user-form">
-        <select id="new-user-avatar" class="avatar-select" aria-label="Choose an avatar"></select>
-        <input id="new-user-input" class="text-input" type="text" placeholder="Enter your name" maxlength="24" autocomplete="off" required>
-        <button type="submit" class="btn btn-primary">Let's go</button>
-      </form>
+        <form id="new-user-form" class="new-user-form">
+          <select id="new-user-avatar" class="avatar-select" aria-label="Choose an avatar"></select>
+          <input id="new-user-input" class="text-input" type="text" placeholder="Enter your name" maxlength="24" autocomplete="off" required>
+          <button type="submit" class="btn btn-primary">Let's go</button>
+        </form>
+      </div>
 
       <div id="home-activity-select" class="segmented home-activity-select hidden" role="tablist">
         <button class="segment active" data-activity="pushups">Pushups</button>
@@ -73,6 +75,7 @@
           <span id="workout-avatar" class="avatar-circle"></span>
           Ready, <span id="workout-username">Friend</span><span class="tight-q">?</span></p>
         <p class="workout-instructions">Lay your phone flat on the floor, screen up, and get in push-up position with your face over the camera.</p>
+        <button id="btn-weighted-quick" type="button" class="weighted-quick-toggle hidden">🏋️ Weighted mode off</button>
         <button id="btn-start" class="btn btn-giant btn-primary">START</button>
         <p class="workout-hint">We'll ask for camera access to count your reps.</p>
       </div>
@@ -144,12 +147,13 @@
       <div class="summary-body">
         <h1 class="screen-title">Session complete! 🎉</h1>
         <div class="summary-count" id="summary-count">0</div>
+        <div id="summary-weighted-note" class="weighted-note hidden"></div>
         <div id="missed-reps-wrap" class="missed-reps-wrap hidden">
           <div class="missed-reps-label">Missed any reps?</div>
-          <div class="missed-reps-control">
-            <button id="btn-missed-minus" type="button" class="missed-reps-btn" aria-label="Decrease">−</button>
-            <div id="missed-reps-count" class="missed-reps-count">0</div>
-            <button id="btn-missed-plus" type="button" class="missed-reps-btn" aria-label="Increase">+</button>
+          <div class="stepper-row">
+            <button id="btn-missed-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <div id="missed-reps-count" class="stepper-value">0</div>
+            <button id="btn-missed-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
           </div>
         </div>
         <div id="summary-sync-status" class="sync-status"></div>
@@ -278,6 +282,27 @@
         <label class="field-label toggle-row">
           <span>Voice cheer-ons during pushup and plank sessions</span>
           <input id="chk-sound-enabled" type="checkbox">
+        </label>
+      </div>
+
+      <div class="settings-block">
+        <h2 class="section-title">Weighted mode 🏋️</h2>
+        <p class="settings-hint">Wearing a vest, holding a kid on your back, or otherwise adding load? Log your bodyweight once, dial in today's added weight, and we'll scale your final pushup count to match.</p>
+
+        <label class="field-label">Your bodyweight (lbs)</label>
+        <input id="input-bodyweight" class="text-input" type="number" min="1" inputmode="numeric" placeholder="e.g. 170">
+
+        <label class="field-label">Added weight today (lbs)</label>
+        <div class="stepper-row">
+          <button id="btn-weight-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+          <div id="weight-amount" class="stepper-value">0</div>
+          <button id="btn-weight-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+        </div>
+        <p id="weight-modifier-readout" class="settings-hint"></p>
+
+        <label class="field-label toggle-row">
+          <span>Enable weighted mode</span>
+          <input id="chk-weighted-enabled" type="checkbox">
         </label>
       </div>
 

@@ -28,6 +28,7 @@ const LS = {
   cacheData: "bpb-cache-data",
   plankUnlocked: "bpb-plank-unlocked",
   soundEnabled: "bpb-sound-enabled",
+  weightedProfiles: "bpb-weighted-profiles",
 };
 
 const DEFAULT_DOWN = 0.55;
@@ -331,6 +332,31 @@ function enqueueSession(session) {
   setQueue(q);
 }
 
+// Weighted mode: each user's bodyweight + today's added weight (vest, kid on
+// back, etc.) lives locally per-user, never synced — it only feeds the
+// multiplier applied to that user's own pushup counts before they're shared.
+function getWeightedProfiles() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS.weightedProfiles) || "{}");
+    return raw && typeof raw === "object" ? raw : {};
+  } catch (e) {
+    return {};
+  }
+}
+function getWeightedProfile(user) {
+  const profiles = getWeightedProfiles();
+  return profiles[user] || { bodyweightLbs: 0, addedWeightLbs: 0, enabled: false };
+}
+function saveWeightedProfile(user, profile) {
+  const profiles = getWeightedProfiles();
+  profiles[user] = profile;
+  localStorage.setItem(LS.weightedProfiles, JSON.stringify(profiles));
+}
+function weightedMultiplier(profile) {
+  if (!profile.bodyweightLbs || profile.bodyweightLbs <= 0) return 1;
+  return (profile.bodyweightLbs + Math.max(0, profile.addedWeightLbs || 0)) / profile.bodyweightLbs;
+}
+
 // Sends a session to the Worker (which handles the GitHub merge/retry
 // server-side). A couple of client-side retries just for network flakiness.
 async function commitSession(session, attempts = 2) {
@@ -419,6 +445,8 @@ const state = {
   summarySessionId: null,
   summaryBaseCount: 0,
   summaryExtra: 0,
+  summaryMultiplier: 1,
+  summaryWeightLbs: 0,
 };
 let summaryReconcileTimer = null;
 
@@ -482,6 +510,7 @@ function showScreen(id) {
   if (id === "screen-workout" && !state.workoutActive) {
     $("workout-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("workout-avatar"), state.currentAvatar, "2rem");
+    renderWeightedQuickToggle();
   }
   if (id === "screen-plank-workout" && !state.plankActive) {
     $("plank-username").textContent = state.currentUser || "Friend";
@@ -619,6 +648,7 @@ function renderSettings() {
   $("chk-calibration-readout").checked = localStorage.getItem(LS.calibrationReadout) === "1";
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
   $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
+  renderWeightedSettings();
 
   renderPendingStatus();
   testSyncConnection();
@@ -626,6 +656,73 @@ function renderSettings() {
   state.mySessionsShown = 5;
   renderMySessions();
 }
+
+function renderWeightedSettings() {
+  const profile = getWeightedProfile(state.currentUser);
+  $("input-bodyweight").value = profile.bodyweightLbs || "";
+  $("weight-amount").textContent = String(profile.addedWeightLbs || 0);
+  $("chk-weighted-enabled").checked = !!profile.enabled;
+  $("chk-weighted-enabled").disabled = !profile.bodyweightLbs;
+  updateWeightModifierReadout(profile);
+}
+
+function updateWeightModifierReadout(profile) {
+  const el = $("weight-modifier-readout");
+  if (!profile.bodyweightLbs || profile.bodyweightLbs <= 0) {
+    el.textContent = "Enter your bodyweight to enable weighted mode.";
+    return;
+  }
+  const mult = weightedMultiplier(profile);
+  el.textContent = `Modifier: ×${mult.toFixed(2)} (${profile.bodyweightLbs} lb bodyweight + ${profile.addedWeightLbs || 0} lbs today)`;
+}
+
+$("input-bodyweight").addEventListener("change", (e) => {
+  const profile = getWeightedProfile(state.currentUser);
+  const val = Math.max(0, Math.round(Number(e.target.value) || 0));
+  profile.bodyweightLbs = val;
+  if (!val) profile.enabled = false;
+  saveWeightedProfile(state.currentUser, profile);
+  renderWeightedSettings();
+});
+
+function adjustAddedWeight(delta) {
+  const profile = getWeightedProfile(state.currentUser);
+  profile.addedWeightLbs = Math.max(0, (profile.addedWeightLbs || 0) + delta);
+  saveWeightedProfile(state.currentUser, profile);
+  renderWeightedSettings();
+}
+$("btn-weight-plus").addEventListener("click", () => adjustAddedWeight(5));
+$("btn-weight-minus").addEventListener("click", () => adjustAddedWeight(-5));
+
+$("chk-weighted-enabled").addEventListener("change", (e) => {
+  const profile = getWeightedProfile(state.currentUser);
+  profile.enabled = e.target.checked && !!profile.bodyweightLbs;
+  saveWeightedProfile(state.currentUser, profile);
+  renderWeightedSettings();
+});
+
+// Quick on/off toggle on the workout start screen mirrors the same profile,
+// so you don't have to dig into Settings to turn weighted mode on/off before
+// a session — but bodyweight itself is still only set up there.
+function renderWeightedQuickToggle() {
+  const profile = getWeightedProfile(state.currentUser);
+  const btn = $("btn-weighted-quick");
+  if (!profile.bodyweightLbs || profile.bodyweightLbs <= 0) {
+    btn.classList.add("hidden");
+    return;
+  }
+  btn.classList.remove("hidden");
+  btn.classList.toggle("active", !!profile.enabled);
+  btn.textContent = profile.enabled
+    ? `🏋️ Weighted +${profile.addedWeightLbs || 0} lbs`
+    : "🏋️ Weighted mode off";
+}
+$("btn-weighted-quick").addEventListener("click", () => {
+  const profile = getWeightedProfile(state.currentUser);
+  profile.enabled = !profile.enabled;
+  saveWeightedProfile(state.currentUser, profile);
+  renderWeightedQuickToggle();
+});
 
 function renderManageUsers() {
   const sessions = getAllSessionsForDisplay();
@@ -710,7 +807,7 @@ function renderMySessions() {
     row.className = "my-session-row";
     row.innerHTML = `
       <span>${formatDateTime(s.timestamp)}</span>
-      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.count}</span>
+      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.count}${s.weightLbs ? " 🏋️" : ""}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
     `;
     row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteSession(s.id));
@@ -1946,12 +2043,17 @@ function launchConfetti(targetId = "confetti", emojiSet = CONFETTI_EMOJI) {
 }
 
 async function completeWorkout() {
-  const count = repState.count;
+  const rawCount = repState.count;
   stopCameraAndDetection();
   await releaseWakeLock();
   state.workoutActive = false;
   $("workout-active").classList.add("hidden");
   $("workout-idle").classList.remove("hidden");
+
+  const profile = getWeightedProfile(state.currentUser);
+  const weighted = profile.enabled && profile.bodyweightLbs > 0;
+  const multiplier = weighted ? weightedMultiplier(profile) : 1;
+  const count = weighted ? Math.round(rawCount * multiplier) : rawCount;
 
   const session = {
     id: uuid(),
@@ -1960,6 +2062,7 @@ async function completeWorkout() {
     count,
     avatar: state.currentAvatar,
     startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    ...(weighted ? { rawCount, weightLbs: profile.addedWeightLbs || 0 } : {}),
   };
 
   // Optimistically reflect it locally right away so it shows up immediately.
@@ -1970,11 +2073,14 @@ async function completeWorkout() {
   const message = pickFunMessage(count);
   state.lastSessionType = "pushup";
   state.summarySessionId = session.id;
-  state.summaryBaseCount = count;
+  state.summaryBaseCount = rawCount;
   state.summaryExtra = 0;
+  state.summaryMultiplier = multiplier;
+  state.summaryWeightLbs = weighted ? (profile.addedWeightLbs || 0) : 0;
   $("summary-count").textContent = String(count);
   $("missed-reps-count").textContent = "0";
   $("missed-reps-wrap").classList.remove("hidden");
+  renderSummaryWeightedNote(rawCount, count);
   $("summary-sync-status").textContent = "";
   showScreen("screen-summary");
   launchConfetti();
@@ -1988,18 +2094,35 @@ async function completeWorkout() {
   }
 }
 
+function renderSummaryWeightedNote(rawTotal, adjustedTotal) {
+  const el = $("summary-weighted-note");
+  if (state.summaryMultiplier === 1) {
+    el.classList.add("hidden");
+    el.textContent = "";
+    return;
+  }
+  el.classList.remove("hidden");
+  el.textContent = `🏋️ +${state.summaryWeightLbs} lbs · ${rawTotal} raw × ${state.summaryMultiplier.toFixed(2)} = ${adjustedTotal}`;
+}
+
 function adjustMissedReps(delta) {
   if (!state.summarySessionId) return;
   if (delta < 0 && state.summaryExtra <= 0) return;
   state.summaryExtra = Math.max(0, state.summaryExtra + delta);
   $("missed-reps-count").textContent = String(state.summaryExtra);
-  const newTotal = state.summaryBaseCount + state.summaryExtra;
+  const rawTotal = state.summaryBaseCount + state.summaryExtra;
+  const newTotal = Math.round(rawTotal * state.summaryMultiplier);
   $("summary-count").textContent = String(newTotal);
+  renderSummaryWeightedNote(rawTotal, newTotal);
 
   const cached = getCachedData();
   const cachedSession = cached.sessions.find((s) => s.id === state.summarySessionId);
   if (cachedSession) {
     cachedSession.count = newTotal;
+    if (state.summaryMultiplier !== 1) {
+      cachedSession.rawCount = rawTotal;
+      cachedSession.weightLbs = state.summaryWeightLbs;
+    }
     cacheData(cached);
   }
   scheduleSummaryReconcile();
@@ -2017,12 +2140,18 @@ function scheduleSummaryReconcile() {
 async function reconcileSummaryCount() {
   const id = state.summarySessionId;
   if (!id) return;
-  const newTotal = state.summaryBaseCount + state.summaryExtra;
+  const rawTotal = state.summaryBaseCount + state.summaryExtra;
+  const newTotal = Math.round(rawTotal * state.summaryMultiplier);
+  const weighted = state.summaryMultiplier !== 1;
 
   const queue = getQueue();
   const queuedIdx = queue.findIndex((s) => s.id === id);
   if (queuedIdx !== -1) {
-    queue[queuedIdx] = { ...queue[queuedIdx], count: newTotal };
+    queue[queuedIdx] = {
+      ...queue[queuedIdx],
+      count: newTotal,
+      ...(weighted ? { rawCount: rawTotal, weightLbs: state.summaryWeightLbs } : {}),
+    };
     setQueue(queue);
     return;
   }
@@ -2037,6 +2166,7 @@ async function reconcileSummaryCount() {
     count: newTotal,
     avatar: existing?.avatar || state.currentAvatar,
     startedAt: existing?.startedAt,
+    ...(weighted ? { rawCount: rawTotal, weightLbs: state.summaryWeightLbs } : {}),
   };
   if (idx !== -1) cached.sessions[idx] = newSession;
   else cached.sessions.push(newSession);
@@ -2136,7 +2266,8 @@ function pickShareMessage(count, ctx) {
 async function shareFlex() {
   const count = $("summary-count").textContent;
   const ctx = buildShareContext();
-  const message = pickShareMessage(count, ctx);
+  const weightNote = state.summaryMultiplier !== 1 ? ` (+${state.summaryWeightLbs} lbs weighted)` : "";
+  const message = pickShareMessage(count, ctx) + weightNote;
   const url = location.href;
   if (navigator.share) {
     try {
@@ -2309,8 +2440,11 @@ async function completePlank() {
   const message = pickPlankFunMessage(seconds);
   state.lastSessionType = "plank";
   state.summarySessionId = null;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
   $("summary-count").textContent = formatDuration(seconds * 1000);
   $("missed-reps-wrap").classList.add("hidden");
+  $("summary-weighted-note").classList.add("hidden");
   $("summary-sync-status").textContent = "";
   showScreen("screen-summary");
   launchConfetti("confetti", PLANK_EMOJI);

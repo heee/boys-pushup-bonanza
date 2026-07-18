@@ -4,9 +4,11 @@
 // token on their phones. The client only ever talks to this Worker.
 //
 //   GET  /data         -> current data.json contents (no auth required to read)
-//   POST /session      -> { id, user, timestamp, count, avatar?, startedAt?, type? } -> merges into data.json
+//   POST /session      -> { id, user, timestamp, count, avatar?, startedAt?, type?, rawCount?, weightLbs? } -> merges into data.json
 //                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session;
-//                          count is reps for pushups, seconds held for planks)
+//                          count is reps for pushups, seconds held for planks;
+//                          rawCount/weightLbs are optional weighted-mode transparency fields — the actual
+//                          physical reps and added weight behind an already-scaled-up `count`)
 //   POST /delete-user     -> { user } -> removes all of that user's sessions from data.json
 //   POST /delete-session  -> { id } -> removes a single session from data.json
 //   POST /set-avatar      -> { user, avatar } -> sets/overrides that user's avatar
@@ -217,6 +219,16 @@ function validateSession(body) {
   }
   if (body.type === "plank") {
     session.type = "plank";
+  }
+  // Weighted-mode transparency fields: the raw physical rep count and the
+  // added weight used to scale it up into `count`. Optional and pushup-only.
+  const rawCount = Math.floor(Number(body.rawCount));
+  if (Number.isFinite(rawCount) && rawCount > 0 && rawCount <= 2000) {
+    session.rawCount = rawCount;
+  }
+  const weightLbs = Math.floor(Number(body.weightLbs));
+  if (Number.isFinite(weightLbs) && weightLbs >= 0 && weightLbs <= 1000) {
+    session.weightLbs = weightLbs;
   }
   return session;
 }
