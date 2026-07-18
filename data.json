@@ -153,6 +153,14 @@
       "count": 20,
       "avatar": "flex",
       "startedAt": "2026-07-18T14:18:34.766Z"
+    },
+    {
+      "id": "f8bf7633-d8f9-45b5-90af-e16f88aebe66",
+      "user": "Henning",
+      "timestamp": "2026-07-18T14:20:19.407Z",
+      "count": 34,
+      "avatar": "burger",
+      "startedAt": "2026-07-18T14:19:07.601Z"
     }
   ],
   "avatars": {
