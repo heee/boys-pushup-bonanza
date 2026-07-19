@@ -321,6 +321,16 @@
       "count": 56,
       "avatar": "fire",
       "startedAt": "2026-07-19T13:32:44.436Z"
+    },
+    {
+      "id": "6af1c7c3-877d-4439-ade6-3405a9bbb7d0",
+      "user": "Danger D",
+      "timestamp": "2026-07-19T15:09:01.496Z",
+      "count": 12,
+      "avatar": "beer",
+      "startedAt": "2026-07-19T15:08:29.778Z",
+      "rawCount": 10,
+      "weightLbs": 40
     }
   ],
   "avatars": {
