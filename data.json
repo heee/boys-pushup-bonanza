@@ -341,6 +341,14 @@
       "startedAt": "2026-07-19T15:11:15.756Z",
       "rawCount": 10,
       "weightLbs": 40
+    },
+    {
+      "id": "c207c038-9696-4ddc-b63e-a631dc15516c",
+      "user": "Danger D",
+      "timestamp": "2026-07-19T15:55:39.424Z",
+      "count": 18,
+      "avatar": "beer",
+      "startedAt": "2026-07-19T15:55:16.194Z"
     }
   ],
   "avatars": {
