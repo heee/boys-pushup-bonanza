@@ -13,6 +13,8 @@
 //   POST /delete-session  -> { id } -> removes a single session from data.json
 //   POST /set-avatar      -> { user, avatar } -> sets/overrides that user's avatar
 //   POST /join-challenge  -> { user, challengeId } -> adds user to that challenge's participant list
+//   POST /create-challenge -> { title, tagline, emoji, goalType, goal, start, end, gradient?, createdBy }
+//                              -> appends a user-created challenge to data.json, server-assigns the id
 //
 // Required Worker secrets/variables (set in the Cloudflare dashboard under
 // Settings -> Variables and Secrets):
@@ -175,6 +177,30 @@ export default {
       }
     }
 
+    if (url.pathname === "/create-challenge" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const challenge = validateChallenge(body);
+      if (!challenge) return json({ error: "invalid challenge payload" }, 400, cors);
+
+      try {
+        await commitMutation(env, (data) => {
+          if (!Array.isArray(data.customChallenges)) data.customChallenges = [];
+          data.customChallenges.push(challenge);
+        }, `Create challenge: ${challenge.title}`);
+        return json({ ok: true, challenge }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
     return json({ error: "not found" }, 404, cors);
   },
 };
@@ -233,6 +259,39 @@ function validateSession(body) {
   return session;
 }
 
+function isHexColor(s) {
+  return typeof s === "string" && /^#[0-9a-fA-F]{6}$/.test(s);
+}
+
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+}
+
+function validateChallenge(body) {
+  if (!body || typeof body !== "object") return null;
+  const title = String(body.title || "").trim().slice(0, 60);
+  const tagline = String(body.tagline || "").trim().slice(0, 200);
+  const emoji = String(body.emoji || "").trim().slice(0, 8) || "🎯";
+  const goalType = body.goalType === "collective" ? "collective" : "individual";
+  const goal = Math.floor(Number(body.goal));
+  const createdBy = String(body.createdBy || "").trim().slice(0, 40);
+  if (!title || !tagline || !createdBy) return null;
+  if (!Number.isFinite(goal) || goal <= 0 || goal > 100000) return null;
+
+  const start = typeof body.start === "string" && !isNaN(new Date(body.start).getTime()) ? body.start : "";
+  const end = typeof body.end === "string" && !isNaN(new Date(body.end).getTime()) ? body.end : "";
+  if (!start || !end || new Date(end) < new Date(start)) return null;
+
+  const gradient = Array.isArray(body.gradient) && body.gradient.length === 2 && body.gradient.every(isHexColor)
+    ? body.gradient
+    : ["#4a2a5e", "#e8762e"];
+
+  const slug = slugify(title) || "challenge";
+  const id = `${slug}-${Date.now().toString(36)}`;
+
+  return { id, title, tagline, emoji, goalType, goal, start, end, gradient, createdBy };
+}
+
 async function ghHeaders(env) {
   return {
     Accept: "application/vnd.github+json",
@@ -270,6 +329,7 @@ async function fetchGithubFile(env) {
   if (!data.challengeParticipants || typeof data.challengeParticipants !== "object") {
     data.challengeParticipants = {};
   }
+  if (!Array.isArray(data.customChallenges)) data.customChallenges = [];
   return { data, sha: fileJson.sha };
 }
 

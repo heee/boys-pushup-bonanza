@@ -649,13 +649,20 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Dashboard ---------------- */
 
-.dashboard-header {
+.dashboard-header,
+.challenges-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
 }
-.dashboard-header .screen-title { margin-bottom: 0; }
+.dashboard-header .screen-title,
+.challenges-header .screen-title { margin-bottom: 0; }
+.challenges-create-btn {
+  flex-shrink: 0;
+  background: var(--primary);
+  color: #fff;
+}
 .activity-type-select {
   width: auto;
   max-width: 10rem;
@@ -1037,6 +1044,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-size: 0.92rem;
   font-weight: 700;
   margin-bottom: 0.6rem;
+}
+.challenge-days-left {
+  font-weight: 400;
+  color: var(--text-dim);
 }
 .challenge-progress-card .thermometer-wrap { max-width: none; margin: 0; }
 

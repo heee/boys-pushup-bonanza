@@ -210,7 +210,10 @@
 
     <!-- ============ SCREEN: CHALLENGES ============ -->
     <section id="screen-challenges" class="screen">
-      <h1 class="screen-title">Challenges 🎯</h1>
+      <div class="challenges-header">
+        <h1 class="screen-title">Challenges 🎯</h1>
+        <button id="btn-challenge-create" type="button" class="btn btn-small challenges-create-btn">+ Create</button>
+      </div>
 
       <div id="challenge-tab-select" class="segmented" role="tablist">
         <button class="segment active" data-ctab="active">Active</button>
@@ -228,6 +231,42 @@
         <button id="btn-challenge-share" type="button" class="btn btn-small challenge-detail-share">Share 📤</button>
       </div>
       <div id="challenge-detail-body"></div>
+    </section>
+
+    <!-- ============ SCREEN: CREATE CHALLENGE ============ -->
+    <section id="screen-challenge-create" class="screen">
+      <div class="challenge-detail-header">
+        <button id="btn-create-back" type="button" class="btn btn-small challenge-detail-back">← Cancel</button>
+      </div>
+      <h1 class="screen-title">New Challenge</h1>
+
+      <form id="create-challenge-form">
+        <label class="field-label">Icon</label>
+        <select id="create-emoji" class="avatar-select" aria-label="Choose an icon"></select>
+
+        <label class="field-label">Title</label>
+        <input id="create-title" class="text-input" type="text" maxlength="60" required placeholder="e.g. Labor Day Lockout">
+
+        <label class="field-label">Description</label>
+        <input id="create-tagline" class="text-input" type="text" maxlength="200" required placeholder="A short hype line for the challenge">
+
+        <label class="field-label">Type</label>
+        <div id="create-goal-type" class="segmented" role="tablist">
+          <button type="button" class="segment active" data-goaltype="individual">Individual</button>
+          <button type="button" class="segment" data-goaltype="collective">Group</button>
+        </div>
+
+        <label class="field-label">Goal (total pushups)</label>
+        <input id="create-goal" class="text-input" type="number" min="1" max="100000" inputmode="numeric" required placeholder="e.g. 500">
+
+        <label class="field-label">Start date</label>
+        <input id="create-start" class="text-input" type="date" required>
+
+        <label class="field-label">End date</label>
+        <input id="create-end" class="text-input" type="date" required>
+
+        <button type="submit" class="btn btn-primary btn-large">Create challenge</button>
+      </form>
     </section>
 
     <!-- ============ SCREEN: SETTINGS ============ -->

@@ -71,13 +71,47 @@ const AVATARS = [
 const CHALLENGES_URL = "challenges.json";
 let challengeDefs = [];
 async function loadChallenges() {
+  let staticChallenges = [];
   try {
     const res = await fetch(CHALLENGES_URL, { cache: "no-cache" });
     const json = await res.json();
-    challengeDefs = Array.isArray(json.challenges) ? json.challenges : [];
+    staticChallenges = Array.isArray(json.challenges) ? json.challenges : [];
   } catch (e) {
-    // keep whatever we had before; an empty list just renders empty states
+    // keep whatever static list we had before; an empty list just renders empty states
   }
+  const custom = getCachedData().customChallenges || [];
+  challengeDefs = [...staticChallenges, ...custom];
+}
+
+// Icon choices offered when creating a custom challenge.
+const CHALLENGE_ICONS = [
+  "🎯", "🔥", "💪", "🏆", "🚀", "⚡", "🎉", "🎃", "🎄", "🎆",
+  "🏈", "⚽", "🏀", "🏋️", "🥊", "🧗", "🏃", "🚴", "🏊", "🥇",
+  "👑", "💥", "🌪️", "🌊", "🏔️", "🎖️", "🍺", "🍕", "🌮", "🌶️",
+];
+
+// Deterministic color pair per icon, so custom challenges get a consistent
+// gradient without the user having to pick colors themselves.
+const CHALLENGE_GRADIENTS = [
+  ["#1a5c2e", "#7ec850"],
+  ["#8a3a2e", "#e8a04a"],
+  ["#c9982e", "#f5e19a"],
+  ["#4a2a5e", "#e8762e"],
+  ["#2e4a2e", "#a83232"],
+  ["#6b4a2e", "#c98a3a"],
+  ["#8a5a2e", "#d99a4a"],
+  ["#8a2e2e", "#2e6b3a"],
+  ["#b5482f", "#e8c468"],
+  ["#7a4a2e", "#d9b66a"],
+  ["#2e5e3a", "#8a6a3a"],
+  ["#2e5e5e", "#7ac8a8"],
+  ["#8a2e2e", "#2e3a8a"],
+  ["#3a4a2e", "#a8b45e"],
+];
+function gradientForIcon(emoji) {
+  let hash = 0;
+  for (const ch of emoji) hash = (hash * 31 + ch.codePointAt(0)) % 100000;
+  return CHALLENGE_GRADIENTS[hash % CHALLENGE_GRADIENTS.length];
 }
 
 // ------------------- small helpers -------------------
@@ -306,20 +340,35 @@ async function workerJoinChallenge(user, challengeId) {
   return res.json();
 }
 
+async function workerCreateChallenge(challenge) {
+  if (!workerConfigured()) throw new Error("Worker URL not configured yet.");
+  const res = await fetch(`${WORKER_URL}/create-challenge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-App-Key": APP_KEY },
+    body: JSON.stringify(challenge),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Create failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
 function cacheData(data) {
   localStorage.setItem(LS.cacheData, JSON.stringify(data));
 }
 function getCachedData() {
   try {
     const raw = localStorage.getItem(LS.cacheData);
-    if (!raw) return { sessions: [], avatars: {}, challengeParticipants: {} };
+    if (!raw) return { sessions: [], avatars: {}, challengeParticipants: {}, customChallenges: [] };
     const data = JSON.parse(raw);
     if (!Array.isArray(data.sessions)) data.sessions = [];
     if (!data.avatars || typeof data.avatars !== "object") data.avatars = {};
     if (!data.challengeParticipants || typeof data.challengeParticipants !== "object") data.challengeParticipants = {};
+    if (!Array.isArray(data.customChallenges)) data.customChallenges = [];
     return data;
   } catch (e) {
-    return { sessions: [], avatars: {}, challengeParticipants: {} };
+    return { sessions: [], avatars: {}, challengeParticipants: {}, customChallenges: [] };
   }
 }
 
@@ -451,6 +500,7 @@ const state = {
   summaryExtra: 0,
   summaryMultiplier: 1,
   summaryWeightLbs: 0,
+  createGoalType: "individual",
 };
 let summaryReconcileTimer = null;
 
@@ -1350,9 +1400,9 @@ function formatChallengeDates(c) {
 }
 
 async function renderChallengesScreen() {
-  await loadChallenges();
   await flushQueue().catch(() => {});
   await refreshFromRemote();
+  await loadChallenges();
   paintChallengeList();
 }
 
@@ -1560,11 +1610,12 @@ function renderChallengeDetail() {
   }
 
   if (joined) {
-    const daysLeftLabel = status === "active"
+    const daysLeftText = status === "active"
       ? `${daysLeft(c, now)} days left`
       : status === "upcoming"
         ? `starts in ${daysUntilStart(c, now)} days`
         : "ended";
+    const daysLeftLabel = `<span class="challenge-days-left">${daysLeftText}</span>`;
     if (c.goalType === "individual") {
       const mine = userChallengeTotal(c, state.currentUser);
       const pctDisplay = Math.round((mine / c.goal) * 100);
@@ -1711,6 +1762,90 @@ $("challenge-tab-select").addEventListener("click", (e) => {
 $("btn-challenge-back").addEventListener("click", () => {
   history.replaceState(null, "", location.pathname + location.search);
   showScreen("screen-challenges");
+});
+
+// ------------------- create challenge -------------------
+
+function openCreateChallenge() {
+  const select = $("create-emoji");
+  select.innerHTML = CHALLENGE_ICONS.map((e) => `<option value="${e}">${e}</option>`).join("");
+  $("create-title").value = "";
+  $("create-tagline").value = "";
+  $("create-goal").value = "";
+  state.createGoalType = "individual";
+  document.querySelectorAll("#create-goal-type .segment").forEach((s, i) => s.classList.toggle("active", i === 0));
+
+  const today = new Date();
+  const inTwoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  $("create-start").value = fmt(today);
+  $("create-end").value = fmt(inTwoWeeks);
+
+  showScreen("screen-challenge-create");
+}
+
+$("btn-challenge-create").addEventListener("click", () => {
+  if (!state.currentUser) {
+    toast("Pick your name on the home screen first.");
+    return;
+  }
+  openCreateChallenge();
+});
+$("btn-create-back").addEventListener("click", () => showScreen("screen-challenges"));
+
+$("create-goal-type").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#create-goal-type .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.createGoalType = btn.dataset.goaltype;
+});
+
+$("create-challenge-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = $("create-title").value.trim();
+  const tagline = $("create-tagline").value.trim();
+  const emoji = $("create-emoji").value;
+  const goal = Math.floor(Number($("create-goal").value));
+  const start = $("create-start").value;
+  const end = $("create-end").value;
+
+  if (!title || !tagline || !goal || goal <= 0) {
+    toast("Fill in a title, description, and goal.");
+    return;
+  }
+  if (!start || !end || new Date(end) < new Date(start)) {
+    toast("End date must be on or after the start date.");
+    return;
+  }
+
+  const challenge = {
+    title,
+    tagline,
+    emoji,
+    goalType: state.createGoalType,
+    goal,
+    start,
+    end,
+    gradient: gradientForIcon(emoji),
+    createdBy: state.currentUser,
+  };
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    const res = await workerCreateChallenge(challenge);
+    const cached = getCachedData();
+    cached.customChallenges.push(res.challenge);
+    cacheData(cached);
+    toast("Challenge created!");
+    await renderChallengesScreen();
+    showScreen("screen-challenges");
+  } catch (err) {
+    toast("Couldn't create the challenge — check your connection.", 4000);
+  } finally {
+    submitBtn.disabled = false;
+  }
 });
 
 // ------------------- workout screen: camera + face detection -------------------
