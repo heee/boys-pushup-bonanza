@@ -790,7 +790,8 @@ function updateWeightModifierReadout(profile) {
     return;
   }
   const mult = weightedMultiplier(profile);
-  el.textContent = `Modifier: ×${mult.toFixed(2)} (${profile.bodyweightLbs} lb bodyweight + ${profile.addedWeightLbs || 0} lbs today)`;
+  const example = Math.round(20 * mult);
+  el.textContent = `Modifier: ×${mult.toFixed(2)} (${profile.bodyweightLbs} lb bodyweight + ${profile.addedWeightLbs || 0} lbs today). For example, 20 reps would count as ${example}.`;
 }
 
 $("input-bodyweight").addEventListener("change", (e) => {
