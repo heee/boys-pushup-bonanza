@@ -405,9 +405,14 @@ function saveWeightedProfile(user, profile) {
   profiles[user] = profile;
   localStorage.setItem(LS.weightedProfiles, JSON.stringify(profiles));
 }
+// The bonus this awards is added weight's fraction of bodyweight, doubled —
+// users found the original 1:1 version (bodyweight + added) / bodyweight
+// too conservative to feel worth toggling on.
+const WEIGHTED_BONUS_FACTOR = 2;
 function weightedMultiplier(profile) {
   if (!profile.bodyweightLbs || profile.bodyweightLbs <= 0) return 1;
-  return (profile.bodyweightLbs + Math.max(0, profile.addedWeightLbs || 0)) / profile.bodyweightLbs;
+  const addedLbs = Math.max(0, profile.addedWeightLbs || 0);
+  return (profile.bodyweightLbs + WEIGHTED_BONUS_FACTOR * addedLbs) / profile.bodyweightLbs;
 }
 
 // Sends a session to the Worker (which handles the GitHub merge/retry
