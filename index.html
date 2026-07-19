@@ -166,16 +166,17 @@
 
     <!-- ============ SCREEN: DASHBOARD ============ -->
     <section id="screen-dashboard" class="screen">
-      <h1 class="screen-title">Leaderboard 🏆</h1>
+      <div class="dashboard-header">
+        <h1 class="screen-title">Leaderboard 🏆</h1>
+        <div id="activity-type-select" class="segmented activity-type-select hidden" role="tablist">
+          <button class="segment active" data-activity="pushups">Pushups</button>
+          <button class="segment" data-activity="planks">Planks</button>
+        </div>
+      </div>
 
       <div id="bonanza-mode-select" class="segmented" role="tablist">
         <button class="segment active" data-mode="mine">My Bonanza</button>
         <button class="segment" data-mode="boys">Boys Bonanza</button>
-      </div>
-
-      <div id="activity-type-select" class="segmented hidden" role="tablist">
-        <button class="segment active" data-activity="pushups">Pushups</button>
-        <button class="segment" data-activity="planks">Planks</button>
       </div>
 
       <div id="boys-bonanza-view" class="hidden">
@@ -234,11 +235,12 @@
       <h1 class="screen-title">Settings ⚙️</h1>
 
       <div class="settings-block">
-        <h2 class="section-title">Appearance</h2>
-        <label class="field-label">Theme</label>
-        <div id="theme-select" class="segmented" role="tablist">
-          <button class="segment" data-theme="light">☀️ Light</button>
-          <button class="segment active" data-theme="dark">🌙 Dark</button>
+        <div class="settings-block-row">
+          <label class="field-label">Theme</label>
+          <div id="theme-select" class="segmented theme-select-compact" role="tablist">
+            <button class="segment" data-theme="light">☀️ Light</button>
+            <button class="segment active" data-theme="dark">🌙 Dark</button>
+          </div>
         </div>
       </div>
 
@@ -258,6 +260,27 @@
         </label>
 
         <button id="btn-calibration-defaults" class="btn btn-secondary">Reset to defaults</button>
+      </div>
+
+      <div class="settings-block">
+        <h2 class="section-title">Weighted mode 🏋️</h2>
+        <p class="settings-hint">Wearing a vest, holding a kid on your back, or otherwise adding load? Log your bodyweight once, dial in today's added weight, and we'll scale your final pushup count to match.</p>
+
+        <label class="field-label">Your bodyweight (lbs)</label>
+        <input id="input-bodyweight" class="text-input" type="number" min="1" inputmode="numeric" placeholder="e.g. 170">
+
+        <label class="field-label">Added weight today (lbs)</label>
+        <div class="stepper-row">
+          <button id="btn-weight-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+          <div id="weight-amount" class="stepper-value">0</div>
+          <button id="btn-weight-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+        </div>
+        <p id="weight-modifier-readout" class="settings-hint"></p>
+
+        <label class="field-label toggle-row">
+          <span>Enable weighted mode</span>
+          <input id="chk-weighted-enabled" type="checkbox">
+        </label>
       </div>
 
       <div class="settings-block">
@@ -282,27 +305,6 @@
         <label class="field-label toggle-row">
           <span>Voice cheer-ons during pushup and plank sessions</span>
           <input id="chk-sound-enabled" type="checkbox">
-        </label>
-      </div>
-
-      <div class="settings-block">
-        <h2 class="section-title">Weighted mode 🏋️</h2>
-        <p class="settings-hint">Wearing a vest, holding a kid on your back, or otherwise adding load? Log your bodyweight once, dial in today's added weight, and we'll scale your final pushup count to match.</p>
-
-        <label class="field-label">Your bodyweight (lbs)</label>
-        <input id="input-bodyweight" class="text-input" type="number" min="1" inputmode="numeric" placeholder="e.g. 170">
-
-        <label class="field-label">Added weight today (lbs)</label>
-        <div class="stepper-row">
-          <button id="btn-weight-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
-          <div id="weight-amount" class="stepper-value">0</div>
-          <button id="btn-weight-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
-        </div>
-        <p id="weight-modifier-readout" class="settings-hint"></p>
-
-        <label class="field-label toggle-row">
-          <span>Enable weighted mode</span>
-          <input id="chk-weighted-enabled" type="checkbox">
         </label>
       </div>
 

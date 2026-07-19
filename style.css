@@ -649,6 +649,25 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Dashboard ---------------- */
 
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.dashboard-header .screen-title { margin-bottom: 0; }
+.activity-type-select {
+  width: auto;
+  max-width: 10rem;
+  margin: 0;
+  opacity: 0.7;
+  padding: 0.15rem;
+  flex-shrink: 0;
+}
+.activity-type-select .segment {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.72rem;
+}
 #screen-dashboard #bonanza-mode-select {
   margin-top: 0.8rem;
 }
@@ -701,10 +720,30 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .mybonanza-chart-card .section-title { margin: 0 0 0.9rem; }
 
 .week-chart {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
   height: 9rem;
+}
+.week-trend {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.week-trend-line {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.8;
+}
+.week-trend-dot {
+  fill: var(--text);
+  opacity: 0.8;
 }
 .week-bar-col {
   flex: 1;
@@ -850,6 +889,17 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-bottom: 1.1rem;
 }
 .settings-hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 0.4rem; }
+.settings-block-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+.settings-block-row .field-label { margin: 0; }
+.theme-select-compact {
+  width: auto;
+  margin-bottom: 0;
+}
 .settings-status { font-size: 0.85rem; min-height: 1.1rem; font-weight: 700; margin: 0.3rem 0 0; }
 .settings-status.ok { color: var(--success); }
 .settings-status.err { color: var(--danger); }
