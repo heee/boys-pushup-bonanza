@@ -313,6 +313,14 @@
       "count": 57,
       "avatar": "flex",
       "startedAt": "2026-07-18T16:12:56.037Z"
+    },
+    {
+      "id": "27884ebb-089e-4ca0-a913-30a684cde93f",
+      "user": "Henning",
+      "timestamp": "2026-07-19T13:33:47.269Z",
+      "count": 56,
+      "avatar": "fire",
+      "startedAt": "2026-07-19T13:32:44.436Z"
     }
   ],
   "avatars": {
@@ -336,5 +344,6 @@
     "club-180-2026": [
       "Henning"
     ]
-  }
+  },
+  "customChallenges": []
 }
