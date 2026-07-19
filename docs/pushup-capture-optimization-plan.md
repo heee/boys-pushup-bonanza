@@ -1,5 +1,14 @@
 # Pushup Capture Optimization Plan
 
+> **Status: EXECUTED** (Phases 0, 1, 3 — see commit history). Implementation notes:
+> - Pure counter `createRepCounter()` in app.js (between `REP_COUNTER_START/END` markers) — replay-testable in Node.
+> - Chosen algorithm: raw-threshold hysteresis with prev-sample confirmation (`confirmMs = 80`) instead of median-of-3 — median failed replay tests at degraded (10 Hz) sample rates and across face-lost gaps. Single-frame glitches still rejected at 30 fps; single-sample crossings accepted when inter-sample gap > 80 ms.
+> - Sampling: `minIntervalMs` 100 → 25 (~30 fps). GPU delegate with CPU fallback at init + runtime rebuild after 10 consecutive detect failures.
+> - Debounce `minMsBetweenReps = 280`. Rep side effects deferred via `setTimeout(0)`; number speech skipped at sprint pace (every 5th rep only) — cheers/records always speak.
+> - Trace ring buffer (~2 min) + "Download last workout trace" button in Settings → Calibration.
+> - Replay results: old EMA algo 0–1/20 reps counted on synthetic fast traces; new counter 20/20 across fast/very-fast/normal/slow/shallow + glitch/noise/gap edge cases.
+> - Phase 2 (adaptive thresholds) intentionally NOT implemented — revisit only if real-world traces still show misses.
+
 **Problem:** Fast pushups are sometimes not counted. User-confirmed symptom: reps done "too quickly" get missed (this is why the missed-reps +/- adjuster exists on the summary screen).
 
 **Scope:** Plan only — execution is for a follow-up session. All code references are to `app.js` at commit `8534798`.

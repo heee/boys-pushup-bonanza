@@ -199,7 +199,7 @@ function speak(text) {
   if (localStorage.getItem(LS.soundEnabled) === "0") return;
   if (!("speechSynthesis" in window)) return;
   try {
-    speechSynthesis.cancel();
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.05;
     speechSynthesis.speak(u);
@@ -476,6 +476,10 @@ const state = {
   workoutActive: false,
   faceDetector: null,
   faceDetectorLoading: null,
+  faceDetectorDelegate: null,
+  faceDetectorVision: null,
+  faceDetectorClass: null,
+  faceDetectorRebuilding: false,
   stream: null,
   wakeLock: null,
   detectionRunning: false,
@@ -504,14 +508,63 @@ const state = {
 };
 let summaryReconcileTimer = null;
 
+// ---- pure rep-counting core (no DOM, no globals) ----
+// Kept side-effect free so recorded ratio traces can be replayed through it
+// in Node when tuning. No EMA (its lag attenuated fast reps below the
+// thresholds). Instead, a threshold crossing only fires when confirmed by
+// the previous sample (kills single-frame bbox glitches at 30 fps) OR when
+// the inter-sample gap is large (degraded frame rates / after a face-lost
+// pause, where waiting for confirmation would eat scarce samples). A rep
+// debounce guards against oscillation double counts.
+// REP_COUNTER_START (marker used by the offline replay test — do not remove)
+function createRepCounter(config = {}) {
+  const cfg = {
+    down: config.down ?? 0.55,
+    up: config.up ?? 0.32,
+    minMsBetweenReps: config.minMsBetweenReps ?? 280,
+    confirmMs: config.confirmMs ?? 80,
+  };
+  let phase = "up";
+  let count = 0;
+  let lastRepAt = -Infinity;
+  let prev = null;
+  return {
+    advance(rawRatio, tMs) {
+      const confirms = (test) => prev != null && (test(prev.ratio) || tMs - prev.t > cfg.confirmMs);
+      let counted = false;
+      if (phase === "up" && rawRatio >= cfg.down && confirms((r) => r >= cfg.down)) {
+        phase = "down";
+      } else if (phase === "down" && rawRatio <= cfg.up && confirms((r) => r <= cfg.up)) {
+        phase = "up";
+        if (tMs - lastRepAt >= cfg.minMsBetweenReps) {
+          count += 1;
+          lastRepAt = tMs;
+          counted = true;
+        }
+      }
+      prev = { ratio: rawRatio, t: tMs };
+      return { smoothed: rawRatio, phase, count, counted };
+    },
+    setThresholds(down, up) { cfg.down = down; cfg.up = up; },
+    get count() { return count; },
+    get phase() { return phase; },
+  };
+}
+// REP_COUNTER_END
+
+const TRACE_MAX_SAMPLES = 4000; // ~2 min at 30 fps
+
 const repState = {
+  counter: null,
   phase: "up",
   count: 0,
   smoothedRatio: null,
   lastSeenAt: 0,
+  lastRepSpokenAt: 0,
   paused: false,
   lastCheerAtCount: 0,
   recordBroken: false,
+  trace: [],
 };
 
 const plankState = {
@@ -702,6 +755,7 @@ function renderSettings() {
   $("chk-calibration-readout").checked = localStorage.getItem(LS.calibrationReadout) === "1";
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
   $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
+  $("btn-download-trace").classList.toggle("hidden", !repState.trace.length);
   renderWeightedSettings();
 
   renderPendingStatus();
@@ -946,6 +1000,16 @@ $("btn-calibration-defaults").addEventListener("click", () => {
   localStorage.setItem(LS.thresholdDown, DEFAULT_DOWN);
   localStorage.setItem(LS.thresholdUp, DEFAULT_UP);
   renderSettings();
+});
+
+$("btn-download-trace").addEventListener("click", () => {
+  if (!repState.trace.length) return;
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), samples: repState.trace }, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `bpb-trace-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 });
 
 // ------------------- dashboard / leaderboard -------------------
@@ -1850,6 +1914,17 @@ $("create-challenge-form").addEventListener("submit", async (e) => {
 
 // ------------------- workout screen: camera + face detection -------------------
 
+function buildFaceDetector(vision, FaceDetector, delegate) {
+  return FaceDetector.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: FACE_DETECTOR_MODEL_URL,
+      delegate,
+    },
+    runningMode: "VIDEO",
+    minDetectionConfidence: 0.5,
+  });
+}
+
 async function ensureFaceDetector() {
   if (state.faceDetector) return state.faceDetector;
   if (state.faceDetectorLoading) return state.faceDetectorLoading;
@@ -1857,18 +1932,37 @@ async function ensureFaceDetector() {
     const visionModule = await import(FACE_DETECTOR_MODULE_URL);
     const { FaceDetector, FilesetResolver } = visionModule;
     const vision = await FilesetResolver.forVisionTasks(FACE_DETECTOR_WASM_URL);
-    const detector = await FaceDetector.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: FACE_DETECTOR_MODEL_URL,
-        delegate: "CPU",
-      },
-      runningMode: "VIDEO",
-      minDetectionConfidence: 0.5,
-    });
+    state.faceDetectorVision = vision;
+    state.faceDetectorClass = FaceDetector;
+    // GPU is much faster per frame on phones; fall back to CPU if init fails.
+    let detector;
+    try {
+      detector = await buildFaceDetector(vision, FaceDetector, "GPU");
+      state.faceDetectorDelegate = "GPU";
+    } catch (e) {
+      detector = await buildFaceDetector(vision, FaceDetector, "CPU");
+      state.faceDetectorDelegate = "CPU";
+    }
     state.faceDetector = detector;
     return detector;
   })();
   return state.faceDetectorLoading;
+}
+
+async function rebuildDetectorOnCpu() {
+  if (state.faceDetectorRebuilding || !state.faceDetectorVision) return;
+  state.faceDetectorRebuilding = true;
+  try {
+    const detector = await buildFaceDetector(state.faceDetectorVision, state.faceDetectorClass, "CPU");
+    const old = state.faceDetector;
+    state.faceDetector = detector;
+    state.faceDetectorDelegate = "CPU";
+    try { old?.close?.(); } catch (e) { /* ignore */ }
+  } catch (e) {
+    // keep limping on the GPU detector rather than killing the session
+  } finally {
+    state.faceDetectorRebuilding = false;
+  }
 }
 
 async function acquireWakeLock() {
@@ -1898,13 +1992,16 @@ document.addEventListener("visibilitychange", async () => {
 });
 
 function resetRepState() {
+  repState.counter = createRepCounter({ down: getThresholdDown(), up: getThresholdUp() });
   repState.phase = "up";
   repState.count = 0;
   repState.smoothedRatio = null;
   repState.lastSeenAt = performance.now();
+  repState.lastRepSpokenAt = 0;
   repState.paused = false;
   repState.lastCheerAtCount = 0;
   repState.recordBroken = false;
+  repState.trace = [];
   $("rep-count").textContent = "0";
   updateHighscoreMessage(0);
   updateThermometer(0);
@@ -2016,55 +2113,70 @@ function updateFaceBox(bbox) {
 }
 function hideFaceBox() { $("face-box").classList.add("hidden"); }
 
-function processRatio(ratio) {
+function processRatio(ratio, inferenceMs) {
   const now = performance.now();
   repState.lastSeenAt = now;
 
-  if (repState.smoothedRatio == null) repState.smoothedRatio = ratio;
-  else repState.smoothedRatio = repState.smoothedRatio * 0.7 + ratio * 0.3;
-
   if (repState.paused) {
     repState.paused = false;
-    repState.smoothedRatio = ratio;
     hideStatusBanner();
     speak("Back to it");
   }
 
+  if (!repState.counter) resetRepState();
+  repState.counter.setThresholds(getThresholdDown(), getThresholdUp());
+  const result = repState.counter.advance(ratio, now);
+  repState.smoothedRatio = result.smoothed;
+  repState.phase = result.phase;
+
+  repState.trace.push({ t: Math.round(now), raw: +ratio.toFixed(4), s: +result.smoothed.toFixed(4), p: result.phase, ms: Math.round(inferenceMs || 0) });
+  if (repState.trace.length > TRACE_MAX_SAMPLES) repState.trace.shift();
+
   if (localStorage.getItem(LS.calibrationReadout) === "1") {
     $("calibration-readout").textContent =
-      `ratio ${repState.smoothedRatio.toFixed(2)} · phase ${repState.phase}`;
+      `ratio ${result.smoothed.toFixed(2)} · phase ${result.phase} · ${Math.round(inferenceMs || 0)}ms`;
     $("calibration-readout").classList.remove("hidden");
   } else {
     $("calibration-readout").classList.add("hidden");
   }
 
-  const down = getThresholdDown();
-  const up = getThresholdUp();
-
-  if (repState.phase === "up" && repState.smoothedRatio >= down) {
-    repState.phase = "down";
-  } else if (repState.phase === "down" && repState.smoothedRatio <= up) {
-    repState.phase = "up";
-    repState.count += 1;
-    onRepCounted(repState.count);
+  if (result.counted) {
+    repState.count = result.count;
+    onRepCounted(result.count);
   }
 }
 
 function onRepCounted(count) {
+  // Only the counter itself updates synchronously — everything else is
+  // deferred off the detection hot path so a burst of fast reps isn't
+  // starved of camera samples by speech/DOM work.
   $("rep-count").textContent = String(count);
-  updateHighscoreMessage(count);
-  updateThermometer(count);
+  setTimeout(() => {
+    updateHighscoreMessage(count);
+    updateThermometer(count);
 
-  let spoken = null;
-  if (state.highScore && count === state.highScore + 1 && !repState.recordBroken) {
-    repState.recordBroken = true;
-    spoken = "New personal record! Absolute legend!";
-    launchConfetti("workout-confetti");
-  } else {
-    spoken = maybeEncourage(count);
-  }
-  speak(spoken || numberToWords(count));
-  vibrate(45);
+    let spoken = null;
+    let mustSpeak = false;
+    if (state.highScore && count === state.highScore + 1 && !repState.recordBroken) {
+      repState.recordBroken = true;
+      spoken = "New personal record! Absolute legend!";
+      mustSpeak = true;
+      launchConfetti("workout-confetti");
+    } else {
+      spoken = maybeEncourage(count);
+      if (spoken) mustSpeak = true;
+    }
+
+    // At sprint pace, per-rep number speech can't keep up and each utterance
+    // cancels the last — speak only every 5th rep unless it's a cheer/record.
+    const now = performance.now();
+    const fastPace = now - repState.lastRepSpokenAt < 1200;
+    if (mustSpeak || !fastPace || count % 5 === 0) {
+      repState.lastRepSpokenAt = now;
+      speak(spoken || numberToWords(count));
+    }
+    vibrate(45);
+  }, 0);
 }
 
 function checkFaceLostTimeout() {
@@ -2077,20 +2189,33 @@ function checkFaceLostTimeout() {
   }
 }
 
+let consecutiveDetectFailures = 0;
+
 function runDetectionOnce() {
   const video = $("camera-video");
   if (!state.faceDetector || !video.videoWidth) return;
   let result;
+  const t0 = performance.now();
   try {
-    result = state.faceDetector.detectForVideo(video, performance.now());
+    result = state.faceDetector.detectForVideo(video, t0);
+    consecutiveDetectFailures = 0;
   } catch (e) {
+    // A GPU-delegate detector can fail at detect time even after a clean
+    // init — after repeated failures, rebuild once on CPU.
+    consecutiveDetectFailures++;
+    if (consecutiveDetectFailures === 10 && state.faceDetectorDelegate === "GPU" && !state.faceDetectorRebuilding) {
+      rebuildDetectorOnCpu();
+    }
     return;
   }
+  const inferenceMs = performance.now() - t0;
   if (result && result.detections && result.detections.length > 0) {
     const bbox = result.detections[0].boundingBox;
     updateFaceBox(bbox);
-    processRatio(bbox.height / video.videoHeight);
+    processRatio(bbox.height / video.videoHeight, inferenceMs);
   } else {
+    repState.trace.push({ t: Math.round(t0), raw: null, ms: Math.round(inferenceMs) });
+    if (repState.trace.length > TRACE_MAX_SAMPLES) repState.trace.shift();
     hideFaceBox();
     checkFaceLostTimeout();
   }
@@ -2100,7 +2225,10 @@ function startDetectionLoop() {
   const video = $("camera-video");
   const useRVFC = typeof video.requestVideoFrameCallback === "function";
   let lastProcessed = 0;
-  const minIntervalMs = 100;
+  // Process at camera frame rate (~30 fps). 25 ms (not 33) so normal frame
+  // jitter can't make us skip every other frame; the old 100 ms throttle
+  // (~10 fps) was a main cause of fast reps being missed.
+  const minIntervalMs = 25;
 
   function onFrame(now) {
     if (!state.detectionRunning) return;
