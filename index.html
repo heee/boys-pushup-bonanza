@@ -31,9 +31,7 @@
 
   <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
   <header id="app-header" class="app-header">
-    <button id="btn-home" class="brand" aria-label="Home">
-      <span class="brand-text">Boys Pushup <em>Bonanza</em></span>
-    </button>
+    <button id="btn-home" class="icon-btn" aria-label="Home" title="Home">💪</button>
     <nav class="header-actions">
       <button id="streak-badge" type="button" class="streak-badge hidden" aria-label="My Bonanza" title="My Bonanza"></button>
       <button id="btn-nav-challenges" class="icon-btn" aria-label="Challenges" title="Challenges">🎯</button>
@@ -235,14 +233,22 @@
 
     <!-- ============ SCREEN: CREATE CHALLENGE ============ -->
     <section id="screen-challenge-create" class="screen">
-      <div class="challenge-detail-header">
-        <button id="btn-create-back" type="button" class="btn btn-small challenge-detail-back">← Cancel</button>
-      </div>
       <h1 class="screen-title">New Challenge</h1>
 
       <form id="create-challenge-form">
-        <label class="field-label">Icon</label>
-        <select id="create-emoji" class="avatar-select" aria-label="Choose an icon"></select>
+        <div class="create-row">
+          <div class="create-col create-col-icon">
+            <label class="field-label">Icon</label>
+            <select id="create-emoji" class="avatar-select" aria-label="Choose an icon"></select>
+          </div>
+          <div class="create-col create-col-type">
+            <label class="field-label">Type</label>
+            <div id="create-goal-type" class="segmented" role="tablist">
+              <button type="button" class="segment active" data-goaltype="individual">Individual</button>
+              <button type="button" class="segment" data-goaltype="collective">Group</button>
+            </div>
+          </div>
+        </div>
 
         <label class="field-label">Title</label>
         <input id="create-title" class="text-input" type="text" maxlength="60" required placeholder="e.g. Labor Day Lockout">
@@ -250,22 +256,24 @@
         <label class="field-label">Description</label>
         <input id="create-tagline" class="text-input" type="text" maxlength="200" required placeholder="A short hype line for the challenge">
 
-        <label class="field-label">Type</label>
-        <div id="create-goal-type" class="segmented" role="tablist">
-          <button type="button" class="segment active" data-goaltype="individual">Individual</button>
-          <button type="button" class="segment" data-goaltype="collective">Group</button>
-        </div>
-
         <label class="field-label">Goal (total pushups)</label>
         <input id="create-goal" class="text-input" type="number" min="1" max="100000" inputmode="numeric" required placeholder="e.g. 500">
 
-        <label class="field-label">Start date</label>
-        <input id="create-start" class="text-input" type="date" required>
+        <div class="create-row">
+          <div class="create-col">
+            <label class="field-label">Start date</label>
+            <input id="create-start" class="text-input create-date-input" type="date" required>
+          </div>
+          <div class="create-col">
+            <label class="field-label">End date</label>
+            <input id="create-end" class="text-input create-date-input" type="date" required>
+          </div>
+        </div>
 
-        <label class="field-label">End date</label>
-        <input id="create-end" class="text-input" type="date" required>
-
-        <button type="submit" class="btn btn-primary btn-large">Create challenge</button>
+        <div class="create-actions">
+          <button type="button" id="btn-create-back" class="btn btn-secondary btn-large">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-large">Create challenge</button>
+        </div>
       </form>
     </section>
 

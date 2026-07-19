@@ -92,26 +92,6 @@ button, input {
   padding: 0.25rem 0.75rem;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.2rem 0;
-}
-
-.brand-text {
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-.brand-text em {
-  font-style: normal;
-  color: var(--primary);
-}
 
 .header-actions {
   display: flex;
@@ -1007,6 +987,32 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   flex: 3;
   background: var(--primary);
   color: #fff;
+}
+
+.create-row {
+  display: flex;
+  gap: 0.8rem;
+}
+.create-row .create-col {
+  flex: 1;
+  min-width: 0;
+}
+.create-col-icon { flex: 0 0 auto; }
+.create-col-icon .avatar-select { width: 3.4rem; height: 3.4rem; }
+.create-col-type { flex: 1; }
+.create-col-type .segmented { margin-bottom: 0.7rem; }
+.create-date-input {
+  padding: 0.65rem 0.5rem;
+  font-size: 0.88rem;
+}
+.create-actions {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+.create-actions .btn {
+  flex: 1;
+  margin-bottom: 0;
 }
 
 .challenge-hero {
