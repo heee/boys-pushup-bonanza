@@ -657,13 +657,13 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   gap: 0.6rem;
 }
 .dashboard-header .screen-title,
-.challenges-header .screen-title { margin-bottom: 0; }
+.challenges-header .screen-title { margin: 0; }
 .challenges-create-btn {
   flex-shrink: 0;
   background: var(--primary);
   color: #fff;
 }
-.activity-type-select {
+.segmented.activity-type-select {
   width: auto;
   max-width: 10rem;
   margin: 0;
@@ -704,7 +704,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-weight: 700;
 }
 
-.leaderboard-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
 
 /* Secondary information relative to the main leaderboard above — deliberately
    muted so the ranked leaderboard reads as the primary content. */
@@ -831,22 +838,20 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 0.8rem 1rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px dashed var(--border);
 }
+.leaderboard-row:first-child { border-top: none; }
 .leaderboard-rank {
   font-weight: 900;
   font-size: 1.1rem;
-  width: 1.8rem;
+  width: 1.6rem;
   text-align: center;
   color: var(--text-dim);
 }
 .leaderboard-row.rank-1 .leaderboard-rank { color: var(--gold); }
 .leaderboard-row.rank-2 .leaderboard-rank { color: var(--silver); }
 .leaderboard-row.rank-3 .leaderboard-rank { color: var(--bronze); }
-.leaderboard-trophy { font-size: 1.3rem; width: 1.6rem; text-align: center; }
 .leaderboard-name { flex: 1; font-weight: 800; font-size: 1.05rem; }
 .leaderboard-total { font-weight: 900; font-size: 1.2rem; color: var(--primary); }
 .leaderboard-empty, .history-empty {

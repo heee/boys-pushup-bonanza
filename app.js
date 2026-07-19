@@ -1035,8 +1035,6 @@ function periodStart(period) {
   }
 }
 
-const TROPHIES = ["🥇", "🥈", "🥉"];
-
 async function renderDashboard() {
   await flushQueue().catch(() => {});
   const sessions = await refreshFromRemote();
@@ -1256,7 +1254,6 @@ function paintDashboard(sessions) {
       row.className = "leaderboard-row" + (i < 3 ? ` rank-${i + 1}` : "");
       row.innerHTML = `
         <div class="leaderboard-rank">${i + 1}</div>
-        <div class="leaderboard-trophy">${TROPHIES[i] || ""}</div>
         ${avatarCircleHTML(avatarForUser(user), "1.8rem")}
         <div class="leaderboard-name">${escapeHtml(user)}</div>
         <div class="leaderboard-total">${fmtCount(total)}</div>
@@ -1762,7 +1759,6 @@ function paintChallengeLeaderboard(c) {
     rowEl.className = "leaderboard-row" + (i < 3 ? ` rank-${i + 1}` : "");
     rowEl.innerHTML = `
       <div class="leaderboard-rank">${i + 1}</div>
-      <div class="leaderboard-trophy">${TROPHIES[i] || ""}</div>
       ${avatarCircleHTML(avatarForUser(row.name), "1.8rem")}
       <div class="leaderboard-name">${escapeHtml(row.name)}</div>
       <div class="leaderboard-total">${scoreText}</div>
