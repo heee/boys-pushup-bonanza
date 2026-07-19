@@ -734,30 +734,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .mybonanza-chart-card .section-title { margin: 0 0 0.9rem; }
 
 .week-chart {
-  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
   height: 9rem;
-}
-.week-trend {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: visible;
-}
-.week-trend-line {
-  fill: none;
-  stroke: var(--text);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.8;
-}
-.week-trend-dot {
-  fill: var(--text);
-  opacity: 0.8;
 }
 .week-bar-col {
   flex: 1;
@@ -911,6 +891,11 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .theme-select-compact {
   width: auto;
   margin-bottom: 0;
+  flex-shrink: 0;
+}
+.theme-select-compact .segment {
+  flex: none;
+  white-space: nowrap;
 }
 .settings-status { font-size: 0.85rem; min-height: 1.1rem; font-weight: 700; margin: 0.3rem 0 0; }
 .settings-status.ok { color: var(--success); }
@@ -962,7 +947,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Challenges ---------------- */
 
-#challenge-tab-select { margin-bottom: 1.2rem; }
+#challenge-tab-select { margin-top: 0.8rem; margin-bottom: 1.2rem; }
 
 .challenge-list { display: flex; flex-direction: column; gap: 0.8rem; }
 

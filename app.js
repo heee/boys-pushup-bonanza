@@ -1122,7 +1122,6 @@ function paintMyBonanza(sessions) {
       </div>
     `;
   }).join("");
-  renderWeekTrendline();
 
   const statsEl = $("personal-stats");
   if (!mine.length) {
@@ -1188,47 +1187,6 @@ function paintMyBonanza(sessions) {
       <span class="stats-table-value">${s.value}</span>
     </div>
   `).join("");
-}
-
-// Draws a trendline over the week-chart bars by measuring their actual
-// rendered positions (rather than recomputing percentages independently),
-// so the line always lines up with the bar tops regardless of layout.
-function renderWeekTrendline() {
-  const container = $("week-chart");
-  const bars = container.querySelectorAll(".week-bar");
-  const existing = container.querySelector(".week-trend");
-  if (existing) existing.remove();
-  if (bars.length < 2) return;
-
-  const containerRect = container.getBoundingClientRect();
-  const points = Array.from(bars).map((bar) => {
-    const r = bar.getBoundingClientRect();
-    return { x: r.left + r.width / 2 - containerRect.left, y: r.top - containerRect.top };
-  });
-
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("class", "week-trend");
-  svg.setAttribute("width", containerRect.width);
-  svg.setAttribute("height", containerRect.height);
-  svg.setAttribute("viewBox", `0 0 ${containerRect.width} ${containerRect.height}`);
-  svg.setAttribute("aria-hidden", "true");
-
-  const polyline = document.createElementNS(svgNS, "polyline");
-  polyline.setAttribute("class", "week-trend-line");
-  polyline.setAttribute("points", points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" "));
-  svg.appendChild(polyline);
-
-  for (const p of points) {
-    const dot = document.createElementNS(svgNS, "circle");
-    dot.setAttribute("class", "week-trend-dot");
-    dot.setAttribute("cx", p.x.toFixed(1));
-    dot.setAttribute("cy", p.y.toFixed(1));
-    dot.setAttribute("r", 3);
-    svg.appendChild(dot);
-  }
-
-  container.appendChild(svg);
 }
 
 function paintDashboard(sessions) {
