@@ -76,6 +76,31 @@ button, input {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* ---------------- Portrait lock ---------------- */
+
+.orientation-lock {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  color: var(--text);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.8rem;
+  padding: 2rem;
+}
+.orientation-lock-icon { font-size: 3rem; }
+.orientation-lock-title { font-weight: 800; font-size: 1.15rem; }
+.orientation-lock-hint { color: var(--text-dim); font-size: 0.9rem; max-width: 24rem; }
+
+@media (orientation: landscape) and (max-width: 900px) {
+  .orientation-lock { display: flex; }
+  #app { display: none; }
+}
+
 /* ---------------- Header ---------------- */
 
 .app-header {

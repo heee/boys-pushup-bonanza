@@ -2736,8 +2736,20 @@ $("btn-plank-stop").addEventListener("click", completePlank);
 
 // ------------------- init -------------------
 
+// Best-effort native lock — only honored by browsers/contexts that support
+// it (mainly installed Android PWAs). The CSS overlay in style.css is the
+// real cross-platform lock; this just avoids the rotation flash where supported.
+async function lockPortraitOrientation() {
+  try {
+    await screen.orientation?.lock?.("portrait");
+  } catch (e) {
+    // unsupported here — CSS overlay handles it
+  }
+}
+
 async function init() {
   initTheme();
+  lockPortraitOrientation();
   showScreen(state.currentUser ? "screen-user" : "screen-user");
   await flushQueue().catch(() => {});
   renderPendingStatus();

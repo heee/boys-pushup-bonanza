@@ -27,6 +27,15 @@
 </head>
 <body>
 
+<!-- Built for portrait only (phone flat, screen up). Manifest-level
+     orientation lock isn't honored by every browser (notably iOS Safari),
+     so this CSS overlay is the real cross-platform lock. -->
+<div id="orientation-lock" class="orientation-lock" aria-hidden="true">
+  <div class="orientation-lock-icon">📱</div>
+  <p class="orientation-lock-title">Rotate back to portrait</p>
+  <p class="orientation-lock-hint">Boys Pushup Bonanza is built for portrait mode — lay your phone flat, screen up.</p>
+</div>
+
 <div id="app">
 
   <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
