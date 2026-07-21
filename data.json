@@ -357,6 +357,14 @@
       "count": 59,
       "avatar": "fire",
       "startedAt": "2026-07-20T11:04:56.902Z"
+    },
+    {
+      "id": "b59f9412-b3dc-484f-90eb-ee7773a8ff75",
+      "user": "Henning",
+      "timestamp": "2026-07-21T10:43:27.999Z",
+      "count": 89,
+      "startedAt": "2026-07-21T10:41:57.771Z",
+      "type": "plank"
     }
   ],
   "avatars": {
