@@ -2470,6 +2470,20 @@ const SHARE_MESSAGES = [
   (n) => `${n} pushups down 📉 Beat that, if you can 😏`,
   (n) => `${n} reps deep 💦 Your move, boys 👀`,
   (n) => `${n} pushups logged ✅ The bonanza continues 🚀`,
+  (n) => `${n} down. Who's got next? 👀`,
+  (n) => `${n} reps closer to full send 🚀 Tag, you're it.`,
+  (n) => `Just put up ${n} 😤 Show me something.`,
+  (n) => `${n} pushups. That's the tax, boys 💸 Pay up.`,
+  (n) => `${n} in the books 📚 Curriculum's tough, huh?`,
+  (n) => `${n} pushups, zero excuses 🙅 What's yours?`,
+  (n) => `${n} reps. The bar's set 📏 Go clear it.`,
+  (n) => `${n} down, arms still attached 💪 Barely.`,
+  (n) => `${n} pushups fresh off the floor 🔥 Your turn.`,
+  (n) => `${n} reps banked, ego inflated 😏 As usual.`,
+  (n) => `${n} pushups. Somebody had to do it 🤷`,
+  (n) => `${n} down like it's nothing 😤 (it was something)`,
+  (n) => `${n} reps, no spotter needed 💪 Unlike some of you.`,
+  (n) => `${n} pushups today. Bonanza never blinks 👁️`,
 ];
 const SHARE_MESSAGES_PLANK = [
   (t) => `Held a ${t} plank! 🪵 Beat that 💪`,
@@ -2477,32 +2491,65 @@ const SHARE_MESSAGES_PLANK = [
   (t) => `Just planked for ${t} 😤 Who's next?`,
   (t) => `${t} of pure core chaos 🔥 Come get some`,
   (t) => `${t} plank logged ✅ The bonanza continues 🚀`,
+  (t) => `${t} on the clock, core screaming 😤 Worth it.`,
+  (t) => `${t} plank. Floor's still warm 🔥 Your turn.`,
+  (t) => `${t} held, zero regrets 💪 (some regrets)`,
+  (t) => `${t} plank tax paid 💸 What's your rate?`,
+  (t) => `${t} of stillness, tons of shaking 🫨 Beat it.`,
+  (t) => `${t} plank. Somebody had to suffer 🤷`,
+  (t) => `${t} down on the timer ⏱️ Bonanza never blinks 👁️`,
 ];
 const SHARE_MESSAGES_STREAK = [
   (n, ctx) => `${n} pushups and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
   (n, ctx) => `${ctx.streak} days straight, ${n} pushups today 😤 Consistency is the cheat code.`,
   (n, ctx) => `Day ${ctx.streak} of the streak. ${n} pushups banked 💪`,
+  (n, ctx) => `${ctx.streak} days deep, no cracks yet 🧱 ${n} more today.`,
+  (n, ctx) => `Streak's at ${ctx.streak} 🔥 ${n} pushups keeping it alive.`,
+  (n, ctx) => `${ctx.streak}-day streak, ${n} reps today. Who's actually showing up? 👀`,
+  (n, ctx) => `Day ${ctx.streak}. Still here, still pushing 😤 ${n} today.`,
+  (n, ctx) => `${n} pushups, ${ctx.streak} days running 🏃 Catch me if you can.`,
 ];
 const SHARE_MESSAGES_PLANK_STREAK = [
   (t, ctx) => `${t} plank and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
   (t, ctx) => `Day ${ctx.streak} of the streak, held ${t} today 💪`,
+  (t, ctx) => `${ctx.streak} days straight, ${t} plank today 😤 Cheat code: consistency.`,
+  (t, ctx) => `Streak's at ${ctx.streak} 🔥 ${t} plank keeping it alive.`,
+  (t, ctx) => `Day ${ctx.streak}. Still here, core still shaking 😤 ${t} today.`,
+  (t, ctx) => `${t} plank, ${ctx.streak} days running 🏃 Catch me if you can.`,
 ];
 const SHARE_MESSAGES_WEEK = [
   (n, ctx) => `${n} pushups today, ${ctx.weekTotalDisplay} this week 📈 The bonanza never sleeps.`,
   (n, ctx) => `${ctx.weekTotalDisplay} pushups this week and counting 🚀 Today's ${n} of them.`,
+  (n, ctx) => `Week total: ${ctx.weekTotalDisplay} 📊 ${n} of those just now.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} pushups this week 💪 Somebody's carrying the leaderboard.`,
+  (n, ctx) => `${n} today brings the week to ${ctx.weekTotalDisplay} 📈 Keep up.`,
+  (n, ctx) => `Weekly tally: ${ctx.weekTotalDisplay} 🏦 ${n} of it fresh.`,
 ];
 const SHARE_MESSAGES_PLANK_WEEK = [
   (t, ctx) => `${t} today, ${ctx.weekTotalDisplay} of plank time this week 📈 The bonanza never sleeps.`,
+  (t, ctx) => `Week total: ${ctx.weekTotalDisplay} of planking 📊 ${t} of that just now.`,
+  (t, ctx) => `${ctx.weekTotalDisplay} of plank this week 🧱 Somebody's carrying the leaderboard.`,
+  (t, ctx) => `${t} today brings the week to ${ctx.weekTotalDisplay} 📈 Keep up.`,
+  (t, ctx) => `Weekly plank tally: ${ctx.weekTotalDisplay} ⏱️ ${t} of it fresh.`,
 ];
 const BREAD_EMOJI = ["🍞", "🥖", "🥯", "🫓", "🥨"];
 const SHARE_MESSAGES_BREAD = [
   (n) => `${n} pushups. Time to get the bread ${pickFrom(BREAD_EMOJI)}`,
   (n) => `Getting that bread ${pickFrom(BREAD_EMOJI)} — ${n} pushups deep.`,
   (n) => `${n} reps, ${pickFrom(BREAD_EMOJI)} secured. Who's hungry?`,
+  (n) => `${n} pushups earned the ${pickFrom(BREAD_EMOJI)} today. Come get some.`,
+  (n) => `Bread's baked ${pickFrom(BREAD_EMOJI)} — ${n} pushups did it.`,
+  (n) => `${n} reps deep, ${pickFrom(BREAD_EMOJI)} in hand. Your loaf's still in the oven.`,
+  (n) => `${n} pushups later, ${pickFrom(BREAD_EMOJI)} unlocked. Get to work.`,
+  (n) => `Earned my ${pickFrom(BREAD_EMOJI)} — ${n} pushups on the receipt.`,
 ];
 const SHARE_MESSAGES_PLANK_BREAD = [
   (t) => `${t} plank. Time to get the bread ${pickFrom(BREAD_EMOJI)}`,
   (t) => `Getting that bread ${pickFrom(BREAD_EMOJI)} — ${t} plank held.`,
+  (t) => `${t} plank, ${pickFrom(BREAD_EMOJI)} secured. Who's hungry?`,
+  (t) => `${t} held, ${pickFrom(BREAD_EMOJI)} earned. Come get some.`,
+  (t) => `Bread's baked ${pickFrom(BREAD_EMOJI)} — ${t} plank did it.`,
+  (t) => `${t} plank later, ${pickFrom(BREAD_EMOJI)} unlocked. Get to work.`,
 ];
 
 // Streak + this-week totals for whichever activity type the just-finished
@@ -2525,6 +2572,9 @@ function buildShareContext() {
 
 // Randomly weaves in streak/weekly-total callouts and "get the bread" jokes
 // alongside the plain messages, when there's a meaningful streak/week to brag about.
+// Avoids repeating the exact same template two shares in a row so the same
+// line doesn't feel like it's coming up constantly.
+let lastShareTemplate = null;
 function pickShareMessage(count, ctx) {
   const pools = [
     ctx.isPlank ? SHARE_MESSAGES_PLANK : SHARE_MESSAGES,
@@ -2532,7 +2582,14 @@ function pickShareMessage(count, ctx) {
   ];
   if (ctx.streak >= 2) pools.push(ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK : SHARE_MESSAGES_STREAK);
   if (ctx.weekTotalRaw > 0) pools.push(ctx.isPlank ? SHARE_MESSAGES_PLANK_WEEK : SHARE_MESSAGES_WEEK);
-  const template = pickFrom(pools.flat());
+  const flat = pools.flat();
+  let template;
+  let guard = 0;
+  do {
+    template = pickFrom(flat);
+    guard++;
+  } while (template === lastShareTemplate && flat.length > 1 && guard < 10);
+  lastShareTemplate = template;
   return template(count, ctx);
 }
 
