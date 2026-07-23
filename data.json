@@ -397,6 +397,14 @@
       "count": 30,
       "avatar": "beer",
       "startedAt": "2026-07-23T15:54:29.216Z"
+    },
+    {
+      "id": "1dfb2e94-11cd-49c4-ac29-deb134cbfbec",
+      "user": "Danger D",
+      "timestamp": "2026-07-23T16:50:23.904Z",
+      "count": 26,
+      "avatar": "beer",
+      "startedAt": "2026-07-23T16:49:47.966Z"
     }
   ],
   "avatars": {
