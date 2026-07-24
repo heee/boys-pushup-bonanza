@@ -413,6 +413,14 @@
       "count": 20,
       "avatar": "beer",
       "startedAt": "2026-07-23T17:37:32.532Z"
+    },
+    {
+      "id": "443f49bb-fd2d-4dfd-8df4-831f70a1f736",
+      "user": "Henning",
+      "timestamp": "2026-07-24T11:23:39.853Z",
+      "count": 54,
+      "avatar": "fire",
+      "startedAt": "2026-07-24T11:22:29.376Z"
     }
   ],
   "avatars": {
