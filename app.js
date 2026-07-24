@@ -22,7 +22,6 @@ const LS = {
   lastAvatar: "bpb-last-avatar",
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
-  calibrationReadout: "bpb-calibration-readout",
   showHighscore: "bpb-show-highscore",
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
@@ -761,7 +760,6 @@ function renderSettings() {
   $("range-up").value = getThresholdUp();
   $("val-down").textContent = getThresholdDown().toFixed(2);
   $("val-up").textContent = getThresholdUp().toFixed(2);
-  $("chk-calibration-readout").checked = localStorage.getItem(LS.calibrationReadout) === "1";
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
   $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
   $("btn-download-trace").classList.toggle("hidden", !repState.trace.length);
@@ -996,9 +994,6 @@ $("range-down").addEventListener("input", (e) => {
 $("range-up").addEventListener("input", (e) => {
   localStorage.setItem(LS.thresholdUp, e.target.value);
   $("val-up").textContent = parseFloat(e.target.value).toFixed(2);
-});
-$("chk-calibration-readout").addEventListener("change", (e) => {
-  localStorage.setItem(LS.calibrationReadout, e.target.checked ? "1" : "0");
 });
 $("chk-highscore-message").addEventListener("change", (e) => {
   localStorage.setItem(LS.showHighscore, e.target.checked ? "1" : "0");
@@ -2095,14 +2090,6 @@ function processRatio(ratio, inferenceMs) {
 
   repState.trace.push({ t: Math.round(now), raw: +ratio.toFixed(4), s: +result.smoothed.toFixed(4), p: result.phase, ms: Math.round(inferenceMs || 0) });
   if (repState.trace.length > TRACE_MAX_SAMPLES) repState.trace.shift();
-
-  if (localStorage.getItem(LS.calibrationReadout) === "1") {
-    $("calibration-readout").textContent =
-      `ratio ${result.smoothed.toFixed(2)} · phase ${result.phase} · ${Math.round(inferenceMs || 0)}ms`;
-    $("calibration-readout").classList.remove("hidden");
-  } else {
-    $("calibration-readout").classList.add("hidden");
-  }
 
   if (result.counted) {
     repState.count = result.count;

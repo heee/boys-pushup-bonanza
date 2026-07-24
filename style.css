@@ -524,12 +524,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-top: 0.3rem;
 }
 
-.calibration-readout {
-  font-size: 0.85rem;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-}
-
 .highscore-message {
   font-size: 0.95rem;
   font-weight: 700;
