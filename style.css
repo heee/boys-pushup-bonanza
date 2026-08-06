@@ -1,0 +1,2937 @@
+/* ===========================================================
+   Boys Push Up Bonanza — styles
+   Mobile-first. Dark theme default, light theme via [data-theme="light"].
+   =========================================================== */
+
+:root, :root[data-theme="dark"] {
+  --bg: #0f0c08;
+  --bg-elevated: #17120d;     /* tier-1: flat grouped list surface */
+  --bg-elevated-2: #2c2115;   /* tier-2: elevated interactive card */
+  --text: #f4ead8;
+  --text-dim: #b7a68d;
+  --text-tertiary: #8a7c68;
+  --border: rgba(255, 255, 255, 0.08);
+
+  --primary: #e2933f;          /* accent-orange: primary actions, active states */
+  --primary-dim: #eda758;      /* lighter end of the CTA gradient */
+  --primary-deep: #d9782b;     /* darker end of the CTA gradient */
+  --accent: #e9b949;           /* accent-gold: rank #1, high-score highlights */
+  --accent-2: #8a7c68;
+  --flame: #e0602f;            /* accent-flame: streak, complete/destructive actions */
+  --flame-deep: #c94a26;       /* darker end of the flame gradient */
+  --success: #7fbf6a;
+  --danger: #e05a4f;
+
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  --gold: #e9b949;
+  --text-on-accent: #1a1006; /* dark text sat on top of orange/gold/flame fills, both themes */
+  --switch-off-track: #40352a;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f1e4;
+  --bg-elevated: #fffbf3;
+  --bg-elevated-2: #f0e2c4;
+  --text: #2b2416;
+  --text-dim: #7a6f57;
+  --text-tertiary: #9c8f72;
+  --border: rgba(0, 0, 0, 0.08);
+
+  --primary: #c1792e;
+  --primary-dim: #d68f42;
+  --primary-deep: #a8631f;
+  --accent: #b8862a;
+  --accent-2: #7a5a2e;
+  --flame: #c1552e;
+  --flame-deep: #a83f1f;
+  --success: #4f7a34;
+  --danger: #a83f26;
+
+  --shadow: 0 8px 20px rgba(80, 60, 20, 0.14);
+  --gold: #b8862a;
+  --text-on-accent: #1a1006;
+  --switch-off-track: #d9c7a0;
+}
+
+:root {
+  /* Kept in sync with #app-main's bottom padding so fixed tab-bar content
+     never overlaps scrollable screen content. */
+  --tab-bar-height: 3.6rem;
+}
+
+/* ===========================================================
+   3-tier hierarchy primitives
+   Replaces "every group is its own bordered box" with three purposeful
+   surfaces: flat grouped list (tier 1), elevated interactive card (tier 2),
+   and hero moment (tier 3 — full-bleed gradient, defined per-use since each
+   hero already carries its own color identity, e.g. challenge cards).
+   =========================================================== */
+.tier1-list {
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.tier1-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.tier1-row:last-child { border-bottom: none; }
+.tier1-row-value { color: var(--text-dim); font-weight: 500; }
+.leading-summary-list { margin-bottom: 1.2rem; }
+.leading-summary-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+.leading-summary-score { color: var(--primary); font-weight: 800; }
+.tier1-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 8px 2px;
+}
+.tier1-section + .tier1-section { margin-top: 20px; }
+
+.tier2-card {
+  background: var(--bg-elevated-2);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.hero-card {
+  border-radius: 16px;
+  padding: 16px;
+  border: none;
+}
+
+* { box-sizing: border-box; }
+p { margin: 0; }
+
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+/* iOS home-screen launch quirk: on the very first paint after opening the
+   installed PWA, env(safe-area-inset-bottom) sometimes resolves late, so the
+   fixed tab bar's own bottom padding comes up short for a frame — exposing
+   raw body background below it until the next layout (e.g. a screen change)
+   recalculates it. This layer always matches the tab bar's surface color and
+   guarantees at least the typical home-indicator height, so that gap can
+   never show a mismatched color even if the timing glitch happens. */
+html {
+  background: var(--bg-elevated);
+}
+body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: max(env(safe-area-inset-bottom), 34px);
+  background: var(--bg-elevated);
+  z-index: 499;
+  pointer-events: none;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, input {
+  font-family: inherit;
+  color: inherit;
+}
+
+#app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+
+/* ---------------- Portrait lock ---------------- */
+
+.orientation-lock {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  color: var(--text);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.8rem;
+  padding: 2rem;
+}
+.orientation-lock-icon { font-size: 3rem; }
+.orientation-lock-title { font-weight: 800; font-size: 1.15rem; }
+.orientation-lock-hint { color: var(--text-dim); font-size: 0.9rem; max-width: 24rem; }
+
+@media (orientation: landscape) and (max-width: 900px) {
+  .orientation-lock { display: flex; }
+  #app { display: none; }
+}
+
+/* ---------------- Header ---------------- */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  flex-shrink: 0;
+  transition: opacity 0.25s ease, padding 0.25s ease, transform 0.25s ease;
+}
+
+.app-header.minimized {
+  opacity: 0.45;
+  padding: 0.25rem 0.75rem;
+}
+
+
+.brand {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  color: var(--primary);
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  background: var(--bg-elevated);
+  border: none;
+  border-radius: 10px;
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.icon-btn:active { transform: scale(0.92); }
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--bg-elevated-2);
+  border: none;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--flame);
+  cursor: pointer;
+}
+.streak-badge:active { transform: scale(0.92); }
+.streak-badge .streak-num { font-size: 0.85rem; color: var(--flame); font-weight: 700; }
+.streak-badge .streak-num.streak-zero { color: #4a90d9; }
+.streak-badge .streak-rest-badge { font-size: 0.6rem; margin: 0 -0.05rem; }
+.streak-badge.streak-badge-rest { background: rgba(74, 144, 217, 0.18); }
+.streak-badge.streak-badge-rest .streak-num { color: #4a90d9; }
+
+/* ---------------- Tab bar ---------------- */
+
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  display: flex;
+  min-height: var(--tab-bar-height);
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  /* Extends the bar's own background all the way to the physical edge —
+     no gap of mismatched body/bg color behind the home indicator. */
+  padding: 0.5rem 0.4rem calc(0.5rem + env(safe-area-inset-bottom));
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.tab-bar.hidden {
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  padding: 0.3rem 0;
+  font-family: inherit;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.tab-item:active { transform: scale(0.94); }
+.tab-item-icon { font-size: 1.15rem; line-height: 1; }
+.tab-item-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.01em; }
+.tab-item.active { color: var(--primary); }
+.tab-item.active .tab-item-label { font-weight: 700; }
+
+/* ---------------- Main / screens ---------------- */
+
+#app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  /* Tab bar is fixed/out-of-flow now, so its clearance has to come from
+     here explicitly instead of natural flex stacking. */
+  padding: 1.25rem 1.1rem calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 1rem);
+}
+
+.screen { display: none; flex: 1; flex-direction: column; }
+.screen.active { display: flex; }
+
+.mascot-badge {
+  width: 7.5rem;
+  height: 7.5rem;
+  margin: 0 auto 1rem;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.screen-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 0.2rem 0 0.3rem;
+}
+
+.screen-sub {
+  color: var(--text-dim);
+  margin: 0 0 1.2rem;
+  font-size: 0.95rem;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 1.6rem 0 0.7rem;
+}
+
+/* ---------------- Buttons & inputs ---------------- */
+
+.btn {
+  border: none;
+  border-radius: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  transition: transform 0.08s ease, filter 0.15s ease;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(155deg, var(--primary-dim), var(--primary-deep));
+  color: var(--text-on-accent);
+  box-shadow: 0 10px 24px rgba(226, 147, 63, 0.25);
+}
+.btn-primary:active { filter: brightness(0.92); }
+.btn-primary:disabled { opacity: 0.4; box-shadow: none; }
+.btn-secondary { background: var(--bg-elevated); color: var(--text); }
+.btn-small { padding: 0.5rem 0.8rem; font-size: 0.85rem; border-radius: 10px; background: var(--bg-elevated); }
+/* A button's fill needs to read as a step apart from whatever surface it's
+   sitting directly on. Default (tier-1) suits buttons on the plain screen
+   bg; bump to tier-2 specifically when the immediate parent is itself a
+   plain tier-1 block (e.g. "Check connection" inside Data & sync) so it
+   doesn't blend into its own container. */
+.settings-block:not(.tier2) .btn-secondary,
+.settings-block:not(.tier2) .btn-small { background: var(--bg-elevated-2); }
+.btn-large { width: 100%; padding: 1.1rem; font-size: 1.1rem; border-radius: 18px; margin-bottom: 0.7rem; }
+
+.btn-giant {
+  width: 100%;
+  max-width: 21rem;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  padding: 1.05rem;
+  border-radius: 16px;
+  letter-spacing: 0.02em;
+}
+
+.btn-complete {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+.workout-active .btn-complete {
+  font-size: 1.5rem;
+  padding: 1.15rem;
+  margin-top: 0.9rem;
+}
+
+/* Floating circular FAB (all pushup modes, including Cards), deliberately
+   out of the main sightline so it never obstructs the rep count or camera
+   framing. The "COMPLETE" text stays in the DOM (still read by screen
+   readers) but is visually replaced by a checkmark glyph built from CSS
+   borders, no image asset needed. */
+.workout-active .btn-complete {
+  position: fixed;
+  right: 1.25rem;
+  /* Chrome (header/tab-bar) is minimized during an active session, so this
+     FAB sits directly above the raw safe area — without accounting for it,
+     the home indicator area on notched phones eats into the 1.5rem gap and
+     the button reads as cut off at the bottom edge. */
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  width: 60px;
+  height: 60px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+  color: transparent;
+  background: linear-gradient(155deg, var(--flame), var(--flame-deep));
+  box-shadow: 0 8px 18px rgba(224, 90, 47, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.workout-active .btn-complete::after {
+  content: "";
+  width: 18px;
+  height: 10px;
+  border-left: 2.5px solid #fff;
+  border-bottom: 2.5px solid #fff;
+  transform: rotate(-45deg) translateY(-2px);
+}
+
+.text-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 1rem;
+  margin-bottom: 0.7rem;
+}
+.text-input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin: 0.9rem 0 0.35rem;
+}
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+/* iOS-style switch built from the underlying checkbox — no JS changes
+   needed, app.js still just reads/sets .checked and listens for "change". */
+.toggle-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 36px;
+  height: 21px;
+  min-width: 36px;
+  background: var(--switch-off-track);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.toggle-row input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.toggle-row input[type="checkbox"]:checked {
+  background: var(--primary);
+}
+.toggle-row input[type="checkbox"]:checked::before {
+  background: #fff;
+  transform: translateX(15px);
+}
+.toggle-row input[type="checkbox"]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+input[type="range"] { width: 100%; accent-color: var(--primary); }
+
+/* ---------------- User select screen ---------------- */
+
+#screen-user {
+  align-items: center;
+  text-align: center;
+}
+#screen-user .screen-title,
+#screen-user .screen-sub {
+  text-align: center;
+}
+.home-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.user-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 22rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  /* Setting overflow-y also computes overflow-x as auto, so the selected
+     chip's accent ring (a box-shadow, outside the border box) needs this
+     padding or it gets clipped at the container's top/left edge. */
+  padding: 3px;
+  margin: 1.4rem auto;
+}
+.user-list p {
+  grid-column: 1 / -1;
+}
+
+.user-chip {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-elevated);
+  border: none;
+  border-radius: 12px;
+  padding: 0.6rem 0.65rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.user-chip span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+/* Filled tier-2 surface + accent ring — much clearer at a glance than the
+   old thin outline. */
+.user-chip.selected {
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.user-chip:active { transform: scale(0.96); }
+
+.new-user-chip {
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.centered-user-chip {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc(50% - 0.25rem);
+}
+.user-more-chip {
+  justify-content: center;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.user-more-chip .dot-grid-icon { margin-right: 0.2rem; }
+.new-user-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 2px dashed var(--border);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.new-user-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 22rem;
+  margin: 0.5rem auto 0;
+}
+
+.home-activity-select {
+  width: 100%;
+  max-width: 12rem;
+  margin: 0 auto;
+  opacity: 0.55;
+  padding: 0.15rem;
+}
+.home-activity-select .segment {
+  padding: 0.35rem 0.2rem;
+  font-size: 0.75rem;
+}
+.new-user-form .text-input {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.device-location-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  max-width: min(92%, 24rem);
+  margin: 0.8rem auto 3.25rem;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.25;
+  opacity: 0.5;
+  cursor: pointer;
+}
+.device-location-row:active { transform: scale(0.97); opacity: 0.8; }
+.device-location-row:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 8px; opacity: 0.8; }
+
+.location-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 850;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.58);
+  padding: 1rem 0 0;
+}
+.location-sheet {
+  width: 100%;
+  max-width: 30rem;
+  max-height: min(82vh, 44rem);
+  overflow-y: auto;
+  padding: 0.5rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: var(--bg-elevated);
+  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.32);
+  text-align: left;
+  font-weight: 400;
+}
+.location-sheet-handle {
+  width: 2.5rem;
+  height: 0.25rem;
+  margin: 0 auto 0.5rem;
+  border-radius: 999px;
+  background: var(--text-tertiary);
+  opacity: 0.45;
+}
+.location-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.location-sheet-header h2 { margin: 0; font-size: 1.05rem; font-weight: 500; }
+.location-close {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg-elevated-2);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+.location-sheet-current {
+  margin: 0.2rem 0 1rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+.location-actions { display: flex; flex-direction: column; }
+.location-action {
+  width: 100%;
+  padding: 0.9rem 0.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 0.98rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+.location-action-muted { color: var(--text-dim); }
+.location-search-form { margin-top: 1rem; }
+.location-search-form label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+.location-search-row { display: flex; align-items: stretch; gap: 0.5rem; }
+.location-search-row .text-input { flex: 1; min-width: 0; margin: 0; }
+.location-search-row .btn { flex-shrink: 0; padding: 0.75rem 1rem; font-weight: 500; }
+.location-search-status {
+  min-height: 1.2rem;
+  margin: 0.65rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+.location-search-results { display: flex; flex-direction: column; margin-top: 0.2rem; }
+.location-result {
+  padding: 0.8rem 0.25rem;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ---------------- Avatars ---------------- */
+
+.avatar-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.avatar-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2.8rem;
+  height: 2.8rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  font-size: 1.3rem;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+  padding: 0;
+}
+.new-user-form .btn {
+  flex-shrink: 0;
+}
+
+/* ---------------- Workout screen ---------------- */
+
+#screen-workout { position: relative; justify-content: center; align-items: stretch; }
+#screen-plank-workout { position: relative; justify-content: center; align-items: stretch; }
+
+#screen-plank-unlock {
+  position: relative;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+}
+.plank-unlock-emoji { font-size: 4rem; line-height: 1; margin-bottom: 0.5rem; }
+
+.workout-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  margin: auto 0;
+}
+.workout-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 0.2rem;
+}
+.workout-hello {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1.625rem;
+  font-weight: 800;
+  margin: 0;
+}
+/* Some bold fonts render a wide left-bearing on "?", making it look like a
+   stray space after the preceding name — pull it back in. */
+.tight-q { margin-left: -0.4em; }
+/* Avatar already lives on the user-picker screen; the greeting itself is
+   just eyebrow + headline per the redesign, so this stays in the DOM
+   (setAvatarEl still populates it harmlessly) but isn't shown here. */
+.workout-hello .avatar-circle { display: none; }
+.workout-instructions { color: var(--text-dim); max-width: 30rem; margin: 0 0 1rem; }
+/* Coaching-cue state: same slot/size as the plain setup line, just recolored
+   as a tip (see renderWorkoutInstructionLine in app.js). */
+.workout-instructions.is-cue { color: var(--primary); font-weight: 600; }
+.workout-instructions .cue-icon { margin-right: 0.1rem; }
+.workout-hint { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.6rem; }
+
+.weighted-quick-toggle {
+  border: 2px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  border-radius: 14px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+.weighted-quick-toggle.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* Compound selector (.segmented.pushup-mode-select) so this beats the base
+   .segmented rule's margin-bottom regardless of source order — see the note
+   elsewhere for why a bare class won't do. */
+.segmented.pushup-mode-select {
+  width: 100%;
+  max-width: 21rem;
+  margin: 0 0 0.6rem;
+}
+.pushup-mode-select .segment.segment-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.pmode-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+/* Four-dot grid glyph (a single dot + 3 box-shadow copies) instead of an
+   emoji — reads as "more options" without pulling in an icon set. The dot
+   itself is only 3x3px, but its box-shadow copies extend the visible glyph
+   6px further right/down without affecting the element's own layout box —
+   so the box must be sized to the full glyph (9x9), or flex gap measures
+   from the wrong edge and the glyph reads as crowding into the label. */
+.dot-grid-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  position: relative;
+}
+.dot-grid-icon::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 6px 0 currentColor, 0 6px currentColor, 6px 6px currentColor;
+}
+.pushup-mode-hint {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin: -0.2rem 0 0.6rem;
+}
+
+.workout-active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 100%;
+  gap: 0.75rem;
+}
+
+.camera-wrap {
+  position: relative;
+  /* Halved from the original 6.5rem — it's a framing confidence indicator,
+     not a focal point, and shrinking it frees vertical space for the
+     Cards-mode card art to be the dominant element on screen. */
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+  align-self: center;
+  background: #000;
+}
+.camera-wrap { transform: scaleX(-1); }
+.camera-wrap.preview-hidden {
+  /* Keep the full-size video compositing so iOS continues delivering
+     requestVideoFrameCallback frames, but remove the entire preview from
+     layout and clip every visual part of it — video, border, and face box. */
+  position: absolute;
+  border: 0;
+  box-shadow: none;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+.new-user-cancel {
+  flex-basis: 100%;
+  background: transparent;
+  color: var(--text-dim);
+}
+
+/* Zen keeps the camera as the sole focal point and turns completion into a
+   quiet secondary action instead of the standard flame-red workout FAB. */
+.workout-active.mode-zen .rep-count-wrap { display: none; }
+.workout-active.mode-zen .btn-complete {
+  background: rgba(31, 107, 84, 0.86);
+  box-shadow: 0 6px 18px rgba(16, 56, 45, 0.28);
+}
+#camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.face-box {
+  position: absolute;
+  border: 2px solid var(--success);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.face-box.danger { border-color: var(--danger); }
+
+.status-banner {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 800;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+
+.rep-count-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.rep-count {
+  font-size: min(42vw, 13rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The plank timer shows "M:SS" (wider than a bare rep count), so it needs a
+   smaller cap than .rep-count's default or it overflows the screen width. */
+#plank-timer { font-size: min(24vw, 7rem); }
+
+.rep-label {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+}
+
+/* Countdown mode, once reps pass the target — hero number flips from
+   counting down to counting up past the record. */
+.rep-count.rep-count-over { color: var(--success); }
+
+/* Cards mode's only numeric readout — the card art is the focal point, so
+   this stays a modest, clearly-subordinate single line (no giant hero
+   number in this mode). */
+.cards-session-total {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-top: 0.6rem;
+}
+
+.highscore-message {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 0.6rem;
+  min-height: 1.2rem;
+}
+
+.chase-hud { display: flex; flex-direction: column; width: min(100%, 29rem); min-height: min(66dvh, 35rem); margin-top: 0.25rem; padding: 0.9rem 0.9rem 1.2rem; border-radius: 24px; background: color-mix(in srgb, var(--bg-elevated) 88%, #0b0804); box-shadow: var(--shadow); }
+.chase-kicker { display: flex; justify-content: center; min-height: 1.35rem; }
+.chase-offline { padding: 0.18rem 0.38rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--accent); font-size: 0.58rem; letter-spacing: 0.05em; }
+.chase-identity { position: relative; display: flex; flex-direction: column; align-items: center; min-height: 8.7rem; }
+.chase-identity .avatar-circle { border: 3px solid var(--gold); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent); }
+.chase-identity.is-leading .avatar-circle { border-color: var(--success); }
+.chase-identity-name { margin-top: 0.55rem; font-size: 1rem; font-weight: 900; color: var(--text); }
+.chase-identity-role { margin-top: 0.18rem; color: var(--text-dim); font-size: 0.67rem; font-weight: 900; letter-spacing: 0.09em; text-transform: uppercase; }
+.chase-identity.is-leading .chase-identity-role { color: var(--success); }
+.chase-crown { position: absolute; top: 2.45rem; left: 50%; z-index: 2; font-size: 1.25rem; transform: translate(-50%, -50%); }
+.chase-remaining { margin-top: 0.55rem; color: var(--primary); font-size: clamp(2.8rem, 16vw, 4.8rem); font-weight: 950; line-height: 0.98; font-variant-numeric: tabular-nums; }
+.chase-remaining.is-leading { color: var(--success); }
+.chase-target-copy { margin-top: 0.55rem; color: var(--text-dim); font-size: 0.76rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+.chase-tug { position: relative; height: 0.62rem; margin-top: 1rem; overflow: visible; border-radius: 999px; background: var(--bg-elevated-2); }
+.chase-tug-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--gold)); transition: width 220ms ease; }
+.chase-hud.is-leading .chase-tug-fill { background: var(--success); }
+.chase-pass-marker { position: absolute; top: -0.28rem; bottom: -0.28rem; left: 82%; width: 3px; border-radius: 2px; background: var(--text-dim); visibility: hidden; }
+.chase-hud.is-leading .chase-pass-marker { visibility: visible; }
+.chase-tug-labels { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.55rem; color: var(--text-dim); font-size: 0.66rem; font-weight: 850; text-transform: uppercase; }
+.chase-hud.is-leading .chase-tug-labels { color: var(--success); }
+.chase-weighted-copy { margin-top: 0.25rem; color: var(--accent); font-size: 0.72rem; font-weight: 750; }
+.chase-session-count { margin-top: auto; padding-top: 1.35rem; color: var(--text-dim); font-size: 0.82rem; transition: 180ms ease; }
+.chase-hud.is-leading .chase-session-count { color: var(--text); font-size: 1rem; font-weight: 900; }
+.workout-active:has(.chase-hud:not(.hidden)) .rep-count,
+.workout-active:has(.chase-hud:not(.hidden)) .rep-label { display: none; }
+
+.thermometer-wrap {
+  width: 100%;
+  max-width: 16rem;
+  margin: 0.7rem auto 0;
+}
+.thermometer-track {
+  width: 100%;
+  height: 5px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.thermometer-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary-deep), var(--primary-dim));
+  border-radius: 999px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+.thermometer-fill.thermometer-win { background: var(--success); }
+
+/* ---------------- Cards mode HUD ---------------- */
+
+.cards-hud {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.card-flip-scene {
+  /* The card is the focal point of this mode: target ~40-45vh tall, but
+     never wider than ~60vw. aspect-ratio keeps it exactly matched to the
+     sprite's per-cell ratio (136:208, both integers) so background-size
+     percentages never stretch the art; 91.76vw is that same ratio applied
+     to a 60vw width, so min() picks whichever constraint is tighter. */
+  aspect-ratio: 136 / 208;
+  height: min(42vh, 91.76vw);
+  perspective: 60rem;
+  position: relative;
+}
+
+/* Countdown-style badge overlaid on the mode's focal art (card or dice pair),
+   showing reps left before it advances. Lighter fill + dark text so it stays
+   legible over any card/die (dark or light theme, any suit color) behind it.
+   Retriggered on every rep by toggling the "pop" class off/on (see
+   updateModeCounterBadge in app.js). Shared between Cards and Dice — same
+   overlay pattern, just anchored to a different scene. */
+.mode-counter-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 3.4rem;
+  height: 3.4rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(250, 250, 248, 0.95);
+  color: #16181d;
+  font-size: 1.9rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.5rem 1.1rem rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  transform: translate(-50%, -50%) scale(0.8);
+}
+.mode-counter-badge.pop {
+  animation: card-counter-pop 0.9s ease-out;
+}
+@keyframes card-counter-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.18); }
+  32% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode-counter-badge.pop {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.card-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.45s ease;
+}
+.card-flip.flipped { transform: rotateY(180deg); }
+/* Applied only for the instant reset between flips — never animate a snap. */
+.card-flip.no-transition { transition: none; }
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  /* One image per card (assets/cards/{theme}/{rank}{suit}.webp), set by
+     setCardFace() — the URL carries the theme, so there is no theme rule here.
+     Each file retains the source art's 420x650 resolution; only one or two are
+     ever on screen and the service worker caches them on first fetch.
+     Cards have transparent margins, so this element must paint ONLY the image —
+     any background-color/border/box-shadow shows as a box in that margin. */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* drop-shadow (not box-shadow) so the shadow follows the card's actual
+     rounded alpha silhouette rather than the element rectangle. */
+  filter: drop-shadow(0 0.5rem 0.6rem rgba(0, 0, 0, 0.55));
+  backface-visibility: hidden;
+}
+:root[data-theme="light"] .card-face {
+  /* Light theme intentionally reuses the dark card art for now — the light set
+     is a separate generation run. Gold-on-black reads fine on the cream
+     background. Softer shadow; the dark-theme one smudges here. */
+  filter: drop-shadow(0 0.5rem 0.6rem rgba(90, 70, 30, 0.28));
+}
+.card-face-back { transform: rotateY(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-flip { transition: none; }
+}
+
+/* ---------------- Poker Hands mode HUD ---------------- */
+.poker-hud { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 17rem; position: relative; }
+.poker-hand { width: min(96vw, 31rem); height: 14.5rem; position: relative; }
+.poker-card { position: absolute; top: 1rem; left: 50%; width: min(29vw, 8.5rem); aspect-ratio: 136 / 208; background: center / contain no-repeat; filter: drop-shadow(0 0.45rem 0.55rem rgba(0,0,0,.55)); transform: translateX(calc(-50% + var(--poker-x))) rotate(var(--poker-rotate)); transition: transform 220ms ease, opacity 220ms ease, filter 220ms ease; }
+.poker-card.active { z-index: 6; transform: translateX(calc(-50% + var(--poker-x))) translateY(-.75rem) rotate(var(--poker-rotate)) scale(1.06); filter: drop-shadow(0 0 .42rem color-mix(in srgb, var(--gold) 75%, transparent)) drop-shadow(0 .5rem .55rem rgba(0,0,0,.55)); }
+.poker-card.completed { opacity: .48; filter: grayscale(.25) drop-shadow(0 .35rem .35rem rgba(0,0,0,.35)); }
+.poker-card-check { position: absolute; right: .45rem; bottom: .45rem; width: 1.65rem; height: 1.65rem; border-radius: 50%; display: grid; place-items: center; background: var(--success); color: white; font-size: .95rem; font-weight: 900; box-shadow: 0 .2rem .5rem rgba(0,0,0,.4); }
+/* Cards overlap left-to-right, so a right-anchored checkmark on the 1st or
+   2nd card gets covered by the next card stacked on top of it — left-align
+   those two so the checkmark stays visible once completed. */
+.poker-card:first-child .poker-card-check,
+.poker-card:nth-child(2) .poker-card-check { left: .45rem; right: auto; }
+.poker-card .mode-counter-badge { z-index: 7; }
+.poker-result { position: absolute; z-index: 10; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(.88); min-width: min(85vw, 22rem); padding: 1.1rem 1.4rem; border: 1px solid var(--gold); border-radius: 18px; background: color-mix(in srgb, var(--bg-elevated) 94%, #000); color: var(--gold); text-align: center; font-size: 1.65rem; font-weight: 950; letter-spacing: .05em; text-transform: uppercase; box-shadow: 0 0 2.5rem color-mix(in srgb, var(--gold) 32%, transparent); animation: poker-reveal 300ms ease forwards; }
+.poker-result small { display: block; margin-top: .35rem; color: var(--text); font-size: .7rem; letter-spacing: .1em; }
+.poker-result.rank-3, .poker-result.rank-4, .poker-result.rank-5 { color: var(--primary); }
+.poker-result.rank-6, .poker-result.rank-7, .poker-result.rank-8, .poker-result.rank-9 { color: var(--success); border-color: var(--success); box-shadow: 0 0 3.5rem color-mix(in srgb, var(--success) 45%, transparent); }
+.poker-session-total { max-width: 28rem; text-align: center; line-height: 1.45; font-weight: 400; }
+.poker-session-total strong { color: var(--text); font-weight: 800; }
+.workout-active.mode-poker .rep-count-wrap { flex: 0 0 auto; padding-bottom: .4rem; }
+@keyframes poker-reveal { to { transform: translate(-50%,-50%) scale(1); } }
+@media (max-height: 700px) { .poker-hud { min-height: 13rem; } .poker-hand { height: 11.5rem; } .poker-card { width: min(25vw, 6.8rem); } }
+@media (prefers-reduced-motion: reduce) { .poker-card, .poker-result { transition: none; animation: none; } }
+
+/* ---------------- Dice mode HUD ---------------- */
+/* Mirrors Cards mode's structure (see above): a focal-point visual for the
+   current target, a subordinate "X left · Y total" line beneath (in
+   #dice-session-total, sharing .cards-session-total's styling). Two
+   independent dice rather than one card, so the "flip" becomes a per-die
+   tumble instead of a single 3D rotation. */
+
+.dice-hud {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+/* Positioning context for the reps-remaining badge, mirroring
+   .card-flip-scene — see .mode-counter-badge below. */
+.dice-scene {
+  position: relative;
+  display: inline-flex;
+}
+.dice-pair {
+  display: flex;
+  gap: 1.4rem;
+}
+.die {
+  /* The dice are this mode's whole focal point (no card art, no giant hero
+     number), so they get the same ~40vh budget the card art uses. */
+  width: min(38vw, 9.5rem);
+  height: min(38vw, 9.5rem);
+  object-fit: contain;
+  filter: drop-shadow(0 0.6rem 0.7rem rgba(0, 0, 0, 0.45));
+  --tumble-rot: 360deg;
+  --tumble-x: 0rem;
+}
+:root[data-theme="light"] .die {
+  filter: drop-shadow(0 0.6rem 0.7rem rgba(90, 70, 30, 0.25));
+}
+
+/* Tumble: each die gets its own randomized spin distance/direction and
+   horizontal kick (set as --tumble-rot/--tumble-x by playDiceRoll in app.js
+   before the class is added), so the pair never reads as one synchronized
+   object — always a whole number of turns so the pips land right-side up.
+   A squash-then-overshoot scale sells a bounce landing rather than a plain
+   spin. */
+.die.rolling {
+  animation: dice-tumble 0.75s cubic-bezier(0.33, 1.4, 0.53, 1);
+}
+.die.rolling.die-2 { animation-delay: 0.09s; }
+@keyframes dice-tumble {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  12% { transform: translate(calc(var(--tumble-x) * 0.25), -0.9rem) rotate(calc(var(--tumble-rot) * 0.2)) scale(0.68); }
+  40% { transform: translate(calc(var(--tumble-x) * 0.7), 0.5rem) rotate(calc(var(--tumble-rot) * 0.55)) scale(1.28); }
+  62% { transform: translate(var(--tumble-x), -0.25rem) rotate(calc(var(--tumble-rot) * 0.8)) scale(0.9); }
+  82% { transform: translate(calc(var(--tumble-x) * 0.4), 0.1rem) rotate(calc(var(--tumble-rot) * 0.95)) scale(1.08); }
+  100% { transform: translate(0, 0) rotate(var(--tumble-rot)) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .die.rolling { animation: none; }
+}
+
+/* ---------------- Sharpshooter mode ---------------- */
+.sharpshooter-hud {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 1rem;
+}
+.sharpshooter-target {
+  position: relative;
+  width: min(68vw, 19rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #f7f2e8;
+  box-shadow: 0 0.9rem 1.6rem rgba(0, 0, 0, 0.38), inset 0 0 0 3px rgba(28, 25, 23, 0.2);
+  isolation: isolate;
+}
+.sharpshooter-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 0 0 2px rgba(35, 28, 25, 0.2);
+}
+.ring-outer { width: 100%; height: 100%; background: #f9f5ed; }
+.ring-red-outer { width: 78%; height: 78%; background: #c9252d; }
+.ring-white-inner { width: 53%; height: 53%; background: #fffaf0; }
+.ring-bullseye { width: 29%; height: 29%; background: #c9252d; box-shadow: inset 0 0 0 2px #8f131d, 0 0 1.2rem rgba(201, 37, 45, 0.3); }
+.sharpshooter-crosshair {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  background: rgba(55, 45, 41, 0.25);
+  transform: translate(-50%, -50%);
+}
+.crosshair-horizontal { width: 94%; height: 1px; }
+.crosshair-vertical { width: 1px; height: 94%; }
+.sharpshooter-count {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  min-width: 4.4rem;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: clamp(2.7rem, 15vw, 4.8rem);
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 2px 3px rgba(91, 7, 13, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+.sharpshooter-session-total {
+  color: var(--text-dim);
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+}
+.sharpshooter-impact {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 50%;
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.2);
+  background: #ffd84d;
+  box-shadow: 0 0 0 0.45rem rgba(255, 216, 77, 0.8), 0 0 2.4rem 1.3rem rgba(255, 89, 32, 0.8);
+  pointer-events: none;
+}
+.sharpshooter-target.rep-hit { animation: sharpshooter-rep-hit 240ms ease-out; }
+.sharpshooter-target.bullseye { animation: sharpshooter-bullseye 780ms cubic-bezier(.2,.85,.3,1); }
+.sharpshooter-target.bullseye .sharpshooter-count { opacity: 0; }
+.sharpshooter-target.bullseye .sharpshooter-impact { animation: sharpshooter-impact 780ms ease-out; }
+@keyframes sharpshooter-rep-hit {
+  0% { transform: scale(1); }
+  45% { transform: scale(0.965); filter: brightness(1.16); }
+  100% { transform: scale(1); }
+}
+@keyframes sharpshooter-bullseye {
+  0% { transform: scale(1) rotate(0); filter: brightness(1); }
+  12% { transform: scale(0.9) rotate(-2deg); filter: brightness(1.65); }
+  30% { transform: scale(1.12) rotate(2deg); }
+  58% { transform: scale(0.96) rotate(-1deg); opacity: 1; }
+  82% { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(0.78); opacity: 0; }
+}
+@keyframes sharpshooter-impact {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  55% { opacity: 0.8; transform: translate(-50%, -50%) scale(3.6); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
+}
+.workout-active.mode-sharpshooter .rep-count-wrap { display: none; }
+@media (max-height: 700px) {
+  .sharpshooter-target { width: min(55vw, 15rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sharpshooter-target.rep-hit,
+  .sharpshooter-target.bullseye,
+  .sharpshooter-target.bullseye .sharpshooter-impact { animation-duration: 1ms; }
+}
+
+/* ---------------- Ladder mode ---------------- */
+
+/* Pure ascent, no ceiling: rung N needs N reps. No giant hero number here —
+   this rung window (locked/active/cleared rows) is the focal visual,
+   mirroring how Cards/Dice replace the hero number with their own art. */
+.ladder-hud {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.ladder-rivals-offline { position: absolute; top: -0.65rem; right: 0; z-index: 2; padding: 0.2rem 0.42rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--accent); font-size: 0.58rem; font-weight: 850; letter-spacing: 0.06em; }
+.ladder-rung-window {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  max-width: 21rem;
+}
+.ladder-rung-row {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 1rem;
+  align-items: center;
+  align-self: center;
+  /* Narrower than the active row by default — width is the other visual
+     differentiator (besides color/glow) for "this is the one you're on". */
+  width: 84%;
+  min-height: 3.4rem;
+  padding: 0.35rem 1.15rem;
+  border-radius: 14px;
+  border: 1.5px solid transparent;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.25s ease, width 0.25s ease;
+}
+.ladder-rung-number { text-align: left; }
+.ladder-rivals { min-width: 0; display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 0.22rem; }
+.ladder-rival-dot { display: inline-flex; align-items: center; justify-content: center; width: 1.18rem; height: 1.18rem; border: 1.5px solid var(--bg); border-radius: 50%; font-size: 0.62rem; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+.ladder-rivals.distant .ladder-rival-dot + .ladder-rival-dot { margin-left: -0.48rem; }
+.ladder-rival-chip { display: inline-flex; align-items: center; gap: 0.25rem; max-width: 100%; padding: 0.18rem 0.38rem 0.18rem 0.2rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--text); font-size: 0.62rem; font-weight: 800; line-height: 1.05; }
+.ladder-rival-chip .avatar-circle { flex: 0 0 auto; }
+.ladder-rung-row.cleared .ladder-rival-chip { background: color-mix(in srgb, var(--bg) 20%, transparent); color: var(--text-on-accent); }
+.ladder-rung-row.locked {
+  opacity: 0.5;
+}
+.ladder-rung-row.active {
+  width: 100%;
+}
+.ladder-rung-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.ladder-rung-row.locked .ladder-rung-icon::before {
+  content: "🔒";
+  opacity: 0.75;
+}
+/* Active rung: glowing outline rather than a fill, so it reads as "in
+   progress" — the reps-remaining pop badge (#ladder-counter-badge,
+   positioned by renderLadderRungWindow in app.js) overlays this row. */
+.ladder-rung-row.active {
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(226, 147, 63, 0.18), 0 0 1.1rem rgba(226, 147, 63, 0.35);
+}
+/* Cleared rung: filled + a CSS-drawn checkmark (same border-rotate trick as
+   .workout-active .btn-complete::after) instead of an image asset. */
+.ladder-rung-row.cleared {
+  color: var(--text-on-accent);
+  background: var(--success);
+  border-color: transparent;
+}
+.ladder-rung-row.cleared .ladder-rung-icon {
+  width: 16px;
+  height: 9px;
+  border-left: 2.5px solid var(--text-on-accent);
+  border-bottom: 2.5px solid var(--text-on-accent);
+  transform: rotate(-45deg) translateY(-2px);
+}
+
+/* ---------------- Pyramid setup screen ---------------- */
+
+.pyramid-setup-section-label { margin: 1.1rem 0 0.5rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); text-transform: uppercase; }
+.pyramid-card-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.pyramid-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1.5px solid transparent;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.pyramid-card-icon { flex: 0 0 auto; width: 1.6rem; height: 1.6rem; display: flex; align-items: flex-end; gap: 2px; opacity: 0.7; }
+.pyramid-card-icon span { flex: 1; background: currentColor; border-radius: 2px; }
+.pyramid-card-body { flex: 1; min-width: 0; }
+.pyramid-card-title { font-weight: 800; font-size: 1rem; }
+.pyramid-card-sub { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 0.15rem; }
+.pyramid-card-check {
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+.pyramid-card.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--bg-elevated)); }
+.pyramid-card.selected .pyramid-card-title { color: var(--primary); }
+.pyramid-card.selected .pyramid-card-check { display: flex; }
+.pyramid-start-btn { margin-top: 1.4rem; width: 100%; }
+
+/* ---------------- Pyramid mode (active workout) ---------------- */
+
+/* Tapered rows so the stack actually reads as a pyramid — base(n) widest at
+   the bottom, apex(1) narrowest at top, unlike Ladder's uniform-width rows.
+   Direction-aware status (see pyramidRowStatus in workout-modes.js) makes
+   already-cleared rows "re-light" as pending during the climb back up. */
+.pyramid-hud { position: relative; display: flex; justify-content: center; width: 100%; }
+.pyramid-window { display: flex; flex-direction: column-reverse; align-items: center; gap: 0.35rem; width: 100%; max-width: 22rem; }
+.pyramid-row {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  padding: 0.3rem;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  transition: border-color 0.25s ease, background 0.25s ease, width 0.25s ease;
+}
+.pyramid-row.locked { opacity: 0.35; }
+.pyramid-row.cleared { opacity: 1; }
+.pyramid-row.active {
+  background: var(--bg-elevated);
+  box-shadow: none;
+}
+.pyramid-stone {
+  width: 1.55rem;
+  height: 1.3rem;
+  border-radius: 3px;
+  background-image: url("assets/pyramid/stone-tile.png");
+  background-size: cover;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+}
+.pyramid-stone.stone-cleared { opacity: 1; filter: none; }
+.pyramid-row.cleared .pyramid-stone { opacity: 1; }
+
+/* ---------------- Fortune Cookie mode ---------------- */
+
+/* Idle-screen-only reveal ritual — unlike Cards/Dice/Ladder, no HUD swap is
+   needed inside the active session; Classic's own giant hero number and rep
+   counting are reused as-is (see setupWorkoutModeState in app.js), except
+   for the two challenges that hide the counter. */
+.fortune-idle-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Wider than it looks like it needs to be: closed/cracked/emerging are
+     scaled up 1.2x (see .fortune-frame rules below) and .fortune-scene has
+     no overflow clipping, so those frames visually bleed ~10% of the
+     scene's own height past its box in every direction — this has to clear
+     that bleed or the tap hint sits underneath the enlarged cookie. */
+  gap: 2.75rem;
+  width: 100%;
+  margin: 0.4rem 0 1rem;
+}
+/* Sized to the revealed frame's own aspect ratio (4:3, the widest of the
+   four) so it's never cropped — the taller closed/cracked/emerging frames
+   just letterbox within it via object-fit: contain. */
+.fortune-scene {
+  position: relative;
+  width: min(88vw, 22rem);
+  aspect-ratio: 4 / 3;
+}
+.fortune-cookie-tap {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.fortune-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  /* Promoted to its own compositor layer up front (not mid-animation) so
+     the cross-fade never has to wait on a layer-promotion hitch. */
+  will-change: opacity, transform;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.fortune-frame.is-active { opacity: 1; }
+
+/* Each frame's own transition-duration matches how long revealFortune()
+   (app.js) actually holds that state before moving on — previously all four
+   shared one fixed 180/220ms duration while the JS advanced every 140ms,
+   so every transition got cut short mid-flight and re-targeted, which read
+   as choppy rather than a clean cross-fade. Durations here follow the
+   spec's own timing table (closed->cracked fast, cracked->emerging a beat
+   slower, emerging->revealed the slowest, eased out). */
+#fortune-frame-closed { transition-duration: 140ms; }
+#fortune-frame-cracked { transition-duration: 140ms; }
+#fortune-frame-emerging { transition-duration: 200ms; }
+#fortune-frame-revealed { transition-duration: 300ms; transition-timing-function: ease-out; }
+
+/* Restrained per-frame motion (spec section 8): scale-settle on the crack,
+   small upward drift on emerging/revealed.
+   Closed/cracked/emerging are portrait (3:4) inside this 4:3 box, so
+   object-fit: contain pillarboxes them narrower than the revealed frame
+   (which matches the box exactly and fills it edge to edge) — scaled up
+   here so the cookie reads as a similar size throughout the sequence.
+   Revealed is intentionally left at its natural fill, unscaled. */
+#fortune-frame-closed { transform: scale(1.2); }
+#fortune-frame-cracked { transform: scale(1.188); }
+#fortune-frame-cracked.is-active { transform: scale(1.2); }
+#fortune-frame-emerging { transform: scale(1.2) translateY(4px); }
+#fortune-frame-emerging.is-active { transform: scale(1.2) translateY(0); }
+#fortune-frame-revealed { transform: translateY(8px); }
+#fortune-frame-revealed.is-active { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fortune-frame { transition: opacity 120ms ease; transform: none !important; }
+}
+
+.fortune-tap-hint {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Overlaid on the revealed frame's blank card area — percentages matched to
+   the actual art's writable region rather than a hardcoded pixel box, so it
+   holds up across viewport widths (see spec section 9's padding rules). */
+.fortune-message {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 38%;
+  bottom: 38%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  text-align: center;
+  color: #33261a;
+  animation: fortune-message-in 220ms ease 60ms both;
+}
+@keyframes fortune-message-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fortune-message { animation: none; }
+}
+.fortune-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.fortune-detail {
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+/* ---------------- Summary screen ---------------- */
+
+#screen-summary { position: relative; align-items: center; text-align: center; }
+.summary-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.confetti-piece {
+  position: absolute;
+  top: -10%;
+  line-height: 1;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(115vh) rotate(360deg); opacity: 0; }
+}
+.summary-count {
+  font-size: 6rem;
+  font-weight: 900;
+  color: var(--primary);
+  line-height: 1;
+}
+.sync-status { font-size: 0.85rem; color: var(--text-dim); margin: 0.6rem 0 1.4rem; min-height: 1.2rem; }
+.missed-reps-wrap {
+  margin-top: 1.2rem;
+  padding: 0.9rem 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.missed-reps-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.stepper-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.stepper-btn:active { transform: scale(0.92); }
+/* Same contrast-inversion as .btn-secondary: this stepper sits inside the
+   tier-2 Calibration & weighted mode card, so it needs tier-1 to stand out. */
+.settings-block.tier2 .stepper-btn { background: var(--bg-elevated); }
+.stepper-value {
+  min-width: 2.2rem;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.weighted-note {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.5rem;
+}
+.summary-chase-result { max-width: 29rem; margin-top: 0.8rem; padding: 0.75rem 0.9rem; border-radius: 14px; background: var(--bg-elevated); color: var(--text); font-size: 0.84rem; font-weight: 700; line-height: 1.4; }
+/* Rare event, leanest treatment: one line of colored text under the counter,
+   same tier as the Home coaching cue (.workout-instructions.is-cue) rather
+   than a dedicated card — the whole line is the share tap target. */
+.summary-roadtrip-cue {
+  display: block;
+  margin-top: 0.8rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.summary-actions {
+  display: flex;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 24rem;
+  /* Extra breathing room above the fixed tab bar — #app-main's own padding
+     already clears it, but these are the screen's primary actions and
+     deserve a stronger visual gap, not just "not overlapping". */
+  margin-bottom: 1rem;
+}
+.summary-actions .btn {
+  flex: 1;
+  margin-bottom: 0;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+/* Small CSS-built share glyph (tray + up-arrow) instead of the 📤 emoji —
+   used standalone in icon-only buttons, or paired with a label via
+   .btn-with-icon. currentColor so it matches whatever button/context it's in. */
+.icon-share {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-top: none;
+  border-radius: 0 0 3px 3px;
+  flex-shrink: 0;
+}
+.icon-share::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 1.5px;
+  height: 5px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+.icon-share::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  width: 0;
+  height: 0;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+  border-bottom: 4.5px solid currentColor;
+  transform: translateX(-50%);
+}
+.btn-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ---------------- Dashboard ---------------- */
+
+.dashboard-header,
+.challenges-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.dashboard-header .screen-title,
+.challenges-header .screen-title { margin: 0; }
+.challenges-create-btn {
+  flex-shrink: 0;
+  background: var(--primary);
+  color: #fff;
+}
+.leaderboard-mode-picker {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 20;
+}
+.leaderboard-mode-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 6.7rem;
+  padding: 0.42rem 0.62rem 0.42rem 0.72rem;
+  border: 4px solid var(--bg-elevated);
+  border-radius: 12px;
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: var(--shadow-soft);
+}
+.leaderboard-mode-trigger:focus-visible,
+.leaderboard-mode-option:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.leaderboard-mode-chevron {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform 0.18s ease;
+}
+.leaderboard-mode-trigger[aria-expanded="true"] .leaderboard-mode-chevron { transform: rotate(180deg); }
+.leaderboard-mode-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: min(12rem, calc(100vw - 2rem));
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--bg-elevated);
+  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.32);
+}
+.leaderboard-mode-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.58rem 0.7rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-align: left;
+}
+.leaderboard-mode-option:hover,
+.leaderboard-mode-option:focus-visible {
+  background: var(--bg-elevated-2);
+  color: var(--text);
+}
+.leaderboard-mode-option.selected { background: var(--primary); color: #fff; }
+.leaderboard-mode-check { visibility: hidden; }
+.leaderboard-mode-option.selected .leaderboard-mode-check { visibility: visible; }
+
+/* ---------------- Roadtrip ---------------- */
+
+.roadtrip-header { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
+.roadtrip-header .screen-title { margin: 0; }
+.roadtrip-subtitle { margin: 0.45rem 0 1rem; color: var(--text-dim); font-size: 0.8rem; line-height: 1.4; }
+.roadtrip-tier-select { margin-bottom: 1rem; border-radius: 999px; }
+.roadtrip-tier-select .segment { border-radius: 999px; font-weight: 400; }
+.roadtrip-tier-select .segment.active { font-weight: 700; }
+.roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--bg-elevated); }
+.roadtrip-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 4rem;
+  padding: 0.7rem 0.9rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.roadtrip-row:last-child { border-bottom: 0; }
+.roadtrip-row:active { background: var(--bg-elevated-2); }
+.roadtrip-row.rank-1 .leaderboard-rank { background: var(--gold); color: var(--text-on-accent); }
+.roadtrip-row.rank-1 .roadtrip-score { color: var(--gold); }
+.roadtrip-place { min-width: 0; display: flex; flex-direction: column; gap: 0.12rem; }
+.roadtrip-place-name { overflow: hidden; color: var(--text); font-size: 0.95rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.roadtrip-parent { overflow: hidden; color: var(--text-tertiary); font-size: 0.65rem; text-overflow: ellipsis; white-space: nowrap; }
+.roadtrip-users { color: var(--text-tertiary); font-size: 0.68rem; white-space: nowrap; }
+.roadtrip-score { min-width: 3rem; color: var(--text); font-size: 1rem; font-weight: 850; text-align: right; font-variant-numeric: tabular-nums; }
+.roadtrip-pinned-label { margin: 1rem 0 0.4rem 0.2rem; color: var(--text-tertiary); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.roadtrip-row.pinned { display: grid; opacity: 0.58; }
+.roadtrip-location-needed, .roadtrip-empty { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; padding: 1.35rem 1rem; border-radius: 16px; background: var(--bg-elevated); text-align: center; }
+.roadtrip-location-needed { margin-bottom: 1rem; }
+.roadtrip-location-needed h2 { margin: 0; font-size: 1.05rem; }
+.roadtrip-location-needed p, .roadtrip-empty span { max-width: 20rem; color: var(--text-dim); font-size: 0.78rem; line-height: 1.4; }
+.roadtrip-empty-icon { font-size: 1.7rem; }
+.roadtrip-detail-title { margin-bottom: 1rem; font-size: 1.35rem; }
+.roadtrip-detail-summary { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; padding: 1.1rem; border-radius: 16px; background: var(--bg-elevated); }
+.roadtrip-crown { display: grid; place-items: center; flex: 0 0 3.5rem; width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--gold); font-size: 1.45rem; }
+.roadtrip-summary-copy { min-width: 0; display: flex; flex-direction: column; gap: 0.22rem; }
+.roadtrip-summary-copy strong { color: var(--gold); font-size: 1.65rem; line-height: 1; }
+.roadtrip-summary-copy span { color: var(--text-dim); font-size: 0.72rem; line-height: 1.35; }
+.roadtrip-local-label { margin-top: 0; }
+#btn-roadtrip-back { align-self: flex-start; margin-bottom: 0.75rem; border: 0; }
+.roadtrip-user-pinned { margin-top: 0.75rem; border: 0; border-radius: 12px; opacity: 0.55; background: var(--bg-elevated); }
+.roadtrip-you { margin-left: 0.25rem; color: var(--text-tertiary); font-size: 0.65rem; font-weight: 500; }
+@media (max-width: 390px) {
+  .roadtrip-row { grid-template-columns: 1.45rem minmax(0, 1fr) auto auto; gap: 0.45rem; padding-inline: 0.7rem; }
+  .roadtrip-users { font-size: 0.58rem; }
+}
+.bonanza-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+.segmented.bonanza-mode-select-shrunk {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.segmented {
+  display: flex;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 1.2rem;
+  gap: 0.2rem;
+}
+.segment {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.2rem;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.segment.active {
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-weight: 700;
+}
+#pushup-mode-select .segment:not(.active) { font-weight: 400; }
+#period-select .segment:not(.active),
+#bonanza-mode-select .segment:not(.active) { font-weight: 400; }
+
+/* Underline-tab variant — secondary in-page nav (Leaderboard's "Last
+   flexers / Session history", Challenges' "Active/Upcoming/Past"), visually
+   subordinate to the primary pill-style segmented controls above them.
+   Same markup/JS as a regular .segmented — this only restyles it. */
+.segmented.segmented-underline {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  gap: 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+.segmented-underline .segment {
+  flex: none;
+  background: none;
+  padding: 0 0 0.6rem;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+.segmented-underline .segment.active {
+  background: none;
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-color: var(--primary);
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.boys-mode-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+.boys-mode-stat { min-width: 0; padding: 0.7rem; }
+.boys-mode-stat-label { color: var(--text-dim); font-size: 0.66rem; font-weight: 800; line-height: 1.2; text-transform: uppercase; }
+.boys-mode-stat-value { margin-top: 0.38rem; color: var(--text); font-size: 1.05rem; font-weight: 900; }
+.boys-mode-stat-value span { display: block; color: var(--text-tertiary); font-size: 0.58rem; font-weight: 700; }
+.boys-mode-stat-leader { display: flex; align-items: center; gap: 0.25rem; margin-top: 0.55rem; color: var(--text-dim); font-size: 0.62rem; line-height: 1.25; }
+.boys-mode-stat-leader .avatar-circle + .avatar-circle { margin-left: -0.45rem; }
+.boys-mode-stat-leader span:last-child { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .boys-mode-stats { grid-template-columns: 1fr; }
+  .boys-mode-stat { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 0.7rem; }
+  .boys-mode-stat-value { margin-top: 0; text-align: right; }
+  .boys-mode-stat-leader { grid-column: 1 / -1; }
+}
+
+/* Secondary information relative to the main leaderboard above — deliberately
+   muted so the ranked leaderboard reads as the primary content. */
+#history-view-select,
+#recent-list,
+#history-list {
+  opacity: 0.5;
+}
+#history-view-select { margin-top: 1.6rem; }
+
+.mybonanza-chart-card {
+  margin-bottom: 0.8rem;
+}
+.chart-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+.week-trend {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.week-trend-up { color: var(--success); }
+.week-trend-down { color: var(--danger); }
+
+.week-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 9rem;
+}
+.week-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 0.3rem;
+}
+.week-bar-value {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  min-height: 1em;
+}
+.week-bar-col-today .week-bar-value {
+  font-weight: 800;
+}
+.week-bar {
+  width: 65%;
+  min-height: 4px;
+  border-radius: 5px 5px 3px 3px;
+  background: var(--bg-elevated);
+  transition: height 0.25s ease;
+}
+.week-bar-col-today .week-bar {
+  background: linear-gradient(180deg, var(--primary-dim), var(--primary-deep));
+  box-shadow: 0 0 0 2px var(--primary) inset;
+}
+.week-bar-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.week-bar-col-today .week-bar-label {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-tile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+.stat-tile {
+  background: var(--bg-elevated);
+  border-radius: 14px;
+  padding: 0.85rem;
+}
+.stat-tile-ring {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.stat-tile-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.stat-tile-label {
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
+.stats-table {
+  overflow: hidden;
+}
+.stats-table-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.stats-table-row:last-child { border-bottom: none; }
+.stats-table-label {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.stats-table-value {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.recent-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.recent-row:last-child { border-bottom: none; }
+.recent-name { flex: 1; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-count { font-weight: 900; font-size: 1.1rem; color: var(--primary); }
+.recent-time { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; }
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.leaderboard-row:last-child { border-bottom: none; }
+.leaderboard-rank {
+  font-weight: 800;
+  font-size: 0.78rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+}
+/* Only rank #1 gets special treatment — a gold badge chip + gold score
+   color. Everyone else is plain, same weight as any other row. */
+.leaderboard-row.rank-1 .leaderboard-rank {
+  background: var(--gold);
+  color: var(--text-on-accent);
+}
+.leaderboard-row.rank-1 .leaderboard-total { color: var(--gold); }
+/* "pr" challenge achiever rows: green check instead of a numeric rank. */
+.leaderboard-rank-check {
+  background: var(--success);
+  color: var(--text-on-accent);
+  font-size: 0.95rem;
+}
+.leaderboard-name { flex: 1; font-weight: 400; font-size: 1.05rem; }
+.leaderboard-total { font-weight: 800; font-size: 1.1rem; color: var(--text); }
+.leaderboard-empty, .history-empty {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+/* One tier-1 card for the whole list — dividers between user-groups do the
+   separating, matching the Last-flexers list and every other grouped list
+   in the app, instead of each group floating as its own gapped box. */
+.history-list {
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.history-user-group { border-bottom: 1px solid var(--border); }
+.history-user-group:last-child { border-bottom: none; }
+.history-user-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  font-weight: 400;
+}
+.history-user-label { display: flex; align-items: center; gap: 0.55rem; }
+.history-user-header .chev { transition: transform 0.15s ease; color: var(--text-dim); }
+.history-user-group.open .chev { transform: rotate(90deg); }
+.history-sessions { display: none; padding: 0 1rem 0.7rem; }
+.history-user-group.open .history-sessions { display: block; }
+.history-session-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  padding: 0.35rem 0;
+  border-top: 1px dashed var(--border);
+}
+.history-session-row:first-child { border-top: none; }
+.history-session-count { font-weight: 800; color: var(--text); }
+
+/* ---------------- Settings ---------------- */
+/* 6 labeled sections instead of one bordered-box-per-setting. Tier-1 flat
+   list for everything except Calibration & Weighted mode (tier-2 — the one
+   section with live sliders/inputs you're actively configuring). */
+
+.settings-section { margin-bottom: 1.25rem; }
+.settings-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 0.5rem 0.1rem;
+}
+.settings-hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 0.6rem; }
+
+.settings-block {
+  background: var(--bg-elevated);
+  border-radius: 14px;
+}
+.settings-side-by-side { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+.btn-small-wide { flex: 1; text-align: center; font-size: 0.8rem; padding: 0.6rem 0.4rem; }
+.settings-divider { height: 1px; background: var(--border); margin: 0 0 1rem; }
+
+.settings-block.tier2 {
+  background: var(--bg-elevated-2);
+  padding: 1rem 1.1rem 1.1rem;
+  box-shadow: var(--shadow);
+}
+.settings-block .section-title { margin-top: 0; }
+
+.settings-block-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.settings-block-row:last-child { border-bottom: none; }
+.settings-block-row .field-label { margin: 0; }
+/* Workout behavior toggles read as plain settings, not emphasized copy. */
+.settings-block-plain .field-label { font-weight: 500; color: var(--text); }
+.theme-select-compact {
+  width: auto;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+.voice-preset-select {
+  width: auto;
+  max-width: 11rem;
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+}
+.theme-select-compact .segment {
+  flex: none;
+  white-space: nowrap;
+}
+.settings-status { font-size: 0.85rem; min-height: 1.1rem; font-weight: 700; margin: 0.3rem 0 0; text-align: center; }
+.settings-status.ok { color: var(--success); }
+.settings-status.err { color: var(--danger); }
+
+.settings-footer {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 1.6rem 0 0.5rem;
+}
+
+.manage-users-list, .my-sessions-list { display: flex; flex-direction: column; }
+.manage-user-row, .my-session-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.manage-user-row:last-child, .my-session-row:last-child { border-bottom: none; }
+.manage-user-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manage-avatar-select { width: 2.2rem; height: 2.2rem; font-size: 1.05rem; }
+.btn-delete-user {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+.btn-delete-user:active { transform: scale(0.9); color: var(--danger); }
+.you-badge {
+  flex-shrink: 0;
+  background: var(--bg-elevated-2);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+.btn-edit-profile {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.2rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+.btn-edit-profile:active { opacity: 0.7; }
+.btn-edit-profile .chev { font-size: 1rem; }
+
+.my-session-row { font-size: 0.88rem; }
+.my-session-row > span:first-child { flex: 1; color: var(--text-dim); }
+
+/* ---------------- Explore modes ---------------- */
+
+.explore-modes-list { display: flex; flex-direction: column; }
+.explore-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.explore-mode-row:last-child { border-bottom: none; }
+.explore-mode-icon {
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 10px;
+  background: var(--bg-elevated-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+.explore-mode-copy { flex: 1; min-width: 0; }
+.explore-mode-title { font-weight: 800; font-size: 1rem; }
+.explore-mode-tagline { color: var(--text-dim); font-size: 0.82rem; margin-top: 0.1rem; }
+.explore-mode-chev { flex-shrink: 0; color: var(--text-tertiary); font-size: 1.1rem; }
+.explore-mode-soon {
+  flex-shrink: 0;
+  max-width: 6.5rem;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+}
+/* Disabled rows stay in the list (not hidden) so the roadmap is visible —
+   just heavily de-emphasized and non-interactive. */
+.explore-mode-row.disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+.explore-mode-row.disabled .explore-mode-icon { filter: grayscale(1); }
+.my-session-count { font-weight: 800; }
+
+/* ---------------- Modifier picker + Home slot + session cue ---------------- */
+
+/* Selected row in the Modifier picker: same surface-2 + orange-label +
+   trailing-checkmark treatment as Pyramid setup's .pyramid-card.selected,
+   layered onto Explore Modes' row shell instead of Pyramid's card shell. */
+.explore-mode-row.selected { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.explore-mode-row.selected .explore-mode-title { color: var(--primary); }
+.modifier-row-check {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: var(--text-on-accent);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+/* Home's Modifier slot: icon + short label when set, otherwise just the
+   muted placeholder text (plain .segment styling handles that case). */
+.pmode-modifier { display: flex; align-items: center; justify-content: center; gap: 0.35rem; }
+
+/* Floating cue during an active session — sits to the left of #btn-complete
+   (position: fixed; right: 1.25rem; width: 60px) with a matching right edge
+   and bottom offset so the two read as one connected bar without being a
+   single DOM element (see index.html). */
+.modifier-cue {
+  position: fixed;
+  left: 1.25rem;
+  right: calc(1.25rem + 60px + 0.6rem);
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  height: 60px;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.9rem;
+  box-shadow: var(--shadow);
+  z-index: 5;
+}
+.modifier-cue-icon { flex-shrink: 0; font-size: 1.15rem; }
+.modifier-cue-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.05rem; }
+.modifier-cue-label { color: var(--primary); font-weight: 800; font-size: 0.88rem; }
+.modifier-cue-sub { color: var(--text-dim); font-size: 0.72rem; line-height: 1.2; }
+
+.settings-show-more {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: center;
+  padding: 0.7rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+/* ---------------- Challenges ---------------- */
+
+#challenge-tab-select { margin-top: 0.8rem; margin-bottom: 1.2rem; }
+
+.challenge-list { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.challenge-card {
+  position: relative;
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+  color: #fff;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.challenge-card:active { transform: scale(0.98); }
+.challenge-card-emoji { font-size: 2.6rem; line-height: 1; padding-right: 3.5rem; }
+.challenge-card-title { font-size: 1.15rem; font-weight: 900; margin-top: 0.35rem; padding-right: 3.5rem; }
+.challenge-card-dates { font-size: 0.82rem; font-weight: 400; opacity: 0.92; margin-top: 0.15rem; }
+.challenge-card-meta { font-size: 0.85rem; font-weight: 400; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-winner-line { margin-top: 0.5rem; font-weight: 400; font-size: 0.9rem; }
+
+.join-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: rgba(127, 191, 106, 0.14);
+  border: 1px solid rgba(127, 191, 106, 0.35);
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--success);
+}
+.join-success-check {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: var(--success);
+  position: relative;
+}
+.join-success-check::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 0.5rem;
+  height: 0.28rem;
+  border-left: 1.6px solid var(--bg);
+  border-bottom: 1.6px solid var(--bg);
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* Mini progress bar on the list card — sits on an arbitrary hero gradient,
+   so it uses a dark semi-opaque fill rather than the standard surface
+   colors, which would clash against whichever gradient the challenge uses. */
+.challenge-card .thermometer-wrap { max-width: none; margin: 0.6rem 0 0; }
+.challenge-card .thermometer-track { height: 4px; background: rgba(0, 0, 0, 0.2); }
+.challenge-card .thermometer-fill { background: var(--text-on-accent); }
+.challenge-card .thermometer-fill.thermometer-win { background: var(--text-on-accent); }
+
+.challenge-join-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.challenge-joined-chip {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.challenge-status-chip {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 400;
+  margin-left: 0.4rem;
+}
+
+.challenge-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.challenge-detail-back {
+  background: none;
+  padding: 0;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+/* Small square glyph button, matching the Leaderboard share icon's squared
+   language, instead of a labeled full-color button. */
+.challenge-detail-share {
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-radius: 10px;
+  font-size: 1.1rem;
+}
+
+/* Any name that opens the comparison screen when tapped — leaderboard,
+   recent flexes, session history. The current user's own name never gets
+   this class (see makeNameCompareClickable), so it stays plain text. */
+.compare-clickable { cursor: pointer; }
+.compare-clickable:active { opacity: 0.7; }
+
+/* ---------------- Edit profile ---------------- */
+
+.edit-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.edit-profile-save-shortcut {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.2rem 0;
+}
+.edit-profile-save-shortcut:active { opacity: 0.7; }
+
+.edit-profile-avatar-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0.5rem 0 1.2rem;
+}
+.edit-profile-avatar-wrap { position: relative; cursor: pointer; }
+.edit-profile-avatar { width: 5.5rem; height: 5.5rem; font-size: 2.6rem; }
+.edit-profile-avatar-pencil {
+  position: absolute;
+  right: -0.15rem;
+  bottom: -0.15rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--bg-elevated-2);
+  border: 2px solid var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+.edit-profile-hint { color: var(--text-tertiary); font-size: 0.8rem; margin-top: 0.6rem; }
+
+.edit-profile-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+  margin: 0 0 1.4rem;
+}
+.edit-profile-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.edit-profile-swatch.selected { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--primary); }
+
+/* ---------------- Head-to-head comparison ---------------- */
+
+.compare-screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  width: min(100%, 30rem);
+  margin: 0 auto 0.8rem;
+}
+.compare-screen-header .screen-title { margin: 0; text-align: left; }
+.compare-screen-header .leaderboard-mode-picker { flex: 0 0 auto; }
+.compare-screen-header .leaderboard-mode-menu { z-index: 20; }
+.compare-card {
+  width: min(100%, 30rem);
+  margin: 0 auto;
+  padding: 1.15rem 1rem 1.25rem;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--bg-elevated) 90%, #0a0703);
+  box-shadow: var(--shadow);
+}
+.compare-back {
+  display: block;
+  margin: 0 auto 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.compare-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  margin: 0.6rem 0 0.75rem;
+}
+.compare-avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.compare-avatar { width: 4.35rem; height: 4.35rem; border: 3px solid var(--gold); font-size: 2rem; flex-shrink: 0; }
+.compare-avatar-col:first-child .compare-avatar { border-color: var(--primary); }
+.compare-name {
+  font-weight: 800;
+  font-size: 1rem;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compare-vs { color: var(--text-tertiary); font-weight: 700; font-size: 0.9rem; }
+
+.compare-tally {
+  text-align: center;
+  color: var(--success);
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin: 0 0 1.25rem;
+}
+
+.compare-table {
+  padding: 0 1rem;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg) 72%, #050301);
+}
+.compare-row {
+  padding: 1rem 0 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+.compare-row:last-child { border-bottom: 0; }
+.compare-metric-line {
+  display: grid;
+  grid-template-columns: minmax(2.8rem, auto) minmax(0, 1fr) minmax(2.8rem, auto);
+  align-items: center;
+  gap: 0.55rem;
+}
+.compare-row-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.compare-row-value.compare-winner { color: var(--primary); font-weight: 800; }
+.compare-row-value.compare-value-b { text-align: right; }
+.compare-bars {
+  display: grid;
+  grid-template-columns: 1fr 3px 1fr;
+  align-items: center;
+  min-width: 0;
+}
+.compare-bar-track {
+  display: flex;
+  height: 0.48rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-elevated-2) 55%, #050301);
+}
+.compare-bar-track-a { justify-content: flex-end; border-radius: 999px 0 0 999px; }
+.compare-bar-track-b { justify-content: flex-start; border-radius: 0 999px 999px 0; }
+.compare-bar-fill { display: block; height: 100%; background: var(--text-tertiary); transition: width 220ms ease; }
+.compare-bar-fill.is-strong { background: linear-gradient(90deg, var(--primary), var(--gold)); }
+.compare-bar-track-a .compare-bar-fill.is-strong { background: linear-gradient(90deg, var(--gold), var(--primary)); }
+.compare-bar-center { width: 3px; height: 0.75rem; border-radius: 2px; background: var(--text-tertiary); }
+.compare-row-label {
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  text-align: center;
+  white-space: nowrap;
+}
+.poker-achievements { padding: .9rem 1rem 1rem; border-top: 1px solid var(--border); }
+.poker-achievements-title { margin-bottom: .65rem; color: var(--text); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.poker-achievement-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; }
+.poker-achievement { min-height: 2.7rem; padding: .45rem .35rem; border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; color: var(--text-dim); font-size: .62rem; font-weight: 700; line-height: 1.15; text-align: center; }
+.poker-achievement span { font-size: .85rem; }
+.poker-achievement.unlocked { border-color: color-mix(in srgb, var(--gold) 48%, var(--border)); background: color-mix(in srgb, var(--gold) 9%, transparent); color: var(--gold); }
+.compare-row-unavailable .compare-bars,
+.compare-row-unavailable .compare-row-label { opacity: 0.48; }
+.compare-empty { margin: 2rem 0; color: var(--text-dim); text-align: center; font-size: 0.86rem; }
+
+/* New Challenge form — consistent tier-1 field styling throughout (surface-1
+   background, 12px radius, no borders) instead of the prior mix of
+   bordered/filled inputs. */
+#screen-challenge-create .text-input {
+  border: none;
+  border-radius: 12px;
+}
+.create-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+}
+.create-row .create-col {
+  flex: 1;
+  min-width: 0;
+}
+.create-col-icon { flex: 0 0 auto; }
+.create-col-icon .avatar-select { width: 3.25rem; height: 3.25rem; }
+.create-col-type { flex: 1; }
+.create-col-type .segmented { margin-bottom: 0.7rem; }
+.create-date-input {
+  padding: 0.65rem 0.5rem;
+  font-size: 0.88rem;
+}
+.select-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%), linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position: right 1rem center, right 0.65rem center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+.select-input option:disabled { color: var(--text-tertiary); }
+.create-actions {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+.create-actions .btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+.create-actions .btn-create-submit { flex: 1.6; }
+
+.challenge-hero {
+  border-radius: 18px;
+  padding: 1.5rem 1.2rem;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+.challenge-hero-emoji { font-size: 3.4rem; line-height: 1; }
+.challenge-hero-title { font-size: 1.4rem; font-weight: 900; margin-top: 0.4rem; }
+.challenge-hero-tagline { font-size: 0.92rem; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-hero-dates { font-size: 0.85rem; font-weight: 700; margin-top: 0.7rem; opacity: 0.92; }
+
+.challenge-progress-card {
+  background: var(--bg-elevated);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.challenge-progress-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+.challenge-days-left {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.challenge-progress-card .thermometer-wrap { max-width: none; margin: 0; }
+
+.thermometer-wrap-flame {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.thermometer-wrap-flame .thermometer-track { flex: 1; }
+.thermometer-track-segmented { display: flex; }
+.thermometer-segment { height: 100%; }
+.thermometer-segment-goal { background: var(--success); }
+.thermometer-segment-excess { background: var(--danger); }
+.thermometer-flame { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
+.challenge-contribution {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  margin-top: 0.6rem;
+}
+
+.challenge-pr-achieved { text-align: center; }
+.challenge-pr-achieved-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--success);
+}
+.challenge-pr-achieved-detail {
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  margin-top: 0.4rem;
+}
+
+.challenge-recent-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* ---------------- Toast ---------------- */
+
+.toast {
+  position: fixed;
+  bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-size: 0.9rem;
+  font-weight: 700;
+  z-index: 999;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.hidden { display: none !important; }
+.sr-only { position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important; }
+
+@media (min-width: 640px) {
+  #app-main { max-width: 30rem; margin: 0 auto; width: 100%; }
+  .app-header > * { max-width: 30rem; }
+}

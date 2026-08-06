@@ -1,0 +1,12 @@
+{
+  "name": "boys-pushup-bonanza",
+  "private": true,
+  "type": "module",
+  "description": "No build step — this file exists so Node treats the app's .js files as ES modules, letting scripts/generate-voice.js import voice-lines.js directly from the browser source.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "node scripts/static-server.cjs",
+    "voice": "node scripts/generate-voice.js",
+    "icons": "node scripts/generate-icons.cjs"
+  }
+}

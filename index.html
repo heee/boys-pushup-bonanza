@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Boys Push Up Bonanza</title>
+<meta name="description" content="Pushup counter and leaderboard for the boys. Phone on the floor, face over the camera, let's go.">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#17120d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fffbf3" media="(prefers-color-scheme: light)">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="style.css?v=145">
+<script>
+  // Apply saved theme before first paint to avoid a flash of the wrong theme.
+  try {
+    var t = localStorage.getItem('bpb-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<!-- Built for portrait only (phone flat, screen up). Manifest-level
+     orientation lock isn't honored by every browser (notably iOS Safari),
+     so this CSS overlay is the real cross-platform lock. -->
+<div id="orientation-lock" class="orientation-lock" aria-hidden="true">
+  <div class="orientation-lock-icon">📱</div>
+  <p class="orientation-lock-title">Rotate back to portrait</p>
+  <p class="orientation-lock-hint">Boys Pushup Bonanza is built for portrait mode — lay your phone flat, screen up.</p>
+</div>
+
+<div id="app">
+
+  <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
+  <header id="app-header" class="app-header">
+    <button id="btn-home" class="brand" aria-label="Home">Bonanza</button>
+    <nav class="header-actions">
+      <button id="streak-badge" type="button" class="streak-badge hidden" aria-label="My Bonanza" title="My Bonanza"></button>
+    </nav>
+  </header>
+
+  <main id="app-main">
+
+    <!-- ============ SCREEN: USER SELECT ============ -->
+    <section id="screen-user" class="screen active">
+      <div class="home-body">
+        <img id="mascot-badge" class="mascot-badge" src="assets/mascot.jpg" alt="Bonanza mascot">
+        <h1 class="screen-title">Who's flexing today? 💪</h1>
+        <p class="screen-sub">Pick your name or join the bonanza.</p>
+
+        <div id="user-list" class="user-list"></div>
+
+        <form id="new-user-form" class="new-user-form">
+          <select id="new-user-avatar" class="avatar-select" aria-label="Choose an avatar"></select>
+          <input id="new-user-input" class="text-input" type="text" placeholder="Enter your name" maxlength="24" autocomplete="off" required>
+          <button type="submit" class="btn btn-primary">Let's go</button>
+          <button id="new-user-cancel" type="button" class="btn btn-secondary new-user-cancel">Cancel</button>
+        </form>
+      </div>
+      <button id="device-location-row" type="button" class="device-location-row" aria-haspopup="dialog">
+        <span aria-hidden="true">&#x1F4CD;</span>
+        <span id="device-location-label">Unknown location</span>
+      </button>
+    </section>
+
+    <!-- ============ SCREEN: WORKOUT ============ -->
+    <section id="screen-workout" class="screen">
+      <div id="workout-confetti" class="confetti" aria-hidden="true"></div>
+
+      <div id="workout-idle" class="workout-idle">
+        <p id="workout-eyebrow" class="workout-eyebrow">Boys Bonanza</p>
+        <p id="workout-hello" class="workout-hello">
+          <span id="workout-avatar" class="avatar-circle"></span>
+          Ready, <span id="workout-username">Friend</span><span class="tight-q">?</span> 🔥</p>
+        <p id="workout-instructions" class="workout-instructions">Phone flat on the floor, screen up. Face over the camera.</p>
+        <button id="btn-weighted-quick" type="button" class="weighted-quick-toggle hidden">🏋️ Weighted mode off</button>
+        <div id="pushup-mode-select" class="segmented pushup-mode-select" role="tablist">
+          <button type="button" class="segment active" id="pmode-current" data-pmode="classic">Classic</button>
+          <button type="button" class="segment pmode-more" id="pmode-more"><span class="dot-grid-icon" aria-hidden="true"></span>More</button>
+          <button type="button" class="segment pmode-modifier" id="pmode-modifier"></button>
+        </div>
+
+        <div id="fortune-idle-stage" class="fortune-idle-stage hidden">
+          <div class="fortune-scene">
+            <button type="button" id="fortune-cookie-tap" class="fortune-cookie-tap" aria-label="Reveal fortune challenge">
+              <img id="fortune-frame-closed" class="fortune-frame is-active" alt="">
+              <img id="fortune-frame-cracked" class="fortune-frame" alt="">
+              <img id="fortune-frame-emerging" class="fortune-frame" alt="">
+              <img id="fortune-frame-revealed" class="fortune-frame" alt="">
+            </button>
+            <div id="fortune-message" class="fortune-message hidden" aria-live="polite"></div>
+          </div>
+          <p id="fortune-tap-hint" class="fortune-tap-hint">Tap to reveal today's challenge</p>
+          <button type="button" id="btn-fortune-start-set" class="btn btn-giant btn-primary hidden">Start set</button>
+        </div>
+
+        <button id="btn-start" class="btn btn-giant btn-primary">START</button>
+        <p id="workout-hint" class="workout-hint">We'll ask for camera access to count your reps.</p>
+      </div>
+
+      <div id="workout-active" class="workout-active hidden">
+        <div class="camera-wrap">
+          <video id="camera-video" playsinline muted autoplay></video>
+          <div id="face-box" class="face-box hidden"></div>
+        </div>
+
+        <div id="status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — find your face</div>
+
+        <div id="cards-hud" class="cards-hud hidden">
+          <div class="card-flip-scene">
+            <div id="card-flip" class="card-flip">
+              <div id="card-face-front" class="card-face card-face-front"></div>
+              <div id="card-face-back" class="card-face card-face-back"></div>
+            </div>
+            <div id="card-counter-badge" class="mode-counter-badge"></div>
+          </div>
+        </div>
+
+        <div id="poker-hud" class="poker-hud hidden" aria-live="polite">
+          <div id="poker-hand" class="poker-hand"></div>
+          <div id="poker-result" class="poker-result hidden"></div>
+        </div>
+
+        <div id="dice-hud" class="dice-hud hidden">
+          <div class="dice-scene">
+            <div class="dice-pair">
+              <img id="die-1" class="die" alt="">
+              <img id="die-2" class="die die-2" alt="">
+            </div>
+            <div id="dice-counter-badge" class="mode-counter-badge"></div>
+          </div>
+        </div>
+
+        <div id="ladder-hud" class="ladder-hud hidden">
+          <div id="ladder-rivals-offline" class="ladder-rivals-offline hidden">OFFLINE RIVALS</div>
+          <div id="ladder-rung-window" class="ladder-rung-window"></div>
+          <div id="ladder-counter-badge" class="mode-counter-badge"></div>
+        </div>
+
+        <div id="sharpshooter-hud" class="sharpshooter-hud hidden" aria-live="polite">
+          <div id="sharpshooter-target" class="sharpshooter-target" aria-label="Sharpshooter target">
+            <div class="sharpshooter-ring ring-outer"></div>
+            <div class="sharpshooter-ring ring-red-outer"></div>
+            <div class="sharpshooter-ring ring-white-inner"></div>
+            <div class="sharpshooter-ring ring-bullseye"></div>
+            <div class="sharpshooter-crosshair crosshair-horizontal"></div>
+            <div class="sharpshooter-crosshair crosshair-vertical"></div>
+            <div id="sharpshooter-count" class="sharpshooter-count">0</div>
+            <div class="sharpshooter-impact" aria-hidden="true"></div>
+          </div>
+          <div id="sharpshooter-session-total" class="sharpshooter-session-total">0 total · 0 targets destroyed</div>
+        </div>
+
+        <div id="pyramid-hud" class="pyramid-hud hidden">
+          <div id="pyramid-window" class="pyramid-window"></div>
+          <div id="pyramid-counter-badge" class="mode-counter-badge"></div>
+        </div>
+
+        <div class="rep-count-wrap">
+          <div id="rep-count" class="rep-count">0</div>
+          <div id="rep-label" class="rep-label">PUSHUPS</div>
+          <div id="cards-session-total" class="cards-session-total hidden"></div>
+          <div id="poker-session-total" class="cards-session-total poker-session-total hidden"></div>
+          <div id="dice-session-total" class="cards-session-total hidden"></div>
+          <div id="ladder-session-total" class="cards-session-total hidden"></div>
+          <div id="pyramid-session-total" class="cards-session-total hidden"></div>
+          <div id="fortune-session-total" class="cards-session-total hidden"></div>
+          <div id="chase-hud" class="chase-hud hidden" aria-live="polite">
+            <div class="chase-kicker"><span id="chase-offline" class="chase-offline hidden">OFFLINE TARGET</span></div>
+            <div id="chase-identity" class="chase-identity"></div>
+            <div id="chase-remaining" class="chase-remaining">0</div>
+            <div id="chase-target-copy" class="chase-target-copy">POINTS TO TAKE THE LEAD</div>
+            <div class="chase-tug" aria-hidden="true">
+              <div id="chase-tug-fill" class="chase-tug-fill"></div>
+              <div class="chase-pass-marker"></div>
+            </div>
+            <div class="chase-tug-labels"><span id="chase-you-label">YOU</span><span id="chase-rival-label"></span></div>
+            <div id="chase-weighted-copy" class="chase-weighted-copy hidden"></div>
+            <div id="chase-session-count" class="chase-session-count">0 pushups this session</div>
+          </div>
+          <div id="thermometer-wrap" class="thermometer-wrap hidden">
+            <div class="thermometer-track">
+              <div id="thermometer-fill" class="thermometer-fill"></div>
+            </div>
+          </div>
+          <div id="highscore-message" class="highscore-message"></div>
+        </div>
+
+        <div id="modifier-cue" class="modifier-cue hidden">
+          <span id="modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
+        <button id="btn-complete" class="btn btn-giant btn-complete">COMPLETE</button>
+      </div>
+
+    </section>
+
+    <!-- ============ SCREEN: EXPLORE MODES ============ -->
+    <section id="screen-explore-modes" class="screen">
+      <h1 class="screen-title">Choose your mode</h1>
+      <p class="screen-sub">Classic still lives on Home</p>
+      <div id="explore-modes-list" class="tier1-list explore-modes-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: PYRAMID SETUP ============ -->
+    <section id="screen-pyramid-setup" class="screen">
+      <p class="pyramid-setup-section-label">Size</p>
+      <div id="pyramid-size-list" class="pyramid-card-list"></div>
+      <p class="pyramid-setup-section-label">Direction</p>
+      <div id="pyramid-direction-list" class="pyramid-card-list"></div>
+      <button id="btn-pyramid-start" type="button" class="btn btn-giant btn-primary pyramid-start-btn">Start pyramid</button>
+    </section>
+
+    <!-- ============ SCREEN: MODIFIER PICKER ============ -->
+    <section id="screen-modifier-picker" class="screen">
+      <h1 class="screen-title">Choose your modifier</h1>
+      <p class="screen-sub">Changes hand position — applies to any mode</p>
+      <div id="modifier-list" class="tier1-list explore-modes-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: PLANK UNLOCK (easter egg celebration) ============ -->
+    <section id="screen-plank-unlock" class="screen">
+      <div id="plank-unlock-confetti" class="confetti" aria-hidden="true"></div>
+      <div class="plank-unlock-emoji">🪵</div>
+      <h1 class="screen-title">Hidden plank mode unlocked!</h1>
+      <p class="screen-sub">Welcome to the plank club.</p>
+    </section>
+
+    <!-- ============ SCREEN: PLANK WORKOUT ============ -->
+    <section id="screen-plank-workout" class="screen">
+      <div id="plank-confetti" class="confetti" aria-hidden="true"></div>
+
+      <div id="plank-idle" class="workout-idle">
+        <p class="workout-eyebrow">Boys Bonanza</p>
+        <p class="workout-hello">
+          <span id="plank-avatar" class="avatar-circle"></span>
+          Ready to plank, <span id="plank-username">Friend</span><span class="tight-q">?</span></p>
+        <p class="workout-instructions">Get into plank position, tap start, and hold as long as you can.</p>
+        <button id="btn-plank-start" class="btn btn-giant btn-primary">START</button>
+      </div>
+
+      <div id="plank-active" class="workout-active hidden">
+        <div class="rep-count-wrap">
+          <div id="plank-timer" class="rep-count">0:00</div>
+          <div class="rep-label">PLANK TIME</div>
+          <div id="plank-thermometer-wrap" class="thermometer-wrap hidden">
+            <div class="thermometer-track">
+              <div id="plank-thermometer-fill" class="thermometer-fill"></div>
+            </div>
+          </div>
+          <div id="plank-highscore-message" class="highscore-message"></div>
+        </div>
+
+        <button id="btn-plank-stop" class="btn btn-giant btn-complete">STOP</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: SUMMARY ============ -->
+    <section id="screen-summary" class="screen">
+      <div id="confetti" class="confetti" aria-hidden="true"></div>
+      <div class="summary-body">
+        <h1 class="screen-title">Session complete! 🎉</h1>
+        <div class="summary-count" id="summary-count">0</div>
+        <div id="summary-weighted-note" class="weighted-note hidden"></div>
+        <div id="summary-chase-result" class="summary-chase-result hidden"></div>
+        <button type="button" id="summary-roadtrip-cue" class="workout-instructions is-cue summary-roadtrip-cue hidden"></button>
+        <div id="missed-reps-wrap" class="missed-reps-wrap hidden">
+          <div class="missed-reps-label">Missed reps, or too many counted?</div>
+          <div class="stepper-row">
+            <button id="btn-missed-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <div id="missed-reps-count" class="stepper-value">0</div>
+            <button id="btn-missed-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+          </div>
+        </div>
+        <div id="summary-sync-status" class="sync-status" role="status" aria-live="polite"></div>
+      </div>
+      <div class="summary-actions">
+        <button id="btn-summary-again" class="btn btn-primary btn-large">Go again ↻</button>
+        <button id="btn-summary-share" class="btn btn-secondary btn-large btn-with-icon">Share flex <span class="icon-share" aria-hidden="true"></span></button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: DASHBOARD ============ -->
+    <section id="screen-dashboard" class="screen">
+      <div class="dashboard-header">
+        <h1 class="screen-title">Leaderboard 🏆</h1>
+        <div id="leaderboard-mode-picker" class="leaderboard-mode-picker hidden">
+          <button id="leaderboard-mode-trigger" class="leaderboard-mode-trigger" type="button"
+            aria-haspopup="listbox" aria-expanded="false" aria-controls="leaderboard-mode-menu">
+            <span id="leaderboard-mode-label">All</span>
+            <span class="leaderboard-mode-chevron" aria-hidden="true"></span>
+          </button>
+          <div id="leaderboard-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Leaderboard mode">
+            <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-leaderboard-mode="all"><span>All</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="classic"><span>Classic</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="countdown"><span>Countdown</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="cards"><span>Cards</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="poker"><span>Poker</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="dice"><span>Dice</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="ladder"><span>Ladder</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="fortune"><span>Fortune</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="chase"><span>Chase</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="sharpshooter"><span>Sharpshooter</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pyramid"><span>Pyramid</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bonanza-mode-row">
+        <div id="bonanza-mode-select" class="segmented bonanza-mode-select-shrunk" role="tablist">
+          <button class="segment active" data-mode="mine">My Bonanza</button>
+          <button class="segment" data-mode="boys">Boys Bonanza</button>
+        </div>
+        <button id="btn-leaderboard-share" type="button" class="icon-btn" aria-label="Share stats" title="Share stats"><span class="icon-share" aria-hidden="true"></span></button>
+      </div>
+
+      <div id="period-select" class="segmented" role="tablist">
+        <button class="segment active" data-period="day">Day</button>
+        <button class="segment" data-period="week">Week</button>
+        <button class="segment" data-period="month">Month</button>
+        <button class="segment" data-period="quarter">Quarter</button>
+        <button class="segment" data-period="year">Year</button>
+      </div>
+
+      <div id="boys-bonanza-view" class="hidden">
+        <div class="mybonanza-chart-card tier2-card">
+          <div class="chart-card-header">
+            <span class="tier1-eyebrow" style="margin:0">Last 7 days</span>
+            <span id="boys-week-trend" class="week-trend hidden"></span>
+          </div>
+          <div id="boys-week-chart" class="week-chart"></div>
+        </div>
+
+        <div id="leaderboard-list" class="leaderboard-list"></div>
+
+        <div id="boys-mode-stats" class="boys-mode-stats"></div>
+
+        <div id="history-view-select" class="segmented segmented-underline" role="tablist">
+          <button class="segment active" data-view="recent">Last flexers</button>
+          <button class="segment" data-view="history">Session history</button>
+        </div>
+
+        <div id="recent-list" class="history-list"></div>
+        <div id="history-list" class="history-list hidden"></div>
+      </div>
+
+      <div id="my-bonanza-view">
+        <div class="mybonanza-chart-card tier2-card">
+          <div class="chart-card-header">
+            <span class="tier1-eyebrow" style="margin:0">Last 7 days</span>
+            <span id="week-trend" class="week-trend hidden"></span>
+          </div>
+          <div id="week-chart" class="week-chart"></div>
+        </div>
+        <div id="personal-stats-tiles" class="stat-tile-grid"></div>
+        <div id="personal-stats" class="stats-table tier1-list"></div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: HEAD-TO-HEAD COMPARISON ============ -->
+    <section id="screen-user-compare" class="screen">
+      <div class="compare-screen-header">
+        <h1 class="screen-title">Head-to-head</h1>
+        <div id="compare-mode-picker" class="leaderboard-mode-picker">
+          <button id="compare-mode-trigger" class="leaderboard-mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="compare-mode-menu">
+            <span id="compare-mode-label">All</span><span class="leaderboard-mode-chevron" aria-hidden="true"></span>
+          </button>
+          <div id="compare-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Comparison mode"></div>
+        </div>
+      </div>
+
+      <div class="compare-card">
+        <button id="btn-compare-back" type="button" class="compare-back">← Back</button>
+
+        <div class="compare-header">
+          <div class="compare-avatar-col">
+            <span id="compare-avatar-a" class="avatar-circle compare-avatar"></span>
+            <div id="compare-name-a" class="compare-name"></div>
+          </div>
+          <div class="compare-vs">VS</div>
+          <div class="compare-avatar-col">
+            <span id="compare-avatar-b" class="avatar-circle compare-avatar"></span>
+            <div id="compare-name-b" class="compare-name"></div>
+          </div>
+        </div>
+
+        <p id="compare-tally" class="compare-tally"></p>
+
+        <div id="compare-table" class="compare-table"></div>
+        <p id="compare-empty" class="compare-empty hidden">No comparable sessions in this period</p>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: CHALLENGES ============ -->
+    <section id="screen-challenges" class="screen">
+      <div class="challenges-header">
+        <h1 class="screen-title">Challenges 🎯</h1>
+        <button id="btn-challenge-create" type="button" class="btn btn-small challenges-create-btn">+ Create</button>
+      </div>
+
+      <div id="challenge-tab-select" class="segmented segmented-underline" role="tablist">
+        <button class="segment active" data-ctab="active">Active</button>
+        <button class="segment" data-ctab="upcoming">Upcoming</button>
+        <button class="segment" data-ctab="past">Past</button>
+      </div>
+
+      <div id="challenge-list" class="challenge-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: CHALLENGE DETAIL ============ -->
+    <section id="screen-challenge-detail" class="screen">
+      <div class="challenge-detail-header">
+        <button id="btn-challenge-back" type="button" class="btn btn-small challenge-detail-back">← All challenges</button>
+        <button id="btn-challenge-share" type="button" class="btn btn-small challenge-detail-share btn-with-icon">Share <span class="icon-share" aria-hidden="true"></span></button>
+      </div>
+      <div id="challenge-detail-body"></div>
+    </section>
+
+    <!-- ============ SCREEN: CREATE CHALLENGE ============ -->
+    <section id="screen-challenge-create" class="screen">
+      <h1 class="screen-title">New Challenge</h1>
+
+      <form id="create-challenge-form">
+        <div class="create-row">
+          <div class="create-col create-col-icon">
+            <label class="field-label">Icon</label>
+            <select id="create-emoji" class="avatar-select" aria-label="Choose an icon"></select>
+          </div>
+          <div class="create-col create-col-type">
+            <label class="field-label">Type</label>
+            <div id="create-goal-type" class="segmented" role="tablist">
+              <button type="button" class="segment active" data-goaltype="individual">Individual</button>
+              <button type="button" class="segment" data-goaltype="collective">Group</button>
+            </div>
+          </div>
+        </div>
+
+        <label class="field-label">Title</label>
+        <input id="create-title" class="text-input" type="text" maxlength="60" required placeholder="e.g. Labor Day Lockout">
+
+        <label class="field-label">Description</label>
+        <input id="create-tagline" class="text-input" type="text" maxlength="200" required placeholder="A short hype line for the challenge">
+
+        <div class="create-row">
+          <div class="create-col">
+            <label class="field-label">Goal (pushups)</label>
+            <input id="create-goal" class="text-input" type="number" min="1" max="100000" inputmode="numeric" required placeholder="e.g. 500">
+          </div>
+          <div class="create-col">
+            <label class="field-label">Icon style</label>
+            <select id="create-icon-style" class="text-input select-input">
+              <option value="emoji">Emoji</option>
+              <option value="photo" disabled>Photo (coming soon)</option>
+              <option value="illustration" disabled>Illustration (coming soon)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="create-row">
+          <div class="create-col">
+            <label class="field-label">Start date</label>
+            <input id="create-start" class="text-input create-date-input" type="date" required>
+          </div>
+          <div class="create-col">
+            <label class="field-label">End date</label>
+            <input id="create-end" class="text-input create-date-input" type="date" required>
+          </div>
+        </div>
+
+        <div class="create-actions">
+          <button type="button" id="btn-create-back" class="btn btn-secondary btn-large">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-large btn-create-submit">Create challenge</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ SCREEN: ROADTRIP ============ -->
+    <section id="screen-roadtrip" class="screen">
+      <div class="roadtrip-header">
+        <h1 class="screen-title">Roadtrip 🌍</h1>
+        <div id="roadtrip-period-picker" class="leaderboard-mode-picker">
+          <button id="roadtrip-period-trigger" class="leaderboard-mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="roadtrip-period-menu">
+            <span id="roadtrip-period-label">Week</span><span class="leaderboard-mode-chevron" aria-hidden="true"></span>
+          </button>
+          <div id="roadtrip-period-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Roadtrip timeframe">
+            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="day"><span>Day</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option selected" role="option" data-roadtrip-period="week"><span>Week</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="month"><span>Month</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="year"><span>Year</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+          </div>
+        </div>
+      </div>
+      <p class="roadtrip-subtitle">Every rep plants a flag. Take your block, your city, then the damn planet.</p>
+      <div id="roadtrip-tier-select" class="segmented roadtrip-tier-select" role="tablist" aria-label="Location tier">
+        <button class="segment" data-roadtrip-tier="neighborhood">Neighborhood</button>
+        <button class="segment active" data-roadtrip-tier="city">City</button>
+        <button class="segment" data-roadtrip-tier="country">Country</button>
+      </div>
+      <div id="roadtrip-location-needed" class="roadtrip-location-needed hidden">
+        <div class="roadtrip-empty-icon">📍</div>
+        <h2>Pick your turf</h2>
+        <p>Choose a location on Home so your next session can claim territory.</p>
+        <button id="btn-roadtrip-location" type="button" class="btn btn-primary">Choose location</button>
+      </div>
+      <div id="roadtrip-list" class="roadtrip-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: ROADTRIP LOCATION DETAIL ============ -->
+    <section id="screen-roadtrip-detail" class="screen">
+      <button id="btn-roadtrip-back" type="button" class="challenge-detail-back">← Roadtrip</button>
+      <h1 id="roadtrip-detail-title" class="screen-title roadtrip-detail-title">Location</h1>
+      <div id="roadtrip-detail-summary" class="roadtrip-detail-summary"></div>
+      <div class="tier1-eyebrow roadtrip-local-label">Local leaderboard</div>
+      <div id="roadtrip-detail-list" class="leaderboard-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS ============ -->
+    <section id="screen-settings" class="screen">
+      <h1 class="screen-title">Settings ⚙️</h1>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Appearance</div>
+        <div class="settings-block">
+          <div class="settings-block-row">
+            <label class="field-label" style="margin:0">Theme</label>
+            <div id="theme-select" class="segmented theme-select-compact" role="tablist">
+              <button class="segment" data-theme="light">☀️ Light</button>
+              <button class="segment active" data-theme="dark">🌙 Dark</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Workout behavior</div>
+        <div class="settings-block settings-block-plain">
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Show "pushups away from your high score" message</span>
+              <input id="chk-highscore-message" type="checkbox">
+            </label>
+          </div>
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Voice cheer-ons during pushup and plank sessions</span>
+              <input id="chk-sound-enabled" type="checkbox">
+            </label>
+          </div>
+          <div class="settings-block-row">
+            <label class="field-label" for="voice-preset-select" style="margin:0">Voice</label>
+            <select id="voice-preset-select" class="text-input voice-preset-select"></select>
+          </div>
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Show camera preview during workouts</span>
+              <input id="chk-camera-preview" type="checkbox">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Calibration &amp; weighted mode</div>
+        <div class="settings-block tier2">
+          <p class="settings-hint">Tune how close your face must get to the phone to register the "down" and "up" positions of a rep. Values are the face height as a fraction of the camera frame height.</p>
+
+          <label class="field-label">Down threshold: <span id="val-down">0.55</span></label>
+          <input id="range-down" type="range" min="0.15" max="0.95" step="0.01" value="0.55">
+
+          <label class="field-label">Up threshold: <span id="val-up">0.32</span></label>
+          <input id="range-up" type="range" min="0.10" max="0.90" step="0.01" value="0.32">
+
+          <div class="settings-side-by-side">
+            <button id="btn-calibration-defaults" class="btn btn-secondary btn-small-wide">Reset to defaults</button>
+            <button id="btn-download-trace" type="button" class="btn btn-secondary btn-small-wide hidden">Download trace</button>
+          </div>
+
+          <div class="settings-divider"></div>
+
+          <p class="settings-hint">Wearing a vest, holding a kid on your back, or otherwise adding load? Log your bodyweight once, dial in today's added weight, and we'll scale your final pushup count to match.</p>
+
+          <label class="field-label">Bodyweight (lbs)</label>
+          <input id="input-bodyweight" class="text-input" type="number" min="1" inputmode="numeric" placeholder="e.g. 170">
+
+          <label class="field-label">Added weight today (lbs)</label>
+          <div class="stepper-row">
+            <button id="btn-weight-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <div id="weight-amount" class="stepper-value">0</div>
+            <button id="btn-weight-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+          </div>
+          <p id="weight-modifier-readout" class="settings-hint"></p>
+
+          <label class="field-label toggle-row">
+            <span>Enable weighted mode</span>
+            <input id="chk-weighted-enabled" type="checkbox">
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Manage users</div>
+        <p class="settings-hint">Tap someone's icon to change their avatar. The trash icon removes all of their sessions from the shared leaderboard — this can't be undone.</p>
+        <div id="manage-users-list" class="manage-users-list settings-block"></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">My sessions</div>
+        <p class="settings-hint">Your own session history. Delete any you logged by mistake.</p>
+        <div class="settings-block">
+          <div id="my-sessions-list" class="my-sessions-list"></div>
+          <button id="btn-my-sessions-more" type="button" class="settings-show-more hidden">Show more</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Data &amp; sync</div>
+        <div class="settings-block" style="padding: 0.9rem 1rem;">
+          <button id="btn-gh-test" class="btn btn-secondary" style="width:100%">Check connection</button>
+          <p id="gh-status" class="settings-status"></p>
+          <p id="pending-status" class="settings-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <p class="settings-footer">Made in Texas with love 🇺🇸</p>
+    </section>
+
+    <!-- ============ SCREEN: EDIT PROFILE ============ -->
+    <section id="screen-edit-profile" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-edit-profile-back" type="button" class="challenge-detail-back">← Settings</button>
+        <button id="btn-edit-profile-save-shortcut" type="button" class="edit-profile-save-shortcut">Save</button>
+      </div>
+      <h1 class="screen-title">Edit profile</h1>
+
+      <div class="edit-profile-avatar-block">
+        <div class="edit-profile-avatar-wrap">
+          <span id="edit-profile-avatar" class="avatar-circle edit-profile-avatar"></span>
+          <span class="edit-profile-avatar-pencil">✎</span>
+        </div>
+        <p class="edit-profile-hint">Tap to change icon</p>
+      </div>
+
+      <div id="edit-profile-swatch-grid" class="edit-profile-swatch-grid"></div>
+
+      <div class="tier1-eyebrow">Display name</div>
+      <input id="edit-profile-name" class="text-input" type="text" maxlength="40" placeholder="Your name">
+      <p id="edit-profile-error" class="settings-status err hidden"></p>
+
+      <button id="btn-edit-profile-save" type="button" class="btn btn-primary btn-large">Save changes</button>
+    </section>
+
+  </main>
+
+  <!-- ============ TAB BAR (persistent, hides during active workout) ============ -->
+  <nav id="tab-bar" class="tab-bar">
+    <button id="btn-nav-home" class="tab-item" aria-label="Home" title="Home"><span class="tab-item-icon">🏋️</span><span class="tab-item-label">Home</span></button>
+    <button id="btn-nav-dashboard" class="tab-item" aria-label="Leaderboard" title="Leaderboard"><span class="tab-item-icon">🏆</span><span class="tab-item-label">Board</span></button>
+    <button id="btn-nav-challenges" class="tab-item" aria-label="Challenges" title="Challenges"><span class="tab-item-icon">🎯</span><span class="tab-item-label">Challenges</span></button>
+    <button id="btn-nav-roadtrip" class="tab-item" aria-label="Roadtrip" title="Roadtrip"><span class="tab-item-icon">🌍</span><span class="tab-item-label">Roadtrip</span></button>
+    <button id="btn-nav-settings" class="tab-item" aria-label="Settings" title="Settings"><span class="tab-item-icon">⚙️</span><span class="tab-item-label">Settings</span></button>
+  </nav>
+</div>
+
+<div id="location-sheet-backdrop" class="location-sheet-backdrop hidden">
+  <section id="location-sheet" class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-sheet-title">
+    <div class="location-sheet-handle" aria-hidden="true"></div>
+    <div class="location-sheet-header">
+      <h2 id="location-sheet-title">Session location</h2>
+      <button id="btn-location-close" type="button" class="location-close" aria-label="Close location controls">&#x2715;</button>
+    </div>
+    <p id="location-sheet-current" class="location-sheet-current">Unknown location</p>
+    <div class="location-actions">
+      <button id="btn-location-current" type="button" class="location-action">Use current location</button>
+      <button id="btn-location-search" type="button" class="location-action">Search for a location</button>
+      <button id="btn-location-clear" type="button" class="location-action location-action-muted">Clear location</button>
+    </div>
+    <form id="location-search-form" class="location-search-form hidden">
+      <label for="location-search-input">Neighborhood, city, or country</label>
+      <div class="location-search-row">
+        <input id="location-search-input" class="text-input" type="search" maxlength="120" autocomplete="off" placeholder="e.g. Montrose, Houston">
+        <button id="btn-location-search-submit" type="submit" class="btn btn-primary">Search</button>
+      </div>
+      <p id="location-search-status" class="location-search-status" role="status" aria-live="polite"></p>
+      <div id="location-search-results" class="location-search-results"></div>
+    </form>
+  </section>
+</div>
+
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+<div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<script type="module" src="app.js?v=152"></script>
+</body>
+</html>

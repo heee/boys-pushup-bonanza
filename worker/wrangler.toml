@@ -1,0 +1,22 @@
+# Reference config for deploying this Worker via the `wrangler` CLI, if you
+# ever do it from a machine that supports it. Deploying by pasting index.js
+# into the Cloudflare dashboard's Quick Edit works too and needs no CLI —
+# see the README for that path.
+name = "boys-pushup-bonanza-worker"
+main = "index.js"
+compatibility_date = "2026-08-05"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "boys-pushup-bonanza"
+database_id = "28f3fd64-4b28-4238-a19e-8571b0076419"
+migrations_dir = "migrations"
+
+# Non-secret variables — set these here or in the dashboard under
+# Settings -> Variables and Secrets.
+[vars]
+ALLOWED_ORIGIN = "https://heee.github.io"
+
+# Secrets (APP_KEY, GEOAPIFY_API_KEY) are NOT set here — run:
+#   wrangler secret put APP_KEY
+#   wrangler secret put GEOAPIFY_API_KEY
