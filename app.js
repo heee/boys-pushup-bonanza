@@ -2007,6 +2007,18 @@ $("chk-sound-enabled").addEventListener("change", (e) => {
 const ROADTRIP_PERIOD_LABELS = { day: "Day", week: "Week", month: "Month", year: "Year" };
 const ROADTRIP_TIER_LABELS = { neighborhood: "Neighborhood", city: "City", country: "Country" };
 
+// Words swapped into the roadtrip share templates below so the same joke
+// reads right whether it's about a block, a whole city, or a country.
+const TIER_SHARE_FLAVOR = {
+  neighborhood: { turf: "block", scope: "neighborhood", ruler: "block captain" },
+  city: { turf: "city", scope: "city", ruler: "mayor" },
+  country: { turf: "country", scope: "nation", ruler: "head of state" },
+};
+
+function capitalize(word) {
+  return word ? `${word.charAt(0).toUpperCase()}${word.slice(1)}` : word;
+}
+
 function setRoadtripPeriodMenuOpen(open) {
   $("roadtrip-period-trigger").setAttribute("aria-expanded", String(open));
   $("roadtrip-period-menu").classList.toggle("hidden", !open);
@@ -2123,6 +2135,126 @@ function renderRoadtripDetail() {
   top.forEach((row) => appendUser(row));
   if (pinned) appendUser(pinned, true);
 }
+
+// ------------------- roadtrip share -------------------
+
+const ROADTRIP_SHARE_GENERIC = [
+  (ctx) => `Sitting ${ctx.rankOrdinal} in ${ctx.placeLabel} 🗺️ ${ctx.scoreText} reps staked into this ${ctx.turf} so far.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} across ${ctx.placeLabel} 📍 ${ctx.scoreText} reps and I haven't even started being annoying about it.`,
+  (ctx) => `Claimed a chunk of ${ctx.placeLabel} 🚩 ${ctx.rankOrdinal} place, ${ctx.scoreText} reps, one ${ctx.turf} inching closer to mine.`,
+  (ctx) => `${ctx.scoreText} reps deep into ${ctx.placeLabel} 🏗️ ${ctx.rankOrdinal} place and building an empire nobody asked for.`,
+  (ctx) => `The ${ctx.scope} of ${ctx.placeLabel} has no idea what's coming 😈 ${ctx.rankOrdinal} place with ${ctx.scoreText} reps, patiently plotting.`,
+  (ctx) => `${ctx.rankOrdinal} in ${ctx.placeLabel} 🧨 ${ctx.scoreText} reps logged and I've started calling this ${ctx.turf} "mine" out loud, unprompted.`,
+  (ctx) => `Currently ${ctx.rankOrdinal} of ${ctx.participants} in ${ctx.placeLabel} 🐺 Hunting the ${ctx.ruler} in packs of one.`,
+  (ctx) => `${ctx.scoreText} reps into ${ctx.placeLabel}'s board 📈 ${ctx.rankOrdinal} place. The ${ctx.ruler} should be checking the locks.`,
+  (ctx) => `${ctx.rankOrdinal} place in ${ctx.placeLabel} 🦴 ${ctx.scoreText} reps buried like evidence. More coming.`,
+  (ctx) => `${ctx.placeLabel}: ${ctx.rankOrdinal} of ${ctx.participants}, ${ctx.scoreText} reps 🌋 This ${ctx.turf} is about to have a very bad geological event.`,
+  (ctx) => `${ctx.scoreText} reps in ${ctx.placeLabel} and only ${ctx.rankOrdinal} 😤 Unacceptable. Rectifying immediately.`,
+  (ctx) => `${ctx.rankOrdinal} in ${ctx.placeLabel} 🕸️ Quietly weaving myself into every corner of this ${ctx.turf}.`,
+  (ctx) => `${ctx.scoreText} reps toward owning ${ctx.placeLabel} 🏹 ${ctx.rankOrdinal} place. The ${ctx.ruler} is now a target, not a title.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} in ${ctx.placeLabel} 🌪️ ${ctx.scoreText} reps and a full personality disorder about winning.`,
+];
+
+const ROADTRIP_SHARE_LEADING = [
+  (ctx) => `👑 ${ctx.ruler} of ${ctx.placeLabel}. ${ctx.scoreText} reps and I will be taking questions never.`,
+  (ctx) => `Running ${ctx.placeLabel} like it owes me rent 🏆 ${ctx.scoreText} reps, ${ctx.participants} pretenders behind me.`,
+  (ctx) => `${ctx.scoreText} reps and the whole ${ctx.turf} answers to me now 🗿 ${ctx.placeLabel} has a new landlord.`,
+  (ctx) => `#1 in ${ctx.placeLabel} 🥇 ${ctx.scoreText} reps. The ${ctx.ruler}'s office has my name on it, informally, in my own handwriting.`,
+  (ctx) => `Top of ${ctx.placeLabel} 🔥 ${ctx.scoreText} reps. This ${ctx.turf} pays tribute in pushups now.`,
+  (ctx) => `${ctx.placeLabel} is mine 🚨 ${ctx.scoreText} reps, ${Math.max(ctx.participants - 1, 0)} other guys watching from a safe distance.`,
+  (ctx) => `${capitalize(ctx.ruler)} energy only 👑 ${ctx.scoreText} reps atop ${ctx.placeLabel}. Bow, or at least do a rep about it.`,
+  (ctx) => `Undisputed in ${ctx.placeLabel} 🏔️ ${ctx.scoreText} reps. The view from #1 smells like victory and mild deltoid soreness.`,
+  (ctx) => `${ctx.scoreText} reps, #1 in ${ctx.placeLabel} 😌 I'd like to thank the ${ctx.turf} for its continued cooperation.`,
+  (ctx) => `Conquered ${ctx.placeLabel} 🌍 ${ctx.scoreText} reps and a throne nobody can afford to challenge.`,
+];
+
+const ROADTRIP_SHARE_ABSENT = [
+  (ctx) => `${ctx.holderName} runs ${ctx.placeLabel} with ${ctx.holderScoreText} reps 👑 ${ctx.runnerUpName}'s only ${ctx.gapText} behind. Someone go save this ${ctx.turf}.`,
+  (ctx) => `${ctx.placeLabel}: ${ctx.holderName} on top with ${ctx.holderScoreText}, ${ctx.runnerUpName} breathing down their neck at ${ctx.runnerUpScoreText} 😤 Where's everybody else?`,
+  (ctx) => `The ${ctx.ruler} of ${ctx.placeLabel} is ${ctx.holderName} (${ctx.holderScoreText} reps) 🏆 ${ctx.runnerUpName}'s closing the gap. This ${ctx.turf} needs a third option. Could be you.`,
+  (ctx) => `${ctx.holderName} vs ${ctx.runnerUpName} for ${ctx.placeLabel} 🥊 ${ctx.gapText} reps apart. Genuinely nobody is stepping in. Cowardly.`,
+  (ctx) => `${ctx.placeLabel} standings: ${ctx.holderName} #1 (${ctx.holderScoreText}), ${ctx.runnerUpName} #2 (${ctx.runnerUpScoreText}) 📊 A whole ${ctx.turf} and only two people showed up to fight for it.`,
+  (ctx) => `${ctx.holderName} is squatting on ${ctx.placeLabel} with ${ctx.holderScoreText} reps 🏚️ ${ctx.runnerUpName}'s ${ctx.gapText} behind and gaining. You could be the plot twist.`,
+  (ctx) => `${ctx.placeLabel} has a ${ctx.ruler}: ${ctx.holderName}, ${ctx.holderScoreText} reps 👑 ${ctx.runnerUpName} is quietly assembling an uprising. Join it.`,
+  (ctx) => `Two-man war for ${ctx.placeLabel} 🗡️ ${ctx.holderName} (${ctx.holderScoreText}) vs ${ctx.runnerUpName} (${ctx.runnerUpScoreText}). This ${ctx.turf} deserves better competition. Bring some.`,
+  (ctx) => `${ctx.holderName} leads ${ctx.placeLabel} by ${ctx.gapText} over ${ctx.runnerUpName} 📉📈 The ${ctx.scope} is one bad week away from a coup.`,
+  (ctx) => `${ctx.placeLabel} is currently a ${ctx.holderName}-${ctx.runnerUpName} rivalry and nothing else 😐 Show up and make it a trilogy.`,
+  (ctx) => `${ctx.holderName} holds ${ctx.placeLabel} at ${ctx.holderScoreText} reps, ${ctx.runnerUpName} is ${ctx.gapText} back and closing 🔥 Grab a floor, this ${ctx.turf} is up for grabs.`,
+  (ctx) => `${capitalize(ctx.ruler)} race in ${ctx.placeLabel}: ${ctx.holderName} (${ctx.holderScoreText}) narrowly ahead of ${ctx.runnerUpName} (${ctx.runnerUpScoreText}) 🏁 Get in there before it's decided without you.`,
+];
+
+const ROADTRIP_SHARE_ABSENT_SOLO = [
+  (ctx) => `${ctx.holderName} owns all of ${ctx.placeLabel} uncontested 👑 ${ctx.holderScoreText} reps and literally nobody else showed up. Embarrassing for the rest of the ${ctx.turf}.`,
+  (ctx) => `${ctx.placeLabel} has a ${ctx.ruler} — ${ctx.holderName}, ${ctx.holderScoreText} reps 🏰 — and zero challengers. This is a dictatorship at this point.`,
+  (ctx) => `${ctx.holderName} is the entire leaderboard for ${ctx.placeLabel} 😳 ${ctx.holderScoreText} reps of pure, unchallenged tyranny. Someone stop them.`,
+  (ctx) => `Solo run in ${ctx.placeLabel}: ${ctx.holderName}, ${ctx.holderScoreText} reps 🎪 The rest of the ${ctx.scope} is apparently allergic to floors.`,
+  (ctx) => `${ctx.holderName} claimed ${ctx.placeLabel} by default 🚩 ${ctx.holderScoreText} reps. This ${ctx.turf} is one pushup away from having competition.`,
+  (ctx) => `${ctx.placeLabel}'s throne, occupied by ${ctx.holderName} alone, ${ctx.holderScoreText} reps 👑 An empty kingdom is still a kingdom. Come contest it.`,
+];
+
+// Same no-immediate-repeat guard as the main leaderboard share, kept separate
+// since this pool mixes four different template arrays.
+let lastRoadtripShareTemplate = null;
+function pickRoadtripShareTemplate(pool) {
+  let template, guard = 0;
+  do {
+    template = pickFrom(pool);
+  } while (template === lastRoadtripShareTemplate && pool.length > 1 && ++guard < 10);
+  lastRoadtripShareTemplate = template;
+  return template;
+}
+
+async function shareRoadtripDetail() {
+  const territory = state.roadtripTerritories.find((row) => row.id === state.roadtripDetailId);
+  if (!territory) return;
+  const flavor = TIER_SHARE_FLAVOR[territory.tier] || TIER_SHARE_FLAVOR.city;
+  const placeLabel = `${territory.flag ? `${territory.flag} ` : ""}${territory.name}`;
+  const base = { placeLabel, turf: flavor.turf, scope: flavor.scope, ruler: flavor.ruler };
+  const ranked = territory.users.map((u, i) => ({ ...u, rank: i + 1 }));
+  const mine = ranked.find((u) => u.name === state.currentUser);
+
+  let message;
+  if (mine) {
+    const ctx = { ...base, rankOrdinal: ordinal(mine.rank), scoreText: formatNumber(mine.total), participants: ranked.length };
+    const pool = mine.rank === 1 ? [...ROADTRIP_SHARE_LEADING, ...ROADTRIP_SHARE_GENERIC] : ROADTRIP_SHARE_GENERIC;
+    message = pickRoadtripShareTemplate(pool)(ctx);
+  } else {
+    const holder = ranked[0];
+    const runnerUp = ranked[1];
+    if (!holder) return;
+    if (runnerUp) {
+      const ctx = {
+        ...base,
+        holderName: holder.name,
+        holderScoreText: formatNumber(holder.total),
+        runnerUpName: runnerUp.name,
+        runnerUpScoreText: formatNumber(runnerUp.total),
+        gapText: formatNumber(holder.total - runnerUp.total),
+      };
+      message = pickRoadtripShareTemplate(ROADTRIP_SHARE_ABSENT)(ctx);
+    } else {
+      const ctx = { ...base, holderName: holder.name, holderScoreText: formatNumber(holder.total) };
+      message = pickRoadtripShareTemplate(ROADTRIP_SHARE_ABSENT_SOLO)(ctx);
+    }
+  }
+
+  const url = location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — paste it in the group chat!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy your result manually.", 4000);
+  }
+}
+$("btn-roadtrip-share").addEventListener("click", shareRoadtripDetail);
 
 $("roadtrip-tier-select").addEventListener("click", (event) => {
   const option = event.target.closest("[data-roadtrip-tier]");
