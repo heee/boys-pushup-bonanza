@@ -627,6 +627,19 @@
 
           <div class="settings-divider"></div>
 
+          <p class="settings-hint">Phase 0 feasibility spike for Squat mode: prop the phone against a wall, stand back, and do ten squats to check face detection holds up and the stand-to-squat swing is big enough to count reps.</p>
+          <div id="squat-capture-test-wrap" class="camera-wrap hidden">
+            <video id="squat-capture-test-video" playsinline muted autoplay></video>
+            <div id="squat-capture-test-face-box" class="face-box hidden"></div>
+          </div>
+          <div class="settings-side-by-side">
+            <button id="btn-squat-capture-test" type="button" class="btn btn-secondary btn-small-wide">Squat capture test</button>
+            <button id="btn-download-squat-trace" type="button" class="btn btn-secondary btn-small-wide hidden">Download squat trace</button>
+          </div>
+          <p id="squat-capture-test-status" class="settings-status"></p>
+
+          <div class="settings-divider"></div>
+
           <p class="settings-hint">Wearing a vest, holding a kid on your back, or otherwise adding load? Log your bodyweight once, dial in today's added weight, and we'll scale your final pushup count to match.</p>
 
           <label class="field-label">Bodyweight (lbs)</label>

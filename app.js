@@ -77,6 +77,7 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
+import { deriveSquatThresholds, median, squatCalibrationValid } from "./modes/squat.js";
 
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -1110,6 +1111,9 @@ function setChromeMinimized(minimized) {
 }
 
 function showScreen(id) {
+  // The Settings capture-test camera has no place to keep running once the
+  // screen it's shown on goes away.
+  if (id !== "screen-settings" && squatTraceState.running) stopSquatCaptureTest();
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(id).classList.add("active");
   state.screen = id;
@@ -1473,6 +1477,7 @@ function renderSettings() {
   renderVoicePresetSelect();
   $("chk-camera-preview").checked = localStorage.getItem(LS.showCameraPreview) === "1";
   $("btn-download-trace").classList.toggle("hidden", !repState.trace.length);
+  $("btn-download-squat-trace").classList.toggle("hidden", !squatTraceState.trace.length);
   renderWeightedSettings();
 
   renderPendingStatus();
@@ -2429,6 +2434,118 @@ $("btn-download-trace").addEventListener("click", () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `bpb-trace-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ------------------- squat mode: Phase 0 capture-test spike -------------------
+// Standalone camera controller for the Settings "Squat capture test" row,
+// independent of the live Squat workout screen's own controller — this row
+// exists to answer the go/no-go question (face detected reliably at a
+// couple meters, stand->squat swing big enough) before the real screen is
+// built, per docs/squat-mode-plan.md. Face vertical position is the signal:
+// standing keeps the face near the top of frame, squatting drops it lower.
+const squatTraceState = { trace: [], running: false };
+
+function squatCenterY(bbox, video) {
+  return (bbox.originY + bbox.height / 2) / video.videoHeight;
+}
+
+function updateSquatTestFaceBox(bbox) {
+  const video = $("squat-capture-test-video");
+  const container = $("squat-capture-test-wrap");
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const scale = Math.max(cw / vw, ch / vh);
+  const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
+  const box = $("squat-capture-test-face-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+
+const squatTestCamera = createCameraController({
+  moduleUrl: FACE_DETECTOR_MODULE_URL,
+  wasmUrl: FACE_DETECTOR_WASM_URL,
+  modelUrl: FACE_DETECTOR_MODEL_URL,
+  getVideo: () => $("squat-capture-test-video"),
+  onDetection(bbox, inferenceMs) {
+    const video = $("squat-capture-test-video");
+    updateSquatTestFaceBox(bbox);
+    squatTraceState.trace.push({
+      t: Math.round(performance.now()),
+      centerY: +squatCenterY(bbox, video).toFixed(4),
+      bboxHeight: +(bbox.height / video.videoHeight).toFixed(4),
+      inferenceMs: Math.round(inferenceMs || 0),
+    });
+    if (squatTraceState.trace.length > TRACE_MAX_SAMPLES) squatTraceState.trace.shift();
+  },
+  onNoDetection(inferenceMs, startedAt) {
+    $("squat-capture-test-face-box").classList.add("hidden");
+    squatTraceState.trace.push({ t: Math.round(startedAt), centerY: null, bboxHeight: null, inferenceMs: Math.round(inferenceMs || 0) });
+    if (squatTraceState.trace.length > TRACE_MAX_SAMPLES) squatTraceState.trace.shift();
+  },
+});
+
+async function startSquatCaptureTest() {
+  if (squatTraceState.running) return;
+  $("squat-capture-test-status").textContent = "Requesting camera…";
+  let stream;
+  try {
+    stream = await squatTestCamera.requestStream();
+  } catch (e) {
+    $("squat-capture-test-status").textContent = "Camera access denied.";
+    return;
+  }
+  $("squat-capture-test-status").textContent = "Loading face detector…";
+  try {
+    await squatTestCamera.ensureDetector();
+  } catch (e) {
+    $("squat-capture-test-status").textContent = "Couldn't load the face detection model.";
+    stream.getTracks().forEach((t) => t.stop());
+    return;
+  }
+  const video = $("squat-capture-test-video");
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) { /* autoplay quirks */ }
+  squatTraceState.trace = [];
+  squatTraceState.running = true;
+  $("squat-capture-test-wrap").classList.remove("hidden");
+  $("btn-squat-capture-test").textContent = "Stop capture test";
+  $("squat-capture-test-status").textContent = "Capturing — prop against a wall, stand back, do ten squats.";
+  $("btn-download-squat-trace").classList.add("hidden");
+  squatTestCamera.startDetection();
+}
+
+function stopSquatCaptureTest() {
+  if (!squatTraceState.running) return;
+  squatTestCamera.stop();
+  squatTraceState.running = false;
+  $("squat-capture-test-wrap").classList.add("hidden");
+  $("btn-squat-capture-test").textContent = "Squat capture test";
+  const total = squatTraceState.trace.length;
+  const detected = squatTraceState.trace.filter((s) => s.centerY != null).length;
+  const rate = total ? Math.round((detected / total) * 100) : 0;
+  $("squat-capture-test-status").textContent = total
+    ? `Captured ${total} samples, ${rate}% with a detected face.`
+    : "";
+  $("btn-download-squat-trace").classList.toggle("hidden", !total);
+}
+
+$("btn-squat-capture-test").addEventListener("click", () => {
+  if (squatTraceState.running) stopSquatCaptureTest();
+  else startSquatCaptureTest();
+});
+
+$("btn-download-squat-trace").addEventListener("click", () => {
+  if (!squatTraceState.trace.length) return;
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), samples: squatTraceState.trace }, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `bpb-squat-trace-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 });
