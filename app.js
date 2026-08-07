@@ -60,6 +60,7 @@ import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=134";
 import { MODIFIERS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
+import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=1";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=148";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
@@ -887,6 +888,8 @@ const state = {
   roadtripDetailId: null,
   compareUser: "",
   compareMode: "all",
+  sessionDetailSession: null,
+  sessionDetailOrigin: "screen-dashboard",
   createGoalType: "individual",
   // A brand-new device is willing to refresh only if the browser already has
   // permission. An explicit Clear stores `unknown`, which disables that refresh.
@@ -991,7 +994,7 @@ function showScreen(id) {
   const minimized = (id === "screen-workout" && state.workoutActive) ||
     (id === "screen-plank-workout" && state.plankActive);
   setChromeMinimized(minimized);
-  const activeTab = TAB_FOR_SCREEN[id];
+  const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
   document.querySelectorAll("#tab-bar .tab-item").forEach((btn) => {
     btn.classList.toggle("active", btn.id === activeTab);
     if (btn.id === activeTab) btn.setAttribute("aria-current", "page");
@@ -1007,6 +1010,7 @@ function showScreen(id) {
     renderDeviceLocation();
   }
   if (id === "screen-dashboard") renderDashboard();
+  if (id === "screen-session-detail") renderSessionDetail();
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") renderRoadtrip();
   if (id === "screen-roadtrip-detail") renderRoadtripDetail();
@@ -1906,13 +1910,17 @@ function renderMySessions() {
   }
   for (const s of model.sessions) {
     const row = document.createElement("div");
-    row.className = "my-session-row";
+    row.className = "my-session-row compare-clickable";
     row.innerHTML = `
       <span>${formatDateTime(s.timestamp)}</span>
       <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
     `;
-    row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteSession(s.id));
+    row.querySelector(".btn-delete-user").addEventListener("click", (e) => {
+      e.stopPropagation();
+      confirmDeleteSession(s.id);
+    });
+    row.addEventListener("click", () => openSessionDetail(s, "screen-settings"));
     list.appendChild(row);
   }
   $("btn-my-sessions-more").classList.toggle("hidden", !model.hasMore);
@@ -2492,6 +2500,88 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest("#compare-mode-picker")) setCompareModeMenuOpen(false);
 });
 
+// ------------------- session detail -------------------
+
+// Opened by tapping any session row (leaderboard, challenge recent flexes,
+// My sessions) — remembers where it was opened from so the back button
+// returns there instead of always landing on the dashboard.
+function openSessionDetail(session, originScreenId) {
+  state.sessionDetailSession = session;
+  state.sessionDetailOrigin = originScreenId;
+  showScreen("screen-session-detail");
+}
+
+function renderSessionDetail() {
+  const session = state.sessionDetailSession;
+  if (!session) return;
+  const isPlank = session.type === "plank";
+
+  $("session-detail-user").textContent = `${session.user}'s session`;
+  $("session-detail-date").textContent = formatDateTime(session.timestamp);
+  $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000) : formatNumber(session.count);
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : "TOTAL PUSHUPS";
+
+  $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
+    <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
+  `).join("");
+
+  const rings = sessionRings(session, getAllSessionsForDisplay());
+  $("session-detail-rings").innerHTML = rings.map((ring) => {
+    if (!ring.hasData) {
+      return `
+        <div class="session-ring-item no-data">
+          <div class="session-ring"><div class="session-ring-inner">Not enough data</div></div>
+          <div class="session-ring-label">${escapeHtml(ring.label)}</div>
+        </div>
+      `;
+    }
+    const pct = ring.pct != null ? ring.pct : Math.round(ring.fill * 100);
+    const displayText = ring.diffPct != null ? `${ring.diffPct >= 0 ? "+" : ""}${ring.diffPct}%` : `${pct}%`;
+    const color = ring.diffPct != null ? (ring.diffPct >= 0 ? "var(--success)" : "var(--danger)") : "var(--gold)";
+    return `
+      <div class="session-ring-item">
+        <div class="session-ring" style="--ring-pct:${Math.round(ring.fill * 100)}%;--ring-color:${color}">
+          <div class="session-ring-inner">${displayText}</div>
+        </div>
+        <div class="session-ring-label">${escapeHtml(ring.label)}</div>
+        <div class="session-ring-sub">${formatNumber(ring.value)} vs ${formatNumber(ring.compareValue)}</div>
+      </div>
+    `;
+  }).join("");
+
+  $("session-detail-metrics").innerHTML = sessionKeyMetrics(session).map((metric) => `
+    <div class="stats-table-row"><span class="stats-table-label">${metric.label}</span><span class="stats-table-value">${formatSessionMetric(metric)}</span></div>
+  `).join("");
+}
+
+function formatSessionMetric(metric) {
+  if (metric.format === "boolean") return metric.value ? "Yes" : "No";
+  if (metric.format === "text") return escapeHtml(String(metric.value));
+  return formatModeMetric(metric);
+}
+
+async function shareSessionDetail() {
+  const session = state.sessionDetailSession;
+  if (!session) return;
+  const isPlank = session.type === "plank";
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : `${formatNumber(session.count)} pushups`;
+  const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
+  const url = location.href;
+  if (navigator.share) {
+    try { await navigator.share({ title: "Boys Pushup Bonanza", text: message, url }); } catch (e) { /* cancelled */ }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — paste it in the group chat!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy your result manually.", 4000);
+  }
+}
+
+$("btn-session-detail-back").addEventListener("click", () => showScreen(state.sessionDetailOrigin || "screen-dashboard"));
+$("btn-session-detail-share").addEventListener("click", shareSessionDetail);
+
 function paintMyBonanza(sessions) {
   const isPlank = state.activityType === "planks";
   const activityWord = isPlank ? "planks" : "pushups";
@@ -2630,9 +2720,16 @@ function paintDashboard(sessions) {
       makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
       const sessionsWrap = document.createElement("div");
       sessionsWrap.className = "history-sessions";
-      sessionsWrap.innerHTML = userSessions
-        .map((s) => `<div class="history-session-row"><span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${fmtCount(s.count)}</span></div>`)
-        .join("");
+      for (const s of userSessions) {
+        const sessionRow = document.createElement("div");
+        sessionRow.className = "history-session-row compare-clickable";
+        sessionRow.innerHTML = `<span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${fmtCount(s.count)}</span>`;
+        sessionRow.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openSessionDetail(s, "screen-dashboard");
+        });
+        sessionsWrap.appendChild(sessionRow);
+      }
       group.appendChild(header);
       group.appendChild(sessionsWrap);
       historyList.appendChild(group);
@@ -2654,14 +2751,15 @@ function renderRecentList(sessions) {
   }
   for (const s of recent) {
     const row = document.createElement("div");
-    row.className = "recent-row";
+    row.className = "recent-row compare-clickable";
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
       <div class="recent-count">${isPlank ? formatDuration(s.count * 1000) : formatNumber(s.count)}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
-    makeNameCompareClickable(row.querySelector(".recent-name"), s.user);
+    makeNameCompareClickable(row.querySelector(".recent-name"), s.user, true);
+    row.addEventListener("click", () => openSessionDetail(s, "screen-dashboard"));
     recentList.appendChild(row);
   }
 }
@@ -3339,13 +3437,14 @@ function paintChallengeRecent(sessions) {
   }
   for (const s of recent) {
     const row = document.createElement("div");
-    row.className = "recent-row";
+    row.className = "recent-row compare-clickable";
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
       <div class="recent-count">${formatNumber(s.count)}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
+    row.addEventListener("click", () => openSessionDetail(s, "screen-challenge-detail"));
     el.appendChild(row);
   }
 }

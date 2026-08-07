@@ -2607,6 +2607,111 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .compare-clickable { cursor: pointer; }
 .compare-clickable:active { opacity: 0.7; }
 
+/* ---------------- Session detail ---------------- */
+/* Reached by tapping any session row (leaderboard, challenge recent flexes,
+   My sessions) — a single-session summary, reusing the rings language from
+   the head-to-head bars: "how did this session stack up". */
+.session-detail-card {
+  width: min(100%, 30rem);
+  margin: 0 auto;
+  padding: 1.15rem 1rem 1.25rem;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--bg-elevated) 90%, #0a0703);
+  box-shadow: var(--shadow);
+}
+.session-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.session-detail-back-btn { flex: none; font-size: 1.3rem; }
+.session-detail-title-wrap { flex: 1; min-width: 0; }
+.session-detail-title {
+  font-weight: 800;
+  font-size: 1.05rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-detail-date { color: var(--text-dim); font-size: 0.8rem; }
+
+.session-detail-hero { text-align: center; padding: 0.5rem 0 0.75rem; }
+.session-detail-count {
+  font-size: 3.4rem;
+  font-weight: 900;
+  color: var(--primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.session-detail-count-label {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.session-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--primary) 16%, var(--bg-elevated-2));
+  color: var(--primary);
+}
+.session-badge-modifier { background: color-mix(in srgb, #4a90d9 18%, var(--bg-elevated-2)); color: #4a90d9; }
+.session-badge-weighted { background: color-mix(in srgb, var(--gold) 20%, var(--bg-elevated-2)); color: var(--gold); }
+
+.session-detail-rings {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 0.5rem 0 1.25rem;
+}
+.session-ring-item { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; width: 6rem; }
+.session-ring {
+  --ring-pct: 0%;
+  --ring-color: var(--success);
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  background: conic-gradient(var(--ring-color) var(--ring-pct), color-mix(in srgb, var(--border) 60%, transparent) 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.session-ring-inner {
+  width: 4.3rem;
+  height: 4.3rem;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ring-color);
+  text-align: center;
+}
+.session-ring-item.no-data .session-ring { --ring-color: var(--text-tertiary); --ring-pct: 0%; }
+.session-ring-item.no-data .session-ring-inner { color: var(--text-tertiary); font-size: 0.68rem; font-weight: 600; padding: 0 0.3rem; }
+.session-ring-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); text-align: center; }
+.session-ring-sub { font-size: 0.72rem; color: var(--text-dim); text-align: center; }
+
+.session-detail-metrics { margin-top: 0.25rem; }
+
 /* ---------------- Edit profile ---------------- */
 
 .edit-profile-header {
