@@ -2130,6 +2130,7 @@ function renderRoadtripDetail() {
     const el = document.createElement("div");
     el.className = `leaderboard-row${row.rank === 1 ? " rank-1" : ""}${isPinned ? " roadtrip-user-pinned" : ""}`;
     el.innerHTML = `<div class="leaderboard-rank">${row.rank}</div>${avatarCircleHTML(avatarForUser(row.name), "2rem")}<div class="leaderboard-name">${escapeHtml(row.name)}${row.name === state.currentUser ? " <span class=\"roadtrip-you\">You</span>" : ""}</div><div class="leaderboard-total">${formatNumber(row.total)}</div>`;
+    makeNameCompareClickable(el.querySelector(".leaderboard-name"), row.name);
     list.appendChild(el);
   };
   top.forEach((row) => appendUser(row));
@@ -3555,6 +3556,7 @@ function paintChallengeLeaderboard(c) {
       <div class="leaderboard-name">${escapeHtml(row.name)}</div>
       <div class="leaderboard-total">${scoreText}</div>
     `;
+    makeNameCompareClickable(rowEl.querySelector(".leaderboard-name"), row.name);
     el.appendChild(rowEl);
   });
 }
