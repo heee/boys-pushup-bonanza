@@ -30,9 +30,14 @@ import {
   SQUAT_START_LINES,
   FUN_MESSAGES_SQUAT,
   VOICE_PRESETS,
+  WHEEL_DOUBLE_PREFIX,
+  WHEEL_BOSS_LINE,
+  WHEEL_FREEBIE_LINE,
+  WHEEL_BUST_LINE,
+  WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=134";
+} from "./voice-lines.js?v=135";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -832,10 +837,29 @@ function initializeWheelDial() {
     return `<span class="wheel-slice-label" style="transform: rotate(${rotDeg}deg) translateY(-6.1rem) rotate(${-rotDeg}deg)" aria-hidden="true">${seg.icon}</span>`;
   }).join("");
 
+  // Theme tokens (style.css :root), not arbitrary hex — the dial reads as
+  // part of the app's own warm palette instead of a generic Material-green
+  // wheel, and it now follows light/dark theme changes automatically since
+  // these are CSS custom properties, not baked-in colors. Numbers ramp
+  // through the primary/orange family (color-mix blends the in-between
+  // steps); each special segment gets a color tied to its meaning — grip/
+  // tempo are neutral modifiers, spin-again/double are wildcards, freebie
+  // is "good" (success green), boss is prestige (gold), bust is "bad"
+  // (danger red) — matching how Cards/Poker/Dice already lean on these
+  // same tokens for their own mode-specific accents.
   const colors = [
-    "#e8f5e9", "#c8e6c9", "#a5d6a7", "#81c784", "#66bb6a",
-    "#4caf50", "#43a047", "#2e7d32", "#1b5e20", "#ffd54f",
-    "#ffb300", "#ff6f00"
+    "var(--primary-deep)",
+    "color-mix(in srgb, var(--primary-deep), var(--primary) 50%)",
+    "var(--primary)",
+    "color-mix(in srgb, var(--primary), var(--primary-dim) 50%)",
+    "var(--primary-dim)",
+    "var(--accent-2)",
+    "color-mix(in srgb, var(--accent-2), var(--bg-elevated-2) 55%)",
+    "var(--text-tertiary)",
+    "var(--flame)",
+    "var(--success)",
+    "var(--gold)",
+    "var(--danger)",
   ];
 
   const gradientStops = segments.map((seg, idx) => `${colors[idx % colors.length]} ${seg.startDeg}deg ${seg.endDeg}deg`);
@@ -858,15 +882,15 @@ function wheelSpokenForResult(result) {
   const hadDouble = result.landings.some((l) => l.type === "double");
   const n = numberToWords(result.targetReps);
   let line;
-  if (finalType === "boss") line = `Boss number! ${n}!`;
-  else if (finalType === "freebie") line = `Freebie! Just ${n}.`;
-  else if (finalType === "bust") line = `Bust! Same again: ${n}!`;
+  if (finalType === "boss") line = WHEEL_BOSS_LINE(n);
+  else if (finalType === "freebie") line = WHEEL_FREEBIE_LINE(n);
+  else if (finalType === "bust") line = WHEEL_BUST_LINE(n);
   else if (finalType === "grip") {
-    const modTitle = MODIFIERS.find((m) => m.id === result.modifierId)?.title || "Grip switch";
-    line = `${modTitle}! ${n}!`;
-  } else if (finalType === "tempo") line = `Slow tempo! ${n}!`;
+    const gripLabel = MODIFIERS.find((m) => m.id === result.modifierId)?.cueLabel || "Grip switch";
+    line = `${gripLabel}! ${n}!`;
+  } else if (finalType === "tempo") line = WHEEL_TEMPO_LINE(n);
   else line = `${n}!`;
-  return hadDouble ? `Double or nothing! ${line}` : line;
+  return hadDouble ? `${WHEEL_DOUBLE_PREFIX} ${line}` : line;
 }
 
 // Animates the dial through the landings array in sequence, then commits
@@ -893,7 +917,12 @@ function playWheelSpin(result) {
       state.wheelTarget = result.targetReps;
       state.wheelRepsDone = 0;
       state.wheelSetModifier = result.modifierId;
-      state.wheelCue = { label: result.cueLabel, sub: result.cueSub, targetReps: result.targetReps };
+      const gripModifier = result.modifierId ? MODIFIERS.find((m) => m.id === result.modifierId) : null;
+      state.wheelCue = {
+        label: result.cueLabel || gripModifier?.cueLabel || null,
+        sub: result.cueSub || gripModifier?.cueSub || null,
+        targetReps: result.targetReps,
+      };
       state.wheelSpinning = false;
       renderWheel();
       highlight.classList.add("show");

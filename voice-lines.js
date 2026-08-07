@@ -266,6 +266,19 @@ export const PYRAMID_ROW_CHEER_LINES = [
   "Onward and upward!",
 ];
 
+// Wheel of pain — spoken when a spin lands (see wheelSpokenForResult in
+// app.js). Numbers reuse the shared numberToWords corpus above; only the
+// fixed prose around them needs its own clips. Grip-switch labels mirror
+// MODIFIERS' cueLabel strings (screens/modifiers.js) — kept as a flat list
+// here rather than importing that module, so the voice corpus doesn't take
+// a dependency on a UI screen.
+export const WHEEL_DOUBLE_PREFIX = "Double or nothing!";
+export const WHEEL_BOSS_LINE = (n) => `Boss number! ${n}!`;
+export const WHEEL_FREEBIE_LINE = (n) => `Freebie! Just ${n}.`;
+export const WHEEL_BUST_LINE = (n) => `Bust! Same again: ${n}!`;
+export const WHEEL_TEMPO_LINE = (n) => `Slow tempo! ${n}!`;
+export const WHEEL_GRIP_LABELS = ["Standard Grip", "Wide Grip", "Close Grip", "Diamond Grip", "Staggered Grip", "Archer", "Incline", "Decline"];
+
 export const PYRAMID_APEX_LINE = "Apex reached! The tomb has been disturbed.";
 export const PYRAMID_TURNAROUND_LINE = "Turning around! Now we rebuild what we destroyed.";
 export const PYRAMID_COMPLETE_LINE = "Pyramid complete! Let the history books remember this.";
@@ -403,6 +416,11 @@ export function buildCorpus() {
   add(PYRAMID_APEX_LINE, "hype");
   add(PYRAMID_TURNAROUND_LINE, "hype");
   add(PYRAMID_COMPLETE_LINE, "hype");
+  add(WHEEL_DOUBLE_PREFIX, "hype");
+  for (const label of WHEEL_GRIP_LABELS) add(label, "hype");
+  for (const fn of [WHEEL_BOSS_LINE, WHEEL_FREEBIE_LINE, WHEEL_BUST_LINE, WHEEL_TEMPO_LINE]) {
+    for (const frag of templateFragments(fn)) add(frag, "hype");
+  }
   for (const lines of Object.values(POKER_CALLOUTS)) {
     for (const line of lines) add(line, "hype");
   }
