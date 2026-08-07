@@ -16,10 +16,12 @@ export const MODE_META = {
   fortune: { label: "Fortune", icon: "🥠" },
   chase: { label: "Chase", icon: "🏃" },
   planks: { label: "Planks", icon: "🪵" },
+  squats: { label: "Squats", icon: "🦵" },
 };
 
 export function sessionModeId(session) {
   if (session?.type === "plank") return "planks";
+  if (session?.type === "squat") return "squats";
   return session?.mode || "classic";
 }
 

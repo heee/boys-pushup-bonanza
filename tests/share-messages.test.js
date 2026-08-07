@@ -25,6 +25,7 @@ test("every completed workout mode keeps its own unhinged share theme", async ()
       ["fortune", 24, { mode: "fortune", fortuneCtx: { title: "PERFECT FORM", target: null } }, /FORTUNE COOKIE assigned PERFECT FORM.*24 pushups/],
       ["zen", 20, { mode: "zen", isZen: true }, /ZEN MODE: 20 silent pushups/],
       ["plank", "1:30", { mode: "plank", isPlank: true }, /1:30 pretending to be a coffee table/],
+      ["squat", 15, { mode: "squat", isSquat: true }, /15 squats.*recliner.*unemployment/],
     ];
 
     for (const [mode, count, ctx, expected] of cases) {

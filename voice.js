@@ -14,7 +14,7 @@
 // so nothing ever goes silent.
 // ===========================================================
 
-import { normalizeSpoken, numberToWords, VOICE_PRESETS } from "./voice-lines.js?v=133";
+import { normalizeSpoken, numberToWords, VOICE_PRESETS } from "./voice-lines.js?v=134";
 
 const LS_VOICE_PRESET = "bpb-voice-preset";
 const DEFAULT_PRESET_ID = VOICE_PRESETS[0].id;

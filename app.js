@@ -32,7 +32,7 @@ import {
   VOICE_PRESETS,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=133";
+} from "./voice-lines.js?v=134";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -46,7 +46,7 @@ import {
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=147";
+} from "./voice.js?v=148";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin } from "./wheel-mode.js?v=2";
@@ -62,10 +62,10 @@ import { modeStatsModel } from "./screens/mode-stats.js?v=133";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=135";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=136";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=1";
+import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=2";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=149";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
@@ -5806,7 +5806,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=133").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=134").then((module) => {
       workoutShareMessages = module;
       return module;
     });

@@ -15,6 +15,8 @@ test("sessionModeId/Label fall back to classic and read plank type", () => {
   assert.equal(sessionModeId(session()), "classic");
   assert.equal(sessionModeId(session({ mode: "pyramid" })), "pyramid");
   assert.equal(sessionModeId(session({ type: "plank", count: 60 })), "planks");
+  assert.equal(sessionModeId(session({ type: "squat", count: 15 })), "squats");
+  assert.equal(sessionModeLabel(session({ type: "squat", count: 15 })), "Squats");
   assert.equal(sessionModeLabel(session({ mode: "ladder" })), "Ladder");
 });
 
@@ -41,6 +43,10 @@ test("sessionKeyMetrics surfaces mode-specific fields and drops nulls", () => {
 
   const planks = sessionKeyMetrics(session({ type: "plank", count: 60 }));
   assert.ok(!planks.some((m) => m.id === "duration"));
+
+  const squats = sessionKeyMetrics(session({ type: "squat", count: 15 }));
+  assert.ok(squats.some((m) => m.id === "duration"));
+  assert.ok(squats.some((m) => m.id === "pace"));
 
   const poker = sessionKeyMetrics(session({ mode: "poker", pokerHandsCompleted: 3, pokerBestRank: 6 }));
   assert.deepEqual(poker.find((m) => m.id === "pokerBestHand"), { id: "pokerBestHand", label: "Best hand", format: "pokerHand", value: 6 });

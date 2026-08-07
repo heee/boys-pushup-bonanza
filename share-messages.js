@@ -205,6 +205,17 @@ const SHARE_MESSAGES_PLANK_UNHINGED = [
   (t) => `Held ${t} while every cell in my body drafted a resignation email.`,
 ];
 
+const SHARE_MESSAGES_SQUAT = [
+  (n) => `${n} squats! 🦵 A recliner somewhere just filed for unemployment.`,
+  (n) => `Did ${n} squats. My chair has been formally replaced.`,
+  (n) => `${n} reps of thigh chaos, no witnesses, several offended elevators.`,
+  (n) => `Squatted ${n} times. Gravity sends its regards and a lawyer.`,
+  (n) => `${n} squats deep. The floor has seen entirely too much of me today.`,
+  (n) => `Camera counted ${n} squats and did not editorialize. Impressive restraint.`,
+  (n) => `${n} squats logged. Quads the size of Sunday dinner, ego to match.`,
+  (n) => `Put up ${n} squats and made every chair in the house nervous.`,
+];
+
 const SHARE_MESSAGES_STREAK = [
   (n, ctx) => `${n} pushups and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
   (n, ctx) => `${ctx.streak} days straight, ${n} pushups today 😤 Consistency is the cheat code.`,
@@ -573,6 +584,8 @@ export function pickShareMessage(count, ctx) {
     pool = SHARE_MESSAGES_ZEN_UNHINGED;
   } else if (mode === "plank") {
     pool = SHARE_MESSAGES_PLANK_UNHINGED;
+  } else if (mode === "squat") {
+    pool = SHARE_MESSAGES_SQUAT;
   } else {
     pool = SHARE_MESSAGES_CLASSIC_UNHINGED;
   }

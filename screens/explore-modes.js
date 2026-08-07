@@ -3,6 +3,7 @@ export const EXPLORE_MODES = [
   { id: "cards", icon: "🃏", title: "Cards", tagline: "Flip a card, match the move", live: true },
   { id: "dice", icon: "🎲", title: "Dice roll", tagline: "Hit the number before next roll", live: true },
   { id: "plank", icon: "🪵", title: "Plank", tagline: "Hold your ground, beat your own time", live: true },
+  { id: "squat", icon: "🦵", title: "Squat", tagline: "Camera-counted squats, beat your own reps", live: true },
   { id: "ladder", icon: "🪜", title: "Ladder", tagline: "Climb the ladder, cash out anytime", live: true },
   { id: "fortune", icon: "🥠", title: "Fortune cookie", tagline: "One set, one revealed challenge", live: true },
   { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Hunt the first board you don't already lead", live: true },
@@ -17,7 +18,7 @@ export const EXPLORE_MODES = [
 function usageByMode(sessions) {
   const counts = new Map();
   for (const session of sessions) {
-    const id = session.type === "plank" ? "plank" : session.mode;
+    const id = session.type === "plank" ? "plank" : session.type === "squat" ? "squat" : session.mode;
     if (id) counts.set(id, (counts.get(id) || 0) + 1);
   }
   return counts;
