@@ -42,7 +42,7 @@ import {
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=146";
+} from "./voice.js?v=147";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, segmentAngles, resolveWheelSpin } from "./wheel-mode.js?v=1";

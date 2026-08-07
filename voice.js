@@ -61,6 +61,12 @@ let mediaVoiceSignature = "";
 let mediaPrimedKey = "";
 let lifecycleRecoveryInstalled = false;
 
+// How long after the last scheduled sound ends before we release the iOS
+// audio route. Long enough that per-rep counting never churns the session,
+// short enough that a paused podcast resumes during a normal rest.
+const ROUTE_RELEASE_GRACE_MS = 12000;
+let routeReleaseTimer = null;
+
 // ---------- setup ----------
 
 function isIOSHomeScreenApp() {
@@ -227,9 +233,33 @@ function playPrimedGestureClip(text) {
   }
 }
 
+// Releases the OS audio route so iOS deactivates our session and lets the
+// interrupted app (Podcasts/Music) resume. Keeps ctx, decoded buffers, and
+// unlockAudioEl intact — unlockVoice() re-claims the same objects. Never
+// recreate unlockAudioEl: the existing instance carries the user-gesture
+// activation that lets it re-play() outside a tap.
+export function releaseVoiceRoute() {
+  if (routeReleaseTimer) { clearTimeout(routeReleaseTimer); routeReleaseTimer = null; }
+  if (!unlocked) return;
+  unlocked = false;
+  clearActiveSources();
+  if (unlockAudioEl) {
+    try { unlockAudioEl.pause(); } catch (e) { /* best effort */ }
+  }
+  if (ctx?.state === "running") {
+    try { const p = ctx.suspend(); if (p?.catch) p.catch(() => {}); } catch (e) { /* best effort */ }
+  }
+}
+
+function scheduleRouteRelease(activeMs) {
+  if (routeReleaseTimer) clearTimeout(routeReleaseTimer);
+  routeReleaseTimer = setTimeout(releaseVoiceRoute, activeMs + ROUTE_RELEASE_GRACE_MS);
+}
+
 // iOS/Safari will not produce sound from an AudioContext that was never
 // resumed inside a user gesture. Call this from a tap handler.
 export function unlockVoice() {
+  if (routeReleaseTimer) { clearTimeout(routeReleaseTimer); routeReleaseTimer = null; }
   refreshAudioGraphIfNeeded();
   if (!ctx) return;
   try {
@@ -417,6 +447,7 @@ export function stopVoice() {
 // but leaving it running also keeps background audio (such as Podcasts)
 // interrupted even though this page is no longer speaking.
 export function deactivateVoice() {
+  if (routeReleaseTimer) { clearTimeout(routeReleaseTimer); routeReleaseTimer = null; }
   unlocked = false;
   generation++;
   clearActiveSources();
@@ -511,6 +542,7 @@ function play(bufs) {
       activeSources.push(src);
     } catch (e) { /* skip a source that cannot start */ }
   }
+  scheduleRouteRelease((when - ctx.currentTime) * 1000);
 }
 
 /**
@@ -584,7 +616,11 @@ export function speakFallback(text) {
     if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.05;
+    u.onend = () => scheduleRouteRelease(0);
     speechSynthesis.speak(u);
+    // Safety net: speechSynthesis.onend is a known flake, so also schedule
+    // from a fixed budget in case it never fires.
+    scheduleRouteRelease(15000);
   } catch (e) { /* speech synthesis is best effort */ }
 }
 
@@ -599,7 +635,11 @@ export function speakCalm(text) {
     u.rate = 0.82;
     u.pitch = 0.9;
     u.volume = 0.78;
+    u.onend = () => scheduleRouteRelease(0);
     speechSynthesis.speak(u);
+    // Safety net: speechSynthesis.onend is a known flake, so also schedule
+    // from a fixed budget in case it never fires.
+    scheduleRouteRelease(15000);
   } catch (e) { /* speech synthesis is best effort */ }
 }
 
@@ -631,6 +671,7 @@ export function playZenGong() {
       oscillator.stop(start + duration + 0.05);
       activeSources.push(oscillator);
     }
+    scheduleRouteRelease(3500);
     return 1150;
   } catch (e) {
     return 0;
@@ -672,6 +713,7 @@ export function playSharpshooterHit() {
     ping.start(start + 0.045);
     ping.stop(start + 0.36);
     activeSources.push(ping);
+    scheduleRouteRelease(400);
     return 260;
   } catch (e) {
     return 0;

@@ -201,3 +201,142 @@ test("installed iOS app keeps the proven Web Audio voice route", async (t) => {
   assert.equal(webAudioStarts, 1, "the established Web Audio graph should be unlocked");
   assert.equal(audioSession.type, "auto");
 });
+
+test("route releases after a grace period of silence and re-claims on the next unlockVoice()", async (t) => {
+  const originalWindow = globalThis.window;
+  const originalAudio = globalThis.Audio;
+  const originalFetch = globalThis.fetch;
+  const originalLocalStorage = globalThis.localStorage;
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const originalSpeechSynthesis = globalThis.speechSynthesis;
+  const originalUtterance = globalThis.SpeechSynthesisUtterance;
+
+  let audioElement;
+  let audioContext;
+  const audioSession = { type: "auto" };
+
+  class FakeAudioContext {
+    constructor() {
+      audioContext = this;
+      this.currentTime = 0;
+      this.destination = {};
+      this.sampleRate = 44100;
+      this.state = "suspended";
+      this.suspendCalls = 0;
+    }
+
+    createGain() {
+      return { connect() {} };
+    }
+
+    createBuffer() {
+      return {};
+    }
+
+    createBufferSource() {
+      return { connect() {}, start() {}, stop() {} };
+    }
+
+    resume() {
+      this.state = "running";
+      return Promise.resolve();
+    }
+
+    suspend() {
+      this.state = "suspended";
+      this.suspendCalls += 1;
+      return Promise.resolve();
+    }
+  }
+
+  class FakeAudio {
+    constructor() {
+      audioElement = this;
+      this.currentTime = 0;
+      this.paused = true;
+      this.pauseCalls = 0;
+      this.playCalls = 0;
+    }
+
+    setAttribute() {}
+
+    play() {
+      this.playCalls += 1;
+      this.paused = false;
+      return Promise.resolve();
+    }
+
+    pause() {
+      this.pauseCalls += 1;
+      this.paused = true;
+    }
+  }
+
+  class FakeUtterance {
+    constructor(text) {
+      this.text = text;
+      this.onend = null;
+    }
+  }
+
+  const fakeSpeechSynthesis = {
+    speaking: false,
+    pending: false,
+    cancel() {},
+    speak() { /* onend is only fired if the test triggers it explicitly */ },
+  };
+
+  globalThis.window = { AudioContext: FakeAudioContext, speechSynthesis: fakeSpeechSynthesis };
+  globalThis.Audio = FakeAudio;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ clips: { one: "one.mp3" } }),
+  });
+  globalThis.localStorage = { getItem: () => null };
+  globalThis.speechSynthesis = fakeSpeechSynthesis;
+  globalThis.SpeechSynthesisUtterance = FakeUtterance;
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: { audioSession },
+  });
+
+  t.after(() => {
+    globalThis.window = originalWindow;
+    globalThis.Audio = originalAudio;
+    globalThis.fetch = originalFetch;
+    globalThis.localStorage = originalLocalStorage;
+    if (originalNavigator) {
+      Object.defineProperty(globalThis, "navigator", originalNavigator);
+    } else {
+      delete globalThis.navigator;
+    }
+    if (originalSpeechSynthesis === undefined) delete globalThis.speechSynthesis;
+    else globalThis.speechSynthesis = originalSpeechSynthesis;
+    if (originalUtterance === undefined) delete globalThis.SpeechSynthesisUtterance;
+    else globalThis.SpeechSynthesisUtterance = originalUtterance;
+  });
+
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+
+  const { initVoice, unlockVoice, speakFallback } = await import(`../voice.js?route-release-test=${Date.now()}`);
+  assert.equal(await initVoice(), true);
+
+  unlockVoice();
+  assert.equal(audioElement.paused, false);
+  assert.equal(audioContext.state, "running");
+
+  // speakFallback's onend never fires in this mock, so only the 15s safety-net
+  // schedule applies; add the 12s release grace on top.
+  speakFallback("nice work");
+  t.mock.timers.tick(15000 + 12000);
+
+  assert.equal(audioElement.paused, true, "unlockAudioEl should be paused once the route releases");
+  assert.equal(audioElement.pauseCalls, 1);
+  assert.equal(audioContext.suspendCalls, 1);
+  assert.equal(audioContext.state, "suspended");
+
+  unlockVoice();
+  assert.equal(audioElement.paused, false, "the next unlockVoice() should re-claim the same element");
+  assert.equal(audioElement.playCalls, 2);
+  assert.equal(audioContext.state, "running");
+});
