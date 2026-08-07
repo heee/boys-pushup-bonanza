@@ -45,6 +45,7 @@ import {
 } from "./voice.js?v=146";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
+import { WHEEL_SEGMENTS, segmentAngles, resolveWheelSpin } from "./wheel-mode.js?v=1";
 import { createWorkerApi, isRetryableError } from "./api.js";
 import { createJsonStorage, normalizeSharedData } from "./storage.js";
 import { createMutationQueue } from "./sync.js";
@@ -57,11 +58,11 @@ import { modeStatsModel } from "./screens/mode-stats.js?v=133";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=134";
-import { MODIFIERS, resolveModifier } from "./screens/modifiers.js?v=100";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=135";
+import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=1";
-import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=148";
+import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=149";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
   formatTerritoryLocation,
@@ -803,6 +804,124 @@ function advanceToNextRoll() {
   return next;
 }
 
+// ------------------- wheel mode -------------------
+
+function initializeWheelDial() {
+  const dial = $("wheel-dial");
+  const segments = segmentAngles();
+
+  // Generate 12 label spans from segmentAngles()
+  dial.innerHTML = segments.map((seg) => {
+    const rotDeg = seg.midDeg;
+    const rotateCW = rotDeg;
+    const rotateCCW = -rotDeg;
+    return `<span class="wheel-slice-label" style="transform: rotate(${rotateCW}deg) translateY(-8.5rem) rotate(${rotateCCW}deg)" aria-hidden="true">${seg.icon}</span>`;
+  }).join("");
+
+  // Build conic-gradient colors for each segment
+  const colors = [
+    "#e8f5e9", "#c8e6c9", "#a5d6a7", "#81c784", "#66bb6a",
+    "#4caf50", "#43a047", "#2e7d32", "#1b5e20", "#ffd54f",
+    "#ffb300", "#ff6f00"
+  ];
+
+  let gradientStops = [];
+  segments.forEach((seg, idx) => {
+    const color = colors[idx % colors.length];
+    gradientStops.push(`${color} ${seg.startDeg}deg ${seg.endDeg}deg`);
+  });
+
+  dial.style.background = `conic-gradient(from 0deg, ${gradientStops.join(", ")})`;
+  dial.style.setProperty("--wheel-rot", "0deg");
+}
+
+let wheelSpinTimer = null;
+
+// Animates the dial through the landings array in sequence, then commits
+// the final target/modifier/cue to state.
+function playWheelSpin(result) {
+  const landings = result.landings;
+  const dial = $("wheel-dial");
+
+  clearTimeout(wheelSpinTimer);
+
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Animate through each landing in sequence
+  let landingIndex = 0;
+
+  function animateNextLanding() {
+    if (landingIndex >= landings.length) {
+      // All landings done, commit the final result
+      state.wheelTarget = result.targetReps;
+      state.wheelRepsDone = 0;
+      state.wheelSetModifier = result.modifierId;
+      state.wheelCue = result.cueLabel ? { label: result.cueLabel, sub: result.cueSub } : null;
+      state.wheelSpinning = false;
+      dial.classList.remove("spinning");
+      renderWheel();
+      $("wheel-spin-btn").disabled = false;
+      return;
+    }
+
+    const landing = landings[landingIndex];
+    const segments = segmentAngles();
+    const segment = segments.find((s) => s.id === landing.id);
+
+    if (!segment) {
+      landingIndex++;
+      animateNextLanding();
+      return;
+    }
+
+    // Determine spin parameters based on whether this is final or intermediate
+    const isFinal = landingIndex === landings.length - 1;
+    const fullSpins = isFinal ? (3 + Math.floor(Math.random() * 3)) : (1 + Math.floor(Math.random() * 2));
+    const targetRotation = (fullSpins * 360) + (360 - segment.midDeg);
+
+    dial.style.setProperty("--wheel-rot", `${targetRotation}deg`);
+
+    if (reduceMotion) {
+      dial.style.transform = `rotate(${targetRotation}deg)`;
+      landingIndex++;
+      wheelSpinTimer = setTimeout(animateNextLanding, 50);
+    } else {
+      dial.classList.remove("spinning");
+      void dial.offsetWidth; // force reflow
+      dial.classList.add("spinning");
+
+      // Duration depends on whether this is final
+      const duration = isFinal ? 1100 : 400;
+      wheelSpinTimer = setTimeout(() => {
+        dial.classList.remove("spinning");
+        landingIndex++;
+        wheelSpinTimer = setTimeout(animateNextLanding, 100);
+      }, duration);
+    }
+  }
+
+  animateNextLanding();
+}
+
+function renderWheel() {
+  const wheelCueEl = $("wheel-cue");
+  if (state.wheelCue) {
+    wheelCueEl.textContent = state.wheelCue.label;
+    wheelCueEl.title = state.wheelCue.sub;
+    wheelCueEl.classList.remove("hidden");
+  } else {
+    wheelCueEl.classList.add("hidden");
+  }
+
+  // Show/hide spin button based on whether we have a target
+  const spinBtn = $("wheel-spin-btn");
+  if (state.wheelTarget === 0) {
+    spinBtn.style.display = "block";
+  } else {
+    spinBtn.style.display = "none";
+  }
+}
+
 // ------------------- app state -------------------
 
 const state = {
@@ -827,6 +946,13 @@ const state = {
   diceTarget: 0,
   diceRepsDone: 0,
   diceRollsCleared: [],
+  wheelTarget: 0,
+  wheelRepsDone: 0,
+  wheelLastTarget: 0,
+  wheelSetModifier: null,
+  wheelCue: null,
+  wheelSpinning: false,
+  wheelLandings: [],
   ladderRung: 1,
   ladderRepsDone: 0,
   ladderMaxRungCleared: 0,
@@ -1499,7 +1625,7 @@ function renderPushupModePicker() {
   const selected = state.pushupMode === "classic"
     ? { id: "classic", title: "Classic", icon: "" }
     : EXPLORE_MODES.find((mode) => mode.id === state.pushupMode);
-  const compactTitles = { dice: "Dice", fortune: "Fortune", chase: "Chase", poker: "Poker", zen: "Zen" };
+  const compactTitles = { dice: "Dice", wheel: "Wheel", fortune: "Fortune", chase: "Chase", poker: "Poker", zen: "Zen" };
   const selectedTitle = selected ? (compactTitles[selected.id] || selected.title) : "Classic";
   current.dataset.pmode = selected?.id || "classic";
   current.textContent = selected ? `${selected.icon ? `${selected.icon} ` : ""}${selectedTitle}` : "Classic";
@@ -3968,6 +4094,12 @@ function renderHeroForCount(count) {
     const remaining = model.remaining;
     $("dice-session-total").textContent = `${remaining} left this roll · ${formatNumber(count)} total`;
     updateModeCounterBadge("dice-counter-badge", remaining);
+  } else if (model.kind === "wheel") {
+    // Same subordinate-line pattern as Cards/Dice — the wheel dial is the focal
+    // point, not a giant number.
+    const remaining = model.remaining;
+    $("wheel-session-total").textContent = `${remaining} left this spin · ${formatNumber(count)} total`;
+    updateModeCounterBadge("wheel-counter-badge", remaining);
   } else if (model.kind === "ladder") {
     // Like Cards/Dice, no giant hero number — the rung window itself is the
     // focal visual (see setupWorkoutModeState). Reps-remaining-on-this-rung
@@ -4536,6 +4668,15 @@ function onRepCounted(count) {
     if (state.diceRepsDone >= state.diceTarget) {
       rolledDice = advanceToNextRoll();
     }
+  } else if (state.pushupMode === "wheel") {
+    state.wheelRepsDone += 1;
+    if (state.wheelRepsDone >= state.wheelTarget) {
+      state.wheelLastTarget = state.wheelTarget;
+      state.wheelSetModifier = null;
+      state.wheelCue = null;
+      // do NOT auto-advance — show the Spin button again and wait for the tap
+      renderWheel();
+    }
   } else if (state.pushupMode === "ladder") {
     state.ladderRepsDone += 1;
     if (state.ladderRepsDone >= state.ladderRung) {
@@ -4853,6 +4994,23 @@ async function setupWorkoutModeState() {
   }
   $("dice-hud").classList.toggle("hidden", !isDice);
   $("dice-session-total").classList.toggle("hidden", !isDice);
+
+  const isWheel = state.pushupMode === "wheel";
+  if (isWheel) {
+    state.wheelTarget = 0;
+    state.wheelRepsDone = 0;
+    state.wheelLastTarget = 0;
+    state.wheelSetModifier = null;
+    state.wheelCue = null;
+    state.wheelSpinning = false;
+    state.wheelLandings = [];
+    initializeWheelDial();
+  } else {
+    state.wheelTarget = 0;
+    state.wheelRepsDone = 0;
+  }
+  $("wheel-hud").classList.toggle("hidden", !isWheel);
+  $("wheel-session-total").classList.toggle("hidden", !isWheel);
 
   const isLadder = state.pushupMode === "ladder";
   if (isLadder) {
@@ -5256,6 +5414,25 @@ async function reconcileSummaryCount() {
   }
 }
 
+// ---- Wheel mode spin ----
+
+function spinWheel() {
+  if (state.wheelSpinning) return;
+
+  const pr = getHighScore(state.currentUser);
+  const pickRandomModifier = (rnd) => RESOLVABLE_MODIFIER_IDS[Math.floor(rnd() * RESOLVABLE_MODIFIER_IDS.length)];
+
+  const result = resolveWheelSpin({
+    pr,
+    lastTarget: state.wheelLastTarget,
+    pickRandomModifier,
+  });
+
+  state.wheelSpinning = true;
+  $("wheel-spin-btn").disabled = true;
+  playWheelSpin(result);
+}
+
 $("btn-missed-plus").addEventListener("click", () => adjustMissedReps(1));
 $("btn-missed-minus").addEventListener("click", () => adjustMissedReps(-1));
 
@@ -5263,6 +5440,7 @@ $("btn-start").addEventListener("click", startWorkout);
 $("btn-complete").addEventListener("click", completeWorkout);
 $("fortune-cookie-tap").addEventListener("click", revealFortune);
 $("btn-fortune-start-set").addEventListener("click", startWorkout);
+$("wheel-spin-btn").addEventListener("click", spinWheel);
 
 
 // ---- Cards mode share ----

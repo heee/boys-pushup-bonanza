@@ -7,7 +7,7 @@ export const EXPLORE_MODES = [
   { id: "fortune", icon: "🥠", title: "Fortune cookie", tagline: "One set, one revealed challenge", live: true },
   { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Hunt the first board you don't already lead", live: true },
   { id: "poker", icon: "♠️", title: "Poker hands", tagline: "Clear five cards, reveal your hand", live: true },
-  { id: "wheel", icon: "🎯", title: "Wheel of pain", tagline: "Spin after every set for your next number", live: false },
+  { id: "wheel", icon: "🎯", title: "Wheel of pain", tagline: "Spin after every set for your next number", live: true },
   { id: "boss", icon: "⚔️", title: "Boss battle", tagline: "Fight progressively harder bosses", live: false },
   { id: "sharpshooter", icon: "🏹", title: "Sharpshooter", tagline: "Destroy adaptive targets, one bullseye at a time", live: true },
   { id: "pyramid", icon: "🔺", title: "Pyramid", tagline: "Descend the base, conquer the apex", live: true },
@@ -26,7 +26,7 @@ function usageByMode(sessions) {
 export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, chaseLeaderLabel }) {
   const usage = usageByMode(sessions);
   const decorated = EXPLORE_MODES.map((mode, index) => {
-    const lockedForPR = mode.id === "countdown" && !hasPR;
+    const lockedForPR = (mode.id === "countdown" || mode.id === "wheel") && !hasPR;
     const checkingChase = mode.id === "chase" && refresh;
     const lockedForChase = mode.id === "chase" && chasePrepared && !chasePrepared.eligible;
     const playable = mode.live && !lockedForPR && !lockedForChase && !checkingChase;

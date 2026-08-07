@@ -14,6 +14,7 @@ export function workoutHeroModel(mode, count, state = {}) {
     cards: [state.cardTarget, state.cardRepsDone],
     poker: [state.pokerCardTarget, state.pokerCardRepsDone],
     dice: [state.diceTarget, state.diceRepsDone],
+    wheel: [state.wheelTarget, state.wheelRepsDone],
     ladder: [state.ladderRung, state.ladderRepsDone],
     sharpshooter: [state.sharpshooterTarget, state.sharpshooterRepsDone],
     pyramid: [state.pyramidRow, state.pyramidRepsDone],
@@ -29,6 +30,7 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   const cards = mode === "cards";
   const dice = mode === "dice";
   const poker = mode === "poker";
+  const wheel = mode === "wheel";
   const ladder = mode === "ladder";
   const fortune = mode === "fortune";
   const chase = mode === "chase";
@@ -40,6 +42,7 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   return {
     cards,
     dice,
+    wheel,
     ladder,
     fortune,
     chase,
@@ -47,8 +50,8 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
     poker,
     sharpshooter,
     pyramid,
-    hideHero: cards || poker || dice || ladder || sharpshooter || pyramid || fortuneHidesCounter || zen,
-    hideHighscore: dice || sharpshooter || pyramid || fortuneMinimalFeedback || chase || zen,
+    hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || fortuneHidesCounter || zen,
+    hideHighscore: dice || wheel || sharpshooter || pyramid || fortuneMinimalFeedback || chase || zen,
     hideThermometer: zen || !highScore,
   };
 }
