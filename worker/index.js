@@ -7,8 +7,9 @@
 //   POST /resolve-location -> { latitude, longitude, accuracyM } -> sanitized Geoapify reverse-geocode result
 //   POST /search-location  -> { query } -> sanitized Geoapify forward-geocode results
 //   POST /session      -> validates and stores a completed session in D1
-//                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session;
-//                          count is reps for pushups, seconds held for planks;
+//                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session,
+//                          "squat" for a camera-counted squat set;
+//                          count is reps for pushups and squats, seconds held for planks;
 //                          rawCount/weightLbs are optional weighted-mode transparency fields — the actual
 //                          physical reps and added weight behind an already-scaled-up `count`;
 //                          mode: omit for Classic, "countdown", "cards", "dice", "ladder", "fortune", "chase", or
@@ -324,8 +325,8 @@ export function validateSession(body) {
   if (typeof body.startedAt === "string" && !isNaN(new Date(body.startedAt).getTime())) {
     session.startedAt = body.startedAt;
   }
-  if (body.type === "plank") {
-    session.type = "plank";
+  if (body.type === "plank" || body.type === "squat") {
+    session.type = body.type;
   }
   // Weighted-mode transparency fields: the raw physical rep count and the
   // added weight used to scale it up into `count`. Optional and pushup-only.
