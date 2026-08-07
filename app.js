@@ -2942,9 +2942,10 @@ function challengeSessions(c) {
   const { startDate, endDate } = challengeWindow(c);
   const startTime = startDate.getTime();
   const endTime = endDate.getTime();
+  const activity = c.goalType === "plankGauntlet" ? "planks" : "pushups";
   const sessions = [];
   for (const participant of participants) {
-    for (const session of indexedSessionsForUser(participant, "pushups")) {
+    for (const session of indexedSessionsForUser(participant, activity)) {
       const timestamp = sessionTimestamp(session);
       if (timestamp >= startTime && timestamp <= endTime) sessions.push(session);
     }
@@ -2968,6 +2969,7 @@ function userChallengeTotal(c, name) {
 function challengeListProgress(c) {
   if (c.goalType === "individual") return userChallengeTotal(c, state.currentUser);
   if (c.goalType === "collective") return challengeTotal(c);
+  if (c.goalType === "plankGauntlet") return challengeLeaderboard(c).find((row) => row.name === state.currentUser)?.score || 0;
   const { startDate, endDate } = challengeWindow(c);
   return windowStreak(challengeSessions(c), state.currentUser, startDate, endDate).best;
 }
@@ -3049,6 +3051,17 @@ function challengeLeaderboard(c) {
         return b.bestThisWeek - a.bestThisWeek;
       })
       .map((row) => ({ ...row, score: row.bestThisWeek }));
+  }
+  if (c.goalType === "plankGauntlet") {
+    const sessions = challengeSessions(c);
+    return participants
+      .map((name) => {
+        const mine = sessions.filter((s) => s.user === name);
+        const cumulative = mine.reduce((sum, s) => sum + (Number(s.count) || 0), 0);
+        const longest = mine.reduce((max, s) => Math.max(max, Number(s.count) || 0), 0);
+        return { name, cumulative, longest, score: cumulative + longest };
+      })
+      .sort((a, b) => b.score - a.score);
   }
   const sessions = challengeSessions(c);
   const { startDate, endDate } = challengeWindow(c);
@@ -3148,6 +3161,8 @@ function buildChallengeCard(c, now) {
   if (c.goalType === "pr") {
     const achievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
     metaLine = `👥 ${participants.length} joined · ${achievedCount} new PR${achievedCount === 1 ? "" : "s"} this week`;
+  } else if (c.goalType === "plankGauntlet") {
+    metaLine = `👥 ${participants.length} joined · ${formatDuration(total * 1000)} total plank time logged`;
   } else {
     metaLine = `👥 ${participants.length} joined · ${formatNumber(total)} total pushups so far`;
   }
@@ -3160,8 +3175,8 @@ function buildChallengeCard(c, now) {
   `;
 
   // Mini progress bar so status is scannable from the list without opening.
-  // Skipped for "pr" — the goal is per-person, so a shared bar doesn't apply.
-  if (status !== "past" && c.goalType !== "pr") {
+  // Skipped for "pr" and "plankGauntlet" — the goal is per-person/ranked, so a shared bar doesn't apply.
+  if (status !== "past" && c.goalType !== "pr" && c.goalType !== "plankGauntlet") {
     html += buildProgressThermometer(challengeListProgress(c), c.goal);
   }
 
@@ -3171,7 +3186,7 @@ function buildChallengeCard(c, now) {
     const winners = challengeWinners(c);
     if (winners.length) {
       const board = challengeLeaderboard(c);
-      const scoreText = c.goalType === "streak" ? `${formatNumber(board[0].score)} days` : formatNumber(board[0].score);
+      const scoreText = c.goalType === "streak" ? `${formatNumber(board[0].score)} days` : c.goalType === "plankGauntlet" ? formatDuration(board[0].score * 1000) : formatNumber(board[0].score);
       html += `<div class="challenge-winner-line">🥇 ${winners.map(escapeHtml).join(" & ")} — ${scoreText}</div>`;
     }
   }
@@ -3203,7 +3218,7 @@ function openChallengeDetail(id) {
 // Bundles everything a share message might reference so the variations
 // below can freely mix and match without recomputing anything.
 function buildChallengeShareContext(c) {
-  return challengeShareContext(c, challengeLeaderboard(c), { formatNumber });
+  return challengeShareContext(c, challengeLeaderboard(c), { formatNumber, formatDuration: (seconds) => formatDuration(seconds * 1000) });
 }
 
 const CHALLENGE_INVITE_MESSAGES = [
@@ -3489,6 +3504,16 @@ function renderChallengeDetail() {
           </div>
         `;
       }
+    } else if (c.goalType === "plankGauntlet") {
+      const mine = challengeLeaderboard(c).find((row) => row.name === state.currentUser);
+      const cumulativeText = formatDuration((mine?.cumulative || 0) * 1000);
+      const longestText = formatDuration((mine?.longest || 0) * 1000);
+      const scoreText = formatDuration((mine?.score || 0) * 1000);
+      html += `
+        <div class="challenge-progress-card">
+          <div class="challenge-progress-label">Cumulative: ${cumulativeText} · Longest hold: ${longestText} · Composite: ${scoreText} · ${daysLeftLabel}</div>
+        </div>
+      `;
     } else {
       const { best, current } = windowStreak(sessions, state.currentUser, startDate, endDate);
       const pctDisplay = Math.round((best / c.goal) * 100);
@@ -3504,8 +3529,12 @@ function renderChallengeDetail() {
   // Mid-challenge, Duration and Days-left already live in the hero card's
   // countdown pill — repeating them here would just be noise, so only the 2
   // numbers that actually change day to day get their own row.
-  const challengeStats = challengeOverviewStats(c, { participantCount: participants.length, total, now })
-    .map((stat) => ({ ...stat, value: typeof stat.value === "number" ? formatNumber(stat.value) : stat.value }));
+  const challengeStats = challengeOverviewStats(c, {
+    participantCount: participants.length,
+    total: c.goalType === "plankGauntlet" ? formatDuration(total * 1000) : total,
+    now,
+    totalLabel: c.goalType === "plankGauntlet" ? "Total plank time" : "Total pushups",
+  }).map((stat) => ({ ...stat, value: typeof stat.value === "number" ? formatNumber(stat.value) : stat.value }));
 
   html += `
     <div class="stats-table">
@@ -3543,7 +3572,7 @@ function paintChallengeLeaderboard(c) {
     return;
   }
   challengeLeaderboardRows(board, c.goalType).forEach((row) => {
-    const scoreText = c.goalType === "streak" ? `${formatNumber(row.score)} day${row.score === 1 ? "" : "s"}` : formatNumber(row.score);
+    const scoreText = c.goalType === "streak" ? `${formatNumber(row.score)} day${row.score === 1 ? "" : "s"}` : c.goalType === "plankGauntlet" ? formatDuration(row.score * 1000) : formatNumber(row.score);
     const rowEl = document.createElement("div");
     rowEl.className = "leaderboard-row" + (row.topRank ? ` rank-${row.topRank}` : "");
     // "pr" rows show a green check for achievers instead of a numeric rank;
@@ -3575,7 +3604,7 @@ function paintChallengeRecent(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${formatNumber(s.count)}</div>
+      <div class="recent-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     row.addEventListener("click", () => openSessionDetail(s, "screen-challenge-detail"));

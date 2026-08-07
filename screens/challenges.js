@@ -28,11 +28,11 @@ export function challengeStatusLabel(challenge, now = new Date()) {
   return "Ended";
 }
 
-export function challengeOverviewStats(challenge, { participantCount, total, now = new Date(), locale } = {}) {
+export function challengeOverviewStats(challenge, { participantCount, total, now = new Date(), locale, totalLabel = "Total pushups" } = {}) {
   const status = challengeStatus(challenge, now);
   const common = [
     { icon: "👥", label: "Participants", value: participantCount },
-    { icon: "🔢", label: "Total pushups", value: total },
+    { icon: "🔢", label: totalLabel, value: total },
   ];
   if (status === "active") return common;
   const overview = status === "past" ? { label: "Status", value: "Ended" } : { label: "Days until start", value: daysUntilStart(challenge, now) };
@@ -64,18 +64,26 @@ export function recentChallengeSessions(sessions, timestampOf, limit = 5) {
   return [...sessions].sort((a, b) => timestampOf(b) - timestampOf(a)).slice(0, limit);
 }
 
-export function challengeShareContext(challenge, board, { formatNumber = String, locale } = {}) {
+export function challengeShareContext(challenge, board, { formatNumber = String, formatDuration = String, locale } = {}) {
   const { endDate } = challengeWindow(challenge);
   const leader = board[0];
+  const isRanked = challenge.goalType === "pr" || challenge.goalType === "plankGauntlet";
   const hasLeader = challenge.goalType === "pr" ? !!leader?.achieved : !!leader && leader.score > 0;
   return {
     titleWithEmoji: `${challenge.emoji} ${challenge.title}`,
     deadlineText: endDate.toLocaleDateString(locale, { month: "short", day: "numeric" }),
-    goalAmountText: challenge.goalType === "streak" ? `${formatNumber(challenge.goal)}-day streak` : challenge.goalType === "pr" ? "a new personal record" : `${formatNumber(challenge.goal)} pushups`,
+    goalAmountText: challenge.goalType === "streak" ? `${formatNumber(challenge.goal)}-day streak`
+      : challenge.goalType === "pr" ? "a new personal record"
+      : challenge.goalType === "plankGauntlet" ? "the longest plank grind"
+      : `${formatNumber(challenge.goal)} pushups`,
     hasLeader,
     leaderName: leader?.name,
-    leaderScoreText: hasLeader ? (challenge.goalType === "streak" ? `${formatNumber(leader.score)} day${leader.score === 1 ? "" : "s"}` : formatNumber(leader.score)) : "",
-    leaderPct: hasLeader ? (challenge.goalType === "pr" ? 100 : Math.round((leader.score / challenge.goal) * 100)) : 0,
-    exceeded: challenge.goalType !== "pr" && hasLeader && leader.score >= challenge.goal,
+    leaderScoreText: hasLeader ? (
+      challenge.goalType === "streak" ? `${formatNumber(leader.score)} day${leader.score === 1 ? "" : "s"}`
+        : challenge.goalType === "plankGauntlet" ? formatDuration(leader.score)
+        : formatNumber(leader.score)
+    ) : "",
+    leaderPct: hasLeader ? (isRanked ? 100 : Math.round((leader.score / challenge.goal) * 100)) : 0,
+    exceeded: !isRanked && hasLeader && leader.score >= challenge.goal,
   };
 }

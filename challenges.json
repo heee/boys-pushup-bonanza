@@ -719,6 +719,318 @@
         "#4a2e6b",
         "#f2c94c"
       ]
+    },
+    {
+      "id": "plank-gauntlet-2026-08-10",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Every second under the sun counts double. Longest hold plus total grind wins the week.",
+      "start": "2026-08-10",
+      "end": "2026-08-16",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-08-24",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Shake, sweat, survive. Your best single hold and your total time on the clock both count.",
+      "start": "2026-08-24",
+      "end": "2026-08-30",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-09-07",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Floor is lava, except the floor is your forearms. Stack the seconds, own the leaderboard.",
+      "start": "2026-09-07",
+      "end": "2026-09-13",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-09-21",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "No reps, just resolve. Longest single hold and cumulative time decide the champion.",
+      "start": "2026-09-21",
+      "end": "2026-09-27",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-10-05",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Two ways to win: one brutal hold, or a pile of shorter ones. Bring both.",
+      "start": "2026-10-05",
+      "end": "2026-10-11",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-10-19",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "The plank never lies. Total time held plus your single best effort settles this.",
+      "start": "2026-10-19",
+      "end": "2026-10-25",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-11-02",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Every second under the sun counts double. Longest hold plus total grind wins the week.",
+      "start": "2026-11-02",
+      "end": "2026-11-08",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-11-16",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Shake, sweat, survive. Your best single hold and your total time on the clock both count.",
+      "start": "2026-11-16",
+      "end": "2026-11-22",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-11-30",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Floor is lava, except the floor is your forearms. Stack the seconds, own the leaderboard.",
+      "start": "2026-11-30",
+      "end": "2026-12-06",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-12-14",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "No reps, just resolve. Longest single hold and cumulative time decide the champion.",
+      "start": "2026-12-14",
+      "end": "2026-12-20",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2026-12-28",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Two ways to win: one brutal hold, or a pile of shorter ones. Bring both.",
+      "start": "2026-12-28",
+      "end": "2027-01-03",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-01-11",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "The plank never lies. Total time held plus your single best effort settles this.",
+      "start": "2027-01-11",
+      "end": "2027-01-17",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-01-25",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Every second under the sun counts double. Longest hold plus total grind wins the week.",
+      "start": "2027-01-25",
+      "end": "2027-01-31",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-02-08",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Shake, sweat, survive. Your best single hold and your total time on the clock both count.",
+      "start": "2027-02-08",
+      "end": "2027-02-14",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-02-22",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Floor is lava, except the floor is your forearms. Stack the seconds, own the leaderboard.",
+      "start": "2027-02-22",
+      "end": "2027-02-28",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-03-08",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "No reps, just resolve. Longest single hold and cumulative time decide the champion.",
+      "start": "2027-03-08",
+      "end": "2027-03-14",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-03-22",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Two ways to win: one brutal hold, or a pile of shorter ones. Bring both.",
+      "start": "2027-03-22",
+      "end": "2027-03-28",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-04-05",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "The plank never lies. Total time held plus your single best effort settles this.",
+      "start": "2027-04-05",
+      "end": "2027-04-11",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-04-19",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Every second under the sun counts double. Longest hold plus total grind wins the week.",
+      "start": "2027-04-19",
+      "end": "2027-04-25",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-05-03",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Shake, sweat, survive. Your best single hold and your total time on the clock both count.",
+      "start": "2027-05-03",
+      "end": "2027-05-09",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-05-17",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Floor is lava, except the floor is your forearms. Stack the seconds, own the leaderboard.",
+      "start": "2027-05-17",
+      "end": "2027-05-23",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-05-31",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "No reps, just resolve. Longest single hold and cumulative time decide the champion.",
+      "start": "2027-05-31",
+      "end": "2027-06-06",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-06-14",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Two ways to win: one brutal hold, or a pile of shorter ones. Bring both.",
+      "start": "2027-06-14",
+      "end": "2027-06-20",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-06-28",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "The plank never lies. Total time held plus your single best effort settles this.",
+      "start": "2027-06-28",
+      "end": "2027-07-04",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
     }
   ]
 }

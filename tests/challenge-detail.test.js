@@ -49,3 +49,35 @@ test("share context preserves numeric and PR leader semantics", () => {
   const pr = challengeShareContext({ ...challenge, goalType: "pr" }, [{ name: "A", score: 30, achieved: false }], { locale: "en-US" });
   assert.equal(pr.hasLeader, false);
 });
+
+test("plank gauntlet share context formats scores as durations and never 'exceeds' a goal", () => {
+  const plankChallenge = { ...challenge, goalType: "plankGauntlet", goal: undefined };
+  const ctx = challengeShareContext(plankChallenge, [{ name: "A", score: 320, cumulative: 260, longest: 60 }], {
+    formatNumber: String,
+    formatDuration: (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`,
+    locale: "en-US",
+  });
+  assert.equal(ctx.hasLeader, true);
+  assert.equal(ctx.leaderScoreText, "5:20");
+  assert.equal(ctx.leaderPct, 100);
+  assert.equal(ctx.exceeded, false);
+  assert.equal(ctx.goalAmountText, "the longest plank grind");
+});
+
+test("plank gauntlet overview stats accept a custom total label", () => {
+  assert.deepEqual(
+    challengeOverviewStats({ ...challenge, goalType: "plankGauntlet" }, { participantCount: 2, total: "5:20", now, totalLabel: "Total plank time" }),
+    [
+      { icon: "👥", label: "Participants", value: 2 },
+      { icon: "🔢", label: "Total plank time", value: "5:20" },
+    ]
+  );
+});
+
+test("plank gauntlet leaderboard rows rank generically like a numeric goal type", () => {
+  const rows = challengeLeaderboardRows([
+    { name: "A", score: 320 },
+    { name: "B", score: 200 },
+  ], "plankGauntlet");
+  assert.deepEqual(rows.map((r) => [r.displayRank, r.rankIsCheck]), [[1, false], [2, false]]);
+});
