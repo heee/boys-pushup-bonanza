@@ -289,6 +289,39 @@ export const FUN_MESSAGES = [
   (n) => `${n} down. The leaderboard trembles.`,
 ];
 
+// Squat mode — spoken at set start (SQUAT_START_LINES), as random mid-set
+// cheers (SQUAT_CHEER_LINES, same cheerProbability shape Plank uses), and on
+// a new per-user best (SQUAT_RECORD_LINE, added to FIXED_PHRASES below).
+// Same unhinged drill-instructor register as CHASE_CHAOS_LINES, aimed at
+// thighs/chairs/the floor/gravity instead of the leaderboard.
+export const SQUAT_START_LINES = [
+  "Every chair in this house is about to lose its job! Let's go!",
+  "Gravity signed up for this! Down we go!",
+  "Knees soft, dignity optional! Squat time!",
+];
+
+export const SQUAT_CHEER_LINES = [
+  "Lower! That chair filed a formal complaint!",
+  "Thighs on fire and the fire department is proud!",
+  "Elevators everywhere are filing grievances! Keep squatting!",
+  "Gravity is doing its best work today! Don't you dare stand down!",
+  "The floor did not consent to this many visits! Again!",
+  "Quads the size of Sunday dinner! Keep going!",
+  "That recliner will never feel safe around you again! Squat!",
+  "Somewhere a La-Z-Boy just wept with jealousy! Push!",
+];
+
+export const SQUAT_RECORD_LINE = "New squat record! The chairs have officially been replaced!";
+
+export const FUN_MESSAGES_SQUAT = [
+  (n) => `${n} squats deep. Somewhere, a recliner is filing for unemployment.`,
+  (n) => `That's ${n} squats of pure thigh chaos.`,
+  (n) => `${n} squats! The floor has seen entirely too much of you today.`,
+  (n) => `${n} down. Gravity would like a word with your quads.`,
+  (n) => `${n} squats logged. Elevators everywhere remain deeply offended.`,
+  (n) => `${n} squats. Certified chair-replacement behavior.`,
+];
+
 export const FUN_MESSAGES_PLANK = [
   (s) => `${s} second plank! Somewhere, a yoga instructor sheds a single tear.`,
   (s) => `Held it for ${s} seconds. Absolute plank behavior.`,
@@ -307,6 +340,7 @@ export const FIXED_PHRASES = [
   "Plank complete.",
   "New personal record! Absolute legend!",
   "New plank record! Absolute legend!",
+  SQUAT_RECORD_LINE,
   "New rung record!",
   "Hidden plank mode unlocked!",
   "All leaders passed. The leaderboard is now a crime scene. Keep going!",
@@ -361,6 +395,8 @@ export function buildCorpus() {
   for (const word of NAME_JOIN_WORDS) add(word, "hype");
   for (const line of ENCOURAGE_LINES) add(line, "hype");
   for (const line of CHASE_CHAOS_LINES) add(line, "hype");
+  for (const line of SQUAT_START_LINES) add(line, "hype");
+  for (const line of SQUAT_CHEER_LINES) add(line, "hype");
   for (const line of LADDER_CHEER_LINES) add(line, "hype");
   for (const line of SHARPSHOOTER_HIT_LINES) add(line, "hype");
   for (const line of PYRAMID_ROW_CHEER_LINES) add(line, "hype");
@@ -372,6 +408,7 @@ export function buildCorpus() {
   }
   for (const fn of FUN_MESSAGES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_PLANK) for (const frag of templateFragments(fn)) add(frag, "hype");
+  for (const fn of FUN_MESSAGES_SQUAT) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of CHASE_GAP_LINES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const frag of templateFragments(CHASE_TOOK_LEAD_LINE)) add(frag, "hype");
   for (const frag of templateFragments(CHASE_LEAD_MARGIN_LINE)) add(frag, "hype");
