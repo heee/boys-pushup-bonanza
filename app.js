@@ -832,13 +832,19 @@ function initializeWheelDial() {
   });
 
   dial.style.background = `conic-gradient(from 0deg, ${gradientStops.join(", ")})`;
-  dial.style.setProperty("--wheel-rot", "0deg");
+  dial.style.transitionDuration = "0ms";
+  dial.style.transform = "rotate(0deg)";
 }
 
 let wheelSpinTimer = null;
+let wheelRotationTotal = 0; // accumulates so each landing spins further, never resets to 0
 
 // Animates the dial through the landings array in sequence, then commits
-// the final target/modifier/cue to state.
+// the final target/modifier/cue to state. Rotation is applied directly to
+// `transform` (not a class-toggled keyframe animation) so the landed angle
+// is still showing once the CSS transition finishes — a "forwards"-filled
+// animation's end state disappears the instant its triggering class is
+// removed, which made the dial snap back to 0deg after every landing.
 function playWheelSpin(result) {
   const landings = result.landings;
   const dial = $("wheel-dial");
@@ -847,7 +853,6 @@ function playWheelSpin(result) {
 
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Animate through each landing in sequence
   let landingIndex = 0;
 
   function animateNextLanding() {
@@ -858,7 +863,6 @@ function playWheelSpin(result) {
       state.wheelSetModifier = result.modifierId;
       state.wheelCue = result.cueLabel ? { label: result.cueLabel, sub: result.cueSub } : null;
       state.wheelSpinning = false;
-      dial.classList.remove("spinning");
       renderWheel();
       $("wheel-spin-btn").disabled = false;
       return;
@@ -874,30 +878,22 @@ function playWheelSpin(result) {
       return;
     }
 
-    // Determine spin parameters based on whether this is final or intermediate
     const isFinal = landingIndex === landings.length - 1;
     const fullSpins = isFinal ? (3 + Math.floor(Math.random() * 3)) : (1 + Math.floor(Math.random() * 2));
-    const targetRotation = (fullSpins * 360) + (360 - segment.midDeg);
+    // Advance past the current total by full spins, then land on this
+    // segment's mid-angle (pointer is fixed at the top / 0deg).
+    const base = Math.ceil(wheelRotationTotal / 360) * 360;
+    wheelRotationTotal = base + (fullSpins * 360) + (360 - segment.midDeg);
 
-    dial.style.setProperty("--wheel-rot", `${targetRotation}deg`);
+    const duration = reduceMotion ? 0 : (isFinal ? 1100 : 400);
+    dial.style.transitionDuration = `${duration}ms`;
+    dial.style.transform = `rotate(${wheelRotationTotal}deg)`;
 
-    if (reduceMotion) {
-      dial.style.transform = `rotate(${targetRotation}deg)`;
+    const gap = reduceMotion ? 50 : 100;
+    wheelSpinTimer = setTimeout(() => {
       landingIndex++;
-      wheelSpinTimer = setTimeout(animateNextLanding, 50);
-    } else {
-      dial.classList.remove("spinning");
-      void dial.offsetWidth; // force reflow
-      dial.classList.add("spinning");
-
-      // Duration depends on whether this is final
-      const duration = isFinal ? 1100 : 400;
-      wheelSpinTimer = setTimeout(() => {
-        dial.classList.remove("spinning");
-        landingIndex++;
-        wheelSpinTimer = setTimeout(animateNextLanding, 100);
-      }, duration);
-    }
+      animateNextLanding();
+    }, duration + gap);
   }
 
   animateNextLanding();
@@ -4672,6 +4668,8 @@ function onRepCounted(count) {
     state.wheelRepsDone += 1;
     if (state.wheelRepsDone >= state.wheelTarget) {
       state.wheelLastTarget = state.wheelTarget;
+      state.wheelTarget = 0;
+      state.wheelRepsDone = 0;
       state.wheelSetModifier = null;
       state.wheelCue = null;
       // do NOT auto-advance — show the Spin button again and wait for the tap
@@ -5004,7 +5002,10 @@ async function setupWorkoutModeState() {
     state.wheelCue = null;
     state.wheelSpinning = false;
     state.wheelLandings = [];
+    wheelRotationTotal = 0;
     initializeWheelDial();
+    $("wheel-spin-btn").disabled = false;
+    renderWheel();
   } else {
     state.wheelTarget = 0;
     state.wheelRepsDone = 0;

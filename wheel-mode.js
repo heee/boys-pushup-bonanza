@@ -53,9 +53,15 @@ export function resolveWheelSpin({ pr, lastTarget, random = Math.random, pickRan
   function land() {
     const seg = pickSegment(random);
     landings.push(seg);
-    if (landings.length >= chainCap) return finalize(seg); // safety valve, not expected in practice
-    if (seg.type === "spin_again") return land();
-    if (seg.type === "double") { doubled = true; return land(); }
+    const atCap = landings.length >= chainCap;
+    if (seg.type === "spin_again" && !atCap) return land();
+    if (seg.type === "double" && !atCap) { doubled = true; return land(); }
+    // Safety valve: chain length hit cap while still on a non-resolvable
+    // segment (spin_again/double) — force a plain number instead of
+    // finalizing on a type finalize() can't handle.
+    if (seg.type === "spin_again" || seg.type === "double") {
+      return finalize(WHEEL_SEGMENTS.find((s) => s.type === "number"));
+    }
     return finalize(seg);
   }
 
