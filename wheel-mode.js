@@ -1,7 +1,9 @@
-// Segment catalog. angleDeg values sum to 360 and drive both the visual
-// dial (conic-gradient stops) and the weighted random pick (bigger slice
-// = more likely). numRange values are fractions of the user's personal
-// best (PR); freebie is a flat rep count, not PR-scaled.
+// Segment catalog. angleDeg values sum to 360 and drive the weighted random
+// pick (bigger share = more likely) — they are NOT the visual slice size;
+// the dial is drawn with 12 equal-size slices (see displaySegments) while
+// the odds stay skewed toward common outcomes underneath. numRange values
+// are fractions of the user's personal best (PR); freebie is a flat rep
+// count, not PR-scaled.
 export const WHEEL_SEGMENTS = [
   { id: "num1", type: "number", icon: "🔢", label: "…", angleDeg: 60, numRange: [0.10, 0.20] },
   { id: "num2", type: "number", icon: "🔢", label: "…", angleDeg: 50, numRange: [0.20, 0.35] },
@@ -17,12 +19,14 @@ export const WHEEL_SEGMENTS = [
   { id: "bust", type: "bust", icon: "💀", label: "Bust", angleDeg: 12 },
 ];
 
-export function segmentAngles() {
-  let acc = 0;
-  return WHEEL_SEGMENTS.map((seg) => {
-    const start = acc;
-    acc += seg.angleDeg;
-    return { ...seg, startDeg: start, endDeg: acc, midDeg: start + seg.angleDeg / 2 };
+// Equal-size layout for the dial itself — every slice gets the same visual
+// share regardless of its actual pick weight (see pickSegment/angleDeg).
+export function displaySegments() {
+  const slice = 360 / WHEEL_SEGMENTS.length;
+  return WHEEL_SEGMENTS.map((seg, i) => {
+    const start = i * slice;
+    const end = start + slice;
+    return { ...seg, startDeg: start, endDeg: end, midDeg: start + slice / 2 };
   });
 }
 

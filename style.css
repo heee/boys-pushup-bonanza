@@ -986,6 +986,47 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    smaller cap than .rep-count's default or it overflows the screen width. */
 #plank-timer { font-size: min(24vw, 7rem); }
 
+/* Squat calibration wizard — same workout-active/camera-wrap shell as the
+   live count, just swapped for a 2-tap capture flow before counting starts. */
+.squat-cal-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+.squat-cal-step-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+.squat-cal-title { font-size: 1.6rem; font-weight: 800; margin: 0; }
+.squat-cal-stage .btn-giant { margin-top: 0.6rem; }
+
+/* Small pill under the squat rep count showing which half of the rep the
+   counter currently thinks the boy is in — the camera-based squat
+   equivalent of a phase readout pushups don't need (a face-size ratio
+   alone doesn't read as clearly as "standing" vs "squatting" would). */
+.squat-phase-indicator {
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.squat-phase-indicator.is-down { background: var(--primary); color: #fff; }
+
+#squat-in-progress .btn-small-wide { max-width: 14rem; margin-top: 0.5rem; }
+
 .rep-label {
   font-size: 1.1rem;
   font-weight: 800;
@@ -1252,9 +1293,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 /* ---------------- Wheel mode HUD ---------------- */
 /* Similar to Dice: a circular focal-point visual (the wheel dial) and a
    subordinate "X left · Y total" line beneath (in #wheel-session-total,
-   sharing .cards-session-total's styling). A 12-slice conic-gradient dial
-   with a fixed pointer at the top, spin animation via --wheel-rot custom
-   property, and explicit Spin button between sets (not auto-triggered). */
+   sharing .cards-session-total's styling). A 12-EQUAL-slice conic-gradient
+   dial with a fixed pointer at the top; the underlying pick odds stay
+   weighted (see wheel-mode.js) even though every slice is the same visual
+   size. Spins automatically at session start and again the instant a set
+   finishes — no manual control. #wheel-landed-highlight is a static wedge
+   centered under the pointer that fades in once a spin lands; it never
+   needs to rotate because the rotation math always brings the landed
+   segment's midpoint to exactly 0deg (see playWheelSpin in app.js). */
 
 .wheel-hud {
   display: flex;
@@ -1304,27 +1350,53 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   filter: drop-shadow(0 0.2rem 0.3rem rgba(0, 0, 0, 0.2));
 }
 
-/* Cue text below the dial (tempo/boss/freebie/bust messages). */
+/* Result callout below the dial — always shows the landed target reps
+   (plus a label like "Boss number"/"Bust" for the special segments), so
+   there's a persistent textual confirmation of the goal alongside the
+   highlight wedge and the spoken callout. */
 .wheel-cue {
   margin-top: 0.3rem;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 700;
   text-align: center;
-  color: var(--text-dim);
+  color: var(--text);
   line-height: 1.3;
 }
 
-/* Slice labels (emoji) positioned around the dial. */
+/* Slice labels (emoji) positioned inside the colored ring, near its outer
+   edge — not floating outside the dial. */
 .wheel-slice-label {
   position: absolute;
   left: 50%;
   top: 50%;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 600;
+}
+
+/* Static wedge centered at the top (under the pointer), spanning exactly
+   one equal slice (30deg). Faded in once a spin lands; always aligns with
+   whatever segment was chosen since the dial's own rotation brings that
+   segment's midpoint to 0deg. */
+.wheel-landed-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from -15deg, var(--gold) 0deg 30deg, transparent 30deg 360deg);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.wheel-landed-highlight.show {
+  opacity: 0.6;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .wheel-dial { transition: none; }
+  .wheel-landed-highlight { transition: none; }
 }
 
 /* ---------------- Sharpshooter mode ---------------- */

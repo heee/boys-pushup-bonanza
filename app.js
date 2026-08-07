@@ -25,6 +25,10 @@ import {
   PYRAMID_ROW_CHEER_LINES,
   PYRAMID_TURNAROUND_LINE,
   SHARPSHOOTER_HIT_LINES,
+  SQUAT_CHEER_LINES,
+  SQUAT_RECORD_LINE,
+  SQUAT_START_LINES,
+  FUN_MESSAGES_SQUAT,
   VOICE_PRESETS,
   numberToWords,
   zenCompletionLine,
@@ -45,7 +49,7 @@ import {
 } from "./voice.js?v=147";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
-import { WHEEL_SEGMENTS, segmentAngles, resolveWheelSpin } from "./wheel-mode.js?v=1";
+import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin } from "./wheel-mode.js?v=2";
 import { createWorkerApi, isRetryableError } from "./api.js";
 import { createJsonStorage, normalizeSharedData } from "./storage.js";
 import { createMutationQueue } from "./sync.js";
@@ -118,6 +122,7 @@ const LS = {
   roadtripPeriod: "bpb-roadtrip-period",
   roadtripTier: "bpb-roadtrip-tier",
   roadtripPrompted: "bpb-roadtrip-location-prompted",
+  squatCal: "bpb-squat-cal",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -458,14 +463,14 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [] };
+  const byActivity = { pushups: [], planks: [], squats: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
   const timestampBySession = new WeakMap();
 
   for (const session of sessions) {
-    const activity = session.type === "plank" ? "planks" : "pushups";
+    const activity = session.type === "plank" ? "planks" : session.type === "squat" ? "squats" : "pushups";
     const timestamp = Date.parse(session.timestamp);
     timestampBySession.set(session, Number.isFinite(timestamp) ? timestamp : 0);
 
@@ -473,8 +478,13 @@ function buildSessionIndex(sessions) {
     byUser.get(session.user).push(session);
     byActivity[activity].push(session);
 
+    // Squat sessions deliberately skip the shared leaderboard modes (its own
+    // screen/per-user best, minimal integration — see docs/squat-mode-plan.md)
+    // so they never land in byLeaderboardMode/byUserLeaderboardMode at all.
     const leaderboardModes = session.type === "plank"
       ? ["planks"]
+      : session.type === "squat"
+      ? []
       : ["all", session.mode || "classic"];
     for (const mode of leaderboardModes) {
       if (!byLeaderboardMode[mode]) continue;
@@ -806,39 +816,58 @@ function advanceToNextRoll() {
 }
 
 // ------------------- wheel mode -------------------
+// Endless, auto-advancing: a spin starts automatically at session start and
+// again the instant each set finishes (no manual Spin tap). The dial is
+// drawn as 12 EQUAL-size slices (see wheel-mode.js's displaySegments) even
+// though the underlying odds stay weighted toward common outcomes — slice
+// size is purely visual now, not a probability tell.
 
 function initializeWheelDial() {
   const dial = $("wheel-dial");
-  const segments = segmentAngles();
+  const segments = displaySegments();
 
-  // Generate 12 label spans from segmentAngles()
+  // Labels sit inside the colored ring, not floating outside the dial.
   dial.innerHTML = segments.map((seg) => {
     const rotDeg = seg.midDeg;
-    const rotateCW = rotDeg;
-    const rotateCCW = -rotDeg;
-    return `<span class="wheel-slice-label" style="transform: rotate(${rotateCW}deg) translateY(-8.5rem) rotate(${rotateCCW}deg)" aria-hidden="true">${seg.icon}</span>`;
+    return `<span class="wheel-slice-label" style="transform: rotate(${rotDeg}deg) translateY(-6.1rem) rotate(${-rotDeg}deg)" aria-hidden="true">${seg.icon}</span>`;
   }).join("");
 
-  // Build conic-gradient colors for each segment
   const colors = [
     "#e8f5e9", "#c8e6c9", "#a5d6a7", "#81c784", "#66bb6a",
     "#4caf50", "#43a047", "#2e7d32", "#1b5e20", "#ffd54f",
     "#ffb300", "#ff6f00"
   ];
 
-  let gradientStops = [];
-  segments.forEach((seg, idx) => {
-    const color = colors[idx % colors.length];
-    gradientStops.push(`${color} ${seg.startDeg}deg ${seg.endDeg}deg`);
-  });
+  const gradientStops = segments.map((seg, idx) => `${colors[idx % colors.length]} ${seg.startDeg}deg ${seg.endDeg}deg`);
 
   dial.style.background = `conic-gradient(from 0deg, ${gradientStops.join(", ")})`;
   dial.style.transitionDuration = "0ms";
   dial.style.transform = "rotate(0deg)";
+  $("wheel-landed-highlight").classList.remove("show");
 }
 
 let wheelSpinTimer = null;
 let wheelRotationTotal = 0; // accumulates so each landing spins further, never resets to 0
+
+// A landed segment's midpoint always ends up rotated to exactly 0deg (the
+// fixed pointer position) — see the rotation math below — so the "you
+// landed here" highlight is just a static wedge at the top of the dial
+// that fades in on completion, no per-landing angle math needed for it.
+function wheelSpokenForResult(result) {
+  const finalType = result.landings[result.landings.length - 1].type;
+  const hadDouble = result.landings.some((l) => l.type === "double");
+  const n = numberToWords(result.targetReps);
+  let line;
+  if (finalType === "boss") line = `Boss number! ${n}!`;
+  else if (finalType === "freebie") line = `Freebie! Just ${n}.`;
+  else if (finalType === "bust") line = `Bust! Same again: ${n}!`;
+  else if (finalType === "grip") {
+    const modTitle = MODIFIERS.find((m) => m.id === result.modifierId)?.title || "Grip switch";
+    line = `${modTitle}! ${n}!`;
+  } else if (finalType === "tempo") line = `Slow tempo! ${n}!`;
+  else line = `${n}!`;
+  return hadDouble ? `Double or nothing! ${line}` : line;
+}
 
 // Animates the dial through the landings array in sequence, then commits
 // the final target/modifier/cue to state. Rotation is applied directly to
@@ -849,8 +878,10 @@ let wheelRotationTotal = 0; // accumulates so each landing spins further, never 
 function playWheelSpin(result) {
   const landings = result.landings;
   const dial = $("wheel-dial");
+  const highlight = $("wheel-landed-highlight");
 
   clearTimeout(wheelSpinTimer);
+  highlight.classList.remove("show");
 
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -862,15 +893,16 @@ function playWheelSpin(result) {
       state.wheelTarget = result.targetReps;
       state.wheelRepsDone = 0;
       state.wheelSetModifier = result.modifierId;
-      state.wheelCue = result.cueLabel ? { label: result.cueLabel, sub: result.cueSub } : null;
+      state.wheelCue = { label: result.cueLabel, sub: result.cueSub, targetReps: result.targetReps };
       state.wheelSpinning = false;
       renderWheel();
-      $("wheel-spin-btn").disabled = false;
+      highlight.classList.add("show");
+      speak(wheelSpokenForResult(result));
       return;
     }
 
     const landing = landings[landingIndex];
-    const segments = segmentAngles();
+    const segments = displaySegments();
     const segment = segments.find((s) => s.id === landing.id);
 
     if (!segment) {
@@ -900,22 +932,27 @@ function playWheelSpin(result) {
   animateNextLanding();
 }
 
+// Resolves + animates one full spin. Called automatically at session start
+// and again the instant a set finishes (see setupWorkoutModeState and
+// onRepCounted) — there is no manual Spin control.
+function advanceWheelSpin() {
+  const pr = getHighScore(state.currentUser);
+  const pickRandomModifier = (rnd) => RESOLVABLE_MODIFIER_IDS[Math.floor(rnd() * RESOLVABLE_MODIFIER_IDS.length)];
+  const result = resolveWheelSpin({ pr, lastTarget: state.wheelLastTarget, pickRandomModifier });
+  state.wheelSpinning = true;
+  $("wheel-landed-highlight").classList.remove("show");
+  playWheelSpin(result);
+}
+
 function renderWheel() {
   const wheelCueEl = $("wheel-cue");
   if (state.wheelCue) {
-    wheelCueEl.textContent = state.wheelCue.label;
-    wheelCueEl.title = state.wheelCue.sub;
+    const { label, sub, targetReps } = state.wheelCue;
+    wheelCueEl.textContent = label ? `${label} — ${formatNumber(targetReps)}` : `${formatNumber(targetReps)} reps`;
+    wheelCueEl.title = sub || "";
     wheelCueEl.classList.remove("hidden");
   } else {
     wheelCueEl.classList.add("hidden");
-  }
-
-  // Show/hide spin button based on whether we have a target
-  const spinBtn = $("wheel-spin-btn");
-  if (state.wheelTarget === 0) {
-    spinBtn.style.display = "block";
-  } else {
-    spinBtn.style.display = "none";
   }
 }
 
@@ -991,6 +1028,10 @@ const state = {
   plankActive: false,
   plankBest: 0,
   plankStartedAt: null,
+  squatActive: false,
+  squatBest: 0,
+  squatStartedAt: null,
+  squatSessionLocation: null,
   summarySessionId: null,
   summaryBaseCount: 0,
   summaryExtra: 0,
@@ -1045,6 +1086,37 @@ const plankState = {
   recordBroken: false,
 };
 
+// Sampling window used for each of the 2-tap calibration steps.
+const SQUAT_CAL_SAMPLE_MS = 1500;
+
+const squatState = {
+  counter: null,
+  phase: "up",
+  count: 0,
+  lastSeenAt: 0,
+  lastRepSpokenAt: 0,
+  paused: false,
+  lastCheerAtCount: 0,
+  recordBroken: false,
+  // "idle" | "cal-stand" | "cal-squat" | "counting" — read by the shared
+  // camera controller's onDetection to decide what to do with each frame.
+  stage: "idle",
+  calSamples: [],
+  calStandY: null,
+  calSquatY: null,
+  down: DEFAULT_DOWN,
+  up: DEFAULT_UP,
+};
+
+function getSquatCalibration() {
+  return jsonStorage.read(LS.squatCal, null);
+}
+function saveSquatCalibration(standY, squatY, thresholds) {
+  jsonStorage.write(LS.squatCal, {
+    standY, squatY, down: thresholds.down, up: thresholds.up, calibratedAt: new Date().toISOString(),
+  });
+}
+
 function getThresholdDown() {
   const v = parseFloat(localStorage.getItem(LS.thresholdDown));
   return Number.isFinite(v) ? v : DEFAULT_DOWN;
@@ -1090,6 +1162,7 @@ const TAB_FOR_SCREEN = {
   "screen-modifier-picker": "btn-nav-home",
   "screen-plank-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
+  "screen-squat-workout": "btn-nav-home",
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
   "screen-user-compare": "btn-nav-dashboard",
@@ -1118,7 +1191,8 @@ function showScreen(id) {
   $(id).classList.add("active");
   state.screen = id;
   const minimized = (id === "screen-workout" && state.workoutActive) ||
-    (id === "screen-plank-workout" && state.plankActive);
+    (id === "screen-plank-workout" && state.plankActive) ||
+    (id === "screen-squat-workout" && state.squatActive);
   setChromeMinimized(minimized);
   const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
   document.querySelectorAll("#tab-bar .tab-item").forEach((btn) => {
@@ -1160,6 +1234,11 @@ function showScreen(id) {
     $("plank-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("plank-avatar"), state.currentAvatar, "2rem");
   }
+  if (id === "screen-squat-workout" && !state.squatActive) {
+    $("squat-username").textContent = state.currentUser || "Friend";
+    setAvatarEl($("squat-avatar"), state.currentAvatar, "2rem");
+    $("btn-squat-use-last-cal").classList.toggle("hidden", !getSquatCalibration());
+  }
 }
 
 function guardLeaveWorkout(next) {
@@ -1171,6 +1250,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this plank? Your in-progress time won't be saved.");
     if (!ok) return;
     stopPlankHard();
+  } else if (state.screen === "screen-squat-workout" && state.squatActive) {
+    const ok = confirm("Leave this squat set? Your in-progress reps won't be saved.");
+    if (!ok) return;
+    stopSquatHard();
   }
   next();
 }
@@ -1844,9 +1927,13 @@ $("explore-modes-list").addEventListener("click", async (e) => {
       return;
     }
   }
-  // Plank is a whole separate activity/screen, not a pushupMode toggle.
+  // Plank and Squat are whole separate activities/screens, not pushupMode toggles.
   if (modeId === "plank") {
     guardLeaveWorkout(() => showScreen("screen-plank-workout"));
+    return;
+  }
+  if (modeId === "squat") {
+    guardLeaveWorkout(() => showScreen("screen-squat-workout"));
     return;
   }
   // Pyramid needs a size/direction picked before it can start, unlike every
@@ -2040,7 +2127,7 @@ function renderMySessions() {
     row.className = "my-session-row compare-clickable";
     row.innerHTML = `
       <span>${formatDateTime(s.timestamp)}</span>
-      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
+      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.type === "squat" ? `🦵 ${formatNumber(s.count)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
     `;
     row.querySelector(".btn-delete-user").addEventListener("click", (e) => {
@@ -2887,11 +2974,12 @@ function renderSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
+  const isSquat = session.type === "squat";
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
   $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000) : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isSquat ? "TOTAL SQUATS" : "TOTAL PUSHUPS";
 
   $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
     <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
@@ -2936,7 +3024,8 @@ async function shareSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : `${formatNumber(session.count)} pushups`;
+  const isSquat = session.type === "squat";
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isSquat ? `${formatNumber(session.count)} squats` : `${formatNumber(session.count)} pushups`;
   const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
   const url = location.href;
   if (navigator.share) {
@@ -4112,6 +4201,10 @@ function getPlankBest(name) {
   return bestFor(indexedSessionsForUser(name, "planks"), name, () => true);
 }
 
+function getSquatBest(name) {
+  return bestFor(indexedSessionsForUser(name, "squats"), name, () => true);
+}
+
 function updateHighscoreMessage(count) {
   const el = $("highscore-message");
   const enabled = localStorage.getItem(LS.showHighscore) !== "0";
@@ -4781,16 +4874,17 @@ function onRepCounted(count) {
     if (state.diceRepsDone >= state.diceTarget) {
       rolledDice = advanceToNextRoll();
     }
-  } else if (state.pushupMode === "wheel") {
+  } else if (state.pushupMode === "wheel" && !state.wheelSpinning) {
+    // Guarded on !wheelSpinning: wheelTarget is 0 while the dial is
+    // mid-animation, and 0 reps would otherwise instantly "complete" a
+    // set that hasn't been assigned yet.
     state.wheelRepsDone += 1;
     if (state.wheelRepsDone >= state.wheelTarget) {
       state.wheelLastTarget = state.wheelTarget;
-      state.wheelTarget = 0;
-      state.wheelRepsDone = 0;
       state.wheelSetModifier = null;
       state.wheelCue = null;
-      // do NOT auto-advance — show the Spin button again and wait for the tap
       renderWheel();
+      advanceWheelSpin(); // auto-respin immediately, no tap
     }
   } else if (state.pushupMode === "ladder") {
     state.ladderRepsDone += 1;
@@ -5121,8 +5215,8 @@ async function setupWorkoutModeState() {
     state.wheelLandings = [];
     wheelRotationTotal = 0;
     initializeWheelDial();
-    $("wheel-spin-btn").disabled = false;
     renderWheel();
+    advanceWheelSpin(); // auto-spin the first set, no tap needed
   } else {
     state.wheelTarget = 0;
     state.wheelRepsDone = 0;
@@ -5532,25 +5626,6 @@ async function reconcileSummaryCount() {
   }
 }
 
-// ---- Wheel mode spin ----
-
-function spinWheel() {
-  if (state.wheelSpinning) return;
-
-  const pr = getHighScore(state.currentUser);
-  const pickRandomModifier = (rnd) => RESOLVABLE_MODIFIER_IDS[Math.floor(rnd() * RESOLVABLE_MODIFIER_IDS.length)];
-
-  const result = resolveWheelSpin({
-    pr,
-    lastTarget: state.wheelLastTarget,
-    pickRandomModifier,
-  });
-
-  state.wheelSpinning = true;
-  $("wheel-spin-btn").disabled = true;
-  playWheelSpin(result);
-}
-
 $("btn-missed-plus").addEventListener("click", () => adjustMissedReps(1));
 $("btn-missed-minus").addEventListener("click", () => adjustMissedReps(-1));
 
@@ -5558,7 +5633,6 @@ $("btn-start").addEventListener("click", startWorkout);
 $("btn-complete").addEventListener("click", completeWorkout);
 $("fortune-cookie-tap").addEventListener("click", revealFortune);
 $("btn-fortune-start-set").addEventListener("click", startWorkout);
-$("wheel-spin-btn").addEventListener("click", spinWheel);
 
 
 // ---- Cards mode share ----
@@ -5685,32 +5759,35 @@ function refreshSummaryRoadtripConquests() {
 
 function buildShareContext(adjustedCount) {
   const isPlank = state.lastSessionType === "plank";
-  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : "pushups");
+  const isSquat = state.lastSessionType === "squat";
+  const isPushup = !isPlank && !isSquat;
+  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isSquat ? "squats" : "pushups");
   const weekStart = periodStart("week");
   const weekStartTime = weekStart.getTime();
   const weekTotalRaw = mine
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : state.pushupMode,
+    mode: isPlank ? "plank" : isSquat ? "squat" : state.pushupMode,
     isPlank,
-    isZen: !isPlank && state.pushupMode === "zen",
+    isSquat,
+    isZen: isPushup && state.pushupMode === "zen",
     streak: computeStreak(mine),
     weekTotalRaw,
     weekTotalDisplay: isPlank ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
-    cardsCtx: (!isPlank && state.pushupMode === "cards") ? buildCardsShareContext() : null,
-    pokerCtx: (!isPlank && state.pushupMode === "poker") ? buildPokerShareContext() : null,
-    diceCtx: (!isPlank && state.pushupMode === "dice") ? buildDiceShareContext() : null,
-    sharpshooterCtx: (!isPlank && state.pushupMode === "sharpshooter") ? buildSharpshooterShareContext() : null,
-    ladderCtx: (!isPlank && state.pushupMode === "ladder") ? buildLadderShareContext() : null,
-    pyramidCtx: (!isPlank && state.pushupMode === "pyramid") ? buildPyramidShareContext() : null,
-    countdownCtx: (!isPlank && state.pushupMode === "countdown") ? {
+    cardsCtx: (isPushup && state.pushupMode === "cards") ? buildCardsShareContext() : null,
+    pokerCtx: (isPushup && state.pushupMode === "poker") ? buildPokerShareContext() : null,
+    diceCtx: (isPushup && state.pushupMode === "dice") ? buildDiceShareContext() : null,
+    sharpshooterCtx: (isPushup && state.pushupMode === "sharpshooter") ? buildSharpshooterShareContext() : null,
+    ladderCtx: (isPushup && state.pushupMode === "ladder") ? buildLadderShareContext() : null,
+    pyramidCtx: (isPushup && state.pushupMode === "pyramid") ? buildPyramidShareContext() : null,
+    countdownCtx: (isPushup && state.pushupMode === "countdown") ? {
       target: state.countdownTarget,
       beat: adjustedCount >= state.countdownTarget,
       margin: Math.max(0, adjustedCount - state.countdownTarget),
       remaining: Math.max(0, state.countdownTarget - adjustedCount),
     } : null,
-    fortuneCtx: (!isPlank && state.pushupMode === "fortune" && state.fortuneChallenge) ? {
+    fortuneCtx: (isPushup && state.pushupMode === "fortune" && state.fortuneChallenge) ? {
       title: state.fortuneChallenge.challenge.title,
       target: state.fortuneChallenge.target,
       beatTarget: state.fortuneChallenge.target == null ? null : adjustedCount >= state.fortuneChallenge.target,
@@ -5721,7 +5798,7 @@ function buildShareContext(adjustedCount) {
       weightLbs: state.summaryWeightLbs,
       rawCount: state.summaryBaseCount + state.summaryExtra,
     } : null,
-    prCtx: !isPlank ? state.summaryPrAchieved : null,
+    prCtx: isPushup ? state.summaryPrAchieved : null,
   };
 }
 
@@ -5779,7 +5856,8 @@ async function shareRoadtripConquest() {
 }
 
 $("btn-summary-again").addEventListener("click", () => {
-  showScreen(state.lastSessionType === "plank" ? "screen-plank-workout" : "screen-workout");
+  const screenByType = { plank: "screen-plank-workout", squat: "screen-squat-workout" };
+  showScreen(screenByType[state.lastSessionType] || "screen-workout");
 });
 $("btn-summary-share").addEventListener("click", shareFlex);
 $("summary-roadtrip-cue").addEventListener("click", shareRoadtripConquest);
@@ -5956,6 +6034,362 @@ async function completePlank() {
 
 $("btn-plank-start").addEventListener("click", startPlank);
 $("btn-plank-stop").addEventListener("click", completePlank);
+
+// ------------------- squat mode -------------------
+// Camera-counted free set, own screen (see docs/squat-mode-plan.md): a 2-tap
+// calibration (stand tall, hold a squat) derives per-session thresholds —
+// wall tilt/distance make an absolute default unreliable — then reuses
+// createRepCounter unchanged, same as pushups, just fed bboxCenterY/
+// videoHeight instead of face size. camera.js/rep-counter.js are shared
+// modules, not forked; this is its own controller instance because
+// createCameraController bakes its callbacks in at construction and the
+// pushup/plank/squat screens are never active at the same time.
+
+function updateSquatFaceBox(bbox) {
+  const video = $("squat-camera-video");
+  const container = document.querySelector("#screen-squat-workout .camera-wrap");
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const scale = Math.max(cw / vw, ch / vh);
+  const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
+  const box = $("squat-face-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+function hideSquatFaceBox() { $("squat-face-box").classList.add("hidden"); }
+
+function hideSquatStatusBanner() { $("squat-status-banner").classList.add("hidden"); }
+function showSquatStatusBanner(text) {
+  $("squat-status-banner").textContent = text;
+  $("squat-status-banner").classList.remove("hidden");
+  announce(text);
+}
+
+function checkSquatFaceLostTimeout() {
+  if (squatState.paused || squatState.stage !== "counting") return;
+  const now = performance.now();
+  if (now - squatState.lastSeenAt > FACE_LOST_TIMEOUT_MS) {
+    squatState.paused = true;
+    showSquatStatusBanner("PAUSED — find your face");
+    speak("Paused");
+  }
+}
+
+function updateSquatPhaseIndicator(phase) {
+  const el = $("squat-phase-indicator");
+  el.textContent = phase === "down" ? "SQUATTING" : "STANDING";
+  el.classList.toggle("is-down", phase === "down");
+}
+
+function updateSquatHighscoreMessage(count) {
+  const el = $("squat-highscore-message");
+  if (!state.squatBest) {
+    el.textContent = "";
+    return;
+  }
+  const remaining = state.squatBest - count;
+  if (remaining > 0) {
+    el.textContent = `${remaining} squat${remaining === 1 ? "" : "s"} away from your best!`;
+  } else if (remaining === 0) {
+    el.textContent = "Tied your best squat set — one more!";
+  } else {
+    el.textContent = "New squat record! 🔥";
+  }
+}
+
+// Same shape as maybeEncourage/maybeEncouragePlank, but for squat reps.
+function maybeEncourageSquat(count) {
+  if (!state.squatBest || state.squatBest <= 1) return null;
+  if (count - squatState.lastCheerAtCount < 3) return null;
+  if (Math.random() < cheerProbability(count / state.squatBest)) {
+    squatState.lastCheerAtCount = count;
+    return pickFrom(SQUAT_CHEER_LINES);
+  }
+  return null;
+}
+
+function onSquatRepCounted(count) {
+  $("squat-rep-count").textContent = String(count);
+  setTimeout(() => {
+    updateSquatHighscoreMessage(count);
+
+    let spoken = null;
+    let mustSpeak = false;
+    if (state.squatBest && count === state.squatBest + 1 && !squatState.recordBroken) {
+      squatState.recordBroken = true;
+      spoken = SQUAT_RECORD_LINE;
+      mustSpeak = true;
+      launchConfetti("squat-confetti", CONFETTI_EMOJI);
+    } else {
+      spoken = maybeEncourageSquat(count);
+      if (spoken) mustSpeak = true;
+    }
+
+    const now = performance.now();
+    const fastPace = now - squatState.lastRepSpokenAt < REP_SPEECH_MIN_GAP_MS;
+    if (mustSpeak || !fastPace || count % 5 === 0) {
+      squatState.lastRepSpokenAt = now;
+      speak(spoken || numberToWords(count));
+    }
+    vibrate(45);
+  }, 0);
+}
+
+function processSquatRatio(ratio) {
+  const now = performance.now();
+  squatState.lastSeenAt = now;
+  if (squatState.paused) {
+    squatState.paused = false;
+    hideSquatStatusBanner();
+    speak("Back to it");
+  }
+  if (!squatState.counter) squatState.counter = createRepCounter({ down: squatState.down, up: squatState.up });
+  const result = squatState.counter.advance(ratio, now);
+  squatState.phase = result.phase;
+  updateSquatPhaseIndicator(result.phase);
+  if (result.counted) {
+    squatState.count = result.count;
+    onSquatRepCounted(result.count);
+  }
+}
+
+const squatCamera = createCameraController({
+  moduleUrl: FACE_DETECTOR_MODULE_URL,
+  wasmUrl: FACE_DETECTOR_WASM_URL,
+  modelUrl: FACE_DETECTOR_MODEL_URL,
+  getVideo: () => $("squat-camera-video"),
+  onDetection(bbox, inferenceMs) {
+    const video = $("squat-camera-video");
+    updateSquatFaceBox(bbox);
+    const centerY = squatCenterY(bbox, video);
+    if (squatState.stage === "cal-stand" || squatState.stage === "cal-squat") {
+      squatState.calSamples.push(centerY);
+    } else if (squatState.stage === "counting") {
+      processSquatRatio(centerY);
+    }
+  },
+  onNoDetection() {
+    hideSquatFaceBox();
+    checkSquatFaceLostTimeout();
+  },
+});
+
+const SQUAT_CAL_STEPS = [
+  { stage: "cal-stand", label: "Step 1 of 2", title: "Stand tall", instructions: "Stand up straight, whole body in frame, and hold still." },
+  { stage: "cal-squat", label: "Step 2 of 2", title: "Hold a squat", instructions: "Drop into a full squat and hold it still." },
+];
+let squatCalStepIndex = 0;
+
+function renderSquatCalStep(index) {
+  const step = SQUAT_CAL_STEPS[index];
+  $("squat-cal-step-label").textContent = step.label;
+  $("squat-cal-title").textContent = step.title;
+  $("squat-cal-instructions").textContent = step.instructions;
+  $("squat-cal-error").classList.add("hidden");
+  $("btn-squat-cal-capture").disabled = false;
+  $("btn-squat-cal-capture").textContent = "Capture";
+}
+
+function beginSquatCalibration() {
+  squatCalStepIndex = 0;
+  squatState.calStandY = null;
+  squatState.calSquatY = null;
+  squatState.stage = "cal-stand";
+  $("squat-cal-stage").classList.remove("hidden");
+  $("squat-count-stage").classList.add("hidden");
+  $("btn-squat-stop").classList.add("hidden");
+  $("btn-squat-cancel").classList.remove("hidden");
+  renderSquatCalStep(0);
+}
+
+function beginSquatCounting(thresholds) {
+  squatState.down = thresholds.down;
+  squatState.up = thresholds.up;
+  squatState.counter = createRepCounter({ down: thresholds.down, up: thresholds.up });
+  squatState.phase = "up";
+  squatState.count = 0;
+  squatState.lastSeenAt = performance.now();
+  squatState.lastRepSpokenAt = 0;
+  squatState.paused = false;
+  squatState.lastCheerAtCount = 0;
+  squatState.recordBroken = false;
+  squatState.stage = "counting";
+  state.squatBest = getSquatBest(state.currentUser);
+  state.squatStartedAt = new Date();
+  $("squat-rep-count").textContent = "0";
+  updateSquatPhaseIndicator("up");
+  updateSquatHighscoreMessage(0);
+  hideSquatStatusBanner();
+  $("squat-cal-stage").classList.add("hidden");
+  $("squat-count-stage").classList.remove("hidden");
+  $("btn-squat-cancel").classList.add("hidden");
+  $("btn-squat-stop").classList.remove("hidden");
+}
+
+// Advances the wizard one capture at a time: step 1 records standY, step 2
+// records squatY and (if the swing is big enough) derives thresholds,
+// persists them, and drops straight into counting.
+async function captureSquatCalStep() {
+  const btn = $("btn-squat-cal-capture");
+  btn.disabled = true;
+  btn.textContent = "Hold still…";
+  squatState.calSamples = [];
+  await sleep(SQUAT_CAL_SAMPLE_MS);
+  const sampleMedian = median(squatState.calSamples);
+
+  if (squatCalStepIndex === 0) {
+    squatState.calStandY = sampleMedian;
+    squatState.stage = "cal-squat";
+    squatCalStepIndex = 1;
+    renderSquatCalStep(1);
+    return;
+  }
+
+  squatState.calSquatY = sampleMedian;
+  if (!squatCalibrationValid(squatState.calStandY, squatState.calSquatY)) {
+    squatCalStepIndex = 0;
+    squatState.stage = "cal-stand";
+    renderSquatCalStep(0);
+    $("squat-cal-error").textContent = "Not enough movement detected — stand closer to the phone and try again.";
+    $("squat-cal-error").classList.remove("hidden");
+    return;
+  }
+
+  const thresholds = deriveSquatThresholds(squatState.calStandY, squatState.calSquatY);
+  saveSquatCalibration(squatState.calStandY, squatState.calSquatY, thresholds);
+  speak(pickFrom(SQUAT_START_LINES));
+  beginSquatCounting(thresholds);
+}
+
+let squatUseLastCalRequested = false;
+
+async function startSquat() {
+  if (soundIsEnabled()) unlockVoice();
+  state.squatSessionLocation = currentSessionLocationSnapshot();
+
+  let stream;
+  try {
+    stream = await squatCamera.requestStream();
+  } catch (e) {
+    toast("Camera access is required to count squats. Please allow camera permission.", 4000);
+    return;
+  }
+  toast("Loading face detector…", 2000);
+  try {
+    await squatCamera.ensureDetector();
+  } catch (e) {
+    toast("Couldn't load the face detection model. Check your connection and try again.", 4500);
+    stream.getTracks().forEach((t) => t.stop());
+    return;
+  }
+  const video = $("squat-camera-video");
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) { /* autoplay quirks */ }
+
+  await acquireWakeLock();
+
+  state.squatActive = true;
+  $("squat-idle").classList.add("hidden");
+  $("squat-in-progress").classList.remove("hidden");
+  setChromeMinimized(true);
+  squatCamera.startDetection();
+
+  const savedCal = getSquatCalibration();
+  if (squatUseLastCalRequested && savedCal) {
+    speak(pickFrom(SQUAT_START_LINES));
+    beginSquatCounting({ down: savedCal.down, up: savedCal.up });
+  } else {
+    beginSquatCalibration();
+  }
+}
+
+function stopSquatHard() {
+  squatCamera.stop();
+  releaseWakeLock();
+  state.squatActive = false;
+  squatState.stage = "idle";
+  hideSquatStatusBanner();
+  $("squat-in-progress").classList.add("hidden");
+  $("squat-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+let lastSquatFunMessageIndex = -1;
+function pickSquatFunMessage(n) {
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * FUN_MESSAGES_SQUAT.length);
+  } while (idx === lastSquatFunMessageIndex && FUN_MESSAGES_SQUAT.length > 1);
+  lastSquatFunMessageIndex = idx;
+  return FUN_MESSAGES_SQUAT[idx](n);
+}
+
+async function completeSquat() {
+  const count = squatState.count;
+  squatCamera.stop();
+  await releaseWakeLock();
+  state.squatActive = false;
+  squatState.stage = "idle";
+  hideSquatStatusBanner();
+  $("squat-in-progress").classList.add("hidden");
+  $("squat-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count,
+    avatar: state.currentAvatar,
+    startedAt: state.squatStartedAt ? state.squatStartedAt.toISOString() : undefined,
+    type: "squat",
+    ...(state.squatSessionLocation ? { location: state.squatSessionLocation } : {}),
+  };
+
+  // Optimistically reflect it locally right away so it shows up immediately.
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  const message = pickSquatFunMessage(count);
+  state.lastSessionType = "squat";
+  state.summarySessionId = session.id;
+  state.summaryBaseCount = count;
+  state.summaryExtra = 0;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = formatNumber(count);
+  $("missed-reps-count").textContent = "0";
+  $("missed-reps-wrap").classList.remove("hidden");
+  $("summary-weighted-note").classList.add("hidden");
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", CONFETTI_EMOJI);
+  speak(`Session complete. ${message}`);
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-squat-start").addEventListener("click", () => { squatUseLastCalRequested = false; startSquat(); });
+$("btn-squat-use-last-cal").addEventListener("click", () => { squatUseLastCalRequested = true; startSquat(); });
+$("btn-squat-cal-capture").addEventListener("click", captureSquatCalStep);
+$("btn-squat-cancel").addEventListener("click", stopSquatHard);
+$("btn-squat-stop").addEventListener("click", completeSquat);
 
 // ------------------- init -------------------
 
