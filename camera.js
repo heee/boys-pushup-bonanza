@@ -72,7 +72,7 @@ export function createCameraController({
 
   async function requestStream() {
     stream = await getUserMedia({
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      video: { facingMode: { exact: "user" }, width: { ideal: 640 }, height: { ideal: 480 } },
       audio: false,
     });
     return stream;

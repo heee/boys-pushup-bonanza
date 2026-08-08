@@ -64,6 +64,7 @@ import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStar
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel } from "./screens/mode-stats.js?v=133";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=1";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
@@ -1039,6 +1040,8 @@ const state = {
   historyView: "recent",
   highScore: 0,
   bonanzaMode: "mine",
+  modeBreakdownScope: "group",
+  modeBreakdownPeriod: "week",
   lastSessions: [],
   mySessionsShown: 5,
   sessionStartedAt: null,
@@ -1196,6 +1199,7 @@ const TAB_FOR_SCREEN = {
   "screen-roadtrip-detail": "btn-nav-roadtrip",
   "screen-settings": "btn-nav-settings",
   "screen-edit-profile": "btn-nav-settings",
+  "screen-mode-breakdown": "btn-nav-settings",
 };
 
 // Header and tab bar always minimize/hide together — an active rep-counting
@@ -3123,6 +3127,64 @@ function paintMyBonanza(sessions) {
     <div class="stats-table-row"><span class="stats-table-label">${metric.label}</span><span class="stats-table-value">${formatModeMetric(metric)}</span></div>
   `).join("") + achievementMarkup;
 }
+
+function paintModeBreakdown() {
+  const base = state.modeBreakdownScope === "me"
+    ? sessionIndex.sessions.filter((s) => s.user === state.currentUser)
+    : sessionIndex.sessions;
+  const filtered = state.modeBreakdownPeriod === "all"
+    ? base
+    : base.filter((s) => sessionTimestamp(s) >= periodStart(state.modeBreakdownPeriod).getTime());
+
+  const rows = modeBreakdownModel(filtered);
+  const el = $("mode-breakdown-list");
+  if (!rows.length) {
+    el.innerHTML = `<p class="leaderboard-empty">No sessions yet for this period.</p>`;
+    return;
+  }
+  const leaderReps = rows[0].reps;
+  const showUsers = state.modeBreakdownScope === "group";
+  el.innerHTML = rows.map((row, i) => {
+    const pct = Math.max((row.reps / leaderReps) * 100, 8);
+    const wide = pct > 38;
+    const usersLabel = `${row.users} user${row.users === 1 ? "" : "s"}`;
+    return `<div class="mode-breakdown-row">
+      <div class="mode-breakdown-row-head">
+        <span class="mode-breakdown-row-name"><span class="mode-breakdown-rank${i === 0 ? " gold" : ""}">${i + 1}</span>${escapeHtml(row.label)}</span>
+        <span class="mode-breakdown-row-meta">${row.sessions} session${row.sessions === 1 ? "" : "s"}</span>
+      </div>
+      <div class="mode-breakdown-bar-track">
+        <div class="mode-breakdown-bar-fill" style="width:${pct}%">
+          <span class="mode-breakdown-bar-value">${formatNumber(row.reps)}</span>
+          ${showUsers && wide ? `<span class="mode-breakdown-bar-users">${usersLabel}</span>` : ""}
+        </div>
+        ${showUsers && !wide ? `<span class="mode-breakdown-bar-users outside">${usersLabel}</span>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+$("btn-open-mode-breakdown").addEventListener("click", () => {
+  showScreen("screen-mode-breakdown");
+  paintModeBreakdown();
+});
+$("btn-mode-breakdown-back").addEventListener("click", () => showScreen("screen-settings"));
+$("mode-breakdown-scope").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#mode-breakdown-scope .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.modeBreakdownScope = btn.dataset.scope;
+  paintModeBreakdown();
+});
+$("mode-breakdown-period").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  document.querySelectorAll("#mode-breakdown-period .segment").forEach((s) => s.classList.remove("active"));
+  btn.classList.add("active");
+  state.modeBreakdownPeriod = btn.dataset.period;
+  paintModeBreakdown();
+});
 
 function formatModeMetric(metric, value = metric.value) {
   if (value == null || !Number.isFinite(value)) return "—";

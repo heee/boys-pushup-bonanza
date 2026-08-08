@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=147">
+<link rel="stylesheet" href="style.css?v=148">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -611,6 +611,12 @@
     <section id="screen-settings" class="screen">
       <h1 class="screen-title">Settings ⚙️</h1>
 
+      <button id="btn-open-mode-breakdown" type="button" class="settings-link-row">
+        <span class="settings-link-row-icon" aria-hidden="true">📊</span>
+        <span class="settings-link-row-label">Bonanza stats</span>
+        <span class="settings-link-row-chevron" aria-hidden="true">›</span>
+      </button>
+
       <div class="settings-section">
         <div class="tier1-eyebrow">Appearance</div>
         <div class="settings-block">
@@ -730,6 +736,27 @@
       <p class="settings-footer">Made in Texas with love 🇺🇸</p>
     </section>
 
+    <!-- ============ SCREEN: MODE BREAKDOWN (Bonanza stats) ============ -->
+    <section id="screen-mode-breakdown" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-mode-breakdown-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Bonanza stats</h1>
+
+      <div id="mode-breakdown-scope" class="segmented" role="tablist">
+        <button class="segment active" data-scope="group">Group</button>
+        <button class="segment" data-scope="me">Just me</button>
+      </div>
+
+      <div id="mode-breakdown-period" class="segmented" role="tablist">
+        <button class="segment active" data-period="week">Week</button>
+        <button class="segment" data-period="month">Month</button>
+        <button class="segment" data-period="all">All-time</button>
+      </div>
+
+      <div id="mode-breakdown-list" class="mode-breakdown-list"></div>
+    </section>
+
     <!-- ============ SCREEN: EDIT PROFILE ============ -->
     <section id="screen-edit-profile" class="screen">
       <div class="edit-profile-header">
@@ -795,6 +822,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=160"></script>
+<script type="module" src="app.js?v=161"></script>
 </body>
 </html>

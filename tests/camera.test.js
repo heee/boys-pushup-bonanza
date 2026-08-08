@@ -19,7 +19,7 @@ test("camera controller requests the existing constraints and stops every track"
 
   assert.equal(await camera.requestStream(), stream);
   assert.deepEqual(constraints, {
-    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+    video: { facingMode: { exact: "user" }, width: { ideal: 640 }, height: { ideal: 480 } },
     audio: false,
   });
   camera.stop();

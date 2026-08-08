@@ -338,7 +338,7 @@ export function validateSession(body) {
   if (Number.isFinite(weightLbs) && weightLbs >= 0 && weightLbs <= 1000) {
     session.weightLbs = weightLbs;
   }
-  const VALID_MODES = ["countdown", "cards", "poker", "dice", "ladder", "fortune", "chase", "pyramid", "zen", "sharpshooter"];
+  const VALID_MODES = ["countdown", "cards", "poker", "dice", "ladder", "fortune", "chase", "pyramid", "zen", "sharpshooter", "wheel"];
   if (VALID_MODES.includes(body.mode)) session.mode = body.mode;
   // Ladder mode's own record field: the highest rung fully cleared that session.
   const ladderMaxRung = Math.floor(Number(body.ladderMaxRung));
