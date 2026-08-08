@@ -1,6 +1,8 @@
 # Working conventions for this repo
 
 - **Minimize dialogue.** Keep responses terse — critical messages and summaries only, no play-by-play narration.
+- **Always push live directly** after making a change — don't wait to be asked. Commit and `git push` (following the fetch/merge-check and `CACHE_NAME` bump rules below) as a normal part of finishing the change, without asking for confirmation first.
+- **End every turn with a brief summary**: confirm the push landed (commit hash) and flag if `worker/index.js` changed (needs manual Cloudflare dashboard redeploy).
 - Worker (`worker/index.js`) redeploys are manual: paste into Cloudflare dashboard Quick Edit. No wrangler (Windows ARM64 has no `workerd` build).
 - Before any preview check: unregister service workers + clear caches, then reload.
 - Before `git push`: `git fetch` + check `origin/main` for new commits (the live app writes real gameplay data straight to `data.json` via the Worker, independent of this working tree) — merge if needed.
