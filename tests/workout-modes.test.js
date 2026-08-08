@@ -32,6 +32,15 @@ test("Sharpshooter replaces the generic hero and high-score callout", () => {
   assert.equal(hud.hideHighscore, true);
 });
 
+test("Horse hero exposes the live count, not a remaining-vs-target number", () => {
+  assert.deepEqual(workoutHeroModel("horse", 27), { kind: "horse", count: 27, spokenValue: 27, spokenPrefix: "" });
+  const hud = workoutHudModel("horse", 40);
+  assert.equal(hud.horse, true);
+  assert.equal(hud.hideHero, true);
+  assert.equal(hud.hideHighscore, true);
+  assert.equal(hud.hideThermometer, true);
+});
+
 test("HUD visibility remains mode-specific", () => {
   assert.equal(workoutHudModel("zen", 20).hideHero, true);
   assert.equal(workoutHudModel("chase", 20).hideHighscore, true);

@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=148">
+<link rel="stylesheet" href="style.css?v=149">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -173,6 +173,13 @@
           <div id="pyramid-counter-badge" class="mode-counter-badge"></div>
         </div>
 
+        <div id="horse-hud" class="horse-hud hidden">
+          <div id="horse-letters-pill" class="horse-letters-pill"></div>
+          <div id="horse-target-kicker" class="horse-target-kicker"></div>
+          <div id="horse-target-value" class="horse-target-value"></div>
+          <div id="horse-target-sub" class="horse-target-sub"></div>
+        </div>
+
         <div class="rep-count-wrap">
           <div id="rep-count" class="rep-count">0</div>
           <div id="rep-label" class="rep-label">PUSHUPS</div>
@@ -183,6 +190,7 @@
           <div id="wheel-progress-track" class="wheel-progress-track hidden"><div id="wheel-progress-fill" class="wheel-progress-fill"></div></div>
           <div id="ladder-session-total" class="cards-session-total hidden"></div>
           <div id="pyramid-session-total" class="cards-session-total hidden"></div>
+          <div id="horse-session-total" class="cards-session-total hidden"></div>
           <div id="fortune-session-total" class="cards-session-total hidden"></div>
           <div id="chase-hud" class="chase-hud hidden" aria-live="polite">
             <div class="chase-kicker"><span id="chase-offline" class="chase-offline hidden">OFFLINE TARGET</span></div>
@@ -230,6 +238,69 @@
       <p class="pyramid-setup-section-label">Direction</p>
       <div id="pyramid-direction-list" class="pyramid-card-list"></div>
       <button id="btn-pyramid-start" type="button" class="btn btn-giant btn-primary pyramid-start-btn">Start pyramid</button>
+    </section>
+
+    <!-- ============ SCREEN: HORSE SETUP ============ -->
+    <section id="screen-horse-setup" class="screen">
+      <div class="horse-header-row">
+        <button id="btn-horse-setup-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 class="screen-title">Horse</h1>
+      </div>
+
+      <p class="pyramid-setup-section-label">Word</p>
+      <div id="horse-word-select" class="segmented" role="tablist">
+        <button type="button" class="segment active" id="horse-word-classic" data-horse-word-mode="classic">Classic · HORSE</button>
+        <button type="button" class="segment" id="horse-word-random" data-horse-word-mode="random">Random word</button>
+      </div>
+      <div class="horse-word-preview-row">
+        <div id="horse-word-preview" class="horse-word-preview"></div>
+        <button id="btn-horse-reshuffle" type="button" class="horse-reshuffle-btn hidden" aria-label="Reshuffle word">🔀</button>
+      </div>
+
+      <p class="pyramid-setup-section-label">Session type</p>
+      <div id="horse-session-select" class="segmented" role="tablist">
+        <button type="button" class="segment active" id="horse-session-live" data-horse-session="live">Live · pass phone</button>
+        <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite">Invite friends</button>
+      </div>
+      <p id="horse-session-note" class="screen-sub hidden">Async invites are coming soon — play live for now.</p>
+
+      <p class="pyramid-setup-section-label">Players</p>
+      <div id="horse-player-list" class="tier1-list"></div>
+      <button id="btn-horse-invite-more" type="button" class="horse-dashed-invite">
+        <span class="new-user-plus">＋</span><span>Invite more</span>
+      </button>
+      <div id="horse-invite-candidates" class="tier1-list hidden"></div>
+
+      <button id="btn-horse-start" type="button" class="btn btn-giant btn-primary horse-start-btn">Do your set — sets the bar</button>
+    </section>
+
+    <!-- ============ SCREEN: HORSE TURN ORDER ============ -->
+    <section id="screen-horse-turn-order" class="screen">
+      <h1 id="horse-order-title" class="screen-title">Horse · Round 1</h1>
+      <p id="horse-order-target-line" class="screen-sub"></p>
+      <div id="horse-turn-order-list" class="tier1-list"></div>
+      <button id="btn-horse-take-turn" type="button" class="btn btn-giant btn-primary horse-start-btn">Do your set</button>
+    </section>
+
+    <!-- ============ SCREEN: HORSE LETTER COLLECTED ============ -->
+    <section id="screen-horse-letter" class="screen horse-letter-screen">
+      <p id="horse-letter-summary-line" class="horse-letter-summary-line"></p>
+      <div id="horse-letter-badge" class="horse-letter-badge"></div>
+      <h1 id="horse-letter-headline" class="screen-title"></h1>
+      <div id="horse-letter-word" class="horse-word-preview"></div>
+      <p id="horse-letter-sub" class="screen-sub"></p>
+      <button id="btn-horse-letter-continue" type="button" class="btn btn-giant btn-secondary">Continue</button>
+    </section>
+
+    <!-- ============ SCREEN: HORSE SUMMARY ============ -->
+    <section id="screen-horse-summary" class="screen">
+      <h1 class="screen-title" style="text-align:center">Horse — complete</h1>
+      <div id="horse-summary-crown" class="horse-crown-pill"></div>
+      <div id="horse-summary-list" class="tier1-list"></div>
+      <div class="horse-summary-actions">
+        <button id="btn-horse-rematch" type="button" class="btn btn-giant btn-primary">Rematch</button>
+        <button id="btn-horse-share" type="button" class="btn btn-giant btn-secondary">Share</button>
+      </div>
     </section>
 
     <!-- ============ SCREEN: MODIFIER PICKER ============ -->
@@ -822,6 +893,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=161"></script>
+<script type="module" src="app.js?v=162"></script>
 </body>
 </html>

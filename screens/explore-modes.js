@@ -14,6 +14,7 @@ export const EXPLORE_MODES = [
   { id: "sharpshooter", icon: "🏹", title: "Sharpshooter", tagline: "Destroy adaptive targets, one bullseye at a time", live: true },
   { id: "pyramid", icon: "🔺", title: "Pyramid", tagline: "Descend the base, conquer the apex", live: true },
   { id: "zen", icon: "🧘", title: "Zen Mode", tagline: "No counters, no noise — just push", live: true },
+  { id: "horse", icon: "🐴", title: "Horse", tagline: "Beat the set before you, or take a letter", live: true },
 ];
 
 function usageByMode(sessions) {

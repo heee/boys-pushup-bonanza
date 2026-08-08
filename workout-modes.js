@@ -1,4 +1,10 @@
 export function workoutHeroModel(mode, count, state = {}) {
+  if (mode === "horse") {
+    // The hero number is the target to beat, not the live count — see
+    // horseTurnHeroCopy in screens/horse.js. This just drives the live-count
+    // subordinate line and the spoken rep number.
+    return { kind: "horse", count, spokenValue: count, spokenPrefix: "" };
+  }
   if (mode === "countdown") {
     const remaining = state.countdownTarget - count;
     return {
@@ -37,6 +43,7 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   const zen = mode === "zen";
   const sharpshooter = mode === "sharpshooter";
   const pyramid = mode === "pyramid";
+  const horse = mode === "horse";
   const fortuneHidesCounter = fortune && !!fortuneChallenge?.hideCounter;
   const fortuneMinimalFeedback = fortune && !!fortuneChallenge?.minimalFeedback;
   return {
@@ -50,9 +57,10 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
     poker,
     sharpshooter,
     pyramid,
-    hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || fortuneHidesCounter || zen,
-    hideHighscore: dice || wheel || sharpshooter || pyramid || fortuneMinimalFeedback || chase || zen,
-    hideThermometer: zen || !highScore,
+    horse,
+    hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || horse || fortuneHidesCounter || zen,
+    hideHighscore: dice || wheel || sharpshooter || pyramid || horse || fortuneMinimalFeedback || chase || zen,
+    hideThermometer: zen || horse || !highScore,
   };
 }
 

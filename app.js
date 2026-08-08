@@ -68,11 +68,14 @@ import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=1";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=137";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=138";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=2";
-import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=149";
+import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
+import { applyTurn, createHorseGame, currentTurnPlayer, horsePlayerRows, horseTargetLabel } from "./horse.js";
+import { horseSummaryRows, horseTurnHeroCopy, horseWordChips } from "./screens/horse.js";
+import { randomHorseWord } from "./horse-words.js";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
   formatTerritoryLocation,
@@ -1086,6 +1089,12 @@ const state = {
   deviceLocationProfile: normalizeDeviceLocationProfile(jsonStorage.read(LS.deviceLocation, { mode: "automatic", location: null })),
   sessionLocation: null,
   plankSessionLocation: null,
+  horseGame: null,
+  horseWordMode: "classic",
+  horseWord: "HORSE",
+  horseSessionType: "live",
+  horseSetupPlayers: [],
+  horseLetterEvent: null,
 };
 let summaryReconcileTimer = null;
 
@@ -1185,6 +1194,10 @@ const TAB_FOR_SCREEN = {
   "screen-workout": "btn-nav-home",
   "screen-explore-modes": "btn-nav-home",
   "screen-pyramid-setup": "btn-nav-home",
+  "screen-horse-setup": "btn-nav-home",
+  "screen-horse-turn-order": "btn-nav-home",
+  "screen-horse-letter": "btn-nav-home",
+  "screen-horse-summary": "btn-nav-home",
   "screen-modifier-picker": "btn-nav-home",
   "screen-plank-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
@@ -1976,7 +1989,272 @@ $("explore-modes-list").addEventListener("click", async (e) => {
     guardLeaveWorkout(() => showScreen("screen-pyramid-setup"));
     return;
   }
+  // Horse needs a word/session-type/player picked before it can start — see
+  // screen-horse-setup — and is a whole turn-based flow, not a single set.
+  if (modeId === "horse") {
+    renderHorseSetup();
+    guardLeaveWorkout(() => showScreen("screen-horse-setup"));
+    return;
+  }
   openPushupModeFromExplore(modeId);
+});
+
+// ------------------- Horse mode -------------------
+
+function horseWordChipsHTML(word, lettersCollected) {
+  return horseWordChips(word, lettersCollected)
+    .map((c) => `<span class="horse-word-chip ${c.filled ? "filled" : "empty"}">${escapeHtml(c.letter)}</span>`)
+    .join("");
+}
+
+function horseMiniStripHTML(word, lettersCollected) {
+  return horseWordChips(word, lettersCollected)
+    .map((c) => `<span class="horse-mini-chip${c.filled ? " filled" : ""}"></span>`)
+    .join("");
+}
+
+function renderHorseWordUI() {
+  document.querySelectorAll("#horse-word-select .segment[data-horse-word-mode]").forEach((s) => {
+    s.classList.toggle("active", s.dataset.horseWordMode === state.horseWordMode);
+  });
+  $("horse-word-preview").innerHTML = state.horseWord.split("").map((l) => `<span class="horse-word-chip">${escapeHtml(l)}</span>`).join("");
+  $("btn-horse-reshuffle").classList.toggle("hidden", state.horseWordMode !== "random");
+}
+
+function renderHorseSessionUI() {
+  document.querySelectorAll("#horse-session-select .segment[data-horse-session]").forEach((s) => {
+    s.classList.toggle("active", s.dataset.horseSession === state.horseSessionType);
+  });
+}
+
+let horseInviteExpanded = false;
+
+function renderHorsePlayerList() {
+  const list = $("horse-player-list");
+  list.innerHTML = state.horseSetupPlayers.map((name) => {
+    const isSelf = name === state.currentUser;
+    const trailing = isSelf
+      ? '<span class="horse-player-tag">Starting</span>'
+      : `<button type="button" class="icon-btn" data-remove-horse-player="${escapeHtml(name)}" aria-label="Remove ${escapeHtml(name)}">✕</button>`;
+    return `
+    <div class="tier1-row horse-player-row${isSelf ? " horse-row-active" : ""}">
+      <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(name).id}"></span>
+      <span class="horse-player-name">${escapeHtml(name)}</span>
+      ${trailing}
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+
+  const known = orderedUserNames(getAllSessionsForDisplay(), state.currentUser)
+    .filter((name) => !state.horseSetupPlayers.includes(name));
+  const candidates = $("horse-invite-candidates");
+  candidates.classList.toggle("hidden", !horseInviteExpanded);
+  if (horseInviteExpanded) {
+    candidates.innerHTML = known.length
+      ? known.map((name) => `
+        <button type="button" class="tier1-row horse-player-row horse-candidate-row" data-add-horse-player="${escapeHtml(name)}">
+          <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(name).id}"></span>
+          <span class="horse-player-name">${escapeHtml(name)}</span>
+        </button>`).join("")
+      : `<p class="screen-sub" style="margin:0.8rem 1rem">No other players on this device yet.</p>`;
+    candidates.querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  }
+  const startBtn = $("btn-horse-start");
+  startBtn.disabled = state.horseSetupPlayers.length < 2;
+  startBtn.textContent = state.horseSetupPlayers.length < 2 ? "Add at least one more player" : "Do your set — sets the bar";
+}
+
+// keepPlayers: true for Rematch, which reuses the same lineup instead of
+// resetting to just the current user.
+function renderHorseSetup(keepPlayers = false) {
+  state.horseWordMode = "classic";
+  state.horseWord = "HORSE";
+  state.horseSessionType = "live";
+  if (!keepPlayers || !state.horseSetupPlayers?.length) state.horseSetupPlayers = [state.currentUser];
+  horseInviteExpanded = false;
+  renderHorseWordUI();
+  renderHorseSessionUI();
+  renderHorsePlayerList();
+}
+
+$("btn-horse-setup-back").addEventListener("click", () => {
+  guardLeaveWorkout(() => showScreen("screen-explore-modes"));
+});
+
+$("horse-word-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment[data-horse-word-mode]");
+  if (!btn) return;
+  state.horseWordMode = btn.dataset.horseWordMode;
+  state.horseWord = state.horseWordMode === "random" ? randomHorseWord() : "HORSE";
+  renderHorseWordUI();
+});
+
+$("btn-horse-reshuffle").addEventListener("click", () => {
+  state.horseWord = randomHorseWord(state.horseWord);
+  renderHorseWordUI();
+});
+
+$("horse-session-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment[data-horse-session]");
+  if (!btn) return;
+  if (btn.dataset.horseSession === "invite") {
+    toast("Async invites are coming soon — play live for now.", 3000);
+    return;
+  }
+  state.horseSessionType = btn.dataset.horseSession;
+  renderHorseSessionUI();
+});
+
+$("horse-player-list").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-remove-horse-player]");
+  if (!btn) return;
+  state.horseSetupPlayers = state.horseSetupPlayers.filter((n) => n !== btn.dataset.removeHorsePlayer);
+  renderHorsePlayerList();
+});
+
+$("btn-horse-invite-more").addEventListener("click", () => {
+  horseInviteExpanded = !horseInviteExpanded;
+  renderHorsePlayerList();
+});
+
+$("horse-invite-candidates").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-add-horse-player]");
+  if (!btn) return;
+  const name = btn.dataset.addHorsePlayer;
+  if (!state.horseSetupPlayers.includes(name)) state.horseSetupPlayers.push(name);
+  horseInviteExpanded = false;
+  renderHorsePlayerList();
+});
+
+// Jumps screen-workout to a specific player's turn — pass-the-phone Live
+// mode temporarily relabels the shared active-workout screen as theirs
+// (name/avatar only; state.currentUser itself is untouched) rather than
+// swapping the logged-in profile, since the rest of the app assumes
+// state.currentUser is the device owner.
+function beginHorseTurn(name) {
+  state.pushupMode = "horse";
+  preserveNextModeSelection = true;
+  guardLeaveWorkout(() => showScreen("screen-workout"));
+  $("workout-username").textContent = name;
+  setAvatarEl($("workout-avatar"), avatarForUser(name).id, "2rem");
+  startWorkout();
+}
+
+$("btn-horse-start").addEventListener("click", () => {
+  if (state.horseSetupPlayers.length < 2) return;
+  state.horseGame = createHorseGame({
+    id: `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    word: state.horseWord,
+    sessionType: state.horseSessionType,
+    createdBy: state.currentUser,
+    players: state.horseSetupPlayers,
+  });
+  state.horseLetterEvent = null;
+  beginHorseTurn(state.currentUser);
+});
+
+function renderHorseTurnHero() {
+  const game = state.horseGame;
+  if (!game) return;
+  const user = currentTurnPlayer(game);
+  const copy = horseTurnHeroCopy(game);
+  const mine = horsePlayerRows(game).find((r) => r.name === user);
+  $("horse-letters-pill").textContent = `${mine.letters}/5${mine.letters ? ` · ${mine.wordSoFar}` : ""}`;
+  $("horse-target-kicker").textContent = copy.kicker || "";
+  $("horse-target-kicker").classList.toggle("hidden", !copy.kicker);
+  $("horse-target-value").textContent = copy.value;
+  $("horse-target-sub").textContent = copy.sub || "";
+  $("horse-target-sub").classList.toggle("hidden", !copy.sub);
+}
+
+function renderHorseTurnOrder() {
+  const game = state.horseGame;
+  const rows = horsePlayerRows(game);
+  $("horse-order-title").textContent = `Horse · Round ${game.round}`;
+  const target = horseTargetLabel(game);
+  $("horse-order-target-line").textContent = target ? `Beat ${target} to stay clean` : `${escapeHtml(game.turnOrder[0])} sets the bar`;
+  $("horse-turn-order-list").innerHTML = rows.map((row) => {
+    const statusHTML = row.status === "out"
+      ? '<span class="horse-player-status-out">OUT</span>'
+      : row.status === "up"
+        ? '<span class="horse-player-tag">Up now</span>'
+        : '<span class="horse-player-status-waiting">Waiting</span>';
+    return `
+    <div class="tier1-row horse-player-row${row.status === "up" ? " horse-row-active" : ""}${row.status === "out" ? " horse-row-out" : ""}">
+      <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(row.name).id}"></span>
+      <span class="horse-player-name${row.status === "out" ? " horse-summary-name-out" : ""}">${escapeHtml(row.name)}</span>
+      <span class="horse-mini-strip">${horseMiniStripHTML(game.word, row.letters)}</span>
+      ${statusHTML}
+    </div>`;
+  }).join("");
+  $("horse-turn-order-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  const upNow = currentTurnPlayer(game);
+  $("btn-horse-take-turn").textContent = upNow === state.currentUser ? "Do your set" : `Pass the phone to ${upNow} — do your set`;
+}
+
+$("btn-horse-take-turn").addEventListener("click", () => {
+  beginHorseTurn(currentTurnPlayer(state.horseGame));
+});
+
+function renderHorseLetterScreen() {
+  const evt = state.horseLetterEvent;
+  const game = state.horseGame;
+  $("horse-letter-summary-line").textContent = evt.needed == null ? `You got ${evt.reps}` : `Needed ${evt.needed}+ · you got ${evt.reps}`;
+  const collected = 5 - evt.lettersLeft;
+  const letter = game.word[collected - 1];
+  $("horse-letter-badge").textContent = letter;
+  $("horse-letter-headline").textContent = `${evt.forUser === state.currentUser ? "You" : evt.forUser} picked up letter ${letter}`;
+  $("horse-letter-word").innerHTML = horseWordChipsHTML(game.word, collected);
+  $("horse-letter-sub").textContent = evt.justWentOut
+    ? `${evt.forUser === state.currentUser ? "You're" : `${evt.forUser} is`} OUT — spelled the whole word.`
+    : `${evt.lettersLeft} letter${evt.lettersLeft === 1 ? "" : "s"} left before ${evt.forUser === state.currentUser ? "you're" : `${evt.forUser} is`} out`;
+}
+
+$("btn-horse-letter-continue").addEventListener("click", () => {
+  if (state.horseGame.status === "complete") {
+    renderHorseSummary();
+    showScreen("screen-horse-summary");
+  } else {
+    renderHorseTurnOrder();
+    showScreen("screen-horse-turn-order");
+  }
+});
+
+function renderHorseSummary() {
+  const game = state.horseGame;
+  const rows = horseSummaryRows(game);
+  $("horse-summary-crown").innerHTML = `👑 ${escapeHtml(game.winner)} wins`;
+  $("horse-summary-list").innerHTML = rows.map((row) => {
+    const subtitle = row.isWinner ? `Winner${row.letters === 0 ? " · never spelled a letter" : ""}` : `OUT · ${row.wordSoFar}`;
+    return `
+    <div class="tier1-row horse-player-row${row.isWinner ? " horse-summary-row-winner" : ""}">
+      <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(row.name).id}"></span>
+      <span class="horse-summary-name-col">
+        <span class="horse-summary-name${row.isWinner ? "" : " horse-summary-name-out"}">${escapeHtml(row.name)}</span>
+        <span class="horse-summary-subtitle">${escapeHtml(subtitle)}</span>
+      </span>
+    </div>`;
+  }).join("");
+  $("horse-summary-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+}
+
+$("btn-horse-rematch").addEventListener("click", () => {
+  state.horseSetupPlayers = state.horseGame ? [...state.horseGame.turnOrder] : [state.currentUser];
+  renderHorseSetup(true);
+  guardLeaveWorkout(() => showScreen("screen-horse-setup"));
+});
+
+$("btn-horse-share").addEventListener("click", async () => {
+  const game = state.horseGame;
+  if (!game) return;
+  const rows = horseSummaryRows(game);
+  const text = `🐴 Horse: ${game.winner} wins!\n${rows.map((r) => `${r.isWinner ? "👑" : "❌"} ${r.name} — ${r.isWinner ? "Winner" : `OUT · ${r.wordSoFar}`}`).join("\n")}`;
+  if (navigator.share) {
+    try { await navigator.share({ text }); } catch (e) { /* user cancelled the share sheet */ }
+  } else if (navigator.clipboard) {
+    await navigator.clipboard.writeText(text);
+    toast("Copied results to clipboard", 2500);
+  }
 });
 
 function renderManageUsers() {
@@ -4418,6 +4696,11 @@ function renderHeroForCount(count) {
     $("sharpshooter-count").textContent = String(remaining);
     const destroyed = state.sharpshooterTargetsDestroyed;
     $("sharpshooter-session-total").textContent = `${formatNumber(count)} total · ${destroyed} target${destroyed === 1 ? "" : "s"} destroyed`;
+  } else if (model.kind === "horse") {
+    // No giant hero number here — the target-to-beat is the static focal
+    // number rendered once by renderHorseTurnHero(); this is just the live
+    // running count, same subordinate-line pattern as Cards/Dice/Ladder.
+    $("horse-session-total").textContent = `Live count: ${formatNumber(count)}`;
   } else {
     heroEl.textContent = model.display;
     heroEl.classList.toggle("rep-count-over", model.over);
@@ -5359,6 +5642,12 @@ async function setupWorkoutModeState() {
   $("pyramid-hud").classList.toggle("hidden", !isPyramid);
   $("pyramid-session-total").classList.toggle("hidden", !isPyramid);
 
+  const isHorse = state.pushupMode === "horse";
+  if (isHorse) renderHorseTurnHero();
+  $("horse-hud").classList.toggle("hidden", !isHorse);
+  $("horse-session-total").classList.toggle("hidden", !isHorse);
+  if (isHorse) $("horse-session-total").textContent = "Live count: 0";
+
   // Fortune Cookie is the odd one out: it reuses Classic's own giant hero
   // number and rep counting unchanged (the challenge was already picked and
   // shown during the idle-screen reveal, not here) — except No Looking and
@@ -5468,8 +5757,71 @@ function detectPrAchievement(session) {
   return null;
 }
 
+// Horse's completion flow branches off completeWorkout entirely — it saves a
+// real session (so it counts toward stats/streaks like every other mode, see
+// HORSE_PLAN.md) but then routes into the game's own letter/turn-order/
+// summary screens instead of the shared screen-summary.
+async function completeHorseTurn(rawCount) {
+  clearTimeout(state.sharpshooterAnimationTimer);
+  state.sharpshooterAnimationTimer = null;
+  stopCameraAndDetection();
+  await releaseWakeLock();
+  state.workoutActive = false;
+  $("workout-active").classList.add("hidden");
+  $("workout-idle").classList.remove("hidden");
+
+  const game = state.horseGame;
+  const user = currentTurnPlayer(game);
+  const lettersBefore = game.players[user].letters;
+
+  const session = {
+    id: uuid(),
+    user,
+    timestamp: new Date().toISOString(),
+    count: rawCount,
+    avatar: avatarForUser(user).id,
+    startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    mode: "horse",
+    horseGameId: game.id,
+    horseTarget: game.target,
+    ...(state.sessionLocation ? { location: state.sessionLocation } : {}),
+  };
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+  try { await commitSession(session); } catch (e) { enqueueSession(session); }
+
+  const updated = applyTurn(game, { user, reps: rawCount, now: Date.now() });
+  state.horseGame = updated;
+
+  const gotLetter = updated.players[user].letters > lettersBefore;
+  if (gotLetter) {
+    state.horseLetterEvent = {
+      forUser: user,
+      needed: game.target,
+      reps: rawCount,
+      lettersLeft: 5 - updated.players[user].letters,
+      justWentOut: updated.players[user].out,
+    };
+    renderHorseLetterScreen();
+    showScreen("screen-horse-letter");
+    return;
+  }
+  if (updated.status === "complete") {
+    renderHorseSummary();
+    showScreen("screen-horse-summary");
+    return;
+  }
+  renderHorseTurnOrder();
+  showScreen("screen-horse-turn-order");
+}
+
 async function completeWorkout() {
   const rawCount = repState.count;
+  if (state.pushupMode === "horse") {
+    await completeHorseTurn(rawCount);
+    return;
+  }
   const isZen = state.pushupMode === "zen";
   clearTimeout(state.sharpshooterAnimationTimer);
   state.sharpshooterAnimationTimer = null;

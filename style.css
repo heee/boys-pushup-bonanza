@@ -1679,6 +1679,139 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .pyramid-card.selected .pyramid-card-check { display: flex; }
 .pyramid-start-btn { margin-top: 1.4rem; width: 100%; }
 
+/* ---------------- Horse mode ---------------- */
+
+.horse-header-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.2rem; }
+.horse-header-row .screen-title { margin: 0; }
+
+/* Collected-letter chip pairing — muted red-brown, distinct from the
+   accent-orange "selected" language used everywhere else. */
+:root, :root[data-theme="dark"] { --horse-letter-bg: #5a3530; --horse-letter-text: #e0876f; }
+:root[data-theme="light"] { --horse-letter-bg: #e8c3ba; --horse-letter-text: #963824; }
+
+.horse-word-preview { display: flex; gap: 0.4rem; }
+.horse-word-chip {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  background: var(--bg-elevated-2);
+  color: var(--text);
+}
+.horse-word-chip.filled { background: var(--horse-letter-bg); color: var(--horse-letter-text); }
+.horse-word-chip.empty { background: none; color: var(--switch-off-track); border: 1.5px solid var(--border); }
+
+.horse-word-preview-row { display: flex; align-items: center; gap: 0.7rem; margin-top: 0.6rem; }
+.horse-reshuffle-btn {
+  flex: 0 0 auto;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-elevated-2);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.horse-reshuffle-btn:active { transform: scale(0.92); }
+
+.horse-player-row { display: flex; align-items: center; gap: 0.7rem; }
+.horse-player-row .avatar-circle { width: 2rem; height: 2rem; font-size: 1.1rem; }
+.horse-player-name { flex: 1; min-width: 0; font-weight: 700; }
+.horse-player-tag { font-size: 0.75rem; font-weight: 700; color: var(--primary); }
+.horse-player-status-waiting { font-size: 0.75rem; font-weight: 700; color: var(--text-tertiary); }
+.horse-player-status-out { font-size: 0.75rem; font-weight: 700; color: var(--danger); text-decoration: line-through; }
+.tier1-row.horse-row-active { background: var(--bg-elevated-2); box-shadow: 0 0 0 1.5px var(--primary); border-radius: 12px; }
+.tier1-row.horse-row-out { opacity: 0.5; }
+
+.horse-mini-strip { display: flex; gap: 0.2rem; }
+.horse-mini-chip {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: none;
+  border: 1.5px solid var(--border);
+}
+.horse-mini-chip.filled { background: var(--horse-letter-bg); border-color: var(--horse-letter-bg); }
+
+.horse-dashed-invite {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 13px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  background: none;
+  width: 100%;
+  cursor: pointer;
+}
+.horse-start-btn { margin-top: 1.4rem; }
+
+/* Active-workout HUD: static target hero (does not tick per rep, unlike
+   Classic's #rep-count) plus the player's own letter-progress pill. */
+.horse-hud { text-align: center; }
+.horse-letters-pill {
+  display: inline-block;
+  background: var(--bg-elevated-2);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 0.6rem;
+}
+.horse-target-kicker { font-size: 0.9rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.horse-target-value { font-size: 3.5rem; font-weight: 900; color: var(--primary); line-height: 1.05; }
+.horse-target-sub { font-size: 0.9rem; color: var(--text-dim); max-width: 18rem; margin: 0.3rem auto 0; }
+
+/* Turn-order / letter-collected / summary screens */
+.horse-letter-screen { text-align: center; align-items: center; }
+.horse-letter-summary-line { color: var(--text-dim); font-weight: 600; margin: 0 0 1.2rem; }
+.horse-letter-badge {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 900;
+  background: var(--horse-letter-bg);
+  color: var(--horse-letter-text);
+  box-shadow: 0 0 0 3px var(--danger);
+  margin: 0 auto 1rem;
+}
+.horse-letter-screen .horse-word-preview { justify-content: center; margin: 1rem auto; }
+.horse-letter-screen .horse-word-preview .horse-word-chip { width: 32px; height: 32px; }
+.horse-letter-screen .btn { margin-top: 1.6rem; }
+
+.horse-crown-pill {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-elevated-2);
+  color: var(--gold);
+  font-weight: 800;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  margin: 0 auto 1.2rem;
+}
+.horse-summary-row-winner { box-shadow: 0 0 0 1.5px var(--gold); border-radius: 12px; background: var(--bg-elevated-2); }
+.horse-summary-name-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+.horse-summary-name { font-weight: 700; }
+.horse-summary-name-out { text-decoration: line-through; color: var(--text-dim); }
+.horse-summary-subtitle { font-size: 0.78rem; color: var(--text-tertiary); }
+.horse-summary-row-winner .horse-summary-subtitle { color: var(--gold); }
+.horse-summary-actions { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.4rem; }
+
 /* ---------------- Pyramid mode (active workout) ---------------- */
 
 /* Tapered rows so the stack actually reads as a pyramid — base(n) widest at
