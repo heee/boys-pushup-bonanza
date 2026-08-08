@@ -54,7 +54,7 @@ import {
 } from "./voice.js?v=148";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
-import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin } from "./wheel-mode.js?v=2";
+import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin } from "./wheel-mode.js?v=3";
 import { createWorkerApi, isRetryableError } from "./api.js";
 import { createJsonStorage, normalizeSharedData } from "./storage.js";
 import { createMutationQueue } from "./sync.js";
@@ -831,38 +831,23 @@ function initializeWheelDial() {
   const dial = $("wheel-dial");
   const segments = displaySegments();
 
-  // Labels sit inside the colored ring, not floating outside the dial.
+  // Each spoke is a chip (dark pill, short label/icon) sitting inside the
+  // colored wedge — not a bare floating emoji. Only two neutral tones split
+  // the wedges (alternating by index); the landed wedge's own solid
+  // accent-orange fill comes from the separate #wheel-landed-highlight
+  // overlay (always centered at 0deg post-rotation — see playWheelSpin),
+  // and its chip flips to the exact segmented-control "selected" look
+  // (solid var(--primary) fill, var(--text-on-accent) text — see
+  // .segment.active in style.css) via the .landed class toggled in
+  // playWheelSpin's completion handler.
   dial.innerHTML = segments.map((seg) => {
     const rotDeg = seg.midDeg;
-    return `<span class="wheel-slice-label" style="transform: rotate(${rotDeg}deg) translateY(-6.1rem) rotate(${-rotDeg}deg)" aria-hidden="true">${seg.icon}</span>`;
+    const content = seg.chip || seg.icon;
+    return `<span class="wheel-chip" data-seg-id="${seg.id}" style="transform: rotate(${rotDeg}deg) translateY(-6.1rem) rotate(${-rotDeg}deg)" aria-hidden="true">${content}</span>`;
   }).join("");
 
-  // Theme tokens (style.css :root), not arbitrary hex — the dial reads as
-  // part of the app's own warm palette instead of a generic Material-green
-  // wheel, and it now follows light/dark theme changes automatically since
-  // these are CSS custom properties, not baked-in colors. Numbers ramp
-  // through the primary/orange family (color-mix blends the in-between
-  // steps); each special segment gets a color tied to its meaning — grip/
-  // tempo are neutral modifiers, spin-again/double are wildcards, freebie
-  // is "good" (success green), boss is prestige (gold), bust is "bad"
-  // (danger red) — matching how Cards/Poker/Dice already lean on these
-  // same tokens for their own mode-specific accents.
-  const colors = [
-    "var(--primary-deep)",
-    "color-mix(in srgb, var(--primary-deep), var(--primary) 50%)",
-    "var(--primary)",
-    "color-mix(in srgb, var(--primary), var(--primary-dim) 50%)",
-    "var(--primary-dim)",
-    "var(--accent-2)",
-    "color-mix(in srgb, var(--accent-2), var(--bg-elevated-2) 55%)",
-    "var(--text-tertiary)",
-    "var(--flame)",
-    "var(--success)",
-    "var(--gold)",
-    "var(--danger)",
-  ];
-
-  const gradientStops = segments.map((seg, idx) => `${colors[idx % colors.length]} ${seg.startDeg}deg ${seg.endDeg}deg`);
+  const neutralTones = ["var(--bg-elevated)", "var(--bg-elevated-2)"];
+  const gradientStops = segments.map((seg, idx) => `${neutralTones[idx % 2]} ${seg.startDeg}deg ${seg.endDeg}deg`);
 
   dial.style.background = `conic-gradient(from 0deg, ${gradientStops.join(", ")})`;
   dial.style.transitionDuration = "0ms";
@@ -926,6 +911,10 @@ function playWheelSpin(result) {
       state.wheelSpinning = false;
       renderWheel();
       highlight.classList.add("show");
+      const finalSegId = landings[landings.length - 1].id;
+      dial.querySelectorAll(".wheel-chip").forEach((el) => {
+        el.classList.toggle("landed", el.dataset.segId === finalSegId);
+      });
       speak(wheelSpokenForResult(result));
       return;
     }
@@ -970,6 +959,7 @@ function advanceWheelSpin() {
   const result = resolveWheelSpin({ pr, lastTarget: state.wheelLastTarget, pickRandomModifier });
   state.wheelSpinning = true;
   $("wheel-landed-highlight").classList.remove("show");
+  $("wheel-dial").querySelectorAll(".wheel-chip.landed").forEach((el) => el.classList.remove("landed"));
   playWheelSpin(result);
 }
 
@@ -4335,6 +4325,8 @@ function renderHeroForCount(count) {
     const remaining = model.remaining;
     $("wheel-session-total").textContent = `${remaining} left this spin · ${formatNumber(count)} total`;
     updateModeCounterBadge("wheel-counter-badge", remaining);
+    const pct = state.wheelTarget > 0 ? Math.min(100, (state.wheelRepsDone / state.wheelTarget) * 100) : 0;
+    $("wheel-progress-fill").style.width = `${pct}%`;
   } else if (model.kind === "ladder") {
     // Like Cards/Dice, no giant hero number — the rung window itself is the
     // focal visual (see setupWorkoutModeState). Reps-remaining-on-this-rung
@@ -5252,6 +5244,8 @@ async function setupWorkoutModeState() {
   }
   $("wheel-hud").classList.toggle("hidden", !isWheel);
   $("wheel-session-total").classList.toggle("hidden", !isWheel);
+  $("wheel-progress-track").classList.toggle("hidden", !isWheel);
+  $("wheel-progress-fill").style.width = "0%";
 
   const isLadder = state.pushupMode === "ladder";
   if (isLadder) {

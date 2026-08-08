@@ -4,19 +4,22 @@
 // the odds stay skewed toward common outcomes underneath. numRange values
 // are fractions of the user's personal best (PR); freebie is a flat rep
 // count, not PR-scaled.
+// `chip` is the short all-caps text shown in each spoke's chip (falls back
+// to `icon` for the number segments, which can't show a fixed value since
+// their actual number is only rolled at landing time).
 export const WHEEL_SEGMENTS = [
   { id: "num1", type: "number", icon: "🔢", label: "…", angleDeg: 60, numRange: [0.10, 0.20] },
   { id: "num2", type: "number", icon: "🔢", label: "…", angleDeg: 50, numRange: [0.20, 0.35] },
   { id: "num3", type: "number", icon: "🔢", label: "…", angleDeg: 42, numRange: [0.35, 0.50] },
   { id: "num4", type: "number", icon: "🔢", label: "…", angleDeg: 36, numRange: [0.50, 0.65] },
   { id: "num5", type: "number", icon: "🔢", label: "…", angleDeg: 28, numRange: [0.65, 0.75] },
-  { id: "grip", type: "grip", icon: "🤲", label: "Grip", angleDeg: 27, numRange: [0.10, 0.75] },
-  { id: "tempo", type: "tempo", icon: "🐢", label: "Slow", angleDeg: 27, numRange: [0.10, 0.75] },
-  { id: "spin_again", type: "spin_again", icon: "🔁", label: "Spin again", angleDeg: 27 },
-  { id: "double", type: "double", icon: "✖️2", label: "Double or nothing", angleDeg: 27 },
-  { id: "freebie", type: "freebie", icon: "🎁", label: "Freebie", angleDeg: 12, flatValue: 3 },
-  { id: "boss", type: "boss", icon: "👑", label: "Boss", angleDeg: 12, numRange: [1.00, 1.25] },
-  { id: "bust", type: "bust", icon: "💀", label: "Bust", angleDeg: 12 },
+  { id: "grip", type: "grip", icon: "🤲", chip: "GRIP", label: "Grip", angleDeg: 27, numRange: [0.10, 0.75] },
+  { id: "tempo", type: "tempo", icon: "🐢", chip: "SLOW", label: "Slow", angleDeg: 27, numRange: [0.10, 0.75] },
+  { id: "spin_again", type: "spin_again", icon: "🔁", chip: "SKIP", label: "Spin again", angleDeg: 27 },
+  { id: "double", type: "double", icon: "✖️2", chip: "2X", label: "Double or nothing", angleDeg: 27 },
+  { id: "freebie", type: "freebie", icon: "🎁", chip: "FREE", label: "Freebie", angleDeg: 12, flatValue: 3 },
+  { id: "boss", type: "boss", icon: "👑", chip: "BOSS", label: "Boss", angleDeg: 12, numRange: [1.00, 1.25] },
+  { id: "bust", type: "bust", icon: "💀", chip: "BUST", label: "Bust", angleDeg: 12 },
 ];
 
 // Equal-size layout for the dial itself — every slice gets the same visual
