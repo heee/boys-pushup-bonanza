@@ -5,7 +5,8 @@
       "name": "static-server",
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/static-server.cjs"],
-      "port": 8080
+      "port": 8080,
+      "autoPort": true
     }
   ]
 }
