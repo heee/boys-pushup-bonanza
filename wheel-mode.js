@@ -43,10 +43,25 @@ function pickSegment(random) {
   return WHEEL_SEGMENTS[WHEEL_SEGMENTS.length - 1];
 }
 
-function numberInRange(pr, [lo, hi], random) {
+function numberRangeBounds(pr, [lo, hi]) {
   const min = Math.max(1, Math.round(pr * lo));
   const max = Math.max(min, Math.round(pr * hi));
+  return [min, max];
+}
+
+function numberInRange(pr, range, random) {
+  const [min, max] = numberRangeBounds(pr, range);
   return min + Math.floor(random() * (max - min + 1));
+}
+
+// Deterministic representative value for a number spoke's chip — the real
+// draw only happens at landing time (numberInRange, above), but the dial
+// still needs *something* stable to display before that. The range's
+// midpoint reads as a fair "about this many" preview without flickering
+// between re-renders the way a random pick would.
+export function numberRangeMidpoint(pr, range) {
+  const [min, max] = numberRangeBounds(pr, range);
+  return Math.round((min + max) / 2);
 }
 
 // Resolves one Spin tap to completion, following spin_again/double chains.

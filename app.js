@@ -54,7 +54,7 @@ import {
 } from "./voice.js?v=148";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
-import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin } from "./wheel-mode.js?v=3";
+import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
 import { createWorkerApi, isRetryableError } from "./api.js";
 import { createJsonStorage, normalizeSharedData } from "./storage.js";
 import { createMutationQueue } from "./sync.js";
@@ -840,9 +840,13 @@ function initializeWheelDial() {
   // (solid var(--primary) fill, var(--text-on-accent) text — see
   // .segment.active in style.css) via the .landed class toggled in
   // playWheelSpin's completion handler.
+  // Number spokes show a real (representative, not random-flickering)
+  // value scaled off the user's PR instead of a generic 🔢 — five
+  // identical emoji gave no sense of which spoke was "the big one".
+  const pr = getHighScore(state.currentUser);
   dial.innerHTML = segments.map((seg) => {
     const rotDeg = seg.midDeg;
-    const content = seg.chip || seg.icon;
+    const content = seg.type === "number" ? String(numberRangeMidpoint(pr, seg.numRange)) : (seg.chip || seg.icon);
     return `<span class="wheel-chip" data-seg-id="${seg.id}" style="transform: rotate(${rotDeg}deg) translateY(-6.1rem) rotate(${-rotDeg}deg)" aria-hidden="true">${content}</span>`;
   }).join("");
 
