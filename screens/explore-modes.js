@@ -1,4 +1,5 @@
 export const EXPLORE_MODES = [
+  { id: "classic", icon: "💪", title: "Classic", tagline: "Straight sets, no gimmicks", live: true },
   { id: "countdown", icon: "⏱️", title: "Countdown", tagline: "Beat your own personal best", live: true },
   { id: "cards", icon: "🃏", title: "Cards", tagline: "Flip a card, match the move", live: true },
   { id: "dice", icon: "🎲", title: "Dice roll", tagline: "Hit the number before next roll", live: true },
@@ -18,10 +19,25 @@ export const EXPLORE_MODES = [
 function usageByMode(sessions) {
   const counts = new Map();
   for (const session of sessions) {
-    const id = session.type === "plank" ? "plank" : session.type === "squat" ? "squat" : session.mode;
+    const id = session.type === "plank" ? "plank" : session.type === "squat" ? "squat" : (session.mode || "classic");
     if (id) counts.set(id, (counts.get(id) || 0) + 1);
   }
   return counts;
+}
+
+// Plank and Squat are whole separate activities, not pushup modes — they get
+// their own "Other exercises" bucket below the "Pushups" bucket.
+const OTHER_EXERCISE_IDS = new Set(["plank", "squat"]);
+
+function orderBucket(bucket) {
+  const playable = bucket.filter((item) => item.playable).sort((a, b) => {
+    if (a.mode.id === "chase") return -1;
+    if (b.mode.id === "chase") return 1;
+    return b.usage - a.usage || a.index - b.index;
+  });
+  const locked = bucket.filter((item) => item.mode.live && !item.playable).sort((a, b) => a.index - b.index);
+  const roadmap = bucket.filter((item) => !item.mode.live).sort((a, b) => a.index - b.index);
+  return [...playable, ...locked, ...roadmap];
 }
 
 export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, chaseLeaderLabel }) {
@@ -37,14 +53,10 @@ export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, cha
       tagline = `${first.pointsNeeded} point${first.pointsNeeded === 1 ? "" : "s"} to pass ${chaseLeaderLabel(first)} on ${first.label.toLowerCase()}${chasePrepared.offline ? " · offline target" : ""}`;
     }
     const status = checkingChase ? "Checking…" : lockedForChase ? "You’re leading every board" : lockedForPR ? "Log a session first" : "Coming soon";
-    return { mode, index, playable, tagline, status, usage: usage.get(mode.id) || 0 };
+    const section = OTHER_EXERCISE_IDS.has(mode.id) ? "other" : "pushups";
+    return { mode, index, playable, tagline, status, section, usage: usage.get(mode.id) || 0 };
   });
-  const playable = decorated.filter((item) => item.playable).sort((a, b) => {
-    if (a.mode.id === "chase") return -1;
-    if (b.mode.id === "chase") return 1;
-    return b.usage - a.usage || a.index - b.index;
-  });
-  const locked = decorated.filter((item) => item.mode.live && !item.playable).sort((a, b) => a.index - b.index);
-  const roadmap = decorated.filter((item) => !item.mode.live).sort((a, b) => a.index - b.index);
-  return [...playable, ...locked, ...roadmap];
+  const pushups = orderBucket(decorated.filter((item) => item.section === "pushups"));
+  const other = orderBucket(decorated.filter((item) => item.section === "other"));
+  return [...pushups, ...other];
 }

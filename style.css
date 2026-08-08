@@ -2570,6 +2570,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 /* ---------------- Explore modes ---------------- */
 
 .explore-modes-list { display: flex; flex-direction: column; }
+.explore-mode-section-label { margin: 1.1rem 0 0.3rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); text-transform: uppercase; }
+.explore-mode-section-label:first-child { margin-top: 0; }
 .explore-mode-row {
   display: flex;
   align-items: center;

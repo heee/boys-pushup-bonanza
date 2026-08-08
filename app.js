@@ -67,7 +67,7 @@ import { modeStatsModel } from "./screens/mode-stats.js?v=133";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=136";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=137";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=2";
@@ -1816,13 +1816,18 @@ function renderExploreModesScreen(refresh = true) {
   const list = $("explore-modes-list");
   const hasPR = getHighScore(state.currentUser) >= 1;
   const items = exploreModesModel({ sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel });
+  const sectionLabels = { pushups: "Pushups", other: "Other exercises" };
+  let lastSection = null;
   list.innerHTML = items.map((item) => {
     const m = item.mode;
     const live = item.playable;
     const badge = live
       ? '<span class="explore-mode-chev">›</span>'
       : `<span class="explore-mode-soon">${item.status}</span>`;
+    const header = item.section !== lastSection ? `<p class="explore-mode-section-label">${sectionLabels[item.section]}</p>` : "";
+    lastSection = item.section;
     return `
+    ${header}
     <div class="explore-mode-row${live ? "" : " disabled"}" data-explore-mode="${m.id}">
       <div class="explore-mode-icon">${m.icon}</div>
       <div class="explore-mode-copy">
