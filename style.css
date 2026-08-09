@@ -271,7 +271,7 @@ button, input {
 .horse-bell-dropdown {
   position: absolute;
   top: calc(100% + 0.5rem);
-  left: 0;
+  right: 0;
   z-index: 600;
   width: 17rem;
   max-width: 80vw;
@@ -999,6 +999,26 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   box-shadow: 0 6px 18px rgba(16, 56, 45, 0.28);
 }
 #camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Squat mode's camera view is the whole point — full-body auto-framing so
+   the boy can see he's actually in frame for the auto-warmup — unlike
+   pushups' small face-only confidence thumbnail. Without an explicit size
+   #squat-camera-video was rendering at native video resolution inside the
+   tiny shared .camera-wrap and getting clipped to a random zoomed-in
+   corner. Layout also switches to centered: squat only has three stacked
+   elements (camera, status, count/buttons), so the space-between other
+   modes use left this screen top-heavy with a dead lower half. */
+#screen-squat-workout .workout-active { justify-content: center; }
+#screen-squat-workout .camera-wrap {
+  width: min(80vw, 24rem);
+  height: min(46dvh, 30rem);
+  border-radius: 16px;
+}
+#squat-camera-video {
   width: 100%;
   height: 100%;
   object-fit: cover;

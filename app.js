@@ -2341,6 +2341,10 @@ $("btn-horse-share").addEventListener("click", async () => {
 // ------------------- Horse mode: Home bell (async invite notifications) -------------------
 // Only invite/async games ever need a bell entry — Live pass-the-phone games
 // are entirely resolved within the single active session they're started in.
+// Every active invite game this user is part of — "turn"/"invite" are
+// actionable (light the dot badge), "waiting" just means they're in a game
+// that's progressing without them right now. The bell itself only shows at
+// all when this list is non-empty (see renderHorseBellDropdown).
 function pendingHorseItems() {
   const user = state.currentUser;
   if (!user) return [];
@@ -2353,29 +2357,39 @@ function pendingHorseItems() {
       items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game) });
     } else if (user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
       items.push({ kind: "invite", gameId: game.id, from: game.createdBy });
+    } else {
+      items.push({ kind: "waiting", gameId: game.id, upNow: currentTurnPlayer(game) });
     }
   }
   return items;
 }
 
 function renderHorseBellDropdown() {
-  $("btn-horse-bell").classList.toggle("hidden", !state.currentUser);
   const items = pendingHorseItems();
-  $("horse-bell-dot").classList.toggle("hidden", items.length === 0);
+  $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
+  $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => item.kind !== "waiting"));
   const list = $("horse-bell-list");
-  list.innerHTML = items.length ? items.map((item) => item.kind === "turn"
-    ? `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-turn="${item.gameId}">
+  list.innerHTML = items.length ? items.map((item) => {
+    if (item.kind === "turn") {
+      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-turn="${item.gameId}">
         <span aria-hidden="true">🐴</span>
         <span class="horse-player-name">Your turn in Horse${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
-      </button>`
-    : `
+      </button>`;
+    }
+    if (item.kind === "invite") {
+      return `
       <div class="tier1-row horse-player-row">
         <span aria-hidden="true">🐴</span>
         <span class="horse-player-name">${escapeHtml(item.from)} invited you to Horse</span>
         <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
         <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
-      </div>`
-  ).join("") : `<p class="screen-sub horse-bell-empty">Nothing pending.</p>`;
+      </div>`;
+    }
+    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
+        <span aria-hidden="true">🐴</span>
+        <span class="horse-player-name horse-player-status-waiting">Waiting on ${escapeHtml(item.upNow)} in Horse</span>
+      </button>`;
+  }).join("") : `<p class="screen-sub horse-bell-empty">Nothing pending.</p>`;
 }
 
 $("btn-horse-bell").addEventListener("click", async () => {
@@ -2408,6 +2422,16 @@ $("horse-bell-list").addEventListener("click", async (e) => {
   const joinBtn = e.target.closest("[data-bell-join]");
   if (joinBtn) {
     const game = getCachedData().horseGames.find((g) => g.id === joinBtn.dataset.bellJoin);
+    if (game) {
+      state.horseGame = game;
+      $("horse-bell-dropdown").classList.add("hidden");
+      await openHorseTurnOrder();
+    }
+    return;
+  }
+  const viewBtn = e.target.closest("[data-bell-view]");
+  if (viewBtn) {
+    const game = getCachedData().horseGames.find((g) => g.id === viewBtn.dataset.bellView);
     if (game) {
       state.horseGame = game;
       $("horse-bell-dropdown").classList.add("hidden");
