@@ -201,6 +201,7 @@
           <div id="ladder-session-total" class="cards-session-total hidden"></div>
           <div id="pyramid-session-total" class="cards-session-total hidden"></div>
           <div id="horse-session-total" class="cards-session-total hidden"></div>
+          <div id="horse-meter" class="hidden"></div>
           <div id="fortune-session-total" class="cards-session-total hidden"></div>
           <div id="chase-hud" class="chase-hud hidden" aria-live="polite">
             <div class="chase-kicker"><span id="chase-offline" class="chase-offline hidden">OFFLINE TARGET</span></div>
@@ -286,6 +287,7 @@
 
     <!-- ============ SCREEN: HORSE TURN ORDER ============ -->
     <section id="screen-horse-turn-order" class="screen">
+      <div id="horse-turnorder-confetti" class="confetti" aria-hidden="true"></div>
       <div class="horse-order-header">
         <h1 id="horse-order-title" class="screen-title">Horse · Round 1</h1>
         <button id="btn-horse-remind" type="button" class="horse-remind-btn" aria-label="Remind whoever's up">
@@ -310,6 +312,7 @@
 
     <!-- ============ SCREEN: HORSE SUMMARY ============ -->
     <section id="screen-horse-summary" class="screen">
+      <div id="horse-summary-confetti" class="confetti" aria-hidden="true"></div>
       <h1 class="screen-title" style="text-align:center">Horse — complete</h1>
       <div id="horse-summary-crown" class="horse-crown-pill"></div>
       <div id="horse-summary-list" class="tier1-list"></div>

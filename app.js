@@ -2500,6 +2500,14 @@ function renderHorseLetterScreen() {
   $("horse-letter-sub").textContent = evt.justWentOut
     ? `${evt.forUser === state.currentUser ? "You're" : `${evt.forUser} is`} OUT — spelled the whole word.`
     : `${evt.lettersLeft} letter${evt.lettersLeft === 1 ? "" : "s"} left before ${evt.forUser === state.currentUser ? "you're" : `${evt.forUser} is`} out`;
+  // This screen only ever shows on a failed set (missed the bar), so it
+  // always gets the miss animation — re-triggered via remove/reflow/add the
+  // same way updateModeCounterBadge restarts its pop.
+  const badge = $("horse-letter-badge");
+  badge.classList.remove("horse-letter-badge-fail");
+  void badge.offsetWidth;
+  badge.classList.add("horse-letter-badge-fail");
+  vibrate(200);
 }
 
 $("btn-horse-letter-continue").addEventListener("click", async () => {
@@ -5139,6 +5147,21 @@ function updateThermometer(count) {
   fill.classList.toggle("thermometer-win", count > goal);
 }
 
+// Horse's live-count meter tracks the bar to beat (game.target), not the
+// player's own personal best — reuses the same goal/excess thermometer as
+// the Challenges detail screen (see buildProgressThermometer) so clearing
+// the bar reads the same "exceeded the goal" way everywhere else in the app.
+function updateHorseMeter(count) {
+  const meter = $("horse-meter");
+  const target = state.horseGame?.target;
+  if (target == null) {
+    meter.classList.add("hidden");
+    return;
+  }
+  meter.classList.remove("hidden");
+  meter.innerHTML = buildProgressThermometer(count, target);
+}
+
 function getHighScore(name) {
   return bestFor(indexedSessionsForUser(name, "pushups"), name, () => true);
 }
@@ -5293,6 +5316,7 @@ function renderHeroForCount(count) {
     // text line alone is easy to miss mid-set.
     $("horse-session-total").textContent = `Live count: ${formatNumber(count)}`;
     updateModeCounterBadge("horse-counter-badge", count);
+    updateHorseMeter(count);
   } else {
     heroEl.textContent = model.display;
     heroEl.classList.toggle("rep-count-over", model.over);
@@ -6249,6 +6273,7 @@ async function setupWorkoutModeState() {
   $("horse-hud").classList.toggle("hidden", !isHorse);
   $("horse-session-total").classList.toggle("hidden", !isHorse);
   if (isHorse) $("horse-session-total").textContent = "Live count: 0";
+  if (isHorse) updateHorseMeter(0); else $("horse-meter").classList.add("hidden");
 
   // Fortune Cookie is the odd one out: it reuses Classic's own giant hero
   // number and rep counting unchanged (the challenge was already picked and
@@ -6375,6 +6400,7 @@ async function completeHorseTurn(rawCount) {
   const game = state.horseGame;
   const user = currentTurnPlayer(game);
   const lettersBefore = game.players[user].letters;
+  const targetBeforeTurn = game.target;
 
   const session = {
     id: uuid(),
@@ -6427,12 +6453,17 @@ async function completeHorseTurn(rawCount) {
     return;
   }
   speak(pickFrom(HORSE_CLEAR_LINES));
+  // Only a real celebration if there was a bar to beat — the very first set
+  // of the game (targetBeforeTurn == null) just sets it, nothing was cleared.
+  const beatTheBar = targetBeforeTurn != null;
   if (updated.status === "complete") {
     renderHorseSummary();
     showScreen("screen-horse-summary");
+    if (beatTheBar) launchConfetti("horse-summary-confetti");
     return;
   }
   await openHorseTurnOrder();
+  if (beatTheBar) launchConfetti(state.screen === "screen-horse-summary" ? "horse-summary-confetti" : "horse-turnorder-confetti");
 }
 
 async function completeWorkout() {

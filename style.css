@@ -1165,6 +1165,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-top: 0.6rem;
 }
 
+/* Horse's "Live count" line reads secondary to the target-to-beat number,
+   so unlike the other modes sharing .cards-session-total it stays unbold. */
+#horse-session-total { font-weight: 500; }
+#horse-meter { width: 100%; margin-top: 0.5rem; }
+#horse-meter .thermometer-wrap { width: 100%; max-width: none; }
+
 .highscore-message {
   font-size: 0.95rem;
   font-weight: 700;
@@ -1865,7 +1871,11 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-player-tag { font-size: 0.75rem; font-weight: 700; color: var(--primary); }
 .horse-player-status-waiting { font-size: 0.75rem; font-weight: 700; color: var(--text-tertiary); }
 .horse-player-status-out { font-size: 0.75rem; font-weight: 700; color: var(--danger); text-decoration: line-through; }
-.tier1-row.horse-row-active { background: var(--bg-elevated-2); box-shadow: 0 0 0 1.5px var(--primary); border-radius: 12px; }
+/* inset, not outset — .tier1-list clips overflow for its rounded corners,
+   so a shadow drawn outward off a full-width row's edges got cropped left,
+   right, and (when active row was last) bottom. Inset draws inside the
+   row's own box instead, so it's never clipped. */
+.tier1-row.horse-row-active { background: var(--bg-elevated-2); box-shadow: inset 0 0 0 1.5px var(--primary); border-radius: 12px; }
 .tier1-row.horse-row-out { opacity: 0.5; }
 
 .horse-mini-strip { display: flex; gap: 0.2rem; }
@@ -1936,7 +1946,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-target-sub { font-size: 0.9rem; color: var(--text-dim); max-width: 18rem; margin: 0.3rem auto 0; }
 
 /* Turn-order / letter-collected / summary screens */
-.horse-letter-screen { text-align: center; align-items: center; }
+.horse-letter-screen { text-align: center; align-items: center; justify-content: center; }
 .horse-letter-summary-line { color: var(--text-dim); font-weight: 600; margin: 0 0 1.2rem; }
 .horse-letter-badge {
   width: 74px;
@@ -1951,6 +1961,16 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   color: var(--horse-letter-text);
   box-shadow: 0 0 0 3px var(--danger);
   margin: 0 auto 1rem;
+}
+/* This screen only ever shows on a missed bar — a quick shake + flash reads
+   as "miss" the instant it appears, no separate confirmation needed. */
+.horse-letter-badge-fail { animation: horse-letter-fail-shake 420ms ease; }
+@keyframes horse-letter-fail-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); box-shadow: 0 0 0 3px var(--danger), 0 0 0 8px color-mix(in srgb, var(--danger) 35%, transparent); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
 }
 .horse-letter-screen .horse-word-preview { justify-content: center; margin: 1rem auto; }
 .horse-letter-screen .horse-word-preview .horse-word-chip { width: 32px; height: 32px; }
