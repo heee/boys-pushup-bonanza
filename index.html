@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=156">
+<link rel="stylesheet" href="style.css?v=157">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -288,7 +288,10 @@
     <section id="screen-horse-turn-order" class="screen">
       <div class="horse-order-header">
         <h1 id="horse-order-title" class="screen-title">Horse · Round 1</h1>
-        <button id="btn-horse-remind" type="button" class="btn btn-small horse-remind-btn btn-with-icon" aria-label="Remind whoever's up">Remind <span class="icon-share" aria-hidden="true"></span></button>
+        <button id="btn-horse-remind" type="button" class="horse-remind-btn" aria-label="Remind whoever's up">
+          <span class="horse-remind-label">Remind</span>
+          <span class="icon-share" aria-hidden="true"></span>
+        </button>
       </div>
       <p id="horse-order-target-line" class="screen-sub"></p>
       <div id="horse-turn-order-list" class="tier1-list"></div>
@@ -312,7 +315,7 @@
       <div id="horse-summary-list" class="tier1-list"></div>
       <div class="horse-summary-actions">
         <button id="btn-horse-rematch" type="button" class="btn btn-giant btn-primary">Rematch</button>
-        <button id="btn-horse-share" type="button" class="btn btn-giant btn-secondary">Share</button>
+        <button id="btn-horse-share" type="button" class="btn btn-giant btn-secondary btn-with-icon">Share <span class="icon-share" aria-hidden="true"></span></button>
       </div>
     </section>
 
