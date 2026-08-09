@@ -1,8 +1,9 @@
 // Ranked "which mode dominates" breakdown for the Bonanza stats screen.
 // Plank sessions track hold-time in seconds, not reps, so they're excluded
-// to avoid mixing units into the same reps bar. Squat sessions are its own
-// bucket here even though they're deliberately kept out of the shared
-// leaderboard-mode index elsewhere (see docs/squat-mode-plan.md).
+// to avoid mixing units into the same reps bar. Squat and Situp sessions are
+// their own buckets here even though they're deliberately kept out of the
+// shared leaderboard-mode index elsewhere (see docs/squat-mode-plan.md and
+// docs/situp-mode-plan.md).
 export const STATS_MODES = [
   { id: "classic", label: "Classic" },
   { id: "countdown", label: "Countdown" },
@@ -17,6 +18,7 @@ export const STATS_MODES = [
   { id: "wheel", label: "Wheel of pain" },
   { id: "zen", label: "Zen Mode" },
   { id: "squat", label: "Squat" },
+  { id: "situp", label: "Situp" },
 ];
 
 const LABEL_BY_ID = new Map(STATS_MODES.map((mode) => [mode.id, mode.label]));
@@ -25,7 +27,7 @@ export function modeBreakdownModel(sessions) {
   const byMode = new Map();
   for (const session of sessions) {
     if (session.type === "plank") continue;
-    const id = session.type === "squat" ? "squat" : (session.mode || "classic");
+    const id = session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : (session.mode || "classic");
     if (!LABEL_BY_ID.has(id)) continue;
     if (!byMode.has(id)) byMode.set(id, { reps: 0, sessions: 0, users: new Set() });
     const bucket = byMode.get(id);

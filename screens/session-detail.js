@@ -17,11 +17,13 @@ export const MODE_META = {
   chase: { label: "Chase", icon: "🏃" },
   planks: { label: "Planks", icon: "🪵" },
   squats: { label: "Squats", icon: "🦵" },
+  situps: { label: "Situps", icon: "🙇" },
 };
 
 export function sessionModeId(session) {
   if (session?.type === "plank") return "planks";
   if (session?.type === "squat") return "squats";
+  if (session?.type === "situp") return "situps";
   return session?.mode || "classic";
 }
 

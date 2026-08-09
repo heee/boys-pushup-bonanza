@@ -29,6 +29,10 @@ import {
   PYRAMID_ROW_CHEER_LINES,
   PYRAMID_TURNAROUND_LINE,
   SHARPSHOOTER_HIT_LINES,
+  SITUP_CHEER_LINES,
+  SITUP_RECORD_LINE,
+  SITUP_START_LINES,
+  FUN_MESSAGES_SITUP,
   SQUAT_CHEER_LINES,
   SQUAT_RECORD_LINE,
   SQUAT_START_LINES,
@@ -68,14 +72,14 @@ import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStar
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel } from "./screens/mode-stats.js?v=133";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=1";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=2";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=139";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=2";
+import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=3";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
 import { applyTurn, createHorseGame, currentTurnPlayer, horsePlayerRows, horseTargetLabel, isTurnStalled } from "./horse.js";
 import { horseSummaryRows, horseTurnHeroCopy, horseWordChips } from "./screens/horse.js";
@@ -95,6 +99,7 @@ import {
   roadtripOverviewRows,
 } from "./roadtrip.js";
 import { deriveSquatThresholds, estimateSquatRange, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
+import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
 
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -504,14 +509,14 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], squats: [] };
+  const byActivity = { pushups: [], planks: [], squats: [], situps: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
   const timestampBySession = new WeakMap();
 
   for (const session of sessions) {
-    const activity = session.type === "plank" ? "planks" : session.type === "squat" ? "squats" : "pushups";
+    const activity = session.type === "plank" ? "planks" : session.type === "squat" ? "squats" : session.type === "situp" ? "situps" : "pushups";
     const timestamp = Date.parse(session.timestamp);
     timestampBySession.set(session, Number.isFinite(timestamp) ? timestamp : 0);
 
@@ -519,12 +524,13 @@ function buildSessionIndex(sessions) {
     byUser.get(session.user).push(session);
     byActivity[activity].push(session);
 
-    // Squat sessions deliberately skip the shared leaderboard modes (its own
-    // screen/per-user best, minimal integration — see docs/squat-mode-plan.md)
-    // so they never land in byLeaderboardMode/byUserLeaderboardMode at all.
+    // Squat and Situp sessions deliberately skip the shared leaderboard modes
+    // (their own screen/per-user best, minimal integration — see
+    // docs/squat-mode-plan.md and docs/situp-mode-plan.md) so they never land
+    // in byLeaderboardMode/byUserLeaderboardMode at all.
     const leaderboardModes = session.type === "plank"
       ? ["planks"]
-      : session.type === "squat"
+      : session.type === "squat" || session.type === "situp"
       ? []
       : ["all", session.mode || "classic"];
     for (const mode of leaderboardModes) {
@@ -1119,6 +1125,10 @@ const state = {
   squatBest: 0,
   squatStartedAt: null,
   squatSessionLocation: null,
+  situpActive: false,
+  situpBest: 0,
+  situpStartedAt: null,
+  situpSessionLocation: null,
   summarySessionId: null,
   summaryBaseCount: 0,
   summaryExtra: 0,
@@ -1208,6 +1218,31 @@ const squatState = {
   up: DEFAULT_UP,
 };
 
+// Same shape as the squat warmup constants — see docs/situp-mode-plan.md.
+const SITUP_WARMUP_MIN_MS = 1200;
+const SITUP_WARMUP_MIN_SAMPLES = 10;
+const SITUP_WARMUP_MAX_SAMPLES = 300;
+const SITUP_WARMUP_HINT_MS = 8000;
+
+const situpState = {
+  counter: null,
+  phase: "up",
+  count: 0,
+  lastRepSpokenAt: 0,
+  lastCheerAtCount: 0,
+  recordBroken: false,
+  // "idle" | "warmup" | "counting" — read by the shared camera controller's
+  // onDetection/onNoDetection to decide what to do with each frame.
+  stage: "idle",
+  calSamples: [],
+  warmupStartedAt: 0,
+  down: DEFAULT_DOWN,
+  up: DEFAULT_UP,
+  // situpFrameRatio's caller-owned { lastRatio, lostSinceMs } tracking for
+  // the face-dropout clamp/debounce — reset at the start of every warmup.
+  dropoutTrack: {},
+};
+
 function getThresholdDown() {
   const v = parseFloat(localStorage.getItem(LS.thresholdDown));
   return Number.isFinite(v) ? v : DEFAULT_DOWN;
@@ -1258,6 +1293,7 @@ const TAB_FOR_SCREEN = {
   "screen-plank-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
   "screen-squat-workout": "btn-nav-home",
+  "screen-situp-workout": "btn-nav-home",
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
   "screen-user-compare": "btn-nav-dashboard",
@@ -1293,7 +1329,8 @@ function showScreen(id) {
   state.screen = id;
   const minimized = (id === "screen-workout" && state.workoutActive) ||
     (id === "screen-plank-workout" && state.plankActive) ||
-    (id === "screen-squat-workout" && state.squatActive);
+    (id === "screen-squat-workout" && state.squatActive) ||
+    (id === "screen-situp-workout" && state.situpActive);
   setChromeMinimized(minimized);
   const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
   document.querySelectorAll("#tab-bar .tab-item").forEach((btn) => {
@@ -1342,6 +1379,10 @@ function showScreen(id) {
     setAvatarEl($("squat-avatar"), state.currentAvatar, "2rem");
     renderSquatWeightedControls();
   }
+  if (id === "screen-situp-workout" && !state.situpActive) {
+    $("situp-username").textContent = state.currentUser || "Friend";
+    setAvatarEl($("situp-avatar"), state.currentAvatar, "2rem");
+  }
 }
 
 function guardLeaveWorkout(next) {
@@ -1357,6 +1398,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this squat set? Your in-progress reps won't be saved.");
     if (!ok) return;
     stopSquatHard();
+  } else if (state.screen === "screen-situp-workout" && state.situpActive) {
+    const ok = confirm("Leave this situp set? Your in-progress reps won't be saved.");
+    if (!ok) return;
+    stopSitupHard();
   }
   next();
 }
@@ -2786,7 +2831,7 @@ function renderMySessions() {
     row.className = "my-session-row compare-clickable";
     row.innerHTML = `
       <span>${formatDateTime(s.timestamp)}</span>
-      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.type === "squat" ? `🦵 ${formatNumber(s.count)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
+      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.type === "squat" ? `🦵 ${formatNumber(s.count)}` : s.type === "situp" ? `🙇 ${formatNumber(s.count)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
     `;
     row.querySelector(".btn-delete-user").addEventListener("click", (e) => {
@@ -3717,11 +3762,12 @@ function renderSessionDetail() {
   if (!session) return;
   const isPlank = session.type === "plank";
   const isSquat = session.type === "squat";
+  const isSitup = session.type === "situp";
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
   $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000) : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isSquat ? "TOTAL SQUATS" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL SITUPS" : "TOTAL PUSHUPS";
 
   $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
     <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
@@ -3767,7 +3813,8 @@ async function shareSessionDetail() {
   if (!session) return;
   const isPlank = session.type === "plank";
   const isSquat = session.type === "squat";
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isSquat ? `${formatNumber(session.count)} squats` : `${formatNumber(session.count)} pushups`;
+  const isSitup = session.type === "situp";
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} situps` : `${formatNumber(session.count)} pushups`;
   const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
   const url = location.href;
   if (navigator.share) {
@@ -5007,6 +5054,10 @@ function getPlankBest(name) {
 
 function getSquatBest(name) {
   return bestFor(indexedSessionsForUser(name, "squats"), name, () => true);
+}
+
+function getSitupBest(name) {
+  return bestFor(indexedSessionsForUser(name, "situps"), name, () => true);
 }
 
 function updateHighscoreMessage(count) {
@@ -6672,17 +6723,19 @@ function refreshSummaryRoadtripConquests() {
 function buildShareContext(adjustedCount) {
   const isPlank = state.lastSessionType === "plank";
   const isSquat = state.lastSessionType === "squat";
-  const isPushup = !isPlank && !isSquat;
-  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isSquat ? "squats" : "pushups");
+  const isSitup = state.lastSessionType === "situp";
+  const isPushup = !isPlank && !isSquat && !isSitup;
+  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isSquat ? "squats" : isSitup ? "situps" : "pushups");
   const weekStart = periodStart("week");
   const weekStartTime = weekStart.getTime();
   const weekTotalRaw = mine
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : isSquat ? "squat" : state.pushupMode,
+    mode: isPlank ? "plank" : isSquat ? "squat" : isSitup ? "situp" : state.pushupMode,
     isPlank,
     isSquat,
+    isSitup,
     isZen: isPushup && state.pushupMode === "zen",
     streak: computeStreak(mine),
     weekTotalRaw,
@@ -6718,7 +6771,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=135").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=136").then((module) => {
       workoutShareMessages = module;
       return module;
     });
@@ -6768,7 +6821,7 @@ async function shareRoadtripConquest() {
 }
 
 $("btn-summary-again").addEventListener("click", () => {
-  const screenByType = { plank: "screen-plank-workout", squat: "screen-squat-workout" };
+  const screenByType = { plank: "screen-plank-workout", squat: "screen-squat-workout", situp: "screen-situp-workout" };
   showScreen(screenByType[state.lastSessionType] || "screen-workout");
 });
 $("btn-summary-share").addEventListener("click", shareFlex);
@@ -7331,6 +7384,323 @@ async function completeSquat() {
 $("btn-squat-start").addEventListener("click", startSquat);
 $("btn-squat-cancel").addEventListener("click", stopSquatHard);
 $("btn-squat-stop").addEventListener("click", completeSquat);
+
+// ------------------- situp mode -------------------
+// Camera-counted free set, own screen (see docs/situp-mode-plan.md): phone
+// propped at the boy's feet facing him, auto-warmup derives per-session
+// crunch/lie thresholds the same way squat derives stand/squat ones. Unlike
+// squat, the signal is face SIZE (blaze_face_short_range, same detector
+// pushups use) fed through modes/situp.js's inverted-ratio mapping, and a
+// face dropout is the EXPECTED reading while lying flat — not a "pause and
+// wait" signal like squat's whole-body-left-frame case — so there's no
+// status banner/pause here, just a clamped ratio (see situpFrameRatio).
+
+function updateSitupFaceBox(bbox) {
+  const video = $("situp-camera-video");
+  const container = document.querySelector("#screen-situp-workout .camera-wrap");
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const scale = Math.max(cw / vw, ch / vh);
+  const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
+  const box = $("situp-face-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+function hideSitupFaceBox() { $("situp-face-box").classList.add("hidden"); }
+
+function updateSitupPhaseIndicator(phase) {
+  const el = $("situp-phase-indicator");
+  el.textContent = phase === "down" ? "LYING BACK" : "CRUNCHED";
+}
+
+function updateSitupHighscoreMessage(count) {
+  const el = $("situp-highscore-message");
+  if (!state.situpBest) {
+    el.textContent = "";
+    return;
+  }
+  const remaining = state.situpBest - count;
+  if (remaining > 0) {
+    el.textContent = `${remaining} situp${remaining === 1 ? "" : "s"} away from your best!`;
+  } else if (remaining === 0) {
+    el.textContent = "Tied your best situp set — one more!";
+  } else {
+    el.textContent = "New situp record! 🔥";
+  }
+}
+
+// Same shape as maybeEncourageSquat, but for situp reps.
+function maybeEncourageSitup(count) {
+  if (!state.situpBest || state.situpBest <= 1) return null;
+  if (count - situpState.lastCheerAtCount < 3) return null;
+  if (Math.random() < cheerProbability(count / state.situpBest)) {
+    situpState.lastCheerAtCount = count;
+    return pickFrom(SITUP_CHEER_LINES);
+  }
+  return null;
+}
+
+function onSitupRepCounted(count) {
+  $("situp-rep-count").textContent = String(count);
+  if (localStorage.getItem(LS.showHighscore) !== "0") {
+    updateSitupHighscoreMessage(count);
+  }
+  if (soundIsEnabled()) {
+    let spoken;
+    if (state.situpBest && count === state.situpBest + 1 && !situpState.recordBroken) {
+      situpState.recordBroken = true;
+      spoken = SITUP_RECORD_LINE;
+      speak(spoken);
+      launchConfetti("situp-confetti", CONFETTI_EMOJI);
+    } else {
+      spoken = maybeEncourageSitup(count);
+    }
+    const now = performance.now();
+    const fastPace = now - situpState.lastRepSpokenAt < REP_SPEECH_MIN_GAP_MS;
+    if (!fastPace || count % 5 === 0) {
+      situpState.lastRepSpokenAt = now;
+      speak(spoken || numberToWords(count));
+    }
+  }
+}
+
+// Turns one detection/no-detection frame into the ratio fed to the counter
+// (or, during warmup, into the calibration sample window) — same function
+// drives both stages, since a dropout is handled identically in either.
+function situpRatioForFrame(detected, normalizedFaceSize) {
+  return situpFrameRatio({
+    detected,
+    normalizedFaceSize,
+    nowMs: performance.now(),
+    trackState: situpState.dropoutTrack,
+  });
+}
+
+function processSitupRatio(ratio) {
+  if (!situpState.counter) situpState.counter = createRepCounter({ down: situpState.down, up: situpState.up });
+  const now = performance.now();
+  const result = situpState.counter.advance(ratio, now);
+  situpState.phase = result.phase;
+  updateSitupPhaseIndicator(result.phase);
+  if (result.counted) {
+    situpState.count = result.count;
+    onSitupRepCounted(result.count);
+  }
+}
+
+const situpCamera = createCameraController({
+  moduleUrl: FACE_DETECTOR_MODULE_URL,
+  wasmUrl: FACE_DETECTOR_WASM_URL,
+  modelUrl: FACE_DETECTOR_MODEL_URL,
+  getVideo: () => $("situp-camera-video"),
+  onDetection(bbox, inferenceMs) {
+    const video = $("situp-camera-video");
+    updateSitupFaceBox(bbox);
+    const ratio = situpRatioForFrame(true, bbox.height / video.videoHeight);
+    if (situpState.stage === "warmup") {
+      situpState.calSamples.push(ratio);
+      if (situpState.calSamples.length > SITUP_WARMUP_MAX_SAMPLES) situpState.calSamples.shift();
+      tickSitupWarmup();
+    } else if (situpState.stage === "counting") {
+      processSitupRatio(ratio);
+    }
+  },
+  onNoDetection() {
+    hideSitupFaceBox();
+    // Undetected is the expected reading while lying flat (see header
+    // comment) — still feed the (clamped) ratio through the same pipeline
+    // instead of pausing, so a lying-flat stretch behaves like any other
+    // low-face-size frame.
+    const ratio = situpRatioForFrame(false, null);
+    if (situpState.stage === "warmup") {
+      situpState.calSamples.push(ratio);
+      if (situpState.calSamples.length > SITUP_WARMUP_MAX_SAMPLES) situpState.calSamples.shift();
+      tickSitupWarmup();
+    } else if (situpState.stage === "counting") {
+      processSitupRatio(ratio);
+    }
+  },
+});
+
+// No taps, no calibration steps — the boy just starts doing situps in frame
+// and this watches a rolling sample window until it's seen a real
+// crunch<->lie swing, then derives thresholds and starts counting
+// automatically. See docs/situp-mode-plan.md.
+function renderSitupWarmup() {
+  $("situp-cal-title").textContent = "Get your range";
+  $("situp-cal-instructions").textContent = "Do a couple of situps — we'll start counting automatically.";
+  $("situp-cal-error").classList.add("hidden");
+}
+
+function beginSitupWarmup() {
+  situpState.calSamples = [];
+  situpState.dropoutTrack = {};
+  situpState.warmupStartedAt = performance.now();
+  situpState.stage = "warmup";
+  $("situp-cal-stage").classList.remove("hidden");
+  $("situp-count-stage").classList.add("hidden");
+  $("btn-situp-stop").classList.add("hidden");
+  $("btn-situp-cancel").classList.remove("hidden");
+  renderSitupWarmup();
+}
+
+function tickSitupWarmup() {
+  const elapsed = performance.now() - situpState.warmupStartedAt;
+  if (elapsed < SITUP_WARMUP_MIN_MS || situpState.calSamples.length < SITUP_WARMUP_MIN_SAMPLES) return;
+
+  const { crunchRatio, lieRatio } = estimateSitupRange(situpState.calSamples);
+  if (situpCalibrationValid(crunchRatio, lieRatio)) {
+    $("situp-cal-error").classList.add("hidden");
+    const thresholds = deriveSitupThresholds(crunchRatio, lieRatio);
+    speak(pickFrom(SITUP_START_LINES));
+    beginSitupCounting(thresholds);
+    return;
+  }
+
+  if (elapsed > SITUP_WARMUP_HINT_MS) {
+    const pct = Math.min(99, Math.round((situpSwing(crunchRatio, lieRatio) / SITUP_MIN_SWING) * 100));
+    $("situp-cal-error").textContent = `Still watching (${pct}%) — move the phone closer to your feet, or crunch up higher.`;
+    $("situp-cal-error").classList.remove("hidden");
+  }
+}
+
+function beginSitupCounting(thresholds) {
+  situpState.down = thresholds.down;
+  situpState.up = thresholds.up;
+  situpState.counter = createRepCounter({ down: thresholds.down, up: thresholds.up });
+  situpState.phase = "up";
+  situpState.count = 0;
+  situpState.lastRepSpokenAt = 0;
+  situpState.lastCheerAtCount = 0;
+  situpState.recordBroken = false;
+  situpState.stage = "counting";
+  state.situpBest = getSitupBest(state.currentUser);
+  state.situpStartedAt = new Date();
+  $("situp-rep-count").textContent = "0";
+  updateSitupPhaseIndicator("up");
+  updateSitupHighscoreMessage(0);
+  $("situp-cal-stage").classList.add("hidden");
+  $("situp-count-stage").classList.remove("hidden");
+  $("btn-situp-cancel").classList.add("hidden");
+  $("btn-situp-stop").classList.remove("hidden");
+}
+
+async function startSitup() {
+  if (soundIsEnabled()) unlockVoice();
+  state.situpSessionLocation = currentSessionLocationSnapshot();
+
+  let stream;
+  try {
+    stream = await situpCamera.requestStream();
+  } catch (e) {
+    toast("Camera access is required to count situps. Please allow camera permission.", 4000);
+    return;
+  }
+  toast("Loading face detector…", 2000);
+  try {
+    await situpCamera.ensureDetector();
+  } catch (e) {
+    toast("Couldn't load the face detection model. Check your connection and try again.", 4500);
+    stream.getTracks().forEach((t) => t.stop());
+    return;
+  }
+  const video = $("situp-camera-video");
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) { /* autoplay quirks */ }
+
+  await acquireWakeLock();
+
+  state.situpActive = true;
+  $("situp-idle").classList.add("hidden");
+  $("situp-in-progress").classList.remove("hidden");
+  setChromeMinimized(true);
+  situpCamera.startDetection();
+  beginSitupWarmup();
+}
+
+function stopSitupHard() {
+  situpCamera.stop();
+  releaseWakeLock();
+  state.situpActive = false;
+  situpState.stage = "idle";
+  $("situp-in-progress").classList.add("hidden");
+  $("situp-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+let lastSitupFunMessageIndex = -1;
+function pickSitupFunMessage(n) {
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * FUN_MESSAGES_SITUP.length);
+  } while (idx === lastSitupFunMessageIndex && FUN_MESSAGES_SITUP.length > 1);
+  lastSitupFunMessageIndex = idx;
+  return FUN_MESSAGES_SITUP[idx](n);
+}
+
+async function completeSitup() {
+  const count = situpState.count;
+  situpCamera.stop();
+  await releaseWakeLock();
+  state.situpActive = false;
+  situpState.stage = "idle";
+  $("situp-in-progress").classList.add("hidden");
+  $("situp-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count,
+    avatar: state.currentAvatar,
+    startedAt: state.situpStartedAt ? state.situpStartedAt.toISOString() : undefined,
+    type: "situp",
+    ...(state.situpSessionLocation ? { location: state.situpSessionLocation } : {}),
+  };
+
+  // Optimistically reflect it locally right away so it shows up immediately.
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  const message = pickSitupFunMessage(count);
+  state.lastSessionType = "situp";
+  state.summarySessionId = session.id;
+  state.summaryBaseCount = count;
+  state.summaryExtra = 0;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = formatNumber(count);
+  $("missed-reps-count").textContent = "0";
+  $("missed-reps-wrap").classList.remove("hidden");
+  renderSummaryWeightedNote(count, count);
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", CONFETTI_EMOJI);
+  speak(`Session complete. ${message}`);
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-situp-start").addEventListener("click", startSitup);
+$("btn-situp-cancel").addEventListener("click", stopSitupHard);
+$("btn-situp-stop").addEventListener("click", completeSitup);
 
 // ------------------- init -------------------
 

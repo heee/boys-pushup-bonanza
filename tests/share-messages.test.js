@@ -26,6 +26,7 @@ test("every completed workout mode keeps its own unhinged share theme", async ()
       ["zen", 20, { mode: "zen", isZen: true }, /ZEN MODE: 20 silent pushups/],
       ["plank", "1:30", { mode: "plank", isPlank: true }, /1:30 pretending to be a coffee table/],
       ["squat", 15, { mode: "squat", isSquat: true }, /15 squats.*recliner.*unemployment/],
+      ["situp", 15, { mode: "situp", isSitup: true }, /15 situps.*ceiling.*inspected/],
     ];
 
     for (const [mode, count, ctx, expected] of cases) {
