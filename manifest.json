@@ -1,6 +1,6 @@
 {
-  "name": "Boys Push Up Bonanza",
-  "short_name": "Pushup Bonanza",
+  "name": "Boys Bonanza",
+  "short_name": "Boys Bonanza",
   "description": "Pushup counter and leaderboard for the boys.",
   "start_url": "./index.html",
   "scope": "./",

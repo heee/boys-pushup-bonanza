@@ -2942,7 +2942,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .btn-edit-profile .chev { font-size: 1rem; }
 
 .my-session-row { font-size: 0.88rem; }
-.my-session-row > span:first-child { flex: 1; color: var(--text-dim); }
+.my-session-date { flex: 1; color: var(--text-dim); }
+.my-session-mode-badge { flex-shrink: 0; font-size: 0.66rem; padding: 0.25rem 0.55rem; }
 
 /* ---------------- Explore modes ---------------- */
 

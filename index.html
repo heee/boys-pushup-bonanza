@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Boys Push Up Bonanza</title>
+<title>Boys Bonanza</title>
 <meta name="description" content="Pushup counter and leaderboard for the boys. Phone on the floor, face over the camera, let's go.">
 
 <!-- PWA -->
@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
+<meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
 <link rel="stylesheet" href="style.css?v=160">
@@ -755,7 +755,7 @@
         <button type="button" class="settings-category-row" data-settings-category="mysessions">
           <span class="settings-category-icon settings-category-icon-mysessions" aria-hidden="true">📝</span>
           <span class="settings-category-title">My sessions</span>
-          <span class="settings-category-value"></span>
+          <span id="settings-category-mysessions-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
         <button type="button" class="settings-category-row" data-settings-category="workout">
@@ -800,13 +800,28 @@
       <div class="edit-profile-header">
         <button id="btn-settings-mysessions-back" type="button" class="challenge-detail-back">← Settings</button>
       </div>
-      <h1 class="screen-title">My sessions</h1>
+      <div class="dashboard-header">
+        <h1 class="screen-title">My sessions</h1>
+        <div id="mysessions-mode-picker" class="leaderboard-mode-picker">
+          <button id="mysessions-mode-trigger" class="leaderboard-mode-trigger" type="button"
+            aria-haspopup="listbox" aria-expanded="false" aria-controls="mysessions-mode-menu">
+            <span id="mysessions-mode-label">All</span>
+            <span class="leaderboard-mode-chevron" aria-hidden="true"></span>
+          </button>
+          <div id="mysessions-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="My sessions mode">
+            <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mysessions-mode="all"><span>All</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pushups"><span>Pushups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Situps</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+          </div>
+        </div>
+      </div>
 
       <div class="settings-section">
         <p class="settings-hint">Your own session history. Delete any you logged by mistake.</p>
         <div class="settings-block">
           <div id="my-sessions-list" class="my-sessions-list"></div>
-          <button id="btn-my-sessions-more" type="button" class="settings-show-more hidden">Show more</button>
         </div>
       </div>
     </section>
@@ -1036,6 +1051,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=175"></script>
+<script type="module" src="app.js?v=176"></script>
 </body>
 </html>

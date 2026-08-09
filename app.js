@@ -177,6 +177,18 @@ const LEADERBOARD_MODE_OPTIONS = [
 ];
 const LEADERBOARD_MODE_IDS = new Set(LEADERBOARD_MODE_OPTIONS.map((option) => option.id));
 
+const MY_SESSIONS_MODE_OPTIONS = [
+  { id: "all", label: "All" },
+  { id: "pushups", label: "Pushups" },
+  { id: "situps", label: "Situps" },
+  { id: "squats", label: "Squats" },
+  { id: "planks", label: "Planks" },
+];
+
+function sessionActivity(s) {
+  return s.type === "plank" ? "planks" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : "pushups";
+}
+
 function savedLeaderboardMode() {
   const saved = localStorage.getItem(LS.leaderboardMode) || "all";
   return LEADERBOARD_MODE_IDS.has(saved) ? saved : "all";
@@ -379,6 +391,13 @@ function formatDateTime(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
     " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function formatSessionRowDate(iso) {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${day} (${time})`;
 }
 
 // ------------------- theme -------------------
@@ -1110,7 +1129,8 @@ const state = {
   modeBreakdownScope: "group",
   modeBreakdownPeriod: "week",
   lastSessions: [],
-  mySessionsShown: 5,
+  mySessionsShown: 10,
+  mySessionsMode: "all",
   sessionStartedAt: null,
   challengeTab: "active",
   openChallengeId: null,
@@ -1714,7 +1734,9 @@ function renderSettings() {
   renderSquatWeightedControls();
 
   renderManageUsers();
-  state.mySessionsShown = 5;
+  state.mySessionsShown = 10;
+  state.mySessionsMode = "all";
+  syncMySessionsModeControl();
   renderMySessions();
   renderSettingsCategoryValues();
 }
@@ -1724,6 +1746,8 @@ function renderSettingsCategoryValues() {
   $("settings-category-profile-value").textContent = `${names.length} ${names.length === 1 ? "person" : "people"}`;
   const theme = document.documentElement.getAttribute("data-theme") === "light" ? "Light" : "Dark";
   $("settings-category-appearance-value").textContent = theme;
+  const mySessionCount = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser).length;
+  $("settings-category-mysessions-value").textContent = `${mySessionCount} ${mySessionCount === 1 ? "session" : "sessions"}`;
 }
 
 $("settings-category-list").addEventListener("click", (e) => {
@@ -2821,20 +2845,24 @@ $("btn-edit-profile-back").addEventListener("click", () => showScreen("screen-se
 $("btn-edit-profile-save").addEventListener("click", saveEditProfile);
 $("btn-edit-profile-save-shortcut").addEventListener("click", saveEditProfile);
 
+let mySessionsHasMore = false;
+
 function renderMySessions() {
-  const model = visibleUserSessions(getAllSessionsForDisplay(), state.currentUser, state.mySessionsShown);
+  const filtered = getAllSessionsForDisplay().filter((s) => state.mySessionsMode === "all" || sessionActivity(s) === state.mySessionsMode);
+  const model = visibleUserSessions(filtered, state.currentUser, state.mySessionsShown);
+  mySessionsHasMore = model.hasMore;
   const list = $("my-sessions-list");
   list.innerHTML = "";
   if (!model.total) {
     list.innerHTML = '<p class="settings-hint">No sessions yet.</p>';
-    $("btn-my-sessions-more").classList.add("hidden");
     return;
   }
   for (const s of model.sessions) {
     const row = document.createElement("div");
     row.className = "my-session-row compare-clickable";
     row.innerHTML = `
-      <span>${formatDateTime(s.timestamp)}</span>
+      <span class="my-session-date">${formatSessionRowDate(s.timestamp)}</span>
+      <span class="session-badge my-session-mode-badge">${sessionModeLabel(s)}</span>
       <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.type === "squat" ? `🦵 ${formatNumber(s.count)}` : s.type === "situp" ? `🙇 ${formatNumber(s.count)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
       <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
     `;
@@ -2845,12 +2873,81 @@ function renderMySessions() {
     row.addEventListener("click", () => openSessionDetail(s, "screen-settings"));
     list.appendChild(row);
   }
-  $("btn-my-sessions-more").classList.toggle("hidden", !model.hasMore);
 }
 
-$("btn-my-sessions-more").addEventListener("click", () => {
-  state.mySessionsShown += 5;
+function syncMySessionsModeControl() {
+  const selected = MY_SESSIONS_MODE_OPTIONS.find((option) => option.id === state.mySessionsMode) || MY_SESSIONS_MODE_OPTIONS[0];
+  $("mysessions-mode-label").textContent = selected.label;
+  document.querySelectorAll("#mysessions-mode-menu .leaderboard-mode-option").forEach((option) => {
+    const isSelected = option.dataset.mysessionsMode === selected.id;
+    option.classList.toggle("selected", isSelected);
+    option.setAttribute("aria-selected", String(isSelected));
+  });
+}
+
+function setMySessionsModeMenuOpen(open, focusSelected = false) {
+  $("mysessions-mode-trigger").setAttribute("aria-expanded", String(open));
+  $("mysessions-mode-menu").classList.toggle("hidden", !open);
+  if (open && focusSelected) {
+    $("mysessions-mode-menu").querySelector(`[data-mysessions-mode="${state.mySessionsMode}"]`)?.focus();
+  }
+}
+
+function selectMySessionsMode(mode) {
+  if (!MY_SESSIONS_MODE_OPTIONS.some((option) => option.id === mode)) return;
+  state.mySessionsMode = mode;
+  state.mySessionsShown = 10;
+  syncMySessionsModeControl();
+  setMySessionsModeMenuOpen(false);
   renderMySessions();
+}
+
+$("mysessions-mode-trigger").addEventListener("click", () => {
+  const open = $("mysessions-mode-trigger").getAttribute("aria-expanded") !== "true";
+  setMySessionsModeMenuOpen(open, open);
+});
+
+$("mysessions-mode-trigger").addEventListener("keydown", (event) => {
+  if (["ArrowDown", "Enter", " "].includes(event.key)) {
+    event.preventDefault();
+    setMySessionsModeMenuOpen(true, true);
+  }
+});
+
+$("mysessions-mode-menu").addEventListener("click", (event) => {
+  const option = event.target.closest(".leaderboard-mode-option");
+  if (option) selectMySessionsMode(option.dataset.mysessionsMode);
+});
+
+$("mysessions-mode-menu").addEventListener("keydown", (event) => {
+  const options = Array.from(document.querySelectorAll("#mysessions-mode-menu .leaderboard-mode-option"));
+  const current = options.indexOf(document.activeElement);
+  if (event.key === "Escape") {
+    event.preventDefault();
+    setMySessionsModeMenuOpen(false);
+    $("mysessions-mode-trigger").focus();
+  } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+    event.preventDefault();
+    let next = current;
+    if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = options.length - 1;
+    else if (event.key === "ArrowDown") next = (current + 1 + options.length) % options.length;
+    else next = (current - 1 + options.length) % options.length;
+    options[next].focus();
+  } else if (["Enter", " "].includes(event.key) && current >= 0) {
+    event.preventDefault();
+    selectMySessionsMode(options[current].dataset.mysessionsMode);
+    $("mysessions-mode-trigger").focus();
+  }
+});
+
+$("app-main").addEventListener("scroll", () => {
+  if (state.screen !== "screen-settings-mysessions" || !mySessionsHasMore) return;
+  const el = $("app-main");
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 150) {
+    state.mySessionsShown += 10;
+    renderMySessions();
+  }
 });
 
 async function confirmDeleteSession(id) {
@@ -3541,6 +3638,7 @@ $("leaderboard-mode-menu").addEventListener("keydown", (event) => {
 
 document.addEventListener("click", (event) => {
   if (!event.target.closest("#leaderboard-mode-picker")) setLeaderboardModeMenuOpen(false);
+  if (!event.target.closest("#mysessions-mode-picker")) setMySessionsModeMenuOpen(false);
 });
 
 // Walks backward day by day, counting a streak that forgives one missed
