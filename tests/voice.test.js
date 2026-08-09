@@ -435,3 +435,92 @@ test("squat start/cheer/record lines and a squat fun-message resolve to clips in
   // still installed, so nothing resolves after t.after() tears them down.
   await new Promise((resolve) => setTimeout(resolve, 20));
 });
+
+test("situp start/cheer/record lines and a situp fun-message resolve to clips instead of falling back", async (t) => {
+  // A decoded clip whose head/tail samples sit above the silence threshold,
+  // so trimSilence() returns it unchanged without needing a second fake
+  // buffer from createBuffer().
+  class FakeAudioBuffer {
+    constructor() {
+      this.numberOfChannels = 1;
+      this.sampleRate = 44100;
+      this.duration = 0.5;
+      this._data = new Float32Array(64).fill(0.5);
+    }
+    getChannelData() { return this._data; }
+  }
+
+  class FakeAudioContext {
+    constructor() {
+      this.currentTime = 0;
+      this.destination = {};
+      this.sampleRate = 44100;
+      this.state = "suspended";
+    }
+
+    createGain() { return { connect() {} }; }
+    createBuffer() { return {}; }
+    createBufferSource() { return { connect() {}, start() {}, stop() {} }; }
+    resume() { this.state = "running"; return Promise.resolve(); }
+    suspend() { this.state = "suspended"; return Promise.resolve(); }
+    decodeAudioData() { return Promise.resolve(new FakeAudioBuffer()); }
+  }
+
+  class FakeAudio {
+    constructor() {
+      this.currentTime = 0;
+      this.playCalls = 0;
+    }
+    setAttribute() {}
+    play() { this.playCalls += 1; return Promise.resolve(); }
+    pause() {}
+  }
+
+  const originalWindow = globalThis.window;
+  const originalAudio = globalThis.Audio;
+  const originalFetch = globalThis.fetch;
+  const originalLocalStorage = globalThis.localStorage;
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+
+  globalThis.window = { AudioContext: FakeAudioContext };
+  globalThis.Audio = FakeAudio;
+  globalThis.localStorage = { getItem: () => null };
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: { audioSession: { type: "auto" } },
+  });
+
+  t.after(() => {
+    globalThis.window = originalWindow;
+    globalThis.Audio = originalAudio;
+    globalThis.fetch = originalFetch;
+    globalThis.localStorage = originalLocalStorage;
+    if (originalNavigator) {
+      Object.defineProperty(globalThis, "navigator", originalNavigator);
+    } else {
+      delete globalThis.navigator;
+    }
+  });
+
+  const { buildCorpus, FUN_MESSAGES_SITUP, SITUP_CHEER_LINES, SITUP_RECORD_LINE, SITUP_START_LINES } =
+    await import(`../voice-lines.js?situp-resolution-lines=${Date.now()}`);
+
+  const manifestClips = Object.fromEntries(
+    buildCorpus().map((entry) => [entry.key, `${entry.key.replace(/[^a-z0-9]+/g, "-")}.mp3`])
+  );
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("manifest.json")) return { ok: true, json: async () => ({ clips: manifestClips }) };
+    return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+  };
+
+  const { initVoice, speakClips, unlockVoice } = await import(`../voice.js?situp-resolution=${Date.now()}`);
+  assert.equal(await initVoice(), true);
+  unlockVoice();
+
+  const sampleLines = [SITUP_START_LINES[0], SITUP_CHEER_LINES[0], SITUP_RECORD_LINE, FUN_MESSAGES_SITUP[0](12)];
+  for (const text of sampleLines) {
+    assert.equal(speakClips(text), true, `expected "${text}" to resolve to pre-rendered clips`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 20));
+});

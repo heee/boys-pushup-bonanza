@@ -8,6 +8,9 @@ import {
   HORSE_LETTER_LINES,
   HORSE_WIN_LINES,
   SHARPSHOOTER_HIT_LINES,
+  SITUP_CHEER_LINES,
+  SITUP_RECORD_LINE,
+  SITUP_START_LINES,
   SQUAT_CHEER_LINES,
   SQUAT_RECORD_LINE,
   SQUAT_START_LINES,
@@ -48,6 +51,22 @@ test("every squat start/cheer line and the record line are included in the pre-r
 test("squat corpus entries normalize to unique, non-empty keys", () => {
   const keys = buildCorpus().map((entry) => entry.key);
   for (const line of [...SQUAT_START_LINES, ...SQUAT_CHEER_LINES, SQUAT_RECORD_LINE]) {
+    const key = normalizeSpoken(line);
+    assert.ok(key.length > 0, line);
+    assert.equal(keys.includes(key), true, line);
+  }
+});
+
+test("every situp start/cheer line and the record line are included in the pre-rendered voice corpus", () => {
+  const texts = new Set(buildCorpus().map((entry) => entry.text));
+  for (const line of SITUP_START_LINES) assert.equal(texts.has(line), true, line);
+  for (const line of SITUP_CHEER_LINES) assert.equal(texts.has(line), true, line);
+  assert.equal(texts.has(SITUP_RECORD_LINE), true, SITUP_RECORD_LINE);
+});
+
+test("situp corpus entries normalize to unique, non-empty keys", () => {
+  const keys = buildCorpus().map((entry) => entry.key);
+  for (const line of [...SITUP_START_LINES, ...SITUP_CHEER_LINES, SITUP_RECORD_LINE]) {
     const key = normalizeSpoken(line);
     assert.ok(key.length > 0, line);
     assert.equal(keys.includes(key), true, line);

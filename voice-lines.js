@@ -389,6 +389,39 @@ export const FUN_MESSAGES_SQUAT = [
   (n) => `${n} squats. Certified chair-replacement behavior.`,
 ];
 
+// Situp mode — spoken at set start (SITUP_START_LINES), as random mid-set
+// cheers (SITUP_CHEER_LINES, same cheerProbability shape Plank/Squat use),
+// and on a new per-user best (SITUP_RECORD_LINE, added to FIXED_PHRASES
+// below). Same unhinged drill-instructor register as CHASE_CHAOS_LINES,
+// aimed at abs/the ceiling he's staring at/the couch he keeps eyeing.
+export const SITUP_START_LINES = [
+  "Ceiling's about to get real familiar with the back of your head! Let's crunch!",
+  "Abs, assemble! Every crunch is a personal insult to gravity!",
+  "That couch has no idea what's coming! Situp time!",
+];
+
+export const SITUP_CHEER_LINES = [
+  "That's ab-dominal authority right there! Keep crunching!",
+  "The ceiling has seen enough of you today! Sit UP!",
+  "Your abs just filed for a promotion! Again!",
+  "That couch is watching and it is deeply jealous! Keep going!",
+  "Crunch like the floor owes you money! Up!",
+  "Six-pack incoming, deductible not included! Keep crunching!",
+  "That ceiling tile is filing a restraining order! Stop staring and CRUNCH!",
+  "Somewhere a sit-up bench just wept with pride! Again!",
+];
+
+export const SITUP_RECORD_LINE = "New situp record! The ceiling has officially lost its favorite audience!";
+
+export const FUN_MESSAGES_SITUP = [
+  (n) => `${n} situps deep. The ceiling has never been so thoroughly inspected.`,
+  (n) => `That's ${n} situps of pure ab-dominal chaos.`,
+  (n) => `${n} crunches! Somewhere, a couch just filed for emotional damages.`,
+  (n) => `${n} down. Your abs just issued a formal statement.`,
+  (n) => `${n} situps logged. Gravity remains undefeated but bruised.`,
+  (n) => `${n} situps. Certified core-crushing behavior.`,
+];
+
 export const FUN_MESSAGES_PLANK = [
   (s) => `${s} second plank! Somewhere, a yoga instructor sheds a single tear.`,
   (s) => `Held it for ${s} seconds. Absolute plank behavior.`,
@@ -408,6 +441,7 @@ export const FIXED_PHRASES = [
   "New personal record! Absolute legend!",
   "New plank record! Absolute legend!",
   SQUAT_RECORD_LINE,
+  SITUP_RECORD_LINE,
   "New rung record!",
   "Hidden plank mode unlocked!",
   "All leaders passed. The leaderboard is now a crime scene. Keep going!",
@@ -464,6 +498,8 @@ export function buildCorpus() {
   for (const line of CHASE_CHAOS_LINES) add(line, "hype");
   for (const line of SQUAT_START_LINES) add(line, "hype");
   for (const line of SQUAT_CHEER_LINES) add(line, "hype");
+  for (const line of SITUP_START_LINES) add(line, "hype");
+  for (const line of SITUP_CHEER_LINES) add(line, "hype");
   for (const line of LADDER_CHEER_LINES) add(line, "hype");
   for (const line of SHARPSHOOTER_HIT_LINES) add(line, "hype");
   for (const line of PYRAMID_ROW_CHEER_LINES) add(line, "hype");
@@ -485,6 +521,7 @@ export function buildCorpus() {
   for (const fn of FUN_MESSAGES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_PLANK) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SQUAT) for (const frag of templateFragments(fn)) add(frag, "hype");
+  for (const fn of FUN_MESSAGES_SITUP) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of CHASE_GAP_LINES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const frag of templateFragments(CHASE_TOOK_LEAD_LINE)) add(frag, "hype");
   for (const frag of templateFragments(CHASE_LEAD_MARGIN_LINE)) add(frag, "hype");
