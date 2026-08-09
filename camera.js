@@ -2,6 +2,11 @@ export function createCameraController({
   moduleUrl,
   wasmUrl,
   modelUrl,
+  // "face" (default) uses FaceDetector and reports the first face's bounding
+  // box. "pose" uses PoseLandmarker and reports the first person's landmark
+  // array — needed by squat mode, where the boy stands a couple meters back
+  // and the short-range face model can't see him at all.
+  detectorType = "face",
   getVideo,
   now = () => performance.now(),
   requestFrame = (callback) => requestAnimationFrame(callback),
@@ -20,8 +25,18 @@ export function createCameraController({
   let stream = null;
   let running = false;
 
-  function buildDetector(vision, FaceDetector, selectedDelegate) {
-    return FaceDetector.createFromOptions(vision, {
+  function buildDetector(vision, Detector, selectedDelegate) {
+    if (detectorType === "pose") {
+      return Detector.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: modelUrl, delegate: selectedDelegate },
+        runningMode: "VIDEO",
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.5,
+        minPosePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+    }
+    return Detector.createFromOptions(vision, {
       baseOptions: { modelAssetPath: modelUrl, delegate: selectedDelegate },
       runningMode: "VIDEO",
       minDetectionConfidence: 0.5,
@@ -33,15 +48,15 @@ export function createCameraController({
     if (detectorLoading) return detectorLoading;
     detectorLoading = (async () => {
       const visionModule = await loadVisionModule();
-      const { FaceDetector, FilesetResolver } = visionModule;
+      const { FaceDetector, PoseLandmarker, FilesetResolver } = visionModule;
       const vision = await FilesetResolver.forVisionTasks(wasmUrl);
       detectorVision = vision;
-      DetectorClass = FaceDetector;
+      DetectorClass = detectorType === "pose" ? PoseLandmarker : FaceDetector;
       try {
-        detector = await buildDetector(vision, FaceDetector, "GPU");
+        detector = await buildDetector(vision, DetectorClass, "GPU");
         delegate = "GPU";
       } catch {
-        detector = await buildDetector(vision, FaceDetector, "CPU");
+        detector = await buildDetector(vision, DetectorClass, "CPU");
         delegate = "CPU";
       }
       return detector;
@@ -92,6 +107,11 @@ export function createCameraController({
       return;
     }
     const inferenceMs = now() - startedAt;
+    if (detectorType === "pose") {
+      if (result?.landmarks?.length) onDetection(result.landmarks[0], inferenceMs);
+      else onNoDetection(inferenceMs, startedAt);
+      return;
+    }
     if (result?.detections?.length) {
       onDetection(result.detections[0].boundingBox, inferenceMs);
     } else {

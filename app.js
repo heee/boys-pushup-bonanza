@@ -6978,11 +6978,11 @@ async function startSquat() {
     toast("Camera access is required to count squats. Please allow camera permission.", 4000);
     return;
   }
-  toast("Loading face detector…", 2000);
+  toast("Loading body tracker…", 2000);
   try {
     await squatCamera.ensureDetector();
   } catch (e) {
-    toast("Couldn't load the face detection model. Check your connection and try again.", 4500);
+    toast("Couldn't load the body tracking model. Check your connection and try again.", 4500);
     stream.getTracks().forEach((t) => t.stop());
     return;
   }
