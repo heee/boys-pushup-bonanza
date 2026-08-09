@@ -1168,6 +1168,11 @@ const state = {
   roadtripTerritories: [],
   roadtripDetailId: null,
   compareUser: "",
+  // null means "A side is whoever's device this is" (the normal tap-to-compare
+  // path). A shared #compare=A|B link that names someone other than the
+  // current device's user sets this explicitly so both sides show the named
+  // people instead of "me vs. X" — see openUserCompareFromLink.
+  compareUserA: null,
   compareMode: "all",
   sessionDetailSession: null,
   sessionDetailOrigin: "screen-dashboard",
@@ -2571,6 +2576,13 @@ $("btn-horse-share").addEventListener("click", async () => {
 // actionable (light the dot badge), "waiting" just means they're in a game
 // that's progressing without them right now. The bell itself only shows at
 // all when this list is non-empty (see renderHorseBellDropdown).
+// Other players in the game besides `user` — appended to bell rows so two
+// concurrent games (identical "Your turn in Horse" text otherwise) read as
+// distinguishable at a glance instead of two copies of the same line.
+function otherHorsePlayers(game, user) {
+  return game.turnOrder.filter((name) => name !== user).join(", ");
+}
+
 function pendingHorseItems() {
   const user = state.currentUser;
   if (!user) return [];
@@ -2579,12 +2591,13 @@ function pendingHorseItems() {
   for (const game of games) {
     if (game.status !== "active" || game.sessionType !== "invite") continue;
     if (!game.turnOrder.includes(user)) continue;
+    const opponents = otherHorsePlayers(game, user);
     if (currentTurnPlayer(game) === user) {
-      items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game) });
+      items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game), opponents });
     } else if (user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
-      items.push({ kind: "invite", gameId: game.id, from: game.createdBy });
+      items.push({ kind: "invite", gameId: game.id, from: game.createdBy, opponents });
     } else {
-      items.push({ kind: "waiting", gameId: game.id, upNow: currentTurnPlayer(game) });
+      items.push({ kind: "waiting", gameId: game.id, upNow: currentTurnPlayer(game), opponents });
     }
   }
   return items;
@@ -2602,21 +2615,25 @@ function renderHorseBellDropdown() {
     if (item.kind === "turn") {
       return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-turn="${item.gameId}">
         <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name">Your turn in Horse${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
+        <span class="horse-player-name">Your turn in Horse vs. ${escapeHtml(item.opponents)}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
       </button>`;
     }
     if (item.kind === "invite") {
+      // opponents already includes the inviter (item.from) — drop it here so
+      // the line doesn't repeat their name right after naming them.
+      const others = item.opponents.split(", ").filter((name) => name && name !== item.from).join(", ");
       return `
       <div class="tier1-row horse-player-row">
         <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name">${escapeHtml(item.from)} invited you to Horse</span>
+        <span class="horse-player-name">${escapeHtml(item.from)} invited you to Horse${others ? ` vs. ${escapeHtml(others)}` : ""}</span>
         <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
         <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
       </div>`;
     }
+    const otherWaiting = item.opponents.split(", ").filter((name) => name && name !== item.upNow).join(", ");
     return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
         <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name horse-player-status-waiting">Waiting on ${escapeHtml(item.upNow)} in Horse</span>
+        <span class="horse-player-name horse-player-status-waiting">Waiting on ${escapeHtml(item.upNow)}${otherWaiting ? ` (vs. ${escapeHtml(otherWaiting)})` : ""} in Horse</span>
       </button>`;
   }).join("") : `<p class="screen-sub horse-bell-empty">Nothing pending.</p>`;
 }
@@ -2871,14 +2888,15 @@ function renderMySessions() {
     row.innerHTML = `
       <span class="my-session-date">${formatSessionRowDate(s.timestamp)}</span>
       <span class="session-badge my-session-mode-badge">${sessionModeLabel(s)}</span>
-      <span class="my-session-count">${s.type === "plank" ? `🪵 ${formatDuration(s.count * 1000)}` : s.type === "squat" ? `🦵 ${formatNumber(s.count)}` : s.type === "situp" ? `🙇 ${formatNumber(s.count)}` : formatNumber(s.count)}${s.weightLbs ? " 🏋️" : ""}</span>
-      <button type="button" class="btn-delete-user" aria-label="Delete session">🗑️</button>
+      <span class="my-session-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
+      <button type="button" class="icon-btn my-session-details-btn" aria-label="Session details">›</button>
     `;
-    row.querySelector(".btn-delete-user").addEventListener("click", (e) => {
+    const open = () => openSessionDetail(s, "screen-settings");
+    row.querySelector(".my-session-details-btn").addEventListener("click", (e) => {
       e.stopPropagation();
-      confirmDeleteSession(s.id);
+      open();
     });
-    row.addEventListener("click", () => openSessionDetail(s, "screen-settings"));
+    row.addEventListener("click", open);
     list.appendChild(row);
   }
 }
@@ -2958,18 +2976,21 @@ $("app-main").addEventListener("scroll", () => {
   }
 });
 
+// Returns whether the session was actually deleted, so callers outside My
+// Sessions (e.g. the session-detail delete button) know whether to navigate
+// away afterward.
 async function confirmDeleteSession(id) {
   const ok = confirm("Delete this session from the shared leaderboard? This can't be undone.");
-  if (!ok) return;
+  if (!ok) return false;
   if (!navigator.onLine) {
     toast("Deleting a session requires a live connection.", 4000);
-    return;
+    return false;
   }
   try {
     await deleteSessionRemote(id);
   } catch (e) {
     toast("Couldn't delete right now — check your connection.", 4000);
-    return;
+    return false;
   }
   const cached = getCachedData();
   cached.sessions = cached.sessions.filter((s) => s.id !== id);
@@ -2978,6 +2999,7 @@ async function confirmDeleteSession(id) {
   toast("Session deleted.");
   renderMySessions();
   renderStreakBadge();
+  return true;
 }
 
 $("range-down").addEventListener("input", (e) => {
@@ -3752,7 +3774,24 @@ function makeNameCompareClickable(nameEl, user, stopPropagation = false) {
 
 function openUserCompare(otherUser) {
   state.compareUser = otherUser;
+  state.compareUserA = null;
   state.compareMode = state.leaderboardMode;
+  renderUserCompare();
+  showScreen("screen-user-compare");
+}
+
+// Entry point for a shared #compare=A|B link. If the device's own user is
+// one of the two named people, this behaves exactly like the normal
+// tap-to-compare flow (self always renders as the "A" side). Otherwise —
+// a third person's device, or nobody's picked a name yet — both sides show
+// the named users explicitly instead of assuming "me vs. X".
+function openUserCompareFromLink(nameA, nameB) {
+  if (!nameA || !nameB || nameA === nameB) return;
+  let a = nameA, b = nameB;
+  if (state.currentUser && b === state.currentUser && a !== state.currentUser) [a, b] = [b, a];
+  state.compareUser = b;
+  state.compareUserA = a === state.currentUser ? null : a;
+  state.compareMode = state.leaderboardMode || "all";
   renderUserCompare();
   showScreen("screen-user-compare");
 }
@@ -3790,23 +3829,24 @@ function setCompareModeMenuOpen(open) {
 
 function renderUserCompare() {
   const otherUser = state.compareUser;
-  if (!otherUser) return;
+  const selfUser = state.compareUserA || state.currentUser;
+  if (!otherUser || !selfUser) return;
   renderCompareModeControl();
   const model = comparisonModel(state.lastSessions || [], {
-    userA: state.currentUser,
+    userA: selfUser,
     userB: otherUser,
     mode: state.compareMode,
     periodStartMs: periodStart(state.dashboardPeriod).getTime(),
     now: new Date(),
   });
 
-  const avatarA = avatarForUser(state.currentUser);
+  const avatarA = avatarForUser(selfUser);
   const avatarB = avatarForUser(otherUser);
   $("compare-avatar-a").textContent = avatarA.emoji;
   $("compare-avatar-a").style.background = avatarA.bg;
   $("compare-avatar-b").textContent = avatarB.emoji;
   $("compare-avatar-b").style.background = avatarB.bg;
-  $("compare-name-a").textContent = state.currentUser;
+  $("compare-name-a").textContent = selfUser;
   $("compare-name-b").textContent = otherUser;
 
   $("compare-table").classList.toggle("hidden", model.empty);
@@ -3834,7 +3874,7 @@ function renderUserCompare() {
   if (model.aWins === model.bWins) {
     tallyEl.textContent = `Tied with ${model.aWins} category win${model.aWins === 1 ? "" : "s"} each`;
   } else {
-    const leader = model.aWins > model.bWins ? state.currentUser : otherUser;
+    const leader = model.aWins > model.bWins ? selfUser : otherUser;
     const leaderWins = Math.max(model.aWins, model.bWins);
     const available = model.denominator < model.rows.length ? " available" : "";
     tallyEl.textContent = `${leader} leads ${leaderWins} of ${model.denominator}${available} categories`;
@@ -3855,6 +3895,66 @@ $("compare-mode-menu").addEventListener("click", (event) => {
 document.addEventListener("click", (event) => {
   if (!event.target.closest("#compare-mode-picker")) setCompareModeMenuOpen(false);
 });
+
+// Same over-the-top voice as the leaderboard/roadtrip share pools (see
+// SHARE_MESSAGES_MY_BONANZA) — leader/trailer/tied variants so the line
+// actually reacts to who's winning instead of reading generic either way.
+const COMPARE_SHARE_LEADING = [
+  (ctx) => `${ctx.leader} leads ${ctx.trailer} ${ctx.leaderWins}-${ctx.trailerWins} in ${ctx.activityWord} categories 👑 It's not close.`,
+  (ctx) => `${ctx.leader} vs ${ctx.trailer}: ${ctx.leaderWins} categories to ${ctx.trailerWins} 🩸 ${ctx.trailer} should see someone about that.`,
+  (ctx) => `Head-to-head: ${ctx.leader} ${ctx.leaderWins}, ${ctx.trailer} ${ctx.trailerWins} 🏛️ History will remember this correctly.`,
+  (ctx) => `${ctx.leader} is up ${ctx.leaderWins}-${ctx.trailerWins} on ${ctx.trailer} 😤 ${ctx.trailer}, this is your villain arc, use it.`,
+  (ctx) => `${ctx.leaderWins} categories to ${ctx.trailerWins} — ${ctx.leader} over ${ctx.trailer} 🎯 The numbers have spoken and they are savage.`,
+  (ctx) => `${ctx.leader} ${ctx.leaderWins}, ${ctx.trailer} ${ctx.trailerWins} 🫡 Somebody check on ${ctx.trailer}'s will to live.`,
+];
+const COMPARE_SHARE_TIED = [
+  (ctx) => `${ctx.leader} and ${ctx.trailer} are dead even, ${ctx.leaderWins} categories apiece ⚖️ Somebody's about to snap.`,
+  (ctx) => `${ctx.leaderWins}-${ctx.leaderWins}. ${ctx.leader} vs ${ctx.trailer} 🪢 A rivalry for the ages, tragically unresolved.`,
+  (ctx) => `${ctx.leader} and ${ctx.trailer}, tied at ${ctx.leaderWins} each 🤝 Somebody needs to do a set right now and end this.`,
+];
+
+async function shareUserCompare() {
+  const otherUser = state.compareUser;
+  const selfUser = state.compareUserA || state.currentUser;
+  if (!otherUser || !selfUser) return;
+  const model = comparisonModel(state.lastSessions || [], {
+    userA: selfUser,
+    userB: otherUser,
+    mode: state.compareMode,
+    periodStartMs: periodStart(state.dashboardPeriod).getTime(),
+    now: new Date(),
+  });
+  const activityWord = state.activityType === "planks" ? "plank" : "pushup";
+  let message;
+  if (model.aWins === model.bWins) {
+    message = pickFrom(COMPARE_SHARE_TIED)({ leader: selfUser, trailer: otherUser, leaderWins: model.aWins, activityWord });
+  } else {
+    const leading = model.aWins > model.bWins;
+    message = pickFrom(COMPARE_SHARE_LEADING)({
+      leader: leading ? selfUser : otherUser,
+      trailer: leading ? otherUser : selfUser,
+      leaderWins: Math.max(model.aWins, model.bWins),
+      trailerWins: Math.min(model.aWins, model.bWins),
+      activityWord,
+    });
+  }
+  const url = `${location.origin}${location.pathname}#compare=${encodeURIComponent(selfUser)}|${encodeURIComponent(otherUser)}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — paste it in the group chat!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy the link manually.", 4000);
+  }
+}
+$("btn-compare-share").addEventListener("click", shareUserCompare);
 
 // ------------------- session detail -------------------
 
@@ -3910,6 +4010,10 @@ function renderSessionDetail() {
   $("session-detail-metrics").innerHTML = sessionKeyMetrics(session).map((metric) => `
     <div class="stats-table-row"><span class="stats-table-label">${metric.label}</span><span class="stats-table-value">${formatSessionMetric(metric)}</span></div>
   `).join("");
+
+  // Matches the old My Sessions delete button's scope — only your own
+  // sessions, never someone else's viewed from the leaderboard/challenges.
+  $("btn-session-detail-delete").classList.toggle("hidden", session.user !== state.currentUser);
 }
 
 function formatSessionMetric(metric) {
@@ -3941,6 +4045,12 @@ async function shareSessionDetail() {
 
 $("btn-session-detail-back").addEventListener("click", () => showScreen(state.sessionDetailOrigin || "screen-dashboard"));
 $("btn-session-detail-share").addEventListener("click", shareSessionDetail);
+$("btn-session-detail-delete").addEventListener("click", async () => {
+  const session = state.sessionDetailSession;
+  if (!session) return;
+  const deleted = await confirmDeleteSession(session.id);
+  if (deleted) showScreen(state.sessionDetailOrigin || "screen-dashboard");
+});
 
 function paintMyBonanza(sessions) {
   const isPlank = state.activityType === "planks";
@@ -4225,6 +4335,13 @@ function challengeParticipantsOf(c) {
   return getCachedData().challengeParticipants[c.id] || [];
 }
 
+// Which logged-session bucket a challenge tracks. plankGauntlet is always
+// planks; everything else defaults to pushups unless the config says
+// otherwise (e.g. "squats" for a squat-tracking challenge).
+function challengeActivity(c) {
+  return c.goalType === "plankGauntlet" ? "planks" : (c.activity || "pushups");
+}
+
 function challengeSessions(c) {
   const cached = challengeSessionCache.get(c.id);
   if (cached) return cached;
@@ -4233,7 +4350,7 @@ function challengeSessions(c) {
   const { startDate, endDate } = challengeWindow(c);
   const startTime = startDate.getTime();
   const endTime = endDate.getTime();
-  const activity = c.goalType === "plankGauntlet" ? "planks" : "pushups";
+  const activity = challengeActivity(c);
   const sessions = [];
   for (const participant of participants) {
     for (const session of indexedSessionsForUser(participant, activity)) {
@@ -4301,9 +4418,9 @@ function windowStreak(sessions, name, startDate, endDate) {
 // scoped to the challenge window — it's the user's all-time best set going
 // into the challenge, so reps logged during the window can only beat it,
 // never quietly raise it out from under them.
-function userPriorBestSet(name, beforeDate) {
+function userPriorBestSet(name, beforeDate, activity = "pushups") {
   const beforeTime = beforeDate.getTime();
-  return indexedSessionsForUser(name, "pushups")
+  return indexedSessionsForUser(name, activity)
     .filter((s) => sessionTimestamp(s) < beforeTime)
     .reduce((max, s) => Math.max(max, s.count), 0);
 }
@@ -4314,7 +4431,7 @@ function userPriorBestSet(name, beforeDate) {
 // best single-session set anywhere in the window regardless of achievement.
 function userPrStanding(c, name) {
   const { startDate } = challengeWindow(c);
-  const baseline = userPriorBestSet(name, startDate);
+  const baseline = userPriorBestSet(name, startDate, challengeActivity(c));
   const sessions = challengeSessions(c)
     .filter((s) => s.user === name)
     .sort((a, b) => sessionTimestamp(a) - sessionTimestamp(b));
@@ -4455,7 +4572,7 @@ function buildChallengeCard(c, now) {
   } else if (c.goalType === "plankGauntlet") {
     metaLine = `👥 ${participants.length} joined · ${formatDuration(total * 1000)} total plank time logged`;
   } else {
-    metaLine = `👥 ${participants.length} joined · ${formatNumber(total)} total pushups so far`;
+    metaLine = `👥 ${participants.length} joined · ${formatNumber(total)} total ${challengeActivity(c)} so far`;
   }
 
   let html = `
@@ -4509,7 +4626,7 @@ function openChallengeDetail(id) {
 // Bundles everything a share message might reference so the variations
 // below can freely mix and match without recomputing anything.
 function buildChallengeShareContext(c) {
-  return challengeShareContext(c, challengeLeaderboard(c), { formatNumber, formatDuration: (seconds) => formatDuration(seconds * 1000) });
+  return challengeShareContext(c, challengeLeaderboard(c), { formatNumber, formatDuration: (seconds) => formatDuration(seconds * 1000), activityLabel: challengeActivity(c) });
 }
 
 const CHALLENGE_INVITE_MESSAGES = [
@@ -4824,7 +4941,7 @@ function renderChallengeDetail() {
     participantCount: participants.length,
     total: c.goalType === "plankGauntlet" ? formatDuration(total * 1000) : total,
     now,
-    totalLabel: c.goalType === "plankGauntlet" ? "Total plank time" : "Total pushups",
+    totalLabel: c.goalType === "plankGauntlet" ? "Total plank time" : `Total ${challengeActivity(c)}`,
   }).map((stat) => ({ ...stat, value: typeof stat.value === "number" ? formatNumber(stat.value) : stat.value }));
 
   html += `
@@ -7885,6 +8002,16 @@ async function init() {
   const hashMatch = location.hash.match(/^#challenge=([a-z0-9-]+)$/);
   if (hashMatch && state.currentUser && challengeDefs.some((c) => c.id === hashMatch[1])) {
     openChallengeDetail(hashMatch[1]);
+  }
+
+  // A shared head-to-head link (#compare=NameA|NameB) is read-only and names
+  // both people explicitly, so — unlike the challenge link above — it works
+  // even for a device that's never picked a name (see openUserCompareFromLink).
+  // location.hash is NOT auto-decoded (the "|" comes through as literal
+  // %7C), so decode the whole fragment before matching against it.
+  const compareMatch = decodeURIComponent(location.hash).match(/^#compare=([^|]+)\|([^|]+)$/);
+  if (compareMatch) {
+    openUserCompareFromLink(compareMatch[1], compareMatch[2]);
   }
 
   if ("serviceWorker" in navigator) {

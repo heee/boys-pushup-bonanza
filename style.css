@@ -310,6 +310,10 @@ button, input {
   overflow-y: auto;
 }
 .horse-bell-title { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0.9rem 0.4rem; }
+/* .tier1-row/.horse-player-name are bold by default everywhere else they're
+   used, but that reads too heavy in this compact dropdown — unbold
+   everything here except the "Horse" title above, which keeps its weight. */
+.horse-bell-dropdown .tier1-row, .horse-bell-dropdown .horse-player-name { font-weight: 500; }
 .horse-bell-row {
   appearance: none;
   -webkit-appearance: none;
@@ -2961,9 +2965,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .btn-edit-profile:active { opacity: 0.7; }
 .btn-edit-profile .chev { font-size: 1rem; }
 
-.my-session-row { font-size: 0.88rem; }
-.my-session-date { flex: 1; color: var(--text-dim); }
-.my-session-mode-badge { flex-shrink: 0; font-size: 0.66rem; padding: 0.25rem 0.55rem; }
+/* Grid, not flex — the mode badge's width varies with its label ("Cards" vs
+   "Sharpshooter"), so a flex row left every count starting at a different x
+   depending on the row above it. Fixed grid columns line every count and
+   every Details button up on the same vertical regardless of label length. */
+.my-session-row { display: grid; grid-template-columns: 1fr 7rem 4.5rem 1.6rem; font-size: 0.88rem; }
+.my-session-date { color: var(--text-dim); }
+.my-session-mode-badge { justify-self: start; font-size: 0.66rem; padding: 0.25rem 0.55rem; }
+.my-session-details-btn { justify-self: end; font-size: 1.1rem; padding: 0.2rem 0.3rem; }
 
 /* ---------------- Explore modes ---------------- */
 
@@ -3017,7 +3026,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   pointer-events: none;
 }
 .explore-mode-row.disabled .explore-mode-icon { filter: grayscale(1); }
-.my-session-count { font-weight: 800; }
+.my-session-count { font-weight: 800; text-align: right; }
+
+.session-detail-delete-btn { display: block; width: 100%; max-width: none; margin-top: 1.2rem; color: var(--danger); }
 
 /* ---------------- Modifier picker + Home slot + session cue ---------------- */
 
@@ -3376,6 +3387,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin: 0 auto 0.8rem;
 }
 .compare-screen-header .screen-title { margin: 0; text-align: left; }
+.compare-header-actions { display: flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; }
 .compare-screen-header .leaderboard-mode-picker { flex: 0 0 auto; }
 .compare-screen-header .leaderboard-mode-menu { z-index: 20; }
 .compare-card {

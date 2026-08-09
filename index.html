@@ -503,6 +503,8 @@
         <div id="session-detail-rings" class="session-detail-rings"></div>
 
         <div id="session-detail-metrics" class="stats-table tier1-list session-detail-metrics"></div>
+
+        <button id="btn-session-detail-delete" type="button" class="btn btn-secondary btn-small-wide session-detail-delete-btn hidden">Delete session</button>
       </div>
     </section>
 
@@ -588,11 +590,14 @@
     <section id="screen-user-compare" class="screen">
       <div class="compare-screen-header">
         <h1 class="screen-title">Head-to-head</h1>
-        <div id="compare-mode-picker" class="leaderboard-mode-picker">
-          <button id="compare-mode-trigger" class="leaderboard-mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="compare-mode-menu">
-            <span id="compare-mode-label">All</span><span class="leaderboard-mode-chevron" aria-hidden="true"></span>
-          </button>
-          <div id="compare-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Comparison mode"></div>
+        <div class="compare-header-actions">
+          <div id="compare-mode-picker" class="leaderboard-mode-picker">
+            <button id="compare-mode-trigger" class="leaderboard-mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="compare-mode-menu">
+              <span id="compare-mode-label">All</span><span class="leaderboard-mode-chevron" aria-hidden="true"></span>
+            </button>
+            <div id="compare-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Comparison mode"></div>
+          </div>
+          <button id="btn-compare-share" type="button" class="icon-btn" aria-label="Share comparison"><span class="icon-share" aria-hidden="true"></span></button>
         </div>
       </div>
 
