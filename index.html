@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=157">
+<link rel="stylesheet" href="style.css?v=158">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -707,12 +707,6 @@
     <section id="screen-settings" class="screen">
       <h1 class="screen-title">Settings ⚙️</h1>
 
-      <button id="btn-open-mode-breakdown" type="button" class="settings-link-row">
-        <span class="settings-link-row-icon" aria-hidden="true">📊</span>
-        <span class="settings-link-row-label">Bonanza stats</span>
-        <span class="settings-link-row-chevron" aria-hidden="true">›</span>
-      </button>
-
       <div class="settings-block settings-category-list" id="settings-category-list">
         <button type="button" class="settings-category-row" data-settings-category="profile">
           <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true">👤</span>
@@ -720,9 +714,15 @@
           <span id="settings-category-profile-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
+        <button type="button" class="settings-category-row" data-settings-category="mysessions">
+          <span class="settings-category-icon settings-category-icon-mysessions" aria-hidden="true">📝</span>
+          <span class="settings-category-title">My sessions</span>
+          <span class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
         <button type="button" class="settings-category-row" data-settings-category="workout">
           <span class="settings-category-icon settings-category-icon-workout" aria-hidden="true">🏋️</span>
-          <span class="settings-category-title">Workout</span>
+          <span class="settings-category-title">User calibrations</span>
           <span class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
@@ -732,9 +732,9 @@
           <span id="settings-category-appearance-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button type="button" class="settings-category-row" data-settings-category="data">
-          <span class="settings-category-icon settings-category-icon-data" aria-hidden="true">📡</span>
-          <span class="settings-category-title">Data</span>
+        <button id="btn-open-mode-breakdown" type="button" class="settings-category-row">
+          <span class="settings-category-icon settings-category-icon-bonanza" aria-hidden="true">📊</span>
+          <span class="settings-category-title">Bonanza stats</span>
           <span class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
@@ -755,9 +755,16 @@
         <p class="settings-hint">Tap someone's icon to change their avatar. The trash icon removes all of their sessions from the shared leaderboard — this can't be undone.</p>
         <div id="manage-users-list" class="manage-users-list settings-block"></div>
       </div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > MY SESSIONS ============ -->
+    <section id="screen-settings-mysessions" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-mysessions-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">My sessions</h1>
 
       <div class="settings-section">
-        <div class="tier1-eyebrow">My sessions</div>
         <p class="settings-hint">Your own session history. Delete any you logged by mistake.</p>
         <div class="settings-block">
           <div id="my-sessions-list" class="my-sessions-list"></div>
@@ -766,12 +773,12 @@
       </div>
     </section>
 
-    <!-- ============ SCREEN: SETTINGS > WORKOUT ============ -->
+    <!-- ============ SCREEN: SETTINGS > USER CALIBRATIONS ============ -->
     <section id="screen-settings-workout" class="screen">
       <div class="edit-profile-header">
         <button id="btn-settings-workout-back" type="button" class="challenge-detail-back">← Settings</button>
       </div>
-      <h1 class="screen-title">Workout</h1>
+      <h1 class="screen-title">User calibrations</h1>
 
       <div class="settings-section">
         <div class="tier1-eyebrow">Workout behavior</div>
@@ -891,23 +898,6 @@
       </div>
     </section>
 
-    <!-- ============ SCREEN: SETTINGS > DATA ============ -->
-    <section id="screen-settings-data" class="screen">
-      <div class="edit-profile-header">
-        <button id="btn-settings-data-back" type="button" class="challenge-detail-back">← Settings</button>
-      </div>
-      <h1 class="screen-title">Data</h1>
-
-      <div class="settings-section">
-        <div class="tier1-eyebrow">Data &amp; sync</div>
-        <div class="settings-block" style="padding: 0.9rem 1rem;">
-          <button id="btn-gh-test" class="btn btn-secondary" style="width:100%">Check connection</button>
-          <p id="gh-status" class="settings-status"></p>
-          <p id="pending-status" class="settings-status" role="status" aria-live="polite"></p>
-        </div>
-      </div>
-    </section>
-
     <!-- ============ SCREEN: MODE BREAKDOWN (Bonanza stats) ============ -->
     <section id="screen-mode-breakdown" class="screen">
       <div class="edit-profile-header">
@@ -995,6 +985,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=170"></script>
+<script type="module" src="app.js?v=171"></script>
 </body>
 </html>

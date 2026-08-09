@@ -680,7 +680,6 @@ async function flushQueue() {
     return await flushQueuePromise;
   } finally {
     flushQueuePromise = null;
-    renderPendingStatus();
   }
 }
 
@@ -1269,9 +1268,9 @@ const TAB_FOR_SCREEN = {
   "screen-roadtrip-detail": "btn-nav-roadtrip",
   "screen-settings": "btn-nav-settings",
   "screen-settings-profile": "btn-nav-settings",
+  "screen-settings-mysessions": "btn-nav-settings",
   "screen-settings-workout": "btn-nav-settings",
   "screen-settings-appearance": "btn-nav-settings",
-  "screen-settings-data": "btn-nav-settings",
   "screen-edit-profile": "btn-nav-settings",
   "screen-mode-breakdown": "btn-nav-settings",
 };
@@ -1316,8 +1315,8 @@ function showScreen(id) {
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") renderRoadtrip();
   if (id === "screen-roadtrip-detail") renderRoadtripDetail();
-  if (id === "screen-settings" || id === "screen-settings-profile" || id === "screen-settings-workout" ||
-    id === "screen-settings-appearance" || id === "screen-settings-data") renderSettings();
+  if (id === "screen-settings" || id === "screen-settings-profile" || id === "screen-settings-mysessions" ||
+    id === "screen-settings-workout" || id === "screen-settings-appearance") renderSettings();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
     $("workout-username").textContent = state.currentUser || "Friend";
@@ -1667,8 +1666,6 @@ function renderSettings() {
   renderWeightedSettings();
   renderSquatWeightedControls();
 
-  renderPendingStatus();
-  testSyncConnection();
   renderManageUsers();
   state.mySessionsShown = 5;
   renderMySessions();
@@ -1684,13 +1681,13 @@ function renderSettingsCategoryValues() {
 
 $("settings-category-list").addEventListener("click", (e) => {
   const row = e.target.closest(".settings-category-row");
-  if (!row) return;
+  if (!row || !row.dataset.settingsCategory) return;
   showScreen(`screen-settings-${row.dataset.settingsCategory}`);
 });
 $("btn-settings-profile-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-settings-mysessions-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-workout-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-appearance-back").addEventListener("click", () => showScreen("screen-settings"));
-$("btn-settings-data-back").addEventListener("click", () => showScreen("screen-settings"));
 
 function renderWeightedSettings() {
   const profile = getWeightedProfile(state.currentUser);
@@ -2664,7 +2661,6 @@ async function changeUserAvatar(name, avatarId) {
     }
     enqueueMutation("avatar", { user: name, avatar: avatarId }, `avatar:${name}`);
     toast(`Avatar saved on this device — waiting to sync.`, 4000);
-    renderPendingStatus();
     return true;
   }
   toast(`Updated ${name}'s avatar.`);
@@ -2827,38 +2823,6 @@ async function confirmDeleteSession(id) {
   renderMySessions();
   renderStreakBadge();
 }
-
-function renderPendingStatus() {
-  const n = getQueue().length;
-  $("pending-status").textContent = n > 0
-    ? `${n} change${n === 1 ? "" : "s"} saved locally, waiting to sync…`
-    : "";
-}
-
-async function testSyncConnection() {
-  const statusEl = $("gh-status");
-  if (!workerConfigured()) {
-    statusEl.textContent = "Shared leaderboard isn't set up yet.";
-    statusEl.className = "settings-status err";
-    return;
-  }
-  statusEl.textContent = "Checking connection…";
-  statusEl.className = "settings-status";
-  try {
-    const data = await workerFetchData();
-    cacheData(data);
-    statusEl.textContent = `Connected — found ${data.sessions.length} session(s).`;
-    statusEl.className = "settings-status ok";
-    const flushResult = await flushQueue();
-    if (flushResult.flushed) toast(`Synced ${flushResult.flushed} queued change(s).`);
-    renderPendingStatus();
-  } catch (e) {
-    statusEl.textContent = "Can't reach the shared leaderboard right now.";
-    statusEl.className = "settings-status err";
-  }
-}
-
-$("btn-gh-test").addEventListener("click", testSyncConnection);
 
 $("range-down").addEventListener("input", (e) => {
   localStorage.setItem(LS.thresholdDown, e.target.value);
@@ -3304,7 +3268,6 @@ async function renderDashboard() {
   await flushQueue().catch(() => {});
   const sessions = await refreshFromRemote();
   state.lastSessions = sessions;
-  renderPendingStatus();
   $("leaderboard-mode-picker").classList.remove("hidden");
   syncLeaderboardModeControl();
   paintActiveBonanzaView();
@@ -3793,7 +3756,7 @@ function paintModeBreakdown() {
           ${valueFits ? `<span class="mode-breakdown-bar-value">${valueMarkup}</span>` : ""}
           ${showUsers && wide ? `<span class="mode-breakdown-bar-users">${usersLabel}</span>` : ""}
         </div>
-        ${outsideBits ? `<span class="mode-breakdown-bar-outside">${outsideBits}</span>` : ""}
+        ${outsideBits ? `<span class="mode-breakdown-bar-outside" style="left:${pct}%">${outsideBits}</span>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -4687,7 +4650,6 @@ async function joinChallenge(id) {
       return;
     }
     enqueueMutation("join-challenge", { user: state.currentUser, challengeId: id }, `join-challenge:${id}:${state.currentUser}`);
-    renderPendingStatus();
     queued = true;
   }
   if (state.screen === "screen-challenge-detail") {
@@ -4805,7 +4767,6 @@ $("create-challenge-form").addEventListener("submit", async (e) => {
     const cached = getCachedData();
     if (!cached.customChallenges.some((item) => item.id === savedChallenge.id)) cached.customChallenges.push(savedChallenge);
     cacheData(cached);
-    renderPendingStatus();
     toast(queued ? "Challenge saved on this device — waiting to sync." : "Challenge created!");
     await renderChallengesScreen();
     showScreen("screen-challenges");
@@ -7283,7 +7244,6 @@ async function init() {
   showScreen(state.currentUser ? "screen-user" : "screen-user");
   refreshAutomaticDeviceLocation();
   await flushQueue().catch(() => {});
-  renderPendingStatus();
   await loadChallenges();
 
   if (workerConfigured()) {
