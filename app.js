@@ -1723,15 +1723,13 @@ function renderSquatWeightedControls() {
   $("chk-squat-weighted-enabled-settings").disabled = !bodyweightLbs;
   $("squat-weight-modifier-readout").textContent = readoutText;
 
-  const readyControl = $("squat-weight-control");
-  if (!bodyweightLbs) {
-    readyControl.classList.add("hidden");
-  } else {
-    readyControl.classList.remove("hidden");
-    $("squat-weight-amount").textContent = String(profile.addedWeightLbs || 0);
-    $("chk-squat-weighted-enabled").checked = enabled;
-    $("squat-weight-readout").textContent = readoutText;
-  }
+  // Unlike the pushup quick-toggle, this stays visible even without a
+  // bodyweight on file — enabling it just won't scale the score yet
+  // (weightedMultiplier returns 1 with no bodyweight), so nothing to hide.
+  $("squat-weight-amount").textContent = String(profile.addedWeightLbs || 0);
+  $("chk-squat-weighted-enabled").checked = enabled;
+  $("chk-squat-weighted-enabled").disabled = !bodyweightLbs;
+  $("squat-weight-readout").textContent = readoutText;
 }
 function getSquatWeightedMultiplierValue() {
   return weightedMultiplier(getSquatWeightedMultiplierProfile(state.currentUser));
