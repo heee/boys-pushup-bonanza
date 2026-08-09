@@ -256,13 +256,21 @@ button, input {
   justify-content: center;
   cursor: pointer;
   position: relative;
+  /* Default state — something Horse-related exists (so the bell shows at
+     all) but there's nothing for THIS user to act on right now (e.g.
+     "Waiting on Phil"). Greyed out, passive — a quiet reminder, not a call
+     to action. */
+  opacity: 0.45;
+  filter: grayscale(1);
+  transition: opacity 0.2s ease, filter 0.2s ease;
 }
 .horse-bell-btn:active { transform: scale(0.92); }
-/* "It's your turn" state — fully opaque (never dimmed/translucent) plus a
-   ringing wiggle so it's impossible to miss, distinct from the quieter
-   "something's pending, but not you" dot-only state. */
+/* "It's your turn" state — full color, fully opaque, plus a ringing wiggle
+   so it's impossible to miss, distinct from the greyed-out passive state
+   above ("something's pending, but not you"). */
 .horse-bell-btn.urgent {
   opacity: 1;
+  filter: none;
   animation: horse-bell-wiggle 2.4s ease-in-out infinite;
 }
 @keyframes horse-bell-wiggle {
