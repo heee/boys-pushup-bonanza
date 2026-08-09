@@ -68,7 +68,7 @@ import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=1";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=138";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=139";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=2";
@@ -4900,9 +4900,12 @@ function renderHeroForCount(count) {
     $("sharpshooter-session-total").textContent = `${formatNumber(count)} total · ${destroyed} target${destroyed === 1 ? "" : "s"} destroyed`;
   } else if (model.kind === "horse") {
     // No giant hero number here — the target-to-beat is the static focal
-    // number rendered once by renderHorseTurnHero(); this is just the live
-    // running count, same subordinate-line pattern as Cards/Dice/Ladder.
+    // number rendered once by renderHorseTurnHero(); the live running count
+    // shows both as a persistent subordinate line and as the same
+    // pop-on-each-rep badge Cards/Dice/Ladder/Pyramid use, since the small
+    // text line alone is easy to miss mid-set.
     $("horse-session-total").textContent = `Live count: ${formatNumber(count)}`;
+    updateModeCounterBadge("horse-counter-badge", count);
   } else {
     heroEl.textContent = model.display;
     heroEl.classList.toggle("rep-count-over", model.over);
