@@ -1287,6 +1287,7 @@ function showScreen(id) {
   // The Settings capture-test camera has no place to keep running once the
   // screen it's shown on goes away.
   if (id !== "screen-settings-workout" && squatTraceState.running) stopSquatCaptureTest();
+  if (id !== "screen-settings-workout" && situpTraceState.running) stopSitupCaptureTest();
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(id).classList.add("active");
   state.screen = id;
@@ -1663,6 +1664,7 @@ function renderSettings() {
   $("chk-camera-preview").checked = localStorage.getItem(LS.showCameraPreview) === "1";
   $("btn-download-trace").classList.toggle("hidden", !repState.trace.length);
   $("btn-download-squat-trace").classList.toggle("hidden", !squatTraceState.trace.length);
+  $("btn-download-situp-trace").classList.toggle("hidden", !situpTraceState.trace.length);
   renderWeightedSettings();
   renderSquatWeightedControls();
 
@@ -3258,6 +3260,122 @@ $("btn-download-squat-trace").addEventListener("click", () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `bpb-squat-trace-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ------------------- situp mode: Phase 0 capture-test spike -------------------
+// Standalone camera controller for the Settings "Situp capture test" row,
+// independent of the live Situp workout screen's own controller — answers
+// the go/no-go question (face detected reliably at ~1-1.5m from the feet,
+// crunch<->lie swing big enough) before the real screen is trusted, per
+// docs/situp-mode-plan.md. Uses the same face detector as pushups (phone at
+// the feet is well within blaze_face_short_range's range) — the signal is
+// face SIZE, like pushups, not position like squats. Logs bboxHeight AND
+// centerY for diagnostics even though only bboxHeight (inverted) feeds the
+// live counter; centerY helps spot framing drift in the downloaded trace.
+const situpTraceState = { trace: [], running: false };
+
+function situpCenterY(bbox, video) {
+  return (bbox.originY + bbox.height / 2) / video.videoHeight;
+}
+
+function updateSitupTestFaceBox(bbox) {
+  const video = $("situp-capture-test-video");
+  const container = $("situp-capture-test-wrap");
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const scale = Math.max(cw / vw, ch / vh);
+  const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
+  const box = $("situp-capture-test-face-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+
+const situpTestCamera = createCameraController({
+  moduleUrl: FACE_DETECTOR_MODULE_URL,
+  wasmUrl: FACE_DETECTOR_WASM_URL,
+  modelUrl: FACE_DETECTOR_MODEL_URL,
+  getVideo: () => $("situp-capture-test-video"),
+  onDetection(bbox, inferenceMs) {
+    const video = $("situp-capture-test-video");
+    updateSitupTestFaceBox(bbox);
+    situpTraceState.trace.push({
+      t: Math.round(performance.now()),
+      bboxHeight: +(bbox.height / video.videoHeight).toFixed(4),
+      centerY: +situpCenterY(bbox, video).toFixed(4),
+      detected: true,
+      inferenceMs: Math.round(inferenceMs || 0),
+    });
+    if (situpTraceState.trace.length > TRACE_MAX_SAMPLES) situpTraceState.trace.shift();
+  },
+  onNoDetection(inferenceMs, startedAt) {
+    $("situp-capture-test-face-box").classList.add("hidden");
+    situpTraceState.trace.push({ t: Math.round(startedAt), bboxHeight: null, centerY: null, detected: false, inferenceMs: Math.round(inferenceMs || 0) });
+    if (situpTraceState.trace.length > TRACE_MAX_SAMPLES) situpTraceState.trace.shift();
+  },
+});
+
+async function startSitupCaptureTest() {
+  if (situpTraceState.running) return;
+  $("situp-capture-test-status").textContent = "Requesting camera…";
+  let stream;
+  try {
+    stream = await situpTestCamera.requestStream();
+  } catch (e) {
+    $("situp-capture-test-status").textContent = "Camera access denied.";
+    return;
+  }
+  $("situp-capture-test-status").textContent = "Loading face detector…";
+  try {
+    await situpTestCamera.ensureDetector();
+  } catch (e) {
+    $("situp-capture-test-status").textContent = "Couldn't load the face detection model.";
+    stream.getTracks().forEach((t) => t.stop());
+    return;
+  }
+  const video = $("situp-capture-test-video");
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) { /* autoplay quirks */ }
+  situpTraceState.trace = [];
+  situpTraceState.running = true;
+  $("situp-capture-test-wrap").classList.remove("hidden");
+  $("btn-situp-capture-test").textContent = "Stop capture test";
+  $("situp-capture-test-status").textContent = "Capturing — prop at your feet, do ten situps.";
+  $("btn-download-situp-trace").classList.add("hidden");
+  situpTestCamera.startDetection();
+}
+
+function stopSitupCaptureTest() {
+  if (!situpTraceState.running) return;
+  situpTestCamera.stop();
+  situpTraceState.running = false;
+  $("situp-capture-test-wrap").classList.add("hidden");
+  $("btn-situp-capture-test").textContent = "Situp capture test";
+  const total = situpTraceState.trace.length;
+  const detected = situpTraceState.trace.filter((s) => s.detected).length;
+  const rate = total ? Math.round((detected / total) * 100) : 0;
+  $("situp-capture-test-status").textContent = total
+    ? `Captured ${total} samples, ${rate}% with a detected face.`
+    : "";
+  $("btn-download-situp-trace").classList.toggle("hidden", !total);
+}
+
+$("btn-situp-capture-test").addEventListener("click", () => {
+  if (situpTraceState.running) stopSitupCaptureTest();
+  else startSitupCaptureTest();
+});
+
+$("btn-download-situp-trace").addEventListener("click", () => {
+  if (!situpTraceState.trace.length) return;
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), samples: situpTraceState.trace }, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `bpb-situp-trace-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 });
