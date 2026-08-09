@@ -1,5 +1,13 @@
 # Squat mode — build plan
 
+> **Update:** the 2-tap calibration wizard (stand-tall capture, then hold-a-squat
+> capture) described below was replaced with an automatic warmup — the boy just
+> starts squatting in frame and `estimateSquatRange()`/`tickSquatWarmup()`
+> (`modes/squat.js`, `app.js`) derive thresholds from a rolling sample window once a
+> real swing is seen. No taps, no `localStorage`-persisted calibration to reuse. The
+> calibration math (`deriveSquatThresholds`, `squatCalibrationValid`, `SQUAT_MIN_SWING`)
+> is unchanged.
+
 ## Decisions (confirmed with Henning)
 
 - **Scope:** bonus mode alongside Plank — its own screen, per-user best, minimal integration

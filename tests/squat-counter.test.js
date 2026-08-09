@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRepCounter } from "../rep-counter.js";
-import { deriveSquatThresholds, median, squatCalibrationValid, squatSwing } from "../modes/squat.js";
+import { deriveSquatThresholds, estimateSquatRange, median, squatCalibrationValid, squatSwing } from "../modes/squat.js";
 
 // Same replay harness as tests/rep-counter.test.js, but the samples are
 // bboxCenterY/videoHeight readings (standing near the top of frame, squatting
@@ -91,6 +91,25 @@ test("debounces two implausibly fast reps back to back", () => {
     [SQUAT_Y, 132], [SQUAT_Y, 165], [STAND_Y, 198], [STAND_Y, 231],
   ], { down: DOWN, up: UP });
   assert.equal(results.at(-1).count, 1);
+});
+
+test("estimateSquatRange recovers stand/squat from a noisy warmup sample window", () => {
+  // A boy doing a couple of real squats in front of the camera, with a
+  // couple of single-frame detection glitches thrown in.
+  const samples = [
+    STAND_Y, STAND_Y, STAND_Y, 0.4, 0.6, SQUAT_Y, SQUAT_Y, 0.6, 0.4, STAND_Y,
+    STAND_Y, 0.4, 0.6, SQUAT_Y, SQUAT_Y, 0.6, STAND_Y, 0.02 /* glitch */, 0.99 /* glitch */,
+  ];
+  const { standY, squatY } = estimateSquatRange(samples);
+  assert.ok(Math.abs(standY - STAND_Y) < 0.05);
+  assert.ok(Math.abs(squatY - SQUAT_Y) < 0.05);
+  assert.equal(squatCalibrationValid(standY, squatY), true);
+});
+
+test("estimateSquatRange stays invalid when the boy barely moves", () => {
+  const samples = [0.30, 0.31, 0.32, 0.30, 0.33, 0.31, 0.30, 0.32, 0.34, 0.31];
+  const { standY, squatY } = estimateSquatRange(samples);
+  assert.equal(squatCalibrationValid(standY, squatY), false);
 });
 
 test("counts multiple full-depth reps in a row", () => {

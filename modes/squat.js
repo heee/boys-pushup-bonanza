@@ -39,3 +39,22 @@ export function median(values) {
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
+
+export function percentile(values, p) {
+  if (!values || !values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p)));
+  return sorted[idx];
+}
+
+// Auto-calibration for the "just start squatting" flow — no stand-still/
+// hold-a-squat taps. Instead we watch a rolling window of face-Y samples
+// while the boy squats a couple of times on his own and take the 10th/90th
+// percentile as stand/squat. Percentiles (not raw min/max) reject the odd
+// detection glitch without needing an explicit two-step capture.
+export function estimateSquatRange(samples) {
+  return {
+    standY: percentile(samples, 0.1),
+    squatY: percentile(samples, 0.9),
+  };
+}

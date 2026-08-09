@@ -1029,8 +1029,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    smaller cap than .rep-count's default or it overflows the screen width. */
 #plank-timer { font-size: min(24vw, 7rem); }
 
-/* Squat calibration wizard — same workout-active/camera-wrap shell as the
-   live count, just swapped for a 2-tap capture flow before counting starts. */
+/* Squat auto-warmup — same workout-active/camera-wrap shell as the live
+   count; no buttons, just watches for a stand<->squat swing before
+   counting starts on its own. */
 .squat-cal-stage {
   flex: 1;
   display: flex;
@@ -1041,16 +1042,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   gap: 0.4rem;
   width: 100%;
 }
-.squat-cal-step-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin: 0;
-}
 .squat-cal-title { font-size: 1.6rem; font-weight: 800; margin: 0; }
-.squat-cal-stage .btn-giant { margin-top: 0.6rem; }
 
 /* Small pill under the squat rep count showing which half of the rep the
    counter currently thinks the boy is in — the camera-based squat

@@ -366,9 +366,8 @@
           <span id="squat-avatar" class="avatar-circle"></span>
           Ready to squat, <span id="squat-username">Friend</span><span class="tight-q">?</span></p>
         <p class="workout-instructions">Prop your phone against a wall, stand back about 2 meters, and get your whole body in frame.</p>
-        <button id="btn-squat-use-last-cal" type="button" class="btn btn-secondary btn-small-wide hidden">Use last calibration</button>
         <button id="btn-squat-start" class="btn btn-giant btn-primary">START</button>
-        <p class="workout-hint">We'll ask for camera access, then a quick 2-tap calibration.</p>
+        <p class="workout-hint">We'll ask for camera access, then start counting once we see you squat.</p>
       </div>
 
       <div id="squat-in-progress" class="workout-active hidden">
@@ -380,11 +379,9 @@
         <div id="squat-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — find your face</div>
 
         <div id="squat-cal-stage" class="squat-cal-stage hidden">
-          <p id="squat-cal-step-label" class="squat-cal-step-label">Step 1 of 2</p>
-          <h2 id="squat-cal-title" class="squat-cal-title">Stand tall</h2>
-          <p id="squat-cal-instructions" class="workout-instructions">Stand up straight, whole body in frame, and hold still.</p>
+          <h2 id="squat-cal-title" class="squat-cal-title">Get your range</h2>
+          <p id="squat-cal-instructions" class="workout-instructions">Squat up and down a couple of times — we'll start counting automatically.</p>
           <p id="squat-cal-error" class="settings-status err hidden"></p>
-          <button id="btn-squat-cal-capture" type="button" class="btn btn-giant btn-primary">Capture</button>
         </div>
 
         <div id="squat-count-stage" class="rep-count-wrap hidden">

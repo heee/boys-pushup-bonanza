@@ -90,7 +90,7 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
-import { deriveSquatThresholds, median, squatCalibrationValid } from "./modes/squat.js";
+import { deriveSquatThresholds, estimateSquatRange, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -131,7 +131,6 @@ const LS = {
   roadtripPeriod: "bpb-roadtrip-period",
   roadtripTier: "bpb-roadtrip-tier",
   roadtripPrompted: "bpb-roadtrip-location-prompted",
-  squatCal: "bpb-squat-cal",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -1146,7 +1145,15 @@ const plankState = {
 };
 
 // Sampling window used for each of the 2-tap calibration steps.
-const SQUAT_CAL_SAMPLE_MS = 1500;
+// Auto-warmup keeps sampling until it's seen a real stand->squat swing, but
+// won't trust a lucky couple of early frames — needs both a minimum time
+// and a minimum sample count before it'll even check.
+const SQUAT_WARMUP_MIN_MS = 1200;
+const SQUAT_WARMUP_MIN_SAMPLES = 10;
+// Bound the sample buffer (~10s at ~30fps) so a slow-to-move boy doesn't
+// grow it unbounded; percentile only needs a recent window anyway.
+const SQUAT_WARMUP_MAX_SAMPLES = 300;
+const SQUAT_WARMUP_HINT_MS = 8000;
 
 const squatState = {
   counter: null,
@@ -1157,24 +1164,14 @@ const squatState = {
   paused: false,
   lastCheerAtCount: 0,
   recordBroken: false,
-  // "idle" | "cal-stand" | "cal-squat" | "counting" — read by the shared
-  // camera controller's onDetection to decide what to do with each frame.
+  // "idle" | "warmup" | "counting" — read by the shared camera controller's
+  // onDetection to decide what to do with each frame.
   stage: "idle",
   calSamples: [],
-  calStandY: null,
-  calSquatY: null,
+  warmupStartedAt: 0,
   down: DEFAULT_DOWN,
   up: DEFAULT_UP,
 };
-
-function getSquatCalibration() {
-  return jsonStorage.read(LS.squatCal, null);
-}
-function saveSquatCalibration(standY, squatY, thresholds) {
-  jsonStorage.write(LS.squatCal, {
-    standY, squatY, down: thresholds.down, up: thresholds.up, calibratedAt: new Date().toISOString(),
-  });
-}
 
 function getThresholdDown() {
   const v = parseFloat(localStorage.getItem(LS.thresholdDown));
@@ -1302,7 +1299,6 @@ function showScreen(id) {
   if (id === "screen-squat-workout" && !state.squatActive) {
     $("squat-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("squat-avatar"), state.currentAvatar, "2rem");
-    $("btn-squat-use-last-cal").classList.toggle("hidden", !getSquatCalibration());
   }
 }
 
@@ -6678,14 +6674,15 @@ $("btn-plank-start").addEventListener("click", startPlank);
 $("btn-plank-stop").addEventListener("click", completePlank);
 
 // ------------------- squat mode -------------------
-// Camera-counted free set, own screen (see docs/squat-mode-plan.md): a 2-tap
-// calibration (stand tall, hold a squat) derives per-session thresholds —
-// wall tilt/distance make an absolute default unreliable — then reuses
-// createRepCounter unchanged, same as pushups, just fed bboxCenterY/
-// videoHeight instead of face size. camera.js/rep-counter.js are shared
-// modules, not forked; this is its own controller instance because
-// createCameraController bakes its callbacks in at construction and the
-// pushup/plank/squat screens are never active at the same time.
+// Camera-counted free set, own screen (see docs/squat-mode-plan.md): an
+// automatic warmup (watch a rolling sample window until it's seen a real
+// stand<->squat swing) derives per-session thresholds — wall tilt/distance
+// make an absolute default unreliable — then reuses createRepCounter
+// unchanged, same as pushups, just fed bboxCenterY/videoHeight instead of
+// face size. camera.js/rep-counter.js are shared modules, not forked; this
+// is its own controller instance because createCameraController bakes its
+// callbacks in at construction and the pushup/plank/squat screens are
+// never active at the same time.
 
 function updateSquatFaceBox(bbox) {
   const video = $("squat-camera-video");
@@ -6808,8 +6805,10 @@ const squatCamera = createCameraController({
     const video = $("squat-camera-video");
     updateSquatFaceBox(bbox);
     const centerY = squatCenterY(bbox, video);
-    if (squatState.stage === "cal-stand" || squatState.stage === "cal-squat") {
+    if (squatState.stage === "warmup") {
       squatState.calSamples.push(centerY);
+      if (squatState.calSamples.length > SQUAT_WARMUP_MAX_SAMPLES) squatState.calSamples.shift();
+      tickSquatWarmup();
     } else if (squatState.stage === "counting") {
       processSquatRatio(centerY);
     }
@@ -6820,32 +6819,49 @@ const squatCamera = createCameraController({
   },
 });
 
-const SQUAT_CAL_STEPS = [
-  { stage: "cal-stand", label: "Step 1 of 2", title: "Stand tall", instructions: "Stand up straight, whole body in frame, and hold still." },
-  { stage: "cal-squat", label: "Step 2 of 2", title: "Hold a squat", instructions: "Drop into a full squat and hold it still." },
-];
-let squatCalStepIndex = 0;
-
-function renderSquatCalStep(index) {
-  const step = SQUAT_CAL_STEPS[index];
-  $("squat-cal-step-label").textContent = step.label;
-  $("squat-cal-title").textContent = step.title;
-  $("squat-cal-instructions").textContent = step.instructions;
+// No taps, no "stand still" / "hold a squat" steps — the boy just starts
+// squatting in frame and this watches a rolling sample window until it's
+// seen a real stand<->squat swing, then derives thresholds and starts
+// counting automatically. See docs/squat-mode-plan.md for why the old
+// 2-tap wizard didn't work standing 2m from the phone.
+function renderSquatWarmup() {
+  $("squat-cal-title").textContent = "Get your range";
+  $("squat-cal-instructions").textContent = "Squat up and down a couple of times — we'll start counting automatically.";
   $("squat-cal-error").classList.add("hidden");
-  $("btn-squat-cal-capture").disabled = false;
-  $("btn-squat-cal-capture").textContent = "Capture";
 }
 
-function beginSquatCalibration() {
-  squatCalStepIndex = 0;
-  squatState.calStandY = null;
-  squatState.calSquatY = null;
-  squatState.stage = "cal-stand";
+function beginSquatWarmup() {
+  squatState.calSamples = [];
+  squatState.warmupStartedAt = performance.now();
+  squatState.stage = "warmup";
   $("squat-cal-stage").classList.remove("hidden");
   $("squat-count-stage").classList.add("hidden");
   $("btn-squat-stop").classList.add("hidden");
   $("btn-squat-cancel").classList.remove("hidden");
-  renderSquatCalStep(0);
+  renderSquatWarmup();
+}
+
+// Checked on every warmup sample. Requires both a minimum sampling time and
+// sample count before trusting the observed range (guards against a lucky
+// couple of noisy frames looking like a valid swing).
+function tickSquatWarmup() {
+  const elapsed = performance.now() - squatState.warmupStartedAt;
+  if (elapsed < SQUAT_WARMUP_MIN_MS || squatState.calSamples.length < SQUAT_WARMUP_MIN_SAMPLES) return;
+
+  const { standY, squatY } = estimateSquatRange(squatState.calSamples);
+  if (squatCalibrationValid(standY, squatY)) {
+    $("squat-cal-error").classList.add("hidden");
+    const thresholds = deriveSquatThresholds(standY, squatY);
+    speak(pickFrom(SQUAT_START_LINES));
+    beginSquatCounting(thresholds);
+    return;
+  }
+
+  if (elapsed > SQUAT_WARMUP_HINT_MS) {
+    const pct = Math.min(99, Math.round((squatSwing(standY, squatY) / SQUAT_MIN_SWING) * 100));
+    $("squat-cal-error").textContent = `Still watching (${pct}%) — squat a little deeper, or step back so your whole body is in frame.`;
+    $("squat-cal-error").classList.remove("hidden");
+  }
 }
 
 function beginSquatCounting(thresholds) {
@@ -6871,43 +6887,6 @@ function beginSquatCounting(thresholds) {
   $("btn-squat-cancel").classList.add("hidden");
   $("btn-squat-stop").classList.remove("hidden");
 }
-
-// Advances the wizard one capture at a time: step 1 records standY, step 2
-// records squatY and (if the swing is big enough) derives thresholds,
-// persists them, and drops straight into counting.
-async function captureSquatCalStep() {
-  const btn = $("btn-squat-cal-capture");
-  btn.disabled = true;
-  btn.textContent = "Hold still…";
-  squatState.calSamples = [];
-  await sleep(SQUAT_CAL_SAMPLE_MS);
-  const sampleMedian = median(squatState.calSamples);
-
-  if (squatCalStepIndex === 0) {
-    squatState.calStandY = sampleMedian;
-    squatState.stage = "cal-squat";
-    squatCalStepIndex = 1;
-    renderSquatCalStep(1);
-    return;
-  }
-
-  squatState.calSquatY = sampleMedian;
-  if (!squatCalibrationValid(squatState.calStandY, squatState.calSquatY)) {
-    squatCalStepIndex = 0;
-    squatState.stage = "cal-stand";
-    renderSquatCalStep(0);
-    $("squat-cal-error").textContent = "Not enough movement detected — stand closer to the phone and try again.";
-    $("squat-cal-error").classList.remove("hidden");
-    return;
-  }
-
-  const thresholds = deriveSquatThresholds(squatState.calStandY, squatState.calSquatY);
-  saveSquatCalibration(squatState.calStandY, squatState.calSquatY, thresholds);
-  speak(pickFrom(SQUAT_START_LINES));
-  beginSquatCounting(thresholds);
-}
-
-let squatUseLastCalRequested = false;
 
 async function startSquat() {
   if (soundIsEnabled()) unlockVoice();
@@ -6939,14 +6918,7 @@ async function startSquat() {
   $("squat-in-progress").classList.remove("hidden");
   setChromeMinimized(true);
   squatCamera.startDetection();
-
-  const savedCal = getSquatCalibration();
-  if (squatUseLastCalRequested && savedCal) {
-    speak(pickFrom(SQUAT_START_LINES));
-    beginSquatCounting({ down: savedCal.down, up: savedCal.up });
-  } else {
-    beginSquatCalibration();
-  }
+  beginSquatWarmup();
 }
 
 function stopSquatHard() {
@@ -7027,9 +6999,7 @@ async function completeSquat() {
   }
 }
 
-$("btn-squat-start").addEventListener("click", () => { squatUseLastCalRequested = false; startSquat(); });
-$("btn-squat-use-last-cal").addEventListener("click", () => { squatUseLastCalRequested = true; startSquat(); });
-$("btn-squat-cal-capture").addEventListener("click", captureSquatCalStep);
+$("btn-squat-start").addEventListener("click", startSquat);
 $("btn-squat-cancel").addEventListener("click", stopSquatHard);
 $("btn-squat-stop").addEventListener("click", completeSquat);
 
