@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=152">
+<link rel="stylesheet" href="style.css?v=153">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -187,6 +187,7 @@
           <div id="horse-target-kicker" class="horse-target-kicker"></div>
           <div id="horse-target-value" class="horse-target-value"></div>
           <div id="horse-target-sub" class="horse-target-sub"></div>
+          <div id="horse-counter-badge" class="mode-counter-badge"></div>
         </div>
 
         <div class="rep-count-wrap">
@@ -365,7 +366,7 @@
         <p class="workout-hello">
           <span id="squat-avatar" class="avatar-circle"></span>
           Ready to squat, <span id="squat-username">Friend</span><span class="tight-q">?</span></p>
-        <p class="workout-instructions">Prop your phone against a wall, stand back about 2 meters, and get your whole body in frame.</p>
+        <p class="workout-instructions">Prop your phone against a wall, stand back about 6 feet, and get your whole body in frame.</p>
         <button id="btn-squat-start" class="btn btn-giant btn-primary">START</button>
         <p class="workout-hint">We'll ask for camera access, then start counting once we see you squat.</p>
       </div>
@@ -376,7 +377,7 @@
           <div id="squat-face-box" class="face-box hidden"></div>
         </div>
 
-        <div id="squat-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — find your face</div>
+        <div id="squat-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — get your whole body in frame</div>
 
         <div id="squat-cal-stage" class="squat-cal-stage hidden">
           <h2 id="squat-cal-title" class="squat-cal-title">Get your range</h2>
@@ -899,6 +900,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=164"></script>
+<script type="module" src="app.js?v=165"></script>
 </body>
 </html>

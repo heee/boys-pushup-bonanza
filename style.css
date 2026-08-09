@@ -1845,7 +1845,11 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* Active-workout HUD: static target hero (does not tick per rep, unlike
    Classic's #rep-count) plus the player's own letter-progress pill. */
-.horse-hud { text-align: center; }
+/* position:relative anchors #horse-counter-badge (a shared .mode-counter-badge,
+   same pop-on-each-rep component Cards/Dice/Ladder/Pyramid use) so the live
+   count is easy to catch mid-set instead of only living in the small
+   "Live count: N" line under the camera thumbnail. */
+.horse-hud { text-align: center; position: relative; }
 .horse-letters-pill {
   display: inline-block;
   background: var(--bg-elevated-2);

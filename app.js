@@ -95,6 +95,10 @@ import { deriveSquatThresholds, estimateSquatRange, squatCalibrationValid, squat
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
+// Squat mode tracks the whole body, not the face: blaze_face_short_range is
+// a selfie-distance model and simply can't see a face 6+ feet away, which is
+// exactly where a squatter stands. Pose landmarks work at room scale.
+const POSE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 
 // Every device talks to this one Worker instead of GitHub directly — it
 // holds the GitHub token server-side so no one has to paste a token in.
@@ -6705,11 +6709,12 @@ $("btn-plank-stop").addEventListener("click", completePlank);
 // automatic warmup (watch a rolling sample window until it's seen a real
 // stand<->squat swing) derives per-session thresholds — wall tilt/distance
 // make an absolute default unreliable — then reuses createRepCounter
-// unchanged, same as pushups, just fed bboxCenterY/videoHeight instead of
-// face size. camera.js/rep-counter.js are shared modules, not forked; this
-// is its own controller instance because createCameraController bakes its
-// callbacks in at construction and the pushup/plank/squat screens are
-// never active at the same time.
+// unchanged, same as pushups, just fed normalized hip-midpoint height from
+// pose landmarks instead of face size (the short-range face model can't
+// see a face at squatting distance at all). camera.js/rep-counter.js are
+// shared modules, not forked; this is its own controller instance because
+// createCameraController bakes its callbacks in at construction and the
+// pushup/plank/squat screens are never active at the same time.
 
 function updateSquatFaceBox(bbox) {
   const video = $("squat-camera-video");
@@ -6740,7 +6745,7 @@ function checkSquatFaceLostTimeout() {
   const now = performance.now();
   if (now - squatState.lastSeenAt > FACE_LOST_TIMEOUT_MS) {
     squatState.paused = true;
-    showSquatStatusBanner("PAUSED — find your face");
+    showSquatStatusBanner("PAUSED — get your whole body in frame");
     speak("Paused");
   }
 }
@@ -6823,21 +6828,68 @@ function processSquatRatio(ratio) {
   }
 }
 
+// Pose landmark indices (MediaPipe 33-point model) and the visibility floor
+// below which a hip is treated as out of frame rather than tracked.
+const POSE_LEFT_HIP = 23;
+const POSE_RIGHT_HIP = 24;
+const POSE_MIN_VISIBILITY = 0.5;
+
+// Hip midpoint height (normalized 0..1 of frame height) — drops when the
+// boy squats, same monotonic "rises on the way down" shape the counter
+// expects, but far more direct than inferring depth from where the face is.
+function squatHipY(landmarks) {
+  const lh = landmarks[POSE_LEFT_HIP], rh = landmarks[POSE_RIGHT_HIP];
+  if (!lh || !rh) return null;
+  if ((lh.visibility ?? 1) < POSE_MIN_VISIBILITY || (rh.visibility ?? 1) < POSE_MIN_VISIBILITY) return null;
+  return (lh.y + rh.y) / 2;
+}
+
+// Body bounding box in video pixel coords from the visible landmarks, so
+// the existing overlay box drawing (which expects a face-detector-style
+// bbox) can frame the whole tracked body instead.
+function squatBodyBBox(landmarks, video) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const lm of landmarks) {
+    if ((lm.visibility ?? 1) < POSE_MIN_VISIBILITY) continue;
+    if (lm.x < minX) minX = lm.x;
+    if (lm.x > maxX) maxX = lm.x;
+    if (lm.y < minY) minY = lm.y;
+    if (lm.y > maxY) maxY = lm.y;
+  }
+  if (minX === Infinity) return null;
+  return {
+    originX: minX * video.videoWidth,
+    originY: minY * video.videoHeight,
+    width: (maxX - minX) * video.videoWidth,
+    height: (maxY - minY) * video.videoHeight,
+  };
+}
+
 const squatCamera = createCameraController({
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
-  modelUrl: FACE_DETECTOR_MODEL_URL,
+  modelUrl: POSE_LANDMARKER_MODEL_URL,
+  detectorType: "pose",
   getVideo: () => $("squat-camera-video"),
-  onDetection(bbox, inferenceMs) {
+  onDetection(landmarks, inferenceMs) {
     const video = $("squat-camera-video");
-    updateSquatFaceBox(bbox);
-    const centerY = squatCenterY(bbox, video);
+    const hipY = squatHipY(landmarks);
+    if (hipY == null) {
+      // A pose was returned but the hips aren't confidently in frame (e.g.
+      // phone picked up, boy half out of view) — don't feed the counter
+      // garbage; treat it like a lost detection.
+      hideSquatFaceBox();
+      checkSquatFaceLostTimeout();
+      return;
+    }
+    const bbox = squatBodyBBox(landmarks, video);
+    if (bbox) updateSquatFaceBox(bbox);
     if (squatState.stage === "warmup") {
-      squatState.calSamples.push(centerY);
+      squatState.calSamples.push(hipY);
       if (squatState.calSamples.length > SQUAT_WARMUP_MAX_SAMPLES) squatState.calSamples.shift();
       tickSquatWarmup();
     } else if (squatState.stage === "counting") {
-      processSquatRatio(centerY);
+      processSquatRatio(hipY);
     }
   },
   onNoDetection() {
