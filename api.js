@@ -70,5 +70,9 @@ export function createWorkerApi({ baseUrl, appKey, timeoutMs = DEFAULT_TIMEOUT_M
     deleteSession: (id) => request("/delete-session", { method: "POST", body: { id } }),
     joinChallenge: (user, challengeId) => request("/join-challenge", { method: "POST", body: { user, challengeId } }),
     createChallenge: (challenge) => request("/create-challenge", { method: "POST", body: challenge }),
+    createHorseGame: (input) => request("/horse-create", { method: "POST", body: input }),
+    postHorseTurn: (payload) => request("/horse-turn", { method: "POST", body: payload }),
+    skipHorseGame: (gameId) => request("/horse-skip", { method: "POST", body: { gameId } }),
+    declineHorseInvite: (gameId, user) => request("/horse-decline", { method: "POST", body: { gameId, user } }),
   };
 }

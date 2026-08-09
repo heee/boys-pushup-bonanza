@@ -243,6 +243,49 @@ button, input {
 }
 .icon-btn:active { transform: scale(0.92); }
 
+.horse-bell-wrap { position: relative; }
+.horse-bell-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-elevated);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+.horse-bell-btn:active { transform: scale(0.92); }
+.horse-bell-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.horse-bell-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 600;
+  width: 17rem;
+  max-width: 80vw;
+  background: var(--bg-elevated);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.horse-bell-title { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0.9rem 0.4rem; }
+.horse-bell-row { width: 100%; text-align: left; border: none; font-family: inherit; cursor: pointer; }
+.horse-bell-empty { margin: 0.6rem 0.9rem; }
+
 .streak-badge {
   display: flex;
   align-items: center;

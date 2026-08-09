@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=149">
+<link rel="stylesheet" href="style.css?v=150">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -42,6 +42,15 @@
   <header id="app-header" class="app-header">
     <button id="btn-home" class="brand" aria-label="Home">Bonanza</button>
     <nav class="header-actions">
+      <div class="horse-bell-wrap">
+        <button id="btn-horse-bell" type="button" class="horse-bell-btn hidden" aria-label="Notifications">
+          🔔<span id="horse-bell-dot" class="horse-bell-dot hidden"></span>
+        </button>
+        <div id="horse-bell-dropdown" class="horse-bell-dropdown hidden">
+          <p class="horse-bell-title">Horse</p>
+          <div id="horse-bell-list"></div>
+        </div>
+      </div>
       <button id="streak-badge" type="button" class="streak-badge hidden" aria-label="My Bonanza" title="My Bonanza"></button>
     </nav>
   </header>
@@ -262,7 +271,7 @@
         <button type="button" class="segment active" id="horse-session-live" data-horse-session="live">Live · pass phone</button>
         <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite">Invite friends</button>
       </div>
-      <p id="horse-session-note" class="screen-sub hidden">Async invites are coming soon — play live for now.</p>
+      <p id="horse-session-note" class="screen-sub hidden">Other players get a bell notification on Home when it's their turn.</p>
 
       <p class="pyramid-setup-section-label">Players</p>
       <div id="horse-player-list" class="tier1-list"></div>
@@ -893,6 +902,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=162"></script>
+<script type="module" src="app.js?v=163"></script>
 </body>
 </html>

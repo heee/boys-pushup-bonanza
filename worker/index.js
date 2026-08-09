@@ -32,6 +32,18 @@
 //   POST /join-challenge  -> { user, challengeId } -> adds user to that challenge's participant list
 //   POST /create-challenge -> { title, tagline, emoji, goalType, goal, start, end, gradient?, createdBy }
 //                              -> stores a user-created challenge in D1, server-assigns the id
+//   POST /horse-create -> { id?, word, sessionType, createdBy, players } -> creates a Horse game
+//   POST /horse-turn   -> { gameId, user, reps } -> applies the current player's completed set
+//   POST /horse-skip   -> { gameId } -> awards the stalled current player a letter (48h+ since
+//                          their turn started) and advances play; any player may call this
+//   POST /horse-decline -> { gameId, user } -> removes an invited player who hasn't taken a set yet
+//                          (voids the game if fewer than 2 players remain)
+//   Async "Invite friends" Horse games are the reason /data below also returns `horseGames` —
+//   see HORSE_PLAN.md. The rules engine (createHorseGame/applyTurn/skipStalledPlayer/
+//   declinePlayer below) is a deliberate duplicate of horse.js: this file is deployed by
+//   pasting it whole into the Cloudflare dashboard, so it can't import sibling modules.
+//   Keep the two in sync — both are covered by tests (tests/horse-mode.test.js and
+//   tests/worker-horse.test.js).
 //
 // Required Worker binding/secrets/variables (set in the Cloudflare dashboard under
 // Settings -> Variables and Secrets):
@@ -280,6 +292,109 @@ export default {
         return json({ ok: true, challenge }, 200, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/horse-create" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const input = validateHorseCreate(body);
+      if (!input) return json({ error: "invalid game payload" }, 400, cors);
+
+      try {
+        const game = createHorseGame(input);
+        await upsertHorseGame(env.DB, game);
+        return json({ ok: true, game }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 400, cors);
+      }
+    }
+
+    if (url.pathname === "/horse-turn" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      const reps = Math.floor(Number(body?.reps));
+      if (!gameId || !user || !Number.isFinite(reps) || reps < 0 || reps > 2000) {
+        return json({ error: "invalid payload" }, 400, cors);
+      }
+
+      try {
+        const game = await loadHorseGame(env.DB, gameId);
+        if (!game) return json({ error: "game not found" }, 404, cors);
+        if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
+        if (currentTurnPlayer(game) !== user) return json({ error: "not this player's turn" }, 403, cors);
+        const updated = applyTurn(game, { user, reps, now: Date.now() });
+        await upsertHorseGame(env.DB, updated);
+        return json({ ok: true, game: updated }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/horse-skip" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      if (!gameId) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        const game = await loadHorseGame(env.DB, gameId);
+        if (!game) return json({ error: "game not found" }, 404, cors);
+        if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
+        if (!isTurnStalled(game, Date.now())) return json({ error: "turn is not stalled yet" }, 409, cors);
+        const updated = skipStalledPlayer(game, { now: Date.now() });
+        await upsertHorseGame(env.DB, updated);
+        return json({ ok: true, game: updated }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/horse-decline" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!gameId || !user) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        const game = await loadHorseGame(env.DB, gameId);
+        if (!game) return json({ error: "game not found" }, 404, cors);
+        const updated = declinePlayer(game, { user, now: Date.now() });
+        await upsertHorseGame(env.DB, updated);
+        return json({ ok: true, game: updated }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 400, cors);
       }
     }
 
@@ -549,18 +664,31 @@ function sessionFromRow(row) {
 
 async function fetchData(db) {
   if (!db) throw new Error("D1 database binding is not configured");
-  const [sessionRows, avatarRows, membershipRows, challengeRows] = await db.batch([
+  const [sessionRows, avatarRows, membershipRows, challengeRows, horseGameRows] = await db.batch([
     db.prepare("SELECT s.*, u.name AS user FROM sessions s JOIN users u ON u.id = s.user_id ORDER BY s.rowid"),
     db.prepare("SELECT u.name, a.avatar FROM avatars a JOIN users u ON u.id = a.user_id ORDER BY a.rowid"),
     db.prepare("SELECT m.challenge_id, u.name FROM challenge_memberships m JOIN users u ON u.id = m.user_id ORDER BY m.rowid"),
     db.prepare("SELECT * FROM custom_challenges ORDER BY rowid"),
+    db.prepare("SELECT data_json FROM horse_games ORDER BY updated_at DESC LIMIT 50"),
   ]);
   const avatars = {};
   for (const row of avatarRows.results) avatars[row.name] = row.avatar;
   const challengeParticipants = {};
   for (const row of membershipRows.results) (challengeParticipants[row.challenge_id] ||= []).push(row.name);
   const customChallenges = challengeRows.results.map((row) => ({ id: row.id, title: row.title, tagline: row.tagline, emoji: row.emoji, goalType: row.goal_type, goal: row.goal, start: row.start, end: row.end, gradient: parseStoredJson(row.gradient_json, ["#4a2a5e", "#e8762e"]), createdBy: row.created_by }));
-  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges };
+  const horseGames = horseGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
+  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames };
+}
+
+async function loadHorseGame(db, id) {
+  const row = await db.prepare("SELECT data_json FROM horse_games WHERE id = ?").bind(id).first();
+  return row ? parseStoredJson(row.data_json, null) : null;
+}
+
+async function upsertHorseGame(db, game) {
+  await db.prepare(
+    "INSERT INTO horse_games (id, data_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET data_json = excluded.data_json, updated_at = CURRENT_TIMESTAMP"
+  ).bind(game.id, JSON.stringify(game)).run();
 }
 
 async function insertSession(db, session) {
@@ -603,4 +731,148 @@ async function joinChallenge(db, name, challengeId) {
 
 async function createChallenge(db, challenge) {
   await db.prepare(`INSERT OR IGNORE INTO custom_challenges (id,title,tagline,emoji,goal_type,goal,start,end,gradient_json,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(challenge.id, challenge.title, challenge.tagline, challenge.emoji, challenge.goalType, challenge.goal, challenge.start, challenge.end, JSON.stringify(challenge.gradient), challenge.createdBy).run();
+}
+
+// ------------------- Horse mode rules engine -------------------
+// Deliberate duplicate of horse.js (see the top-of-file note). Any change
+// here must be mirrored there, and vice versa — tests/worker-horse.test.js
+// runs the same scenarios as tests/horse-mode.test.js against this copy.
+
+export function validateHorseCreate(body) {
+  if (!body || typeof body !== "object") return null;
+  const word = typeof body.word === "string" ? body.word.trim().toUpperCase() : "";
+  if (!/^[A-Z]{5}$/.test(word)) return null;
+  const sessionType = body.sessionType === "invite" ? "invite" : "live";
+  const createdBy = typeof body.createdBy === "string" ? body.createdBy.trim().slice(0, 40) : "";
+  if (!createdBy) return null;
+  const players = Array.isArray(body.players)
+    ? [...new Set(body.players.map((p) => (typeof p === "string" ? p.trim().slice(0, 40) : "")).filter(Boolean))]
+    : [];
+  if (players.length < 2 || players.length > 8 || !players.includes(createdBy)) return null;
+  const id = typeof body.id === "string" && /^[a-z0-9-]{1,64}$/.test(body.id)
+    ? body.id
+    : `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return { id, word, sessionType, createdBy, players };
+}
+
+export function createHorseGame({ id, word, sessionType, createdBy, players, now = Date.now() }) {
+  if (!Array.isArray(players) || players.length < 2) throw new Error("Horse needs at least 2 players");
+  if (!players.includes(createdBy)) throw new Error("Creator must be in the player list");
+  const turnOrder = [...players];
+  const playersState = {};
+  for (const name of turnOrder) playersState[name] = { letters: 0, out: false, outAt: null };
+  return {
+    id,
+    word: word.toUpperCase(),
+    sessionType,
+    status: "active",
+    createdBy,
+    createdAt: now,
+    turnOrder,
+    turnIndex: 0,
+    turnStartedAt: now,
+    target: null,
+    targetSetBy: null,
+    round: 1,
+    players: playersState,
+    sets: [],
+    winner: null,
+  };
+}
+
+function horseCheckWinner(game) {
+  const active = game.turnOrder.filter((name) => !game.players[name].out);
+  if (game.turnOrder.length === 2) {
+    const outPlayer = game.turnOrder.find((name) => game.players[name].out);
+    return outPlayer ? game.turnOrder.find((name) => name !== outPlayer) : null;
+  }
+  return active.length === 1 ? active[0] : null;
+}
+
+function horseAdvanceTurn(game, now) {
+  const n = game.turnOrder.length;
+  let idx = game.turnIndex;
+  let round = game.round;
+  for (let step = 0; step < n; step += 1) {
+    idx = (idx + 1) % n;
+    if (idx === 0) round += 1;
+    if (!game.players[game.turnOrder[idx]].out) return { turnIndex: idx, round, turnStartedAt: now };
+  }
+  return { turnIndex: idx, round, turnStartedAt: now };
+}
+
+function horseAwardLetter(players, user, now) {
+  const next = { ...players, [user]: { ...players[user] } };
+  const p = next[user];
+  p.letters += 1;
+  if (p.letters >= 5) {
+    p.out = true;
+    p.outAt = now;
+  }
+  return next;
+}
+
+export function currentTurnPlayer(game) {
+  return game.turnOrder[game.turnIndex];
+}
+
+export function applyTurn(game, { user, reps, now = Date.now() }) {
+  if (game.status !== "active") throw new Error("Game is not active");
+  if (currentTurnPlayer(game) !== user) throw new Error("Not this player's turn");
+
+  const needed = game.target;
+  const success = needed == null || reps >= needed;
+  let players = game.players;
+  if (!success) players = horseAwardLetter(players, user, now);
+
+  const sets = [...game.sets, { user, reps, needed, letter: !success, skipped: false, at: now }];
+  const next = { ...game, players, sets, target: reps, targetSetBy: user };
+
+  const winner = horseCheckWinner(next);
+  if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };
+
+  const { turnIndex, round, turnStartedAt } = horseAdvanceTurn(next, now);
+  return { ...next, turnIndex, round, turnStartedAt };
+}
+
+const HORSE_STALL_MS = 48 * 60 * 60 * 1000;
+
+export function isTurnStalled(game, now = Date.now(), maxAgeMs = HORSE_STALL_MS) {
+  return game.status === "active" && game.turnStartedAt != null && now - game.turnStartedAt >= maxAgeMs;
+}
+
+export function skipStalledPlayer(game, { now = Date.now(), maxAgeMs = HORSE_STALL_MS } = {}) {
+  if (!isTurnStalled(game, now, maxAgeMs)) throw new Error("Turn is not stalled yet");
+  const user = currentTurnPlayer(game);
+  const players = horseAwardLetter(game.players, user, now);
+  const sets = [...game.sets, { user, reps: null, needed: game.target, letter: true, skipped: true, at: now }];
+  const next = { ...game, players, sets };
+
+  const winner = horseCheckWinner(next);
+  if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };
+
+  const { turnIndex, round, turnStartedAt } = horseAdvanceTurn(next, now);
+  return { ...next, turnIndex, round, turnStartedAt };
+}
+
+export function declinePlayer(game, { user, now = Date.now() }) {
+  if (game.status !== "active") throw new Error("Game is not active");
+  if (!game.turnOrder.includes(user)) throw new Error("Player not in game");
+  if (game.sets.some((set) => set.user === user)) throw new Error("Player already took a turn");
+
+  const wasCurrentTurn = currentTurnPlayer(game) === user;
+  const removedIndex = game.turnOrder.indexOf(user);
+  const turnOrder = game.turnOrder.filter((name) => name !== user);
+  const players = { ...game.players };
+  delete players[user];
+
+  if (turnOrder.length < 2) {
+    return { ...game, turnOrder, players, status: "voided", turnStartedAt: null };
+  }
+
+  if (wasCurrentTurn) {
+    return { ...game, turnOrder, players, turnIndex: removedIndex % turnOrder.length, turnStartedAt: now };
+  }
+  const currentName = game.turnOrder[game.turnIndex];
+  return { ...game, turnOrder, players, turnIndex: turnOrder.indexOf(currentName) };
 }

@@ -73,7 +73,7 @@ import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/m
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=2";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
-import { applyTurn, createHorseGame, currentTurnPlayer, horsePlayerRows, horseTargetLabel } from "./horse.js";
+import { applyTurn, createHorseGame, currentTurnPlayer, horsePlayerRows, horseTargetLabel, isTurnStalled } from "./horse.js";
 import { horseSummaryRows, horseTurnHeroCopy, horseWordChips } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
@@ -460,6 +460,30 @@ async function workerJoinChallenge(user, challengeId) {
 
 async function workerCreateChallenge(challenge) {
   return workerApi.createChallenge(challenge);
+}
+
+async function workerCreateHorseGame(input) {
+  return workerApi.createHorseGame(input);
+}
+async function workerPostHorseTurn(payload) {
+  return workerApi.postHorseTurn(payload);
+}
+async function workerSkipHorseGame(gameId) {
+  return workerApi.skipHorseGame(gameId);
+}
+async function workerDeclineHorseInvite(gameId, user) {
+  return workerApi.declineHorseInvite(gameId, user);
+}
+
+// Splices a Horse game into cached shared data immediately (so the bell and
+// any open Horse screen reflect it right away) instead of waiting for the
+// next full /data refresh.
+function upsertLocalHorseGame(game) {
+  const cached = getCachedData();
+  const idx = cached.horseGames.findIndex((g) => g.id === game.id);
+  if (idx === -1) cached.horseGames.push(game);
+  else cached.horseGames[idx] = game;
+  cacheData(cached);
 }
 
 let sessionIndex = null;
@@ -1242,6 +1266,7 @@ function showScreen(id) {
   });
   syncAccessibilityState();
   renderStreakBadge();
+  renderHorseBellDropdown();
 
   if (id === "screen-user") {
     userSelectionExpanded = false;
@@ -2025,6 +2050,7 @@ function renderHorseSessionUI() {
   document.querySelectorAll("#horse-session-select .segment[data-horse-session]").forEach((s) => {
     s.classList.toggle("active", s.dataset.horseSession === state.horseSessionType);
   });
+  $("horse-session-note").classList.toggle("hidden", state.horseSessionType !== "invite");
 }
 
 let horseInviteExpanded = false;
@@ -2097,10 +2123,6 @@ $("btn-horse-reshuffle").addEventListener("click", () => {
 $("horse-session-select").addEventListener("click", (e) => {
   const btn = e.target.closest(".segment[data-horse-session]");
   if (!btn) return;
-  if (btn.dataset.horseSession === "invite") {
-    toast("Async invites are coming soon — play live for now.", 3000);
-    return;
-  }
   state.horseSessionType = btn.dataset.horseSession;
   renderHorseSessionUI();
 });
@@ -2140,16 +2162,35 @@ function beginHorseTurn(name) {
   startWorkout();
 }
 
-$("btn-horse-start").addEventListener("click", () => {
+$("btn-horse-start").addEventListener("click", async () => {
   if (state.horseSetupPlayers.length < 2) return;
-  state.horseGame = createHorseGame({
+  const input = {
     id: `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     word: state.horseWord,
     sessionType: state.horseSessionType,
     createdBy: state.currentUser,
     players: state.horseSetupPlayers,
-  });
+  };
   state.horseLetterEvent = null;
+  // Invite games are server-authoritative from the start (other players read
+  // them via /data on their own devices) — Live games stay purely local
+  // until the game finishes, same as any other pushup mode's session.
+  if (state.horseSessionType === "invite") {
+    const btn = $("btn-horse-start");
+    btn.disabled = true;
+    try {
+      const { game } = await workerCreateHorseGame(input);
+      state.horseGame = game;
+      upsertLocalHorseGame(game);
+      beginHorseTurn(state.currentUser);
+    } catch (e) {
+      toast("Couldn't create the game — check your connection and try again.", 4000);
+    } finally {
+      btn.disabled = false;
+    }
+    return;
+  }
+  state.horseGame = createHorseGame(input);
   beginHorseTurn(state.currentUser);
 });
 
@@ -2170,6 +2211,7 @@ function renderHorseTurnHero() {
 function renderHorseTurnOrder() {
   const game = state.horseGame;
   const rows = horsePlayerRows(game);
+  const stalled = game.sessionType === "invite" && isTurnStalled(game, Date.now());
   $("horse-order-title").textContent = `Horse · Round ${game.round}`;
   const target = horseTargetLabel(game);
   $("horse-order-target-line").textContent = target ? `Beat ${target} to stay clean` : `${escapeHtml(game.turnOrder[0])} sets the bar`;
@@ -2179,21 +2221,65 @@ function renderHorseTurnOrder() {
       : row.status === "up"
         ? '<span class="horse-player-tag">Up now</span>'
         : '<span class="horse-player-status-waiting">Waiting</span>';
+    const skipHTML = row.status === "up" && stalled
+      ? '<button type="button" class="icon-btn" data-skip-horse-game aria-label="Skip stalled turn">⏭</button>'
+      : "";
     return `
     <div class="tier1-row horse-player-row${row.status === "up" ? " horse-row-active" : ""}${row.status === "out" ? " horse-row-out" : ""}">
       <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(row.name).id}"></span>
       <span class="horse-player-name${row.status === "out" ? " horse-summary-name-out" : ""}">${escapeHtml(row.name)}</span>
       <span class="horse-mini-strip">${horseMiniStripHTML(game.word, row.letters)}</span>
       ${statusHTML}
+      ${skipHTML}
     </div>`;
   }).join("");
   $("horse-turn-order-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
   const upNow = currentTurnPlayer(game);
+  const canTakeTurn = game.sessionType === "live" || upNow === state.currentUser;
+  $("btn-horse-take-turn").classList.toggle("hidden", !canTakeTurn);
   $("btn-horse-take-turn").textContent = upNow === state.currentUser ? "Do your set" : `Pass the phone to ${upNow} — do your set`;
+}
+
+// Async (invite) games refresh from the server once on entry — see
+// HORSE_PLAN.md's "in-app polling only" decision, no live interval polling.
+async function openHorseTurnOrder() {
+  const game = state.horseGame;
+  if (game && game.sessionType === "invite") {
+    await refreshFromRemote();
+    const fresh = getCachedData().horseGames.find((g) => g.id === game.id);
+    if (fresh) state.horseGame = fresh;
+  }
+  if (state.horseGame.status === "complete") {
+    renderHorseSummary();
+    showScreen("screen-horse-summary");
+    return;
+  }
+  renderHorseTurnOrder();
+  showScreen("screen-horse-turn-order");
 }
 
 $("btn-horse-take-turn").addEventListener("click", () => {
   beginHorseTurn(currentTurnPlayer(state.horseGame));
+});
+
+$("horse-turn-order-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-skip-horse-game]");
+  if (!btn) return;
+  btn.disabled = true;
+  try {
+    const res = await workerSkipHorseGame(state.horseGame.id);
+    state.horseGame = res.game;
+    upsertLocalHorseGame(res.game);
+    if (res.game.status === "complete") {
+      renderHorseSummary();
+      showScreen("screen-horse-summary");
+      return;
+    }
+    renderHorseTurnOrder();
+  } catch (err) {
+    toast("Couldn't skip — check your connection.", 3500);
+    btn.disabled = false;
+  }
 });
 
 function renderHorseLetterScreen() {
@@ -2210,13 +2296,12 @@ function renderHorseLetterScreen() {
     : `${evt.lettersLeft} letter${evt.lettersLeft === 1 ? "" : "s"} left before ${evt.forUser === state.currentUser ? "you're" : `${evt.forUser} is`} out`;
 }
 
-$("btn-horse-letter-continue").addEventListener("click", () => {
+$("btn-horse-letter-continue").addEventListener("click", async () => {
   if (state.horseGame.status === "complete") {
     renderHorseSummary();
     showScreen("screen-horse-summary");
   } else {
-    renderHorseTurnOrder();
-    showScreen("screen-horse-turn-order");
+    await openHorseTurnOrder();
   }
 });
 
@@ -2254,6 +2339,103 @@ $("btn-horse-share").addEventListener("click", async () => {
   } else if (navigator.clipboard) {
     await navigator.clipboard.writeText(text);
     toast("Copied results to clipboard", 2500);
+  }
+});
+
+// ------------------- Horse mode: Home bell (async invite notifications) -------------------
+// Only invite/async games ever need a bell entry — Live pass-the-phone games
+// are entirely resolved within the single active session they're started in.
+function pendingHorseItems() {
+  const user = state.currentUser;
+  if (!user) return [];
+  const games = getCachedData().horseGames || [];
+  const items = [];
+  for (const game of games) {
+    if (game.status !== "active" || game.sessionType !== "invite") continue;
+    if (!game.turnOrder.includes(user)) continue;
+    if (currentTurnPlayer(game) === user) {
+      items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game) });
+    } else if (user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
+      items.push({ kind: "invite", gameId: game.id, from: game.createdBy });
+    }
+  }
+  return items;
+}
+
+function renderHorseBellDropdown() {
+  $("btn-horse-bell").classList.toggle("hidden", !state.currentUser);
+  const items = pendingHorseItems();
+  $("horse-bell-dot").classList.toggle("hidden", items.length === 0);
+  const list = $("horse-bell-list");
+  list.innerHTML = items.length ? items.map((item) => item.kind === "turn"
+    ? `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-turn="${item.gameId}">
+        <span aria-hidden="true">🐴</span>
+        <span class="horse-player-name">Your turn in Horse${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
+      </button>`
+    : `
+      <div class="tier1-row horse-player-row">
+        <span aria-hidden="true">🐴</span>
+        <span class="horse-player-name">${escapeHtml(item.from)} invited you to Horse</span>
+        <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
+        <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
+      </div>`
+  ).join("") : `<p class="screen-sub horse-bell-empty">Nothing pending.</p>`;
+}
+
+$("btn-horse-bell").addEventListener("click", async () => {
+  const dropdown = $("horse-bell-dropdown");
+  const opening = dropdown.classList.contains("hidden");
+  dropdown.classList.toggle("hidden", !opening);
+  if (opening) {
+    await refreshFromRemote();
+    renderHorseBellDropdown();
+  }
+});
+
+document.addEventListener("click", (e) => {
+  if (!$("horse-bell-dropdown").classList.contains("hidden") && !e.target.closest(".horse-bell-wrap")) {
+    $("horse-bell-dropdown").classList.add("hidden");
+  }
+});
+
+$("horse-bell-list").addEventListener("click", async (e) => {
+  const turnBtn = e.target.closest("[data-bell-turn]");
+  if (turnBtn) {
+    const game = getCachedData().horseGames.find((g) => g.id === turnBtn.dataset.bellTurn);
+    if (game) {
+      state.horseGame = game;
+      $("horse-bell-dropdown").classList.add("hidden");
+      beginHorseTurn(state.currentUser);
+    }
+    return;
+  }
+  const joinBtn = e.target.closest("[data-bell-join]");
+  if (joinBtn) {
+    const game = getCachedData().horseGames.find((g) => g.id === joinBtn.dataset.bellJoin);
+    if (game) {
+      state.horseGame = game;
+      $("horse-bell-dropdown").classList.add("hidden");
+      await openHorseTurnOrder();
+    }
+    return;
+  }
+  const declineBtn = e.target.closest("[data-bell-decline]");
+  if (declineBtn) {
+    declineBtn.disabled = true;
+    try {
+      const res = await workerDeclineHorseInvite(declineBtn.dataset.bellDecline, state.currentUser);
+      upsertLocalHorseGame(res.game);
+      renderHorseBellDropdown();
+    } catch (err) {
+      toast("Couldn't decline — check your connection.", 3500);
+      declineBtn.disabled = false;
+    }
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && state.currentUser) {
+    refreshFromRemote().then(() => renderHorseBellDropdown());
   }
 });
 
@@ -5791,8 +5973,23 @@ async function completeHorseTurn(rawCount) {
   cacheData(cached);
   try { await commitSession(session); } catch (e) { enqueueSession(session); }
 
-  const updated = applyTurn(game, { user, reps: rawCount, now: Date.now() });
+  let updated;
+  if (game.sessionType === "invite") {
+    try {
+      const res = await workerPostHorseTurn({ gameId: game.id, user, reps: rawCount });
+      updated = res.game;
+    } catch (e) {
+      // Best-effort local fallback so this device's UI still progresses —
+      // the server stays the source of truth and the next successful
+      // refresh (see openHorseTurnOrder) reconciles it.
+      toast("Couldn't sync your set — check your connection. Your view may be out of date until it reconnects.", 5000);
+      updated = applyTurn(game, { user, reps: rawCount, now: Date.now() });
+    }
+  } else {
+    updated = applyTurn(game, { user, reps: rawCount, now: Date.now() });
+  }
   state.horseGame = updated;
+  upsertLocalHorseGame(updated);
 
   const gotLetter = updated.players[user].letters > lettersBefore;
   if (gotLetter) {
@@ -5812,8 +6009,7 @@ async function completeHorseTurn(rawCount) {
     showScreen("screen-horse-summary");
     return;
   }
-  renderHorseTurnOrder();
-  showScreen("screen-horse-turn-order");
+  await openHorseTurnOrder();
 }
 
 async function completeWorkout() {
@@ -6876,6 +7072,7 @@ async function init() {
       cacheData(data);
       renderUserList();
       renderStreakBadge();
+      renderHorseBellDropdown();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }

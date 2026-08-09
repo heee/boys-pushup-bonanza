@@ -26,7 +26,9 @@ MediaPipe's Face Detector model from a CDN at runtime. The only non-static piece
 ## 2. Create the D1 database
 
 Create a Cloudflare D1 database, apply `worker/migrations/0001_initial_schema.sql`,
-and bind it to the Worker using the binding name `DB`.
+and bind it to the Worker using the binding name `DB`. When updating an existing
+database for Horse mode, also apply `worker/migrations/0002_horse_games.sql`
+(D1 dashboard → your database → Console, paste and run the file's contents).
 
 ## 3. Deploy the Cloudflare Worker (you only, one time)
 

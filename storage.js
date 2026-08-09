@@ -1,5 +1,5 @@
 export const EMPTY_SHARED_DATA = Object.freeze({
-  sessions: [], avatars: {}, challengeParticipants: {}, customChallenges: [],
+  sessions: [], avatars: {}, challengeParticipants: {}, customChallenges: [], horseGames: [],
 });
 
 export function normalizeSharedData(value) {
@@ -11,6 +11,7 @@ export function normalizeSharedData(value) {
     challengeParticipants: data.challengeParticipants && typeof data.challengeParticipants === "object"
       ? data.challengeParticipants : {},
     customChallenges: Array.isArray(data.customChallenges) ? data.customChallenges : [],
+    horseGames: Array.isArray(data.horseGames) ? data.horseGames : [],
   };
 }
 
