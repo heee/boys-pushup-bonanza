@@ -3752,8 +3752,14 @@ function paintModeBreakdown() {
   const showUsers = state.modeBreakdownScope === "group";
   el.innerHTML = rows.map((row, i) => {
     const pct = Math.max((row.reps / leaderReps) * 100, 8);
+    const valueFits = pct > 22;
     const wide = pct > 38;
     const usersLabel = `${row.users} user${row.users === 1 ? "" : "s"}`;
+    const valueMarkup = formatNumber(row.reps);
+    const outsideBits = [
+      !valueFits ? `<span class="mode-breakdown-bar-value outside">${valueMarkup}</span>` : "",
+      showUsers && !wide ? `<span class="mode-breakdown-bar-users outside">${usersLabel}</span>` : "",
+    ].filter(Boolean).join("");
     return `<div class="mode-breakdown-row">
       <div class="mode-breakdown-row-head">
         <span class="mode-breakdown-row-name"><span class="mode-breakdown-rank${i === 0 ? " gold" : ""}">${i + 1}</span>${escapeHtml(row.label)}</span>
@@ -3761,10 +3767,10 @@ function paintModeBreakdown() {
       </div>
       <div class="mode-breakdown-bar-track">
         <div class="mode-breakdown-bar-fill" style="width:${pct}%">
-          <span class="mode-breakdown-bar-value">${formatNumber(row.reps)}</span>
+          ${valueFits ? `<span class="mode-breakdown-bar-value">${valueMarkup}</span>` : ""}
           ${showUsers && wide ? `<span class="mode-breakdown-bar-users">${usersLabel}</span>` : ""}
         </div>
-        ${showUsers && !wide ? `<span class="mode-breakdown-bar-users outside">${usersLabel}</span>` : ""}
+        ${outsideBits ? `<span class="mode-breakdown-bar-outside">${outsideBits}</span>` : ""}
       </div>
     </div>`;
   }).join("");

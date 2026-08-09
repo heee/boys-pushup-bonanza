@@ -2454,6 +2454,17 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 #period-select .segment:not(.active),
 #bonanza-mode-select .segment:not(.active) { font-weight: 400; }
 
+/* Subtle variant — for secondary toggles that shouldn't compete with the
+   primary orange-accent segmented control above them (e.g. Bonanza stats'
+   period toggle sitting under its Group/Just me scope toggle). */
+.segmented.segmented-subtle { background: var(--bg-elevated-2); }
+.segmented-subtle .segment { color: var(--text-tertiary); }
+.segmented-subtle .segment.active {
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-weight: 700;
+}
+
 /* Underline-tab variant — secondary in-page nav (Leaderboard's "Last
    flexers / Session history", Challenges' "Active/Upcoming/Past"), visually
    subordinate to the primary pill-style segmented controls above them.
@@ -2816,17 +2827,21 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   align-items: center;
   justify-content: space-between;
   padding: 0 0.7rem;
-  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  background: linear-gradient(90deg, var(--primary-deep), var(--primary-dim));
 }
 .mode-breakdown-bar-value { color: var(--text-on-accent); font-weight: 700; font-size: 0.88rem; }
 .mode-breakdown-bar-users { color: var(--text-on-accent); font-size: 0.72rem; opacity: 0.85; font-weight: 600; }
-.mode-breakdown-bar-users.outside {
-  color: var(--text-tertiary);
+.mode-breakdown-bar-outside {
   position: absolute;
   right: 0.6rem;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
+.mode-breakdown-bar-value.outside { color: var(--text); font-weight: 700; font-size: 0.88rem; }
+.mode-breakdown-bar-users.outside { color: var(--text-tertiary); font-size: 0.72rem; font-weight: 600; }
 
 .settings-block-row:last-child { border-bottom: none; }
 .settings-block-row .field-label { margin: 0; }
