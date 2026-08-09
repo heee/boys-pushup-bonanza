@@ -283,6 +283,60 @@ export const PYRAMID_APEX_LINE = "Apex reached! The tomb has been disturbed.";
 export const PYRAMID_TURNAROUND_LINE = "Turning around! Now we rebuild what we destroyed.";
 export const PYRAMID_COMPLETE_LINE = "Pyramid complete! Let the history books remember this.";
 
+// Horse mode — spoken from completeHorseTurn in app.js at the four moments
+// a turn can end: the bar gets raised (beat the target, or the opening set
+// that sets it), a letter gets collected (missed but survives), full
+// elimination (word spelled out, OUT), and winning the whole game. Same
+// unhinged register as the rest of the corpus, leaning on the actual H-O-R-S-E
+// spelling-bee/livestock conceit since that's the one joke unique to this mode.
+export const HORSE_CLEAR_LINES = [
+  "Bar raised! Somebody here is about to cry.",
+  "New number on the board! The word is getting hungrier.",
+  "Cleared it! That bar is now a certified war crime.",
+  "Target smoked! Next victim, please.",
+  "That's the new number to beat! Bring a lawyer.",
+  "Bar's up! Somewhere, a letter is being sharpened just for the rest of you.",
+  "Cleared with room to spare! The rest of the field is in grave danger.",
+  "New target locked in! May whoever's next find mercy, because I certainly won't.",
+  "That number is officially cursed now! Good luck, everybody.",
+  "Bar raised! This horse just got a lot more horse.",
+  "Set and matched! Somewhere a horse just felt a great disturbance.",
+];
+
+export const HORSE_LETTER_LINES = [
+  "Missed it! The word is spelling itself whether you like it or not.",
+  "That's a letter for the collection! One step closer to a very public equestrian tragedy.",
+  "Whiff! Somewhere, an actual horse just whinnied in your general direction.",
+  "Letter collected! The spelling bee has teeth, apparently.",
+  "Came up short! You're being spelled into oblivion, one letter at a time.",
+  "That's a letter, unfortunately! The word does not accept apologies.",
+  "Missed the number! Somebody update the obituary, the horse edition.",
+  "Letter added! You are one step closer to a very embarrassing group chat screenshot.",
+  "Didn't beat it! The word is spelling itself and it is not being gentle about it.",
+];
+
+export const HORSE_ELIMINATED_LINES = [
+  "OUT! The word has spoken, and it is furious.",
+  "Fully spelled! You are, canonically, a horse now. Congratulations.",
+  "That's the whole word! Somebody get this man a saddle, he is finished.",
+  "Eliminated! The horse accepts your resignation.",
+  "OUT! Word complete. The stable door is closing behind you.",
+  "Spelled in full! You have been legally reclassified as livestock.",
+  "That's it, you're out! The other horses are already laughing.",
+  "OUT! Somewhere, an actual horse is deeply offended on your behalf.",
+];
+
+export const HORSE_WIN_LINES = [
+  "Winner! Everyone else here is now, officially, a horse.",
+  "Game over, you win! The stable is empty except for the losers.",
+  "Champion! You out-horsed everybody, and that sentence just happened.",
+  "Victory! The other horses have been put out to pasture.",
+  "That's the game! You remain human. Everyone else, considerably less so.",
+  "You win! History will remember this as the day nobody else could count.",
+  "Game, set, horse! You are the last one standing and it absolutely shows.",
+  "Champion of Horse! A title that sounds worse than it is. You earned it though.",
+];
+
 export const FUN_MESSAGES = [
   (n) => `${n} pushups down. Somewhere, a gym bro just shed a single tear.`,
   (n) => `That's ${n} reps of pure bonanza energy.`,
@@ -416,6 +470,10 @@ export function buildCorpus() {
   add(PYRAMID_APEX_LINE, "hype");
   add(PYRAMID_TURNAROUND_LINE, "hype");
   add(PYRAMID_COMPLETE_LINE, "hype");
+  for (const line of HORSE_CLEAR_LINES) add(line, "hype");
+  for (const line of HORSE_LETTER_LINES) add(line, "hype");
+  for (const line of HORSE_ELIMINATED_LINES) add(line, "hype");
+  for (const line of HORSE_WIN_LINES) add(line, "hype");
   add(WHEEL_DOUBLE_PREFIX, "hype");
   for (const label of WHEEL_GRIP_LABELS) add(label, "hype");
   for (const fn of [WHEEL_BOSS_LINE, WHEEL_FREEBIE_LINE, WHEEL_BUST_LINE, WHEEL_TEMPO_LINE]) {

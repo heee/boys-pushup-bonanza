@@ -20,6 +20,12 @@ test("horseTurnHeroCopy shows SET THE BAR before any target exists, then BEAT <n
   assert.deepEqual(horseTurnHeroCopy(g), { kicker: "BEAT YOU'S", value: "32+", sub: null });
 });
 
+test("horseTurnHeroCopy surfaces the modifier the next player has to match", () => {
+  let g = createHorseGame({ id: "g", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"] });
+  g = applyTurn(g, { user: "You", reps: 32, modifier: "wide", now: 1 });
+  assert.deepEqual(horseTurnHeroCopy(g), { kicker: "BEAT YOU'S", value: "32+", sub: "Match required: Wide Grip" });
+});
+
 test("horseSummaryRows puts the winner first, then eliminated players by longest survival", () => {
   const game = {
     word: "HORSE",

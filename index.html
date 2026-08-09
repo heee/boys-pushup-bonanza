@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=154">
+<link rel="stylesheet" href="style.css?v=155">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -370,6 +370,18 @@
           <span id="squat-avatar" class="avatar-circle"></span>
           Ready to squat, <span id="squat-username">Friend</span><span class="tight-q">?</span></p>
         <p class="workout-instructions">Prop your phone against a wall, stand back about 6 feet, and get your whole body in frame.</p>
+        <div id="squat-weight-control" class="squat-weight-control hidden">
+          <label class="field-label toggle-row">
+            <span>🏋️ Kettlebell today</span>
+            <input id="chk-squat-weighted-enabled" type="checkbox">
+          </label>
+          <div class="stepper-row">
+            <button id="btn-squat-weight-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <div id="squat-weight-amount" class="stepper-value">0</div>
+            <button id="btn-squat-weight-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+          </div>
+          <p id="squat-weight-readout" class="settings-hint"></p>
+        </div>
         <button id="btn-squat-start" class="btn btn-giant btn-primary">START</button>
         <p class="workout-hint">We'll ask for camera access, then start counting once we see you squat.</p>
       </div>
@@ -787,6 +799,23 @@
             <span>Enable weighted mode</span>
             <input id="chk-weighted-enabled" type="checkbox">
           </label>
+
+          <div class="settings-divider"></div>
+
+          <p class="settings-hint">Squatting with a kettlebell? We'll reuse the bodyweight above and scale your squat count the same way.</p>
+
+          <label class="field-label">Kettlebell weight today (lbs)</label>
+          <div class="stepper-row">
+            <button id="btn-squat-weight-minus-settings" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <div id="squat-weight-amount-settings" class="stepper-value">0</div>
+            <button id="btn-squat-weight-plus-settings" type="button" class="stepper-btn" aria-label="Increase">+</button>
+          </div>
+          <p id="squat-weight-modifier-readout" class="settings-hint"></p>
+
+          <label class="field-label toggle-row">
+            <span>Enable squat weighted mode</span>
+            <input id="chk-squat-weighted-enabled-settings" type="checkbox">
+          </label>
         </div>
       </div>
 
@@ -903,6 +932,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=167"></script>
+<script type="module" src="app.js?v=168"></script>
 </body>
 </html>

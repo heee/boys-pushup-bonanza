@@ -44,6 +44,29 @@ test("opening set has no target and always sets the bar without a letter", () =>
   assert.equal(currentTurnPlayer(g), "Mia");
 });
 
+test("targetModifier tracks whatever modifier the target-setter used, regardless of outcome", () => {
+  let g = game2();
+  assert.equal(g.targetModifier, null);
+  g = applyTurn(g, { user: "You", reps: 20, modifier: "wide", now: 1 });
+  assert.equal(g.targetModifier, "wide");
+  assert.equal(g.sets[0].modifier, "wide");
+  // Mia fails to beat 20 (using a different modifier for her own attempt) —
+  // the new target's modifier is HERS now, not You's.
+  g = applyTurn(g, { user: "Mia", reps: 12, modifier: "diamond", now: 2 });
+  assert.equal(g.targetModifier, "diamond");
+  // No modifier passed at all defaults to null (no grip requirement).
+  g = applyTurn(g, { user: "You", reps: 25, now: 3 });
+  assert.equal(g.targetModifier, null);
+});
+
+test("skipping a stalled turn leaves targetModifier unchanged (no set was actually played)", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, modifier: "wide", now: 1 });
+  const stalled = { ...g, turnStartedAt: 0 };
+  const skipped = skipStalledPlayer(stalled, { now: 48 * 60 * 60 * 1000 + 1 });
+  assert.equal(skipped.targetModifier, "wide");
+});
+
 test("a failed set awards a letter AND resets the bar to the new low", () => {
   let g = game2();
   g = applyTurn(g, { user: "You", reps: 20, now: 1 });

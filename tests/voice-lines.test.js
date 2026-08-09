@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import {
   buildCorpus,
   normalizeSpoken,
+  HORSE_CLEAR_LINES,
+  HORSE_ELIMINATED_LINES,
+  HORSE_LETTER_LINES,
+  HORSE_WIN_LINES,
   SHARPSHOOTER_HIT_LINES,
   SQUAT_CHEER_LINES,
   SQUAT_RECORD_LINE,
@@ -18,6 +22,20 @@ test("Zen completion reveals the final count in its calm closing line", () => {
 test("every Sharpshooter bullseye line is included in the pre-rendered voice corpus", () => {
   const texts = new Set(buildCorpus().map((entry) => entry.text));
   for (const line of SHARPSHOOTER_HIT_LINES) assert.equal(texts.has(line), true, line);
+});
+
+test("every Horse mode line (clear/letter/eliminated/win) is included in the pre-rendered voice corpus", () => {
+  const texts = new Set(buildCorpus().map((entry) => entry.text));
+  for (const pool of [HORSE_CLEAR_LINES, HORSE_LETTER_LINES, HORSE_ELIMINATED_LINES, HORSE_WIN_LINES]) {
+    for (const line of pool) assert.equal(texts.has(line), true, line);
+  }
+});
+
+test("Horse line pools have real variety and no duplicate lines within a pool", () => {
+  for (const pool of [HORSE_CLEAR_LINES, HORSE_LETTER_LINES, HORSE_ELIMINATED_LINES, HORSE_WIN_LINES]) {
+    assert.ok(pool.length >= 8, `expected at least 8 lines, got ${pool.length}`);
+    assert.equal(new Set(pool).size, pool.length, "pool has a duplicate line");
+  }
 });
 
 test("every squat start/cheer line and the record line are included in the pre-rendered voice corpus", () => {

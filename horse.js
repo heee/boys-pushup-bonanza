@@ -22,6 +22,7 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, now
     turnStartedAt: now,
     target: null,
     targetSetBy: null,
+    targetModifier: null,
     round: 1,
     players: playersState,
     sets: [],
@@ -67,7 +68,12 @@ export function currentTurnPlayer(game) {
   return game.turnOrder[game.turnIndex];
 }
 
-export function applyTurn(game, { user, reps, now = Date.now() }) {
+// modifier is whatever grip/hand-position (see screens/modifiers.js) the
+// player actually used for this set — recorded on the game as
+// targetModifier regardless of success/failure, same as the target number
+// itself, so the next player has to match it (fair comparison, not just a
+// number to beat). null means no modifier was in play.
+export function applyTurn(game, { user, reps, modifier = null, now = Date.now() }) {
   if (game.status !== "active") throw new Error("Game is not active");
   if (currentTurnPlayer(game) !== user) throw new Error("Not this player's turn");
 
@@ -76,8 +82,8 @@ export function applyTurn(game, { user, reps, now = Date.now() }) {
   let players = game.players;
   if (!success) players = awardLetter(players, user, now);
 
-  const sets = [...game.sets, { user, reps, needed, letter: !success, skipped: false, at: now }];
-  const next = { ...game, players, sets, target: reps, targetSetBy: user };
+  const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
+  const next = { ...game, players, sets, target: reps, targetSetBy: user, targetModifier: modifier };
 
   const winner = checkWinner(next);
   if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };

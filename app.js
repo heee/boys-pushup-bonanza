@@ -15,6 +15,10 @@ import {
   FIXED_PHRASES,
   FUN_MESSAGES,
   FUN_MESSAGES_PLANK,
+  HORSE_CLEAR_LINES,
+  HORSE_ELIMINATED_LINES,
+  HORSE_LETTER_LINES,
+  HORSE_WIN_LINES,
   LADDER_CHEER_LINES,
   LADDER_RIVAL_APPROACHING_LINE,
   LADDER_RIVAL_MATCHED_LINE,
@@ -37,7 +41,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=135";
+} from "./voice-lines.js?v=136";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -123,6 +127,7 @@ const LS = {
   plankUnlocked: "bpb-plank-unlocked",
   soundEnabled: "bpb-sound-enabled",
   weightedProfiles: "bpb-weighted-profiles",
+  squatWeightedProfiles: "bpb-squat-weighted-profiles",
   cardDeck: "bpb-card-deck",
   pokerDeck: "bpb-poker-deck",
   showCameraPreview: "bpb-show-camera-preview",
@@ -613,6 +618,33 @@ function saveWeightedProfile(user, profile) {
 // The bonus this awards is added weight's fraction of bodyweight, doubled —
 // users found the original 1:1 version (bodyweight + added) / bodyweight
 // too conservative to feel worth toggling on.
+
+// Squat weighted mode: its own added-weight (kettlebell) + enabled flag per
+// user, since the load held during squats is usually different from the
+// vest weight used for pushups on the same day. Bodyweight is still shared
+// from the pushup profile above — one bodyweight, entered once.
+function getSquatWeightedProfiles() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS.squatWeightedProfiles) || "{}");
+    return raw && typeof raw === "object" ? raw : {};
+  } catch (e) {
+    return {};
+  }
+}
+function getSquatWeightedProfile(user) {
+  const profiles = getSquatWeightedProfiles();
+  return profiles[user] || { addedWeightLbs: 0, enabled: false };
+}
+function saveSquatWeightedProfile(user, profile) {
+  const profiles = getSquatWeightedProfiles();
+  profiles[user] = profile;
+  localStorage.setItem(LS.squatWeightedProfiles, JSON.stringify(profiles));
+}
+function getSquatWeightedMultiplierProfile(user) {
+  const bodyweightLbs = getWeightedProfile(user).bodyweightLbs || 0;
+  const squatProfile = getSquatWeightedProfile(user);
+  return { bodyweightLbs, addedWeightLbs: squatProfile.addedWeightLbs || 0 };
+}
 
 // Sends a session to the Worker (which handles the GitHub merge/retry
 // server-side). A couple of client-side retries just for network flakiness.
@@ -1303,6 +1335,7 @@ function showScreen(id) {
   if (id === "screen-squat-workout" && !state.squatActive) {
     $("squat-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("squat-avatar"), state.currentAvatar, "2rem");
+    renderSquatWeightedControls();
   }
 }
 
@@ -1627,6 +1660,7 @@ function renderSettings() {
   $("btn-download-trace").classList.toggle("hidden", !repState.trace.length);
   $("btn-download-squat-trace").classList.toggle("hidden", !squatTraceState.trace.length);
   renderWeightedSettings();
+  renderSquatWeightedControls();
 
   renderPendingStatus();
   testSyncConnection();
@@ -1673,6 +1707,54 @@ $("chk-weighted-enabled").addEventListener("change", (e) => {
   saveWeightedProfile(state.currentUser, profile);
   renderWeightedSettings();
 });
+
+// Squat's kettlebell modifier: same multiplier math as pushup's weighted
+// mode, but its own added-weight field, and a control both in Settings and
+// inline on the Ready-to-squat screen (kept in sync — they share one
+// profile). Bodyweight comes from the pushup weighted profile above.
+function renderSquatWeightedControls() {
+  const bodyweightLbs = getWeightedProfile(state.currentUser).bodyweightLbs || 0;
+  const profile = getSquatWeightedProfile(state.currentUser);
+  const enabled = !!profile.enabled && bodyweightLbs > 0;
+  const readoutText = weightModifierText({ bodyweightLbs, addedWeightLbs: profile.addedWeightLbs || 0 }, getSquatWeightedMultiplierValue());
+
+  $("squat-weight-amount-settings").textContent = String(profile.addedWeightLbs || 0);
+  $("chk-squat-weighted-enabled-settings").checked = enabled;
+  $("chk-squat-weighted-enabled-settings").disabled = !bodyweightLbs;
+  $("squat-weight-modifier-readout").textContent = readoutText;
+
+  const readyControl = $("squat-weight-control");
+  if (!bodyweightLbs) {
+    readyControl.classList.add("hidden");
+  } else {
+    readyControl.classList.remove("hidden");
+    $("squat-weight-amount").textContent = String(profile.addedWeightLbs || 0);
+    $("chk-squat-weighted-enabled").checked = enabled;
+    $("squat-weight-readout").textContent = readoutText;
+  }
+}
+function getSquatWeightedMultiplierValue() {
+  return weightedMultiplier(getSquatWeightedMultiplierProfile(state.currentUser));
+}
+function adjustSquatAddedWeight(delta) {
+  const profile = getSquatWeightedProfile(state.currentUser);
+  profile.addedWeightLbs = Math.max(0, (profile.addedWeightLbs || 0) + delta);
+  saveSquatWeightedProfile(state.currentUser, profile);
+  renderSquatWeightedControls();
+}
+function setSquatWeightedEnabled(checked) {
+  const bodyweightLbs = getWeightedProfile(state.currentUser).bodyweightLbs || 0;
+  const profile = getSquatWeightedProfile(state.currentUser);
+  profile.enabled = checked && bodyweightLbs > 0;
+  saveSquatWeightedProfile(state.currentUser, profile);
+  renderSquatWeightedControls();
+}
+$("btn-squat-weight-plus-settings").addEventListener("click", () => adjustSquatAddedWeight(5));
+$("btn-squat-weight-minus-settings").addEventListener("click", () => adjustSquatAddedWeight(-5));
+$("chk-squat-weighted-enabled-settings").addEventListener("change", (e) => setSquatWeightedEnabled(e.target.checked));
+$("btn-squat-weight-plus").addEventListener("click", () => adjustSquatAddedWeight(5));
+$("btn-squat-weight-minus").addEventListener("click", () => adjustSquatAddedWeight(-5));
+$("chk-squat-weighted-enabled").addEventListener("change", (e) => setSquatWeightedEnabled(e.target.checked));
 
 // Quick on/off toggle on the workout start screen mirrors the same profile,
 // so you don't have to dig into Settings to turn weighted mode on/off before
@@ -2214,7 +2296,10 @@ function renderHorseTurnOrder() {
   const stalled = game.sessionType === "invite" && isTurnStalled(game, Date.now());
   $("horse-order-title").textContent = `Horse · Round ${game.round}`;
   const target = horseTargetLabel(game);
-  $("horse-order-target-line").textContent = target ? `Beat ${target} to stay clean` : `${escapeHtml(game.turnOrder[0])} sets the bar`;
+  const targetModifierMeta = game.targetModifier ? MODIFIERS.find((m) => m.id === game.targetModifier) : null;
+  $("horse-order-target-line").textContent = target
+    ? `Beat ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} to stay clean`
+    : `${escapeHtml(game.turnOrder[0])} sets the bar`;
   $("horse-turn-order-list").innerHTML = rows.map((row) => {
     const statusHTML = row.status === "out"
       ? '<span class="horse-player-status-out">OUT</span>'
@@ -2333,8 +2418,16 @@ $("btn-horse-letter-continue").addEventListener("click", async () => {
   }
 });
 
+// Guards against re-announcing the same win if renderHorseSummary happens to
+// run again for a game already on screen (e.g. re-entering via the bell).
+let horseWinAnnouncedForGameId = null;
+
 function renderHorseSummary() {
   const game = state.horseGame;
+  if (game.winner === state.currentUser && horseWinAnnouncedForGameId !== game.id) {
+    horseWinAnnouncedForGameId = game.id;
+    speak(pickFrom(HORSE_WIN_LINES));
+  }
   const rows = horseSummaryRows(game);
   $("horse-summary-crown").innerHTML = `👑 ${escapeHtml(game.winner)} wins`;
   $("horse-summary-list").innerHTML = rows.map((row) => {
@@ -2399,6 +2492,9 @@ function pendingHorseItems() {
 function renderHorseBellDropdown() {
   const items = pendingHorseItems();
   $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
+  // "turn" (your move right now) gets the full urgent treatment — opaque +
+  // wiggling. "invite"/"waiting" still light the dot, but stay calm.
+  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn"));
   $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => item.kind !== "waiting"));
   const list = $("horse-bell-list");
   list.innerHTML = items.length ? items.map((item) => {
@@ -5693,7 +5789,17 @@ async function startWorkout() {
   // Resolved once per session start (not once per pick) so "Random" draws a
   // fresh modifier every time — see resolveModifier in screens/modifiers.js.
   // Zen deliberately strips down feedback, so it never gets a modifier.
-  state.resolvedModifier = state.pushupMode === "zen" ? null : resolveModifier(state.modifier);
+  // Horse is the one exception to "whatever's picked on Home": once a
+  // target has been set with a modifier, every subsequent player is
+  // required to match it (a beat-the-number-only comparison isn't fair if
+  // the grip changed), so their own Home selection is overridden for that
+  // turn only — see horseTurnHeroCopy in screens/horse.js for the matching
+  // "Match required" copy shown alongside it.
+  state.resolvedModifier = state.pushupMode === "zen"
+    ? null
+    : state.pushupMode === "horse" && state.horseGame?.targetModifier
+      ? state.horseGame.targetModifier
+      : resolveModifier(state.modifier);
   state.sessionLocation = currentSessionLocationSnapshot();
   if (state.pushupMode === "chase") {
     if (!state.chasePrepared?.eligible || state.chasePrepared.plan.user !== state.currentUser) await refreshChaseAvailability();
@@ -6021,6 +6127,7 @@ async function completeHorseTurn(rawCount) {
     mode: "horse",
     horseGameId: game.id,
     horseTarget: game.target,
+    ...(state.resolvedModifier ? { modifier: state.resolvedModifier } : {}),
     ...(state.sessionLocation ? { location: state.sessionLocation } : {}),
   };
   const cached = getCachedData();
@@ -6031,23 +6138,24 @@ async function completeHorseTurn(rawCount) {
   let updated;
   if (game.sessionType === "invite") {
     try {
-      const res = await workerPostHorseTurn({ gameId: game.id, user, reps: rawCount });
+      const res = await workerPostHorseTurn({ gameId: game.id, user, reps: rawCount, modifier: state.resolvedModifier });
       updated = res.game;
     } catch (e) {
       // Best-effort local fallback so this device's UI still progresses —
       // the server stays the source of truth and the next successful
       // refresh (see openHorseTurnOrder) reconciles it.
       toast("Couldn't sync your set — check your connection. Your view may be out of date until it reconnects.", 5000);
-      updated = applyTurn(game, { user, reps: rawCount, now: Date.now() });
+      updated = applyTurn(game, { user, reps: rawCount, modifier: state.resolvedModifier, now: Date.now() });
     }
   } else {
-    updated = applyTurn(game, { user, reps: rawCount, now: Date.now() });
+    updated = applyTurn(game, { user, reps: rawCount, modifier: state.resolvedModifier, now: Date.now() });
   }
   state.horseGame = updated;
   upsertLocalHorseGame(updated);
 
   const gotLetter = updated.players[user].letters > lettersBefore;
   if (gotLetter) {
+    speak(pickFrom(updated.players[user].out ? HORSE_ELIMINATED_LINES : HORSE_LETTER_LINES));
     state.horseLetterEvent = {
       forUser: user,
       needed: game.target,
@@ -6059,6 +6167,7 @@ async function completeHorseTurn(rawCount) {
     showScreen("screen-horse-letter");
     return;
   }
+  speak(pickFrom(HORSE_CLEAR_LINES));
   if (updated.status === "complete") {
     renderHorseSummary();
     showScreen("screen-horse-summary");
@@ -7050,7 +7159,7 @@ function pickSquatFunMessage(n) {
 }
 
 async function completeSquat() {
-  const count = squatState.count;
+  const rawCount = squatState.count;
   squatCamera.stop();
   await releaseWakeLock();
   state.squatActive = false;
@@ -7060,6 +7169,12 @@ async function completeSquat() {
   $("squat-idle").classList.remove("hidden");
   setChromeMinimized(false);
 
+  const squatProfile = getSquatWeightedProfile(state.currentUser);
+  const multiplierProfile = getSquatWeightedMultiplierProfile(state.currentUser);
+  const weighted = squatProfile.enabled && multiplierProfile.bodyweightLbs > 0;
+  const multiplier = weighted ? weightedMultiplier(multiplierProfile) : 1;
+  const count = weighted ? Math.round(rawCount * multiplier) : rawCount;
+
   const session = {
     id: uuid(),
     user: state.currentUser,
@@ -7068,6 +7183,7 @@ async function completeSquat() {
     avatar: state.currentAvatar,
     startedAt: state.squatStartedAt ? state.squatStartedAt.toISOString() : undefined,
     type: "squat",
+    ...(weighted ? { rawCount, weightLbs: multiplierProfile.addedWeightLbs || 0 } : {}),
     ...(state.squatSessionLocation ? { location: state.squatSessionLocation } : {}),
   };
 
@@ -7079,17 +7195,17 @@ async function completeSquat() {
   const message = pickSquatFunMessage(count);
   state.lastSessionType = "squat";
   state.summarySessionId = session.id;
-  state.summaryBaseCount = count;
+  state.summaryBaseCount = rawCount;
   state.summaryExtra = 0;
-  state.summaryMultiplier = 1;
-  state.summaryWeightLbs = 0;
+  state.summaryMultiplier = multiplier;
+  state.summaryWeightLbs = weighted ? (multiplierProfile.addedWeightLbs || 0) : 0;
   state.summaryPrAchieved = null;
   state.summaryChaseResult = null;
   state.summaryRoadtripConquests = [];
   $("summary-count").textContent = formatNumber(count);
   $("missed-reps-count").textContent = "0";
   $("missed-reps-wrap").classList.remove("hidden");
-  $("summary-weighted-note").classList.add("hidden");
+  renderSummaryWeightedNote(rawCount, count);
   renderSummaryChaseResult();
   renderSummaryRoadtripResult();
   $("summary-sync-status").textContent = "";

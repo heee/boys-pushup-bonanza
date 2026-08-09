@@ -39,6 +39,15 @@ test("opening set has no target and always sets the bar without a letter", () =>
   assert.equal(currentTurnPlayer(g), "Mia");
 });
 
+test("targetModifier tracks whoever set the target's modifier, mirroring horse.js", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, modifier: "wide", now: 1 });
+  assert.equal(g.targetModifier, "wide");
+  assert.equal(g.sets[0].modifier, "wide");
+  g = applyTurn(g, { user: "Mia", reps: 25, now: 2 });
+  assert.equal(g.targetModifier, null);
+});
+
 test("a failed set awards a letter and resets the bar to the new low", () => {
   let g = game2();
   g = applyTurn(g, { user: "You", reps: 20, now: 1 });

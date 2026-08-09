@@ -33,7 +33,9 @@
 //   POST /create-challenge -> { title, tagline, emoji, goalType, goal, start, end, gradient?, createdBy }
 //                              -> stores a user-created challenge in D1, server-assigns the id
 //   POST /horse-create -> { id?, word, sessionType, createdBy, players } -> creates a Horse game
-//   POST /horse-turn   -> { gameId, user, reps } -> applies the current player's completed set
+//   POST /horse-turn   -> { gameId, user, reps, modifier? } -> applies the current player's
+//                          completed set; modifier is recorded as the new target's
+//                          targetModifier, which the next player has to match
 //   POST /horse-skip   -> { gameId } -> awards the stalled current player a letter (48h+ since
 //                          their turn started) and advances play; any player may call this
 //   POST /horse-decline -> { gameId, user } -> removes an invited player who hasn't taken a set yet
@@ -330,6 +332,7 @@ export default {
       const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
       const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
       const reps = Math.floor(Number(body?.reps));
+      const modifier = VALID_MODIFIERS.includes(body?.modifier) ? body.modifier : null;
       if (!gameId || !user || !Number.isFinite(reps) || reps < 0 || reps > 2000) {
         return json({ error: "invalid payload" }, 400, cors);
       }
@@ -339,7 +342,7 @@ export default {
         if (!game) return json({ error: "game not found" }, 404, cors);
         if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
         if (currentTurnPlayer(game) !== user) return json({ error: "not this player's turn" }, 403, cors);
-        const updated = applyTurn(game, { user, reps, now: Date.now() });
+        const updated = applyTurn(game, { user, reps, modifier, now: Date.now() });
         await upsertHorseGame(env.DB, updated);
         return json({ ok: true, game: updated }, 200, cors);
       } catch (e) {
@@ -416,6 +419,10 @@ function json(obj, status, cors) {
     headers: { "Content-Type": "application/json", ...cors },
   });
 }
+
+// Cross-mode Modifier ids (how a pushup is physically executed) — module
+// scope so both validateSession and the /horse-turn handler can reuse it.
+const VALID_MODIFIERS = ["standard", "wide", "close", "diamond", "staggered", "archer", "incline", "decline"];
 
 export function validateSession(body) {
   if (!body || typeof body !== "object") return null;
@@ -494,7 +501,6 @@ export function validateSession(body) {
   // Cross-mode Modifier (how the pushup was physically executed) — applies
   // to any mode except Zen. "random" never reaches here; the client always
   // resolves it to one of these concrete values first.
-  const VALID_MODIFIERS = ["standard", "wide", "close", "diamond", "staggered", "archer", "incline", "decline"];
   if (body.mode !== "zen" && VALID_MODIFIERS.includes(body.modifier)) session.modifier = body.modifier;
   const location = sanitizeTerritoryLocation(body.location);
   if (location) session.location = location;
@@ -773,6 +779,7 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, now
     turnStartedAt: now,
     target: null,
     targetSetBy: null,
+    targetModifier: null,
     round: 1,
     players: playersState,
     sets: [],
@@ -816,7 +823,10 @@ export function currentTurnPlayer(game) {
   return game.turnOrder[game.turnIndex];
 }
 
-export function applyTurn(game, { user, reps, now = Date.now() }) {
+// modifier is whatever grip/hand-position (see screens/modifiers.js on the
+// client) the player used for this set — stored as targetModifier so the
+// next player has to match it. Must stay in sync with horse.js's applyTurn.
+export function applyTurn(game, { user, reps, modifier = null, now = Date.now() }) {
   if (game.status !== "active") throw new Error("Game is not active");
   if (currentTurnPlayer(game) !== user) throw new Error("Not this player's turn");
 
@@ -825,8 +835,8 @@ export function applyTurn(game, { user, reps, now = Date.now() }) {
   let players = game.players;
   if (!success) players = horseAwardLetter(players, user, now);
 
-  const sets = [...game.sets, { user, reps, needed, letter: !success, skipped: false, at: now }];
-  const next = { ...game, players, sets, target: reps, targetSetBy: user };
+  const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
+  const next = { ...game, players, sets, target: reps, targetSetBy: user, targetModifier: modifier };
 
   const winner = horseCheckWinner(next);
   if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };
