@@ -283,7 +283,21 @@ button, input {
   overflow-y: auto;
 }
 .horse-bell-title { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0.9rem 0.4rem; }
-.horse-bell-row { width: 100%; text-align: left; border: none; font-family: inherit; cursor: pointer; }
+.horse-bell-row {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  padding: 13px 16px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.horse-bell-row:active { background: var(--bg-elevated-2); }
 .horse-bell-empty { margin: 0.6rem 0.9rem; }
 
 .streak-badge {
@@ -1787,6 +1801,26 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   width: 100%;
   cursor: pointer;
 }
+
+/* .horse-candidate-row is a <button> (unlike every other .tier1-row, which
+   is a plain <div>) so it needs its own UA-button reset — iOS Safari keeps
+   native button chrome (white background, shrink-to-content width) even
+   under display:flex unless -webkit-appearance is explicitly cleared. */
+.horse-candidate-row {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.horse-candidate-row:active { background: var(--bg-elevated-2); }
+
 .horse-start-btn { margin-top: 1.4rem; }
 
 /* Active-workout HUD: static target hero (does not tick per rep, unlike
