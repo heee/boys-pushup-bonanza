@@ -64,7 +64,7 @@ export function recentChallengeSessions(sessions, timestampOf, limit = 5) {
   return [...sessions].sort((a, b) => timestampOf(b) - timestampOf(a)).slice(0, limit);
 }
 
-export function challengeShareContext(challenge, board, { formatNumber = String, formatDuration = String, locale } = {}) {
+export function challengeShareContext(challenge, board, { formatNumber = String, formatDuration = String, locale, activityLabel = "pushups" } = {}) {
   const { endDate } = challengeWindow(challenge);
   const leader = board[0];
   const isRanked = challenge.goalType === "pr" || challenge.goalType === "plankGauntlet";
@@ -75,7 +75,7 @@ export function challengeShareContext(challenge, board, { formatNumber = String,
     goalAmountText: challenge.goalType === "streak" ? `${formatNumber(challenge.goal)}-day streak`
       : challenge.goalType === "pr" ? "a new personal record"
       : challenge.goalType === "plankGauntlet" ? "the longest plank grind"
-      : `${formatNumber(challenge.goal)} pushups`,
+      : `${formatNumber(challenge.goal)} ${activityLabel}`,
     hasLeader,
     leaderName: leader?.name,
     leaderScoreText: hasLeader ? (
