@@ -76,7 +76,7 @@ import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=2";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=139";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=140";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=3";
@@ -2144,13 +2144,17 @@ $("explore-modes-list").addEventListener("click", async (e) => {
       return;
     }
   }
-  // Plank and Squat are whole separate activities/screens, not pushupMode toggles.
+  // Plank, Squat, and Situp are whole separate activities/screens, not pushupMode toggles.
   if (modeId === "plank") {
     guardLeaveWorkout(() => showScreen("screen-plank-workout"));
     return;
   }
   if (modeId === "squat") {
     guardLeaveWorkout(() => showScreen("screen-squat-workout"));
+    return;
+  }
+  if (modeId === "situp") {
+    guardLeaveWorkout(() => showScreen("screen-situp-workout"));
     return;
   }
   // Pyramid needs a size/direction picked before it can start, unlike every

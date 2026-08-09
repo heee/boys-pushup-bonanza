@@ -18,9 +18,11 @@ test("Explore ordering preserves Chase priority, locks, and roadmap", () => {
   assert.equal(ready[0].mode.id, "chase");
   assert.equal(ready.find((item) => item.mode.id === "sharpshooter").playable, true);
   assert.equal(ready.find((item) => item.mode.id === "pyramid").playable, true);
-  // Plank and Squat sit in their own "Other exercises" bucket at the very
-  // bottom, below every pushup mode including the roadmap ones.
-  assert.equal(ready.at(-1).mode.id, "squat");
+  // Plank, Squat, and Situp sit in their own "Other exercises" bucket at the
+  // very bottom, below every pushup mode including the roadmap ones — tied
+  // on zero usage, Situp sorts last since it comes after Squat in
+  // EXPLORE_MODES (ties break by list order).
+  assert.equal(ready.at(-1).mode.id, "situp");
   const pushupIds = ready.filter((item) => item.section === "pushups").map((item) => item.mode.id);
   assert.equal(pushupIds.at(-1), "boss");
 });

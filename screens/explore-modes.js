@@ -5,6 +5,7 @@ export const EXPLORE_MODES = [
   { id: "dice", icon: "🎲", title: "Dice roll", tagline: "Hit the number before next roll", live: true },
   { id: "plank", icon: "🪵", title: "Plank", tagline: "Hold your ground, beat your own time", live: true },
   { id: "squat", icon: "🦵", title: "Squat", tagline: "Camera-counted squats, own your reps", live: true },
+  { id: "situp", icon: "🙇", title: "Situp", tagline: "Camera-counted situps, own your reps", live: true },
   { id: "ladder", icon: "🪜", title: "Ladder", tagline: "Climb the ladder, cash out anytime", live: true },
   { id: "fortune", icon: "🥠", title: "Fortune cookie", tagline: "One set, one revealed challenge", live: true },
   { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Hunt the first board you don't already lead", live: true },
@@ -20,15 +21,15 @@ export const EXPLORE_MODES = [
 function usageByMode(sessions) {
   const counts = new Map();
   for (const session of sessions) {
-    const id = session.type === "plank" ? "plank" : session.type === "squat" ? "squat" : (session.mode || "classic");
+    const id = session.type === "plank" ? "plank" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : (session.mode || "classic");
     if (id) counts.set(id, (counts.get(id) || 0) + 1);
   }
   return counts;
 }
 
-// Plank and Squat are whole separate activities, not pushup modes — they get
-// their own "Other exercises" bucket below the "Pushups" bucket.
-const OTHER_EXERCISE_IDS = new Set(["plank", "squat"]);
+// Plank, Squat, and Situp are whole separate activities, not pushup modes —
+// they get their own "Other exercises" bucket below the "Pushups" bucket.
+const OTHER_EXERCISE_IDS = new Set(["plank", "squat", "situp"]);
 
 function orderBucket(bucket) {
   const playable = bucket.filter((item) => item.playable).sort((a, b) => {
