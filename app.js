@@ -2238,7 +2238,35 @@ function renderHorseTurnOrder() {
   const canTakeTurn = game.sessionType === "live" || upNow === state.currentUser;
   $("btn-horse-take-turn").classList.toggle("hidden", !canTakeTurn);
   $("btn-horse-take-turn").textContent = upNow === state.currentUser ? "Do your set" : `Pass the phone to ${upNow} — do your set`;
+  // Reminding only makes sense for async games where someone else is
+  // dragging their feet — Live is a shared device, and there's no reason to
+  // nag yourself.
+  $("btn-horse-remind").classList.toggle("hidden", game.sessionType !== "invite" || upNow === state.currentUser);
 }
+
+async function shareHorseReminder() {
+  const { pickHorseReminderMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+  const game = state.horseGame;
+  const name = currentTurnPlayer(game);
+  const message = pickHorseReminderMessage({ name, targetLabel: horseTargetLabel(game) || "the bar" });
+  const url = location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — go nag them!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy your reminder manually.", 4000);
+  }
+}
+
+$("btn-horse-remind").addEventListener("click", shareHorseReminder);
 
 // Async (invite) games refresh from the server once on entry — see
 // HORSE_PLAN.md's "in-app polling only" decision, no live interval polling.
@@ -6475,7 +6503,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=134").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=135").then((module) => {
       workoutShareMessages = module;
       return module;
     });

@@ -99,3 +99,21 @@ test("Chase shares retain their mode theme while appending weighted and PR conte
     assert.match(message, /Summer PR: 45 → 50/);
   }, "chase-modifiers");
 });
+
+test("Horse reminder messages call out the pending player by name and target", async () => {
+  await withFirstTemplate(({ pickHorseReminderMessage }) => {
+    const message = pickHorseReminderMessage({ name: "Mia", targetLabel: "32+" });
+    assert.match(message, /Mia/);
+    assert.match(message, /32\+/);
+  }, "horse-reminder");
+});
+
+test("Horse reminder messages avoid repeating the same template twice in a row", async () => {
+  await withFirstTemplate(({ pickHorseReminderMessage }) => {
+    const ctx = { name: "Dev", targetLabel: "10+" };
+    const first = pickHorseReminderMessage(ctx);
+    Math.random = () => 0.999999;
+    const second = pickHorseReminderMessage(ctx);
+    assert.notEqual(first, second);
+  }, "horse-reminder-repeat");
+});

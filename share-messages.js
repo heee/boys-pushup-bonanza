@@ -598,3 +598,34 @@ export function pickShareMessage(count, ctx) {
   lastShareTemplate = template;
   return decorateShareMessage(template(count, modeCtx || {}), ctx);
 }
+
+// Nag messages for the Horse turn-order screen's "Remind" button — calls out
+// whoever's up now by name, with the number they have to beat.
+const SHARE_MESSAGES_HORSE_REMINDER = [
+  (c) => `⏰ ${c.name}, the entire Horse game is standing here in silence waiting on you. Beat ${c.targetLabel} or take the L.`,
+  (c) => `🐴 ${c.name} has been "about to do it" for a biblically long time. The bar's at ${c.targetLabel}. Go.`,
+  (c) => `🚨 PSA: ${c.name} is currently the reason this Horse game hasn't moved. Beat ${c.targetLabel}, coward.`,
+  (c) => `${c.name}, ${c.targetLabel} isn't going to beat itself. Neither, apparently, are you. Yet.`,
+  (c) => `We've aged visibly waiting on ${c.name}. The number is ${c.targetLabel}. The clock is not stopping.`,
+  (c) => `📢 ${c.name} to the floor. ${c.targetLabel} to beat. Everyone else has already made peace with the wait.`,
+  (c) => `${c.name}, this is your phone buzzing because you're the bottleneck in a game about pushups. Beat ${c.targetLabel}.`,
+  (c) => `🐴 H-O-R... we're all just watching ${c.name} not do their set. ${c.targetLabel}'s the number. Move.`,
+  (c) => `Legend says ${c.name} is "just about to open the app." Legend has been saying that for a while. ${c.targetLabel} awaits.`,
+  (c) => `${c.name}, the Horse gods demand ${c.targetLabel} reps and an explanation for the delay.`,
+  (c) => `Breaking: local resident ${c.name} discovers phones can also be used to do pushups, not just avoid them. ${c.targetLabel}+.`,
+  (c) => `${c.name} is currently rated "still hasn't beaten ${c.targetLabel}" by everyone in this group chat.`,
+  (c) => `🔔 This is a courtesy reminder that ${c.name} owes the group ${c.targetLabel} reps and a little dignity.`,
+  (c) => `${c.name}, everyone is refreshing the app just to watch you not take your turn. ${c.targetLabel}'s the number.`,
+  (c) => `The turn order has a ${c.name}-shaped hole in it. Fill it with ${c.targetLabel}+ pushups, please and thank you.`,
+  (c) => `${c.name}: still undefeated at avoiding a Horse turn. The rest of us would like to see ${c.targetLabel} beaten today.`,
+];
+
+let lastHorseReminderTemplate = null;
+export function pickHorseReminderMessage(ctx) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(SHARE_MESSAGES_HORSE_REMINDER); guard++; }
+  while (template === lastHorseReminderTemplate && SHARE_MESSAGES_HORSE_REMINDER.length > 1 && guard < 10);
+  lastHorseReminderTemplate = template;
+  return template(ctx);
+}

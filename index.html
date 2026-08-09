@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Pushup Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=153">
+<link rel="stylesheet" href="style.css?v=154">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -286,7 +286,10 @@
 
     <!-- ============ SCREEN: HORSE TURN ORDER ============ -->
     <section id="screen-horse-turn-order" class="screen">
-      <h1 id="horse-order-title" class="screen-title">Horse · Round 1</h1>
+      <div class="horse-order-header">
+        <h1 id="horse-order-title" class="screen-title">Horse · Round 1</h1>
+        <button id="btn-horse-remind" type="button" class="btn btn-small horse-remind-btn btn-with-icon" aria-label="Remind whoever's up">Remind <span class="icon-share" aria-hidden="true"></span></button>
+      </div>
       <p id="horse-order-target-line" class="screen-sub"></p>
       <div id="horse-turn-order-list" class="tier1-list"></div>
       <button id="btn-horse-take-turn" type="button" class="btn btn-giant btn-primary horse-start-btn">Do your set</button>
@@ -900,6 +903,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=166"></script>
+<script type="module" src="app.js?v=167"></script>
 </body>
 </html>

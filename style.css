@@ -1753,6 +1753,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-header-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.2rem; }
 .horse-header-row .screen-title { margin: 0; }
 
+.horse-order-header { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.2rem; }
+.horse-order-header .screen-title { margin: 0; }
+.horse-remind-btn { flex: none; }
+
 /* Collected-letter chip pairing — muted red-brown, distinct from the
    accent-orange "selected" language used everywhere else. */
 :root, :root[data-theme="dark"] { --horse-letter-bg: #5a3530; --horse-letter-text: #e0876f; }
