@@ -2788,6 +2788,40 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .settings-link-row-label { flex: 1; }
 .settings-link-row-chevron { color: var(--text-tertiary); font-size: 1.1rem; }
 
+.settings-category-list { padding: 0 1rem; margin-bottom: 1.25rem; }
+.settings-category-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 0;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.settings-category-row:last-child { border-bottom: none; }
+.settings-category-icon {
+  flex-shrink: 0;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+}
+.settings-category-icon-profile { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.settings-category-icon-workout { background: color-mix(in srgb, var(--flame) 22%, transparent); }
+.settings-category-icon-appearance { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+.settings-category-icon-data { background: color-mix(in srgb, var(--success) 22%, transparent); }
+.settings-category-title { flex: 1; font-weight: 700; font-size: 0.95rem; }
+.settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
+.settings-category-chevron { flex-shrink: 0; color: var(--text-tertiary); font-size: 1.1rem; }
+
 .mode-breakdown-list { margin-top: 1.1rem; }
 .mode-breakdown-row { margin-bottom: 1.05rem; }
 .mode-breakdown-row:last-child { margin-bottom: 0; }

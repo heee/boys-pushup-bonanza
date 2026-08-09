@@ -713,18 +713,65 @@
         <span class="settings-link-row-chevron" aria-hidden="true">›</span>
       </button>
 
+      <div class="settings-block settings-category-list" id="settings-category-list">
+        <button type="button" class="settings-category-row" data-settings-category="profile">
+          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true">👤</span>
+          <span class="settings-category-title">Profile &amp; users</span>
+          <span id="settings-category-profile-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="settings-category-row" data-settings-category="workout">
+          <span class="settings-category-icon settings-category-icon-workout" aria-hidden="true">🏋️</span>
+          <span class="settings-category-title">Workout</span>
+          <span class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="settings-category-row" data-settings-category="appearance">
+          <span class="settings-category-icon settings-category-icon-appearance" aria-hidden="true">🎨</span>
+          <span class="settings-category-title">Appearance</span>
+          <span id="settings-category-appearance-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="settings-category-row" data-settings-category="data">
+          <span class="settings-category-icon settings-category-icon-data" aria-hidden="true">📡</span>
+          <span class="settings-category-title">Data</span>
+          <span class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+      </div>
+
+      <p class="settings-footer">Made in Texas with love 🇺🇸</p>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > PROFILE & USERS ============ -->
+    <section id="screen-settings-profile" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-profile-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Profile &amp; users</h1>
+
       <div class="settings-section">
-        <div class="tier1-eyebrow">Appearance</div>
+        <div class="tier1-eyebrow">Manage users</div>
+        <p class="settings-hint">Tap someone's icon to change their avatar. The trash icon removes all of their sessions from the shared leaderboard — this can't be undone.</p>
+        <div id="manage-users-list" class="manage-users-list settings-block"></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">My sessions</div>
+        <p class="settings-hint">Your own session history. Delete any you logged by mistake.</p>
         <div class="settings-block">
-          <div class="settings-block-row">
-            <label class="field-label" style="margin:0">Theme</label>
-            <div id="theme-select" class="segmented theme-select-compact" role="tablist">
-              <button class="segment" data-theme="light">☀️ Light</button>
-              <button class="segment active" data-theme="dark">🌙 Dark</button>
-            </div>
-          </div>
+          <div id="my-sessions-list" class="my-sessions-list"></div>
+          <button id="btn-my-sessions-more" type="button" class="settings-show-more hidden">Show more</button>
         </div>
       </div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > WORKOUT ============ -->
+    <section id="screen-settings-workout" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-workout-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Workout</h1>
 
       <div class="settings-section">
         <div class="tier1-eyebrow">Workout behavior</div>
@@ -821,21 +868,35 @@
           </label>
         </div>
       </div>
+    </section>
 
-      <div class="settings-section">
-        <div class="tier1-eyebrow">Manage users</div>
-        <p class="settings-hint">Tap someone's icon to change their avatar. The trash icon removes all of their sessions from the shared leaderboard — this can't be undone.</p>
-        <div id="manage-users-list" class="manage-users-list settings-block"></div>
+    <!-- ============ SCREEN: SETTINGS > APPEARANCE ============ -->
+    <section id="screen-settings-appearance" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-appearance-back" type="button" class="challenge-detail-back">← Settings</button>
       </div>
+      <h1 class="screen-title">Appearance</h1>
 
       <div class="settings-section">
-        <div class="tier1-eyebrow">My sessions</div>
-        <p class="settings-hint">Your own session history. Delete any you logged by mistake.</p>
+        <div class="tier1-eyebrow">Appearance</div>
         <div class="settings-block">
-          <div id="my-sessions-list" class="my-sessions-list"></div>
-          <button id="btn-my-sessions-more" type="button" class="settings-show-more hidden">Show more</button>
+          <div class="settings-block-row">
+            <label class="field-label" style="margin:0">Theme</label>
+            <div id="theme-select" class="segmented theme-select-compact" role="tablist">
+              <button class="segment" data-theme="light">☀️ Light</button>
+              <button class="segment active" data-theme="dark">🌙 Dark</button>
+            </div>
+          </div>
         </div>
       </div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > DATA ============ -->
+    <section id="screen-settings-data" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-data-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Data</h1>
 
       <div class="settings-section">
         <div class="tier1-eyebrow">Data &amp; sync</div>
@@ -845,8 +906,6 @@
           <p id="pending-status" class="settings-status" role="status" aria-live="polite"></p>
         </div>
       </div>
-
-      <p class="settings-footer">Made in Texas with love 🇺🇸</p>
     </section>
 
     <!-- ============ SCREEN: MODE BREAKDOWN (Bonanza stats) ============ -->
@@ -936,6 +995,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=169"></script>
+<script type="module" src="app.js?v=170"></script>
 </body>
 </html>

@@ -1268,6 +1268,10 @@ const TAB_FOR_SCREEN = {
   "screen-roadtrip": "btn-nav-roadtrip",
   "screen-roadtrip-detail": "btn-nav-roadtrip",
   "screen-settings": "btn-nav-settings",
+  "screen-settings-profile": "btn-nav-settings",
+  "screen-settings-workout": "btn-nav-settings",
+  "screen-settings-appearance": "btn-nav-settings",
+  "screen-settings-data": "btn-nav-settings",
   "screen-edit-profile": "btn-nav-settings",
   "screen-mode-breakdown": "btn-nav-settings",
 };
@@ -1283,7 +1287,7 @@ function setChromeMinimized(minimized) {
 function showScreen(id) {
   // The Settings capture-test camera has no place to keep running once the
   // screen it's shown on goes away.
-  if (id !== "screen-settings" && squatTraceState.running) stopSquatCaptureTest();
+  if (id !== "screen-settings-workout" && squatTraceState.running) stopSquatCaptureTest();
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(id).classList.add("active");
   state.screen = id;
@@ -1312,7 +1316,8 @@ function showScreen(id) {
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") renderRoadtrip();
   if (id === "screen-roadtrip-detail") renderRoadtripDetail();
-  if (id === "screen-settings") renderSettings();
+  if (id === "screen-settings" || id === "screen-settings-profile" || id === "screen-settings-workout" ||
+    id === "screen-settings-appearance" || id === "screen-settings-data") renderSettings();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
     $("workout-username").textContent = state.currentUser || "Friend";
@@ -1667,7 +1672,25 @@ function renderSettings() {
   renderManageUsers();
   state.mySessionsShown = 5;
   renderMySessions();
+  renderSettingsCategoryValues();
 }
+
+function renderSettingsCategoryValues() {
+  const names = orderedUserNames(getAllSessionsForDisplay(), state.currentUser, { alphabetical: true });
+  $("settings-category-profile-value").textContent = `${names.length} ${names.length === 1 ? "person" : "people"}`;
+  const theme = document.documentElement.getAttribute("data-theme") === "light" ? "Light" : "Dark";
+  $("settings-category-appearance-value").textContent = theme;
+}
+
+$("settings-category-list").addEventListener("click", (e) => {
+  const row = e.target.closest(".settings-category-row");
+  if (!row) return;
+  showScreen(`screen-settings-${row.dataset.settingsCategory}`);
+});
+$("btn-settings-profile-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-settings-workout-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-settings-appearance-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-settings-data-back").addEventListener("click", () => showScreen("screen-settings"));
 
 function renderWeightedSettings() {
   const profile = getWeightedProfile(state.currentUser);
