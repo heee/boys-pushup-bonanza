@@ -32,11 +32,11 @@
       "id": "back-to-school-2026",
       "title": "Back to School: Report Card",
       "emoji": "🎒",
-      "tagline": "Earn your A in pump class. No summer slacking on the transcript.",
+      "tagline": "Earn your A in pump class. No summer slacking on the transcript. 2,800 reps — the old number didn't survive week two.",
       "start": "2026-08-01",
       "end": "2026-08-31",
       "goalType": "individual",
-      "goal": 600,
+      "goal": 2800,
       "gradient": [
         "#8a3a2e",
         "#e8a04a"
@@ -50,7 +50,7 @@
       "start": "2026-09-01",
       "end": "2026-09-30",
       "goalType": "collective",
-      "goal": 10000,
+      "goal": 19000,
       "gradient": [
         "#c9982e",
         "#f5e19a"
@@ -60,11 +60,11 @@
       "id": "pumpkin-spice-2026",
       "title": "Pump-kin Spice",
       "emoji": "🎃",
-      "tagline": "No tricks, all pecs. 666 reps before the witching hour.",
+      "tagline": "No tricks, all pecs. 6,666 reps before the witching hour — quadruple sixes for a group that outgrew the original 666.",
       "start": "2026-10-01",
       "end": "2026-10-31",
       "goalType": "individual",
-      "goal": 666,
+      "goal": 6666,
       "gradient": [
         "#4a2a5e",
         "#e8762e"
@@ -74,11 +74,11 @@
       "id": "club-180-2026",
       "title": "The 180 Club",
       "emoji": "🎯",
-      "tagline": "One week, 180 reps — a perfect checkout. Dart tournament rules: lose a leg, owe ten.",
+      "tagline": "One week, 1,800 reps — ten perfect checkouts. Dart tournament rules: lose a leg, owe ten.",
       "start": "2026-10-12",
       "end": "2026-10-18",
       "goalType": "individual",
-      "goal": 180,
+      "goal": 1800,
       "gradient": [
         "#2e4a2e",
         "#a83232"
@@ -92,7 +92,7 @@
       "start": "2026-11-01",
       "end": "2026-11-26",
       "goalType": "individual",
-      "goal": 500,
+      "goal": 4200,
       "gradient": [
         "#6b4a2e",
         "#c98a3a"
@@ -102,11 +102,11 @@
       "id": "spoetzl-sprint-2026",
       "title": "Spoetzl Sprint",
       "emoji": "🍻",
-      "tagline": "1,909 together before the Shiner pilgrimage — the year Cosmo fired up the brewery. Prost.",
+      "tagline": "19,090 together before the Shiner pilgrimage — ten shifts at the brewery Cosmo fired up in 1909. Prost.",
       "start": "2026-11-09",
       "end": "2026-11-22",
       "goalType": "collective",
-      "goal": 1909,
+      "goal": 19090,
       "gradient": [
         "#6b4a2e",
         "#e8b23a"
@@ -120,10 +120,108 @@
       "start": "2026-11-26",
       "end": "2026-11-26",
       "goalType": "individual",
-      "goal": 100,
+      "goal": 300,
       "gradient": [
         "#8a5a2e",
         "#d99a4a"
+      ]
+    },
+    {
+      "id": "buck-the-floor-2027",
+      "title": "Buck the Floor",
+      "emoji": "🤠",
+      "tagline": "Rodeo Run training season through the last day of RodeoHouston. 8 seconds is a ride, 8 pushups is a warmup.",
+      "start": "2027-02-01",
+      "end": "2027-03-14",
+      "goalType": "individual",
+      "goal": 8500,
+      "gradient": [
+        "#7a4a2e",
+        "#d9b66a"
+      ]
+    },
+    {
+      "id": "super-bowl-sunday-2027",
+      "title": "Super Bowl Sunday",
+      "emoji": "🏈",
+      "tagline": "Flash challenge: 200 reps between kickoff and the final whistle. Halftime show optional, pushups aren't.",
+      "start": "2027-02-14",
+      "end": "2027-02-14",
+      "goalType": "individual",
+      "goal": 380,
+      "gradient": [
+        "#2e5e3a",
+        "#8a6a3a"
+      ]
+    },
+    {
+      "id": "mudbug-madness-2027",
+      "title": "Mudbug Madness",
+      "emoji": "🦞",
+      "tagline": "Crawfish season, baby. Peel. Pinch. Push. Earn your spot at the boil.",
+      "start": "2027-03-15",
+      "end": "2027-04-05",
+      "goalType": "individual",
+      "goal": 4500,
+      "gradient": [
+        "#8a2e2e",
+        "#e8623a"
+      ]
+    },
+    {
+      "id": "go-low-get-high-2027",
+      "title": "420: Go Low to Get High",
+      "emoji": "🌿",
+      "tagline": "Exactly 4,200 reps. Ends 4/20. Ten times blazed through it.",
+      "start": "2027-04-01",
+      "end": "2027-04-20",
+      "goalType": "individual",
+      "goal": 4200,
+      "gradient": [
+        "#2e5e3a",
+        "#8ac850"
+      ]
+    },
+    {
+      "id": "memorial-murph-2027",
+      "title": "Memorial May Murph-ish",
+      "emoji": "🎖️",
+      "tagline": "Honor the fallen the hard way. 900 reps across May.",
+      "start": "2027-05-01",
+      "end": "2027-05-31",
+      "goalType": "individual",
+      "goal": 6700,
+      "gradient": [
+        "#3a4a2e",
+        "#a8b45e"
+      ]
+    },
+    {
+      "id": "pterodactyls-2027",
+      "title": "Make Pterodactyls Fly",
+      "emoji": "🦖",
+      "tagline": "5,000 combined reps — enough collective thrust for takeoff.",
+      "start": "2027-06-01",
+      "end": "2027-06-30",
+      "goalType": "collective",
+      "goal": 34000,
+      "gradient": [
+        "#2e5e5e",
+        "#7ac8a8"
+      ]
+    },
+    {
+      "id": "club-1776-2027",
+      "title": "The 1776 Club",
+      "emoji": "🎆",
+      "tagline": "Texas-sized America challenge. 7,776 reps. Hardcore tier. God bless.",
+      "start": "2027-07-01",
+      "end": "2027-07-31",
+      "goalType": "individual",
+      "goal": 7776,
+      "gradient": [
+        "#8a2e2e",
+        "#2e3a8a"
       ]
     },
     {
@@ -155,101 +253,101 @@
       ]
     },
     {
-      "id": "buck-the-floor-2027",
-      "title": "Buck the Floor",
-      "emoji": "🤠",
-      "tagline": "Rodeo Run training season through the last day of RodeoHouston. 8 seconds is a ride, 8 pushups is a warmup.",
-      "start": "2027-02-01",
-      "end": "2027-03-14",
+      "id": "back-to-school-2027",
+      "title": "Back to School: Report Card II",
+      "emoji": "🎒",
+      "tagline": "Earn your A in pump class, year two. No summer slacking on the transcript.",
+      "start": "2027-08-01",
+      "end": "2027-08-31",
       "goalType": "individual",
-      "goal": 1000,
+      "goal": 7600,
       "gradient": [
-        "#7a4a2e",
-        "#d9b66a"
+        "#8a3a2e",
+        "#e8a04a"
       ]
     },
     {
-      "id": "super-bowl-sunday-2027",
-      "title": "Super Bowl Sunday",
-      "emoji": "🏈",
-      "tagline": "Flash challenge: 200 reps between kickoff and the final whistle. Halftime show optional, pushups aren't.",
-      "start": "2027-02-14",
-      "end": "2027-02-14",
-      "goalType": "individual",
-      "goal": 200,
-      "gradient": [
-        "#2e5e3a",
-        "#8a6a3a"
-      ]
-    },
-    {
-      "id": "mudbug-madness-2027",
-      "title": "Mudbug Madness",
-      "emoji": "🦞",
-      "tagline": "Crawfish season, baby. Peel. Pinch. Push. Earn your spot at the boil.",
-      "start": "2027-03-15",
-      "end": "2027-04-05",
-      "goalType": "individual",
-      "goal": 640,
-      "gradient": [
-        "#8a2e2e",
-        "#e8623a"
-      ]
-    },
-    {
-      "id": "go-low-get-high-2027",
-      "title": "420: Go Low to Get High",
-      "emoji": "🌿",
-      "tagline": "Exactly 420 reps. Ends 4/20. Blaze through it.",
-      "start": "2027-04-01",
-      "end": "2027-04-20",
-      "goalType": "individual",
-      "goal": 420,
-      "gradient": [
-        "#2e5e3a",
-        "#8ac850"
-      ]
-    },
-    {
-      "id": "memorial-murph-2027",
-      "title": "Memorial May Murph-ish",
-      "emoji": "🎖️",
-      "tagline": "Honor the fallen the hard way. 900 reps across May.",
-      "start": "2027-05-01",
-      "end": "2027-05-31",
-      "goalType": "individual",
-      "goal": 900,
-      "gradient": [
-        "#3a4a2e",
-        "#a8b45e"
-      ]
-    },
-    {
-      "id": "pterodactyls-2027",
-      "title": "Make Pterodactyls Fly",
-      "emoji": "🦖",
-      "tagline": "5,000 combined reps — enough collective thrust for takeoff.",
-      "start": "2027-06-01",
-      "end": "2027-06-30",
+      "id": "stein-hoist-2027",
+      "title": "Stein Hoist September II",
+      "emoji": "🍺",
+      "tagline": "Oktoberfest arm insurance, round two. 36,000 together before the first Maß.",
+      "start": "2027-09-01",
+      "end": "2027-09-30",
       "goalType": "collective",
-      "goal": 5000,
+      "goal": 36000,
       "gradient": [
-        "#2e5e5e",
-        "#7ac8a8"
+        "#c9982e",
+        "#f5e19a"
       ]
     },
     {
-      "id": "club-1776-2027",
-      "title": "The 1776 Club",
-      "emoji": "🎆",
-      "tagline": "Texas-sized America challenge. 1,776 reps. Hardcore tier. God bless.",
-      "start": "2027-07-01",
-      "end": "2027-07-31",
+      "id": "pumpkin-spice-2027",
+      "title": "Pump-kin Spice II",
+      "emoji": "🎃",
+      "tagline": "No tricks, all pecs. 8,666 reps before the witching hour.",
+      "start": "2027-10-01",
+      "end": "2027-10-31",
       "goalType": "individual",
-      "goal": 1776,
+      "goal": 8666,
+      "gradient": [
+        "#4a2a5e",
+        "#e8762e"
+      ]
+    },
+    {
+      "id": "trick-or-treat-tally-2027",
+      "title": "Trick or Treat Tally",
+      "emoji": "🍬",
+      "tagline": "Halloween week flash sprint. 2,000 reps before the candy runs out.",
+      "start": "2027-10-25",
+      "end": "2027-10-31",
+      "goalType": "individual",
+      "goal": 2000,
+      "gradient": [
+        "#2e4a2e",
+        "#a83232"
+      ]
+    },
+    {
+      "id": "earn-your-bird-2027",
+      "title": "Earn Your Bird II",
+      "emoji": "🦃",
+      "tagline": "Ends Thanksgiving. Every rep is a guilt-free bite of stuffing.",
+      "start": "2027-11-01",
+      "end": "2027-11-25",
+      "goalType": "individual",
+      "goal": 6500,
+      "gradient": [
+        "#6b4a2e",
+        "#c98a3a"
+      ]
+    },
+    {
+      "id": "turkey-trot-day-2027",
+      "title": "Turkey Trot Day II",
+      "emoji": "🏃",
+      "tagline": "Flash challenge: 500 reps on Thanksgiving Day.",
+      "start": "2027-11-25",
+      "end": "2027-11-25",
+      "goalType": "individual",
+      "goal": 500,
+      "gradient": [
+        "#8a5a2e",
+        "#d99a4a"
+      ]
+    },
+    {
+      "id": "fitmas-2027",
+      "title": "12 Days of Fitmas II",
+      "emoji": "🎅",
+      "tagline": "Survive the holidays. Twelve straight days, no excuses under the tree.",
+      "start": "2027-12-13",
+      "end": "2027-12-24",
+      "goalType": "streak",
+      "goal": 12,
       "gradient": [
         "#8a2e2e",
-        "#2e3a8a"
+        "#2e6b3a"
       ]
     },
     {
@@ -284,11 +382,11 @@
       "id": "king-hill-2026-08-10",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-08-10",
       "end": "2026-08-16",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -298,11 +396,11 @@
       "id": "king-hill-2026-08-17",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-08-17",
       "end": "2026-08-23",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -312,11 +410,11 @@
       "id": "king-hill-2026-08-24",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-08-24",
       "end": "2026-08-30",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -326,11 +424,11 @@
       "id": "king-hill-2026-08-31",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-08-31",
       "end": "2026-09-06",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -340,11 +438,11 @@
       "id": "king-hill-2026-09-07",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-09-07",
       "end": "2026-09-13",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -354,11 +452,11 @@
       "id": "king-hill-2026-09-14",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-09-14",
       "end": "2026-09-20",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -368,11 +466,11 @@
       "id": "king-hill-2026-09-21",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-09-21",
       "end": "2026-09-27",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -382,11 +480,11 @@
       "id": "king-hill-2026-09-28",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 4,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-09-28",
       "end": "2026-10-04",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 4500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -396,11 +494,11 @@
       "id": "king-hill-2026-10-05",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-10-05",
       "end": "2026-10-11",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -410,11 +508,11 @@
       "id": "king-hill-2026-10-12",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-10-12",
       "end": "2026-10-18",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -424,11 +522,11 @@
       "id": "king-hill-2026-10-19",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-10-19",
       "end": "2026-10-25",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -438,11 +536,11 @@
       "id": "king-hill-2026-10-26",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-10-26",
       "end": "2026-11-01",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -452,11 +550,11 @@
       "id": "king-hill-2026-11-02",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-11-02",
       "end": "2026-11-08",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -466,11 +564,11 @@
       "id": "king-hill-2026-11-09",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-11-09",
       "end": "2026-11-15",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -480,11 +578,11 @@
       "id": "king-hill-2026-11-16",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-11-16",
       "end": "2026-11-22",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -494,11 +592,11 @@
       "id": "king-hill-2026-11-23",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-11-23",
       "end": "2026-11-29",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -508,11 +606,11 @@
       "id": "king-hill-2026-11-30",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 5,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-11-30",
       "end": "2026-12-06",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 5500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -522,11 +620,11 @@
       "id": "king-hill-2026-12-07",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 6,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-12-07",
       "end": "2026-12-13",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 6000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -536,11 +634,11 @@
       "id": "king-hill-2026-12-14",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 6,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-12-14",
       "end": "2026-12-20",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 6000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -550,11 +648,11 @@
       "id": "king-hill-2026-12-21",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 6,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-12-21",
       "end": "2026-12-27",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 6000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -564,11 +662,11 @@
       "id": "king-hill-2026-12-28",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 6,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2026-12-28",
       "end": "2027-01-03",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 6000,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -578,11 +676,11 @@
       "id": "king-hill-2027-01-04",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 6,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2027-01-04",
       "end": "2027-01-10",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 6500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -592,11 +690,11 @@
       "id": "king-hill-2027-01-11",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 6,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2027-01-11",
       "end": "2027-01-17",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 6500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -606,11 +704,697 @@
       "id": "king-hill-2027-01-18",
       "title": "King of the Hill",
       "emoji": "⛰️",
-      "tagline": "The Hill = 2,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "tagline": "The Hill = 6,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
       "start": "2027-01-18",
       "end": "2027-01-24",
       "goalType": "collective",
-      "goal": 2500,
+      "goal": 6500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-01-25",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 6,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-01-25",
+      "end": "2027-01-31",
+      "goalType": "collective",
+      "goal": 6500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-02-01",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-02-01",
+      "end": "2027-02-07",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-02-08",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-02-08",
+      "end": "2027-02-14",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-02-15",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-02-15",
+      "end": "2027-02-21",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-02-22",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-02-22",
+      "end": "2027-02-28",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-03-01",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-03-01",
+      "end": "2027-03-07",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-03-08",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-03-08",
+      "end": "2027-03-14",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-03-15",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-03-15",
+      "end": "2027-03-21",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-03-22",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-03-22",
+      "end": "2027-03-28",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-03-29",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-03-29",
+      "end": "2027-04-04",
+      "goalType": "collective",
+      "goal": 7000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-04-05",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-04-05",
+      "end": "2027-04-11",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-04-12",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-04-12",
+      "end": "2027-04-18",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-04-19",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-04-19",
+      "end": "2027-04-25",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-04-26",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-04-26",
+      "end": "2027-05-02",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-05-03",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-05-03",
+      "end": "2027-05-09",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-05-10",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-05-10",
+      "end": "2027-05-16",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-05-17",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-05-17",
+      "end": "2027-05-23",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-05-24",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-05-24",
+      "end": "2027-05-30",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-05-31",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 7,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-05-31",
+      "end": "2027-06-06",
+      "goalType": "collective",
+      "goal": 7500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-06-07",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-06-07",
+      "end": "2027-06-13",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-06-14",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-06-14",
+      "end": "2027-06-20",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-06-21",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-06-21",
+      "end": "2027-06-27",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-06-28",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-06-28",
+      "end": "2027-07-04",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-07-05",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-07-05",
+      "end": "2027-07-11",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-07-12",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-07-12",
+      "end": "2027-07-18",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-07-19",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-07-19",
+      "end": "2027-07-25",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-07-26",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-07-26",
+      "end": "2027-08-01",
+      "goalType": "collective",
+      "goal": 8000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-08-02",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-08-02",
+      "end": "2027-08-08",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-08-09",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-08-09",
+      "end": "2027-08-15",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-08-16",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-08-16",
+      "end": "2027-08-22",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-08-23",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-08-23",
+      "end": "2027-08-29",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-08-30",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-08-30",
+      "end": "2027-09-05",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-09-06",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-09-06",
+      "end": "2027-09-12",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-09-13",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-09-13",
+      "end": "2027-09-19",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-09-20",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-09-20",
+      "end": "2027-09-26",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-09-27",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 8,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-09-27",
+      "end": "2027-10-03",
+      "goalType": "collective",
+      "goal": 8500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-10-04",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-10-04",
+      "end": "2027-10-10",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-10-11",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-10-11",
+      "end": "2027-10-17",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-10-18",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-10-18",
+      "end": "2027-10-24",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-10-25",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-10-25",
+      "end": "2027-10-31",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-11-01",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-11-01",
+      "end": "2027-11-07",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-11-08",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-11-08",
+      "end": "2027-11-14",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-11-15",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-11-15",
+      "end": "2027-11-21",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-11-22",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-11-22",
+      "end": "2027-11-28",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-11-29",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-11-29",
+      "end": "2027-12-05",
+      "goalType": "collective",
+      "goal": 9000,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-12-06",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-12-06",
+      "end": "2027-12-12",
+      "goalType": "collective",
+      "goal": 9500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-12-13",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-12-13",
+      "end": "2027-12-19",
+      "goalType": "collective",
+      "goal": 9500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-12-20",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-12-20",
+      "end": "2027-12-26",
+      "goalType": "collective",
+      "goal": 9500,
+      "gradient": [
+        "#4a3a2e",
+        "#8a9a6e"
+      ]
+    },
+    {
+      "id": "king-hill-2027-12-27",
+      "title": "King of the Hill",
+      "emoji": "⛰️",
+      "tagline": "The Hill = 9,500 pushups. Everyone in the group throws reps at the same weekly mountain.",
+      "start": "2027-12-27",
+      "end": "2028-01-02",
+      "goalType": "collective",
+      "goal": 9500,
       "gradient": [
         "#4a3a2e",
         "#8a9a6e"
@@ -714,6 +1498,383 @@
       "tagline": "One set, one shot — top your own number before Sunday.",
       "start": "2026-11-09",
       "end": "2026-11-15",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2026-11-23",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2026-11-23",
+      "end": "2026-11-29",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2026-12-07",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2026-12-07",
+      "end": "2026-12-13",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2026-12-21",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2026-12-21",
+      "end": "2026-12-27",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-01-04",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-01-04",
+      "end": "2027-01-10",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-01-18",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-01-18",
+      "end": "2027-01-24",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-02-01",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-02-01",
+      "end": "2027-02-07",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-02-15",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-02-15",
+      "end": "2027-02-21",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-03-01",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-03-01",
+      "end": "2027-03-07",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-03-15",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-03-15",
+      "end": "2027-03-21",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-03-29",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-03-29",
+      "end": "2027-04-04",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-04-12",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-04-12",
+      "end": "2027-04-18",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-04-26",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-04-26",
+      "end": "2027-05-02",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-05-10",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-05-10",
+      "end": "2027-05-16",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-05-24",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-05-24",
+      "end": "2027-05-30",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-06-07",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-06-07",
+      "end": "2027-06-13",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-06-21",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-06-21",
+      "end": "2027-06-27",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-07-05",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-07-05",
+      "end": "2027-07-11",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-07-19",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-07-19",
+      "end": "2027-07-25",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-08-02",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-08-02",
+      "end": "2027-08-08",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-08-16",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-08-16",
+      "end": "2027-08-22",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-08-30",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-08-30",
+      "end": "2027-09-05",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-09-13",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-09-13",
+      "end": "2027-09-19",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-09-27",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-09-27",
+      "end": "2027-10-03",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-10-11",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-10-11",
+      "end": "2027-10-17",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-10-25",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-10-25",
+      "end": "2027-10-31",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-11-08",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-11-08",
+      "end": "2027-11-14",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-11-22",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-11-22",
+      "end": "2027-11-28",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-12-06",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-12-06",
+      "end": "2027-12-12",
+      "goalType": "pr",
+      "gradient": [
+        "#4a2e6b",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "pr-week-2027-12-20",
+      "title": "New Max Monday",
+      "emoji": "📈",
+      "tagline": "One set, one shot — top your own number before Sunday.",
+      "start": "2027-12-20",
+      "end": "2027-12-26",
       "goalType": "pr",
       "gradient": [
         "#4a2e6b",
@@ -1033,6 +2194,162 @@
       ]
     },
     {
+      "id": "plank-gauntlet-2027-07-12",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Every second under the sun counts double. Longest hold plus total grind wins the week.",
+      "start": "2027-07-12",
+      "end": "2027-07-18",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-07-26",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Shake, sweat, survive. Your best single hold and your total time on the clock both count.",
+      "start": "2027-07-26",
+      "end": "2027-08-01",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-08-09",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Floor is lava, except the floor is your forearms. Stack the seconds, own the leaderboard.",
+      "start": "2027-08-09",
+      "end": "2027-08-15",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-08-23",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "No reps, just resolve. Longest single hold and cumulative time decide the champion.",
+      "start": "2027-08-23",
+      "end": "2027-08-29",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-09-06",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Two ways to win: one brutal hold, or a pile of shorter ones. Bring both.",
+      "start": "2027-09-06",
+      "end": "2027-09-12",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-09-20",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "The plank never lies. Total time held plus your single best effort settles this.",
+      "start": "2027-09-20",
+      "end": "2027-09-26",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-10-04",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Every second under the sun counts double. Longest hold plus total grind wins the week.",
+      "start": "2027-10-04",
+      "end": "2027-10-10",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-10-18",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Shake, sweat, survive. Your best single hold and your total time on the clock both count.",
+      "start": "2027-10-18",
+      "end": "2027-10-24",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-11-01",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Floor is lava, except the floor is your forearms. Stack the seconds, own the leaderboard.",
+      "start": "2027-11-01",
+      "end": "2027-11-07",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-11-15",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "No reps, just resolve. Longest single hold and cumulative time decide the champion.",
+      "start": "2027-11-15",
+      "end": "2027-11-21",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-11-29",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "Two ways to win: one brutal hold, or a pile of shorter ones. Bring both.",
+      "start": "2027-11-29",
+      "end": "2027-12-05",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
+      "id": "plank-gauntlet-2027-12-13",
+      "title": "Plank Gauntlet",
+      "emoji": "🪵",
+      "tagline": "The plank never lies. Total time held plus your single best effort settles this.",
+      "start": "2027-12-13",
+      "end": "2027-12-19",
+      "goalType": "plankGauntlet",
+      "gradient": [
+        "#2e3a4a",
+        "#7a8ca8"
+      ]
+    },
+    {
       "id": "squat-pr-week-2026-08-10",
       "title": "Squat Max Monday",
       "emoji": "🦵",
@@ -1145,15 +2462,407 @@
       ]
     },
     {
+      "id": "squat-pr-week-2026-11-30",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Legs don't lie. One set, one shot to beat your own number.",
+      "start": "2026-11-30",
+      "end": "2026-12-06",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2026-12-14",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "New wheels, new numbers. Top your best squat set before Sunday.",
+      "start": "2026-12-14",
+      "end": "2026-12-20",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2026-12-28",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Quads on the clock. Beat your own squat record this week.",
+      "start": "2026-12-28",
+      "end": "2027-01-03",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-01-11",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "One rep further than last time is all it takes. Go find it.",
+      "start": "2027-01-11",
+      "end": "2027-01-17",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-01-25",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Your old squat max is now just a starting line.",
+      "start": "2027-01-25",
+      "end": "2027-01-31",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-02-08",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Deep breath, deep squat, new personal best.",
+      "start": "2027-02-08",
+      "end": "2027-02-14",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-02-22",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "The bar for you is you. Beat last week's squat max.",
+      "start": "2027-02-22",
+      "end": "2027-02-28",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-03-08",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Squat something you haven't squatted before.",
+      "start": "2027-03-08",
+      "end": "2027-03-14",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-03-22",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Legs don't lie. One set, one shot to beat your own number.",
+      "start": "2027-03-22",
+      "end": "2027-03-28",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-04-05",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "New wheels, new numbers. Top your best squat set before Sunday.",
+      "start": "2027-04-05",
+      "end": "2027-04-11",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-04-19",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Quads on the clock. Beat your own squat record this week.",
+      "start": "2027-04-19",
+      "end": "2027-04-25",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-05-03",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "One rep further than last time is all it takes. Go find it.",
+      "start": "2027-05-03",
+      "end": "2027-05-09",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-05-17",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Your old squat max is now just a starting line.",
+      "start": "2027-05-17",
+      "end": "2027-05-23",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-05-31",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Deep breath, deep squat, new personal best.",
+      "start": "2027-05-31",
+      "end": "2027-06-06",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-06-14",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "The bar for you is you. Beat last week's squat max.",
+      "start": "2027-06-14",
+      "end": "2027-06-20",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-06-28",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Squat something you haven't squatted before.",
+      "start": "2027-06-28",
+      "end": "2027-07-04",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-07-12",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Legs don't lie. One set, one shot to beat your own number.",
+      "start": "2027-07-12",
+      "end": "2027-07-18",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-07-26",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "New wheels, new numbers. Top your best squat set before Sunday.",
+      "start": "2027-07-26",
+      "end": "2027-08-01",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-08-09",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Quads on the clock. Beat your own squat record this week.",
+      "start": "2027-08-09",
+      "end": "2027-08-15",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-08-23",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "One rep further than last time is all it takes. Go find it.",
+      "start": "2027-08-23",
+      "end": "2027-08-29",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-09-06",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Your old squat max is now just a starting line.",
+      "start": "2027-09-06",
+      "end": "2027-09-12",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-09-20",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Deep breath, deep squat, new personal best.",
+      "start": "2027-09-20",
+      "end": "2027-09-26",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-10-04",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "The bar for you is you. Beat last week's squat max.",
+      "start": "2027-10-04",
+      "end": "2027-10-10",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-10-18",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Squat something you haven't squatted before.",
+      "start": "2027-10-18",
+      "end": "2027-10-24",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-11-01",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Legs don't lie. One set, one shot to beat your own number.",
+      "start": "2027-11-01",
+      "end": "2027-11-07",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-11-15",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "New wheels, new numbers. Top your best squat set before Sunday.",
+      "start": "2027-11-15",
+      "end": "2027-11-21",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-11-29",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "Quads on the clock. Beat your own squat record this week.",
+      "start": "2027-11-29",
+      "end": "2027-12-05",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
+      "id": "squat-pr-week-2027-12-13",
+      "title": "Squat Max Monday",
+      "emoji": "🦵",
+      "tagline": "One rep further than last time is all it takes. Go find it.",
+      "start": "2027-12-13",
+      "end": "2027-12-19",
+      "goalType": "pr",
+      "activity": "squats",
+      "gradient": [
+        "#2e4a3a",
+        "#f2c94c"
+      ]
+    },
+    {
       "id": "squat-stack-2026-09",
       "title": "The Squat Stack",
       "emoji": "🍑",
-      "tagline": "One month, one pile of squats. Everybody throws reps at the same number.",
+      "tagline": "One month, one pile of squats. Everybody throws reps at the same number. 800 squats together this month.",
       "start": "2026-09-01",
       "end": "2026-09-30",
       "goalType": "collective",
       "activity": "squats",
-      "goal": 12000,
+      "goal": 800,
       "gradient": [
         "#2e4a3a",
         "#a8c98a"
@@ -1163,12 +2872,12 @@
       "id": "squat-stack-2026-10",
       "title": "Squatoberfest",
       "emoji": "🎃",
-      "tagline": "Spooky season, sturdier legs. 12,000 squats before the candy runs out.",
+      "tagline": "Spooky season, sturdier legs. 900 squats together this month.",
       "start": "2026-10-01",
       "end": "2026-10-31",
       "goalType": "collective",
       "activity": "squats",
-      "goal": 12000,
+      "goal": 900,
       "gradient": [
         "#2e4a3a",
         "#a8c98a"
@@ -1178,12 +2887,12 @@
       "id": "squat-stack-2026-11",
       "title": "Turkey Leg Day",
       "emoji": "🦃",
-      "tagline": "Build the legs that carry the plate back for seconds.",
+      "tagline": "Build the legs that carry the plate back for seconds. 1,000 squats together this month.",
       "start": "2026-11-01",
       "end": "2026-11-30",
       "goalType": "collective",
       "activity": "squats",
-      "goal": 13000,
+      "goal": 1000,
       "gradient": [
         "#2e4a3a",
         "#a8c98a"
@@ -1193,12 +2902,12 @@
       "id": "squat-stack-2026-12",
       "title": "Holiday Squat Haul",
       "emoji": "🎄",
-      "tagline": "Wrap up the year with a squat pile under the tree.",
+      "tagline": "Wrap up the year with a squat pile under the tree. 1,100 squats together this month.",
       "start": "2026-12-01",
       "end": "2026-12-31",
       "goalType": "collective",
       "activity": "squats",
-      "goal": 13000,
+      "goal": 1100,
       "gradient": [
         "#2e4a3a",
         "#a8c98a"
@@ -1208,12 +2917,177 @@
       "id": "squat-stack-2027-01",
       "title": "New Year, New Squat PR",
       "emoji": "🎆",
-      "tagline": "Resolutions fade. This pile of squats is real.",
+      "tagline": "Resolutions fade. This pile of squats is real. 1,200 squats together this month.",
       "start": "2027-01-01",
       "end": "2027-01-31",
       "goalType": "collective",
       "activity": "squats",
-      "goal": 14000,
+      "goal": 1200,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-02",
+      "title": "Squat Cupid",
+      "emoji": "💘",
+      "tagline": "Legs are the ones that never break your heart. 1,300 squats together this month.",
+      "start": "2027-02-01",
+      "end": "2027-02-28",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1300,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-03",
+      "title": "Rodeo Squats",
+      "emoji": "🤠",
+      "tagline": "Same season as Buck the Floor — build the wheels for it. 1,300 squats together this month.",
+      "start": "2027-03-01",
+      "end": "2027-03-31",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1300,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-04",
+      "title": "Spring Leg Day",
+      "emoji": "🌱",
+      "tagline": "New season, new squat pile. 1,400 squats together this month.",
+      "start": "2027-04-01",
+      "end": "2027-04-30",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1400,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-05",
+      "title": "Memorial Squat March",
+      "emoji": "🎖️",
+      "tagline": "Same month as Memorial May — squats too. 1,400 squats together this month.",
+      "start": "2027-05-01",
+      "end": "2027-05-31",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1400,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-06",
+      "title": "Summer Squat Slam",
+      "emoji": "☀️",
+      "tagline": "Beach season legs, together. 1,500 squats together this month.",
+      "start": "2027-06-01",
+      "end": "2027-06-30",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1500,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-07",
+      "title": "Firecracker Legs",
+      "emoji": "🎆",
+      "tagline": "Same month as the 1776 Club — legs get their own pile. 1,500 squats together this month.",
+      "start": "2027-07-01",
+      "end": "2027-07-31",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1500,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-08",
+      "title": "Back to School Legs",
+      "emoji": "🎒",
+      "tagline": "Report-card season for the lower body. 1,600 squats together this month.",
+      "start": "2027-08-01",
+      "end": "2027-08-31",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1600,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-09",
+      "title": "The Squat Stack: Round Two",
+      "emoji": "🍑",
+      "tagline": "Year two of the pile. 1,600 squats together this month.",
+      "start": "2027-09-01",
+      "end": "2027-09-30",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1600,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-10",
+      "title": "Squatoberfest II",
+      "emoji": "🎃",
+      "tagline": "Spooky season, sturdier legs, again. 1,700 squats together this month.",
+      "start": "2027-10-01",
+      "end": "2027-10-31",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1700,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-11",
+      "title": "Turkey Leg Day II",
+      "emoji": "🦃",
+      "tagline": "Build the legs that carry the plate back for seconds, again. 1,700 squats together this month.",
+      "start": "2027-11-01",
+      "end": "2027-11-30",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1700,
+      "gradient": [
+        "#2e4a3a",
+        "#a8c98a"
+      ]
+    },
+    {
+      "id": "squat-stack-2027-12",
+      "title": "Holiday Squat Haul II",
+      "emoji": "🎄",
+      "tagline": "Wrap up the year with a squat pile under the tree, again. 1,800 squats together this month.",
+      "start": "2027-12-01",
+      "end": "2027-12-31",
+      "goalType": "collective",
+      "activity": "squats",
+      "goal": 1800,
       "gradient": [
         "#2e4a3a",
         "#a8c98a"
