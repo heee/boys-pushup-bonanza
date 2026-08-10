@@ -388,7 +388,8 @@ button, input {
   cursor: pointer;
 }
 .tab-item:active { transform: scale(0.94); }
-.tab-item-icon { font-size: 1.15rem; line-height: 1; }
+.tab-item-icon { display: flex; }
+.tab-item-icon svg { width: 18px; height: 18px; display: block; }
 .tab-item-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.01em; }
 .tab-item.active { color: var(--primary); }
 .tab-item.active .tab-item-label { font-weight: 700; }
