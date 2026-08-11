@@ -78,7 +78,7 @@ import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel } from "./screens/mode-stats.js?v=134";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=3";
 import { comparisonModel } from "./screens/comparison.js?v=132";
-import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
+import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=209";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=141";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
@@ -4827,9 +4827,10 @@ function buildChallengeCard(c, now) {
   }
 
   let metaLine;
+  let prAchievedCount = 0;
   if (c.goalType === "pr") {
-    const achievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${achievedCount} new PR${achievedCount === 1 ? "" : "s"} this week`;
+    prAchievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${prAchievedCount} new PR${prAchievedCount === 1 ? "" : "s"} this week`;
   } else if (c.goalType === "plankGauntlet") {
     metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatDuration(total * 1000)} total plank time logged`;
   } else {
@@ -4837,17 +4838,28 @@ function buildChallengeCard(c, now) {
   }
 
   let html = `
-    <div class="challenge-card-emoji">${c.emoji}</div>
-    <div class="challenge-card-title">${escapeHtml(c.title)}</div>
-    <div class="challenge-card-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${dateLabel}</span></div>
+    <div class="challenge-card-header">
+      <div class="challenge-card-emoji">${c.emoji}</div>
+      <div class="challenge-card-heading">
+        <div class="challenge-card-title">${escapeHtml(c.title)}</div>
+        <div class="challenge-card-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${dateLabel}</span></div>
+      </div>
+    </div>
     <div class="challenge-card-meta">${metaLine}</div>
   `;
 
   // Mini progress bar so status is scannable from the list without opening.
-  // Skipped for "pr" and "plankGauntlet" — the goal is per-person/ranked, so a shared bar doesn't apply.
-  if (status !== "past" && c.goalType !== "pr" && c.goalType !== "plankGauntlet") {
-    html += buildProgressThermometer(challengeListProgress(c), c.goal);
-  }
+  // PR bars show group success rate; Plank has no fixed target, so it shows elapsed time.
+  const isPrProgress = c.goalType === "pr";
+  const isWindowProgress = c.goalType === "plankGauntlet";
+  const progressCurrent = isPrProgress ? challengePrProgress(prAchievedCount, participants.length)
+    : isWindowProgress ? challengeWindowProgress(c, now)
+    : challengeListProgress(c);
+  const progressGoal = isPrProgress || isWindowProgress ? 100 : c.goal;
+  const progressLabel = isPrProgress ? `${prAchievedCount} of ${participants.length} participants set a new PR`
+    : isWindowProgress ? `${progressCurrent}% of challenge window elapsed`
+    : `${formatNumber(progressCurrent)} of ${formatNumber(progressGoal)}`;
+  html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="${progressGoal}" aria-valuenow="${Math.min(progressCurrent, progressGoal)}">${buildProgressThermometer(progressCurrent, progressGoal)}</div>`;
 
   if (status !== "past" && joined) {
     html += `<span class="challenge-joined-chip">✓ In</span>`;

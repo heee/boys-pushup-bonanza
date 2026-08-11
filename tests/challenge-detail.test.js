@@ -4,8 +4,10 @@ import {
   challengeActivityId,
   challengeLeaderboardRows,
   challengeOverviewStats,
+  challengePrProgress,
   challengeShareContext,
   challengeStatusLabel,
+  challengeWindowProgress,
   progressThermometerModel,
   recentChallengeSessions,
 } from "../screens/challenges.js";
@@ -43,6 +45,18 @@ test("thermometer preserves normal, completed, and exceeded states", () => {
   assert.deepEqual(progressThermometerModel(25, 100), { segmented: false, percent: 25, won: false });
   assert.deepEqual(progressThermometerModel(100, 100), { segmented: false, percent: 100, won: true });
   assert.deepEqual(progressThermometerModel(125, 100), { segmented: true, goalPercent: 80, excessPercent: 20 });
+});
+
+test("ranked challenge window progress covers upcoming, active, and past cards", () => {
+  assert.equal(challengeWindowProgress(challenge, new Date(2026, 6, 31)), 0);
+  assert.equal(challengeWindowProgress(challenge, new Date(2026, 7, 11)), 100);
+  assert.equal(challengeWindowProgress(challenge, new Date(2026, 7, 5, 23, 59, 59, 999)), 50);
+});
+
+test("PR progress is the percentage of participants who achieved a new PR", () => {
+  assert.equal(challengePrProgress(0, 0), 0);
+  assert.equal(challengePrProgress(1, 3), 33);
+  assert.equal(challengePrProgress(3, 3), 100);
 });
 
 test("PR leaderboard checks achievers and restarts numeric ranks", () => {

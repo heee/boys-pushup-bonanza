@@ -3130,24 +3130,46 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Challenges ---------------- */
 
-#challenge-tab-select { margin-top: 0.8rem; margin-bottom: 1.2rem; }
+#challenge-tab-select {
+  margin: 0.45rem -1.1rem 0.8rem;
+  padding: 0.8rem 1.1rem 0;
+  background: var(--bg);
+  box-shadow: 0 8px 10px -12px rgba(0, 0, 0, 0.75);
+}
 
-.challenge-list { display: flex; flex-direction: column; gap: 0.8rem; }
+body:has(#screen-challenges.active) #app {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+#screen-challenges { min-height: 0; overflow: hidden; }
+.challenge-list {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.8rem;
+  overflow-y: auto;
+  padding: 0 0.1rem 0.2rem;
+  scrollbar-gutter: stable;
+}
 
 .challenge-card {
   position: relative;
   border-radius: 18px;
-  padding: 1rem 1.1rem;
+  padding: 0.8rem 1rem;
   color: #fff;
   box-shadow: var(--shadow);
   cursor: pointer;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 .challenge-card:active { transform: scale(0.98); }
-.challenge-card-emoji { font-size: 2.6rem; line-height: 1; padding-right: 3.5rem; }
-.challenge-card-title { font-size: 1.15rem; font-weight: 900; margin-top: 0.35rem; padding-right: 3.5rem; }
+.challenge-card-header { display: flex; align-items: center; gap: 0.7rem; padding-right: 3.5rem; }
+.challenge-card-emoji { flex: 0 0 auto; font-size: 2.35rem; line-height: 1; }
+.challenge-card-heading { min-width: 0; }
+.challenge-card-title { font-size: 1.15rem; font-weight: 900; line-height: 1.12; }
 .challenge-card-dates { font-size: 0.82rem; font-weight: 400; opacity: 0.92; margin-top: 0.15rem; }
-.challenge-card-meta { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 400; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-card-meta { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 400; margin-top: 0.45rem; opacity: 0.95; }
 .challenge-stat-icon { display: block; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; }
 .stats-table-label { display: inline-flex; align-items: center; gap: 0.55rem; }
 .stats-table-label .challenge-stat-icon { color: var(--text-tertiary); }
@@ -3190,6 +3212,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    so it uses a dark semi-opaque fill rather than the standard surface
    colors, which would clash against whichever gradient the challenge uses. */
 .challenge-card .thermometer-wrap { max-width: none; margin: 0.6rem 0 0; }
+.challenge-card-progress { line-height: 0; }
 .challenge-card .thermometer-track { height: 4px; background: rgba(0, 0, 0, 0.2); }
 .challenge-card .thermometer-fill { background: var(--text-on-accent); }
 .challenge-card .thermometer-fill.thermometer-win { background: var(--text-on-accent); }

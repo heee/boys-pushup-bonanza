@@ -28,6 +28,18 @@ export function challengeStatusLabel(challenge, now = new Date()) {
   return "Ended";
 }
 
+export function challengeWindowProgress(challenge, now = new Date()) {
+  const { startDate, endDate } = challengeWindow(challenge);
+  if (now <= startDate) return 0;
+  if (now >= endDate) return 100;
+  return Math.round(((now - startDate) / (endDate - startDate)) * 100);
+}
+
+export function challengePrProgress(achievedCount, participantCount) {
+  if (participantCount <= 0) return 0;
+  return Math.min(100, Math.round((achievedCount / participantCount) * 100));
+}
+
 export function challengeOverviewStats(challenge, { participantCount, total, now = new Date(), locale, totalLabel = "Total pushups" } = {}) {
   const status = challengeStatus(challenge, now);
   const common = [

@@ -4,6 +4,7 @@
 - Worker (`worker/index.js`) redeploys are manual: paste into Cloudflare dashboard Quick Edit. No wrangler (Windows ARM64 has no `workerd` build).
 - Before any preview check: unregister service workers + clear caches, then reload.
 - Before `git push`: `git fetch` + check `origin/main` for new commits and merge if needed. Live gameplay data is stored in D1 and never committed to Git.
+- After completing and verifying requested changes, commit and push them live directly without waiting for a separate prompt.
 - Bump `sw.js`'s `CACHE_NAME` on every shipped change.
 - Spoken lines live in `voice-lines.js` (single source of truth). Adding one means
   rerunning `node scripts/generate-voice.js` (needs `OPENAI_API_KEY`) and committing
