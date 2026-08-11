@@ -2532,19 +2532,21 @@ $("btn-horse-open-share").addEventListener("click", shareOpenHorseInvite);
 $("btn-horse-open-exit").addEventListener("click", async (e) => {
   const game = state.horseGame;
   if (!game) return;
-  e.currentTarget.disabled = true;
+  const button = e.currentTarget;
+  const action = button.dataset.action;
+  button.disabled = true;
   try {
-    const res = e.currentTarget.dataset.action === "cancel"
+    const res = action === "cancel"
       ? await workerCancelOpenHorseGame(game.id, state.currentUser)
       : await workerDeclineHorseInvite(game.id, state.currentUser);
     state.horseGame = res.game;
     upsertLocalHorseGame(res.game);
     history.replaceState(null, "", `${location.pathname}${location.search}`);
-    toast(e.currentTarget.dataset.action === "cancel" ? "Open session cancelled" : "You left the game", 2500);
+    toast(action === "cancel" ? "Open session cancelled" : "You left the game", 2500);
     showScreen("screen-user");
   } catch (err) {
     toast(err.message || "Couldn't update the game.", 4000);
-    e.currentTarget.disabled = false;
+    button.disabled = false;
   }
 });
 
