@@ -19,7 +19,11 @@ const location = {
 };
 
 test("formats the canonical hierarchy and normalizes saved device mode", () => {
-  assert.equal(formatTerritoryLocation(location), "Montrose · Houston · United States");
+  assert.equal(formatTerritoryLocation(location), "Montrose · Houston · US");
+  assert.equal(formatTerritoryLocation({
+    ...location,
+    country: { id: "country:ca", name: "Canada", code: "CA" },
+  }), "Montrose · Houston · Canada");
   assert.equal(formatTerritoryLocation(null), "Unknown location");
   assert.deepEqual(normalizeDeviceLocationProfile({ mode: "manual", location }), { mode: "manual", location });
   assert.deepEqual(normalizeDeviceLocationProfile({ mode: "automatic", location: null }), { mode: "automatic", location: null });

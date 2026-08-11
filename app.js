@@ -4543,6 +4543,19 @@ function buildJoinedBanner(c, now) {
   return banner;
 }
 
+// Challenge stats use the same simple, rounded, stroke-only visual language
+// as the bottom navigation. Hero and celebration emoji remain expressive
+// artwork; these icons are strictly for compact data labels.
+function challengeStatIconHTML(icon) {
+  const drawings = {
+    participants: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    total: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    duration: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+    status: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  };
+  return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
+}
+
 function buildChallengeCard(c, now) {
   const status = challengeStatus(c, now);
   const participants = challengeParticipantsOf(c);
@@ -4568,11 +4581,11 @@ function buildChallengeCard(c, now) {
   let metaLine;
   if (c.goalType === "pr") {
     const achievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
-    metaLine = `👥 ${participants.length} joined · ${achievedCount} new PR${achievedCount === 1 ? "" : "s"} this week`;
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${achievedCount} new PR${achievedCount === 1 ? "" : "s"} this week`;
   } else if (c.goalType === "plankGauntlet") {
-    metaLine = `👥 ${participants.length} joined · ${formatDuration(total * 1000)} total plank time logged`;
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatDuration(total * 1000)} total plank time logged`;
   } else {
-    metaLine = `👥 ${participants.length} joined · ${formatNumber(total)} total ${challengeActivity(c)} so far`;
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatNumber(total)} total ${challengeActivity(c)} so far`;
   }
 
   let html = `
@@ -4948,7 +4961,7 @@ function renderChallengeDetail() {
     <div class="stats-table">
       ${challengeStats.map((s) => `
         <div class="stats-table-row">
-          <span class="stats-table-label">${s.icon} ${s.label}</span>
+          <span class="stats-table-label">${challengeStatIconHTML(s.icon)}<span>${s.label}</span></span>
           <span class="stats-table-value">${s.value}</span>
         </div>
       `).join("")}
@@ -5250,6 +5263,15 @@ function maybeEncourage(count) {
 
 function updateThermometer(count) {
   const wrap = $("thermometer-wrap");
+  // Rep updates run this after every detection, so honor the centralized HUD
+  // visibility rule here as well as during initial screen setup. Otherwise
+  // Horse's hidden personal-best meter reappears after rep one beneath its
+  // opponent-overtake meter.
+  const hud = workoutHudModel(state.pushupMode, state.highScore, state.fortuneChallenge);
+  if (hud.hideThermometer) {
+    wrap.classList.add("hidden");
+    return;
+  }
   // Countdown mode fills toward the countdown target (PR+1); Classic and
   // Cards both fill toward the plain high score, same as always.
   const goal = state.pushupMode === "countdown" ? state.countdownTarget : state.highScore;

@@ -1876,11 +1876,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-player-tag { font-size: 0.75rem; font-weight: 700; color: var(--primary); }
 .horse-player-status-waiting { font-size: 0.75rem; font-weight: 700; color: var(--text-tertiary); }
 .horse-player-status-out { font-size: 0.75rem; font-weight: 700; color: var(--danger); text-decoration: line-through; }
-/* inset, not outset — .tier1-list clips overflow for its rounded corners,
-   so a shadow drawn outward off a full-width row's edges got cropped left,
-   right, and (when active row was last) bottom. Inset draws inside the
-   row's own box instead, so it's never clipped. */
-.tier1-row.horse-row-active { background: var(--bg-elevated-2); box-shadow: inset 0 0 0 1.5px var(--primary); border-radius: 12px; }
+/* Keep the active outline inside the row and clear of .tier1-list's rounded
+   overflow clip. Drawing directly on the row still lets Safari trim the
+   stroke's antialiased corner pixels when the active row touches a list edge. */
+.tier1-row.horse-row-active { position: relative; background: var(--bg-elevated-2); border-radius: 12px; }
+.tier1-row.horse-row-active::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  pointer-events: none;
+}
 .tier1-row.horse-row-out { opacity: 0.5; }
 
 .horse-mini-strip { display: flex; gap: 0.2rem; }
@@ -3112,7 +3119,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .challenge-card-emoji { font-size: 2.6rem; line-height: 1; padding-right: 3.5rem; }
 .challenge-card-title { font-size: 1.15rem; font-weight: 900; margin-top: 0.35rem; padding-right: 3.5rem; }
 .challenge-card-dates { font-size: 0.82rem; font-weight: 400; opacity: 0.92; margin-top: 0.15rem; }
-.challenge-card-meta { font-size: 0.85rem; font-weight: 400; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-card-meta { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 400; margin-top: 0.5rem; opacity: 0.95; }
+.challenge-stat-icon { display: block; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; }
+.stats-table-label { display: inline-flex; align-items: center; gap: 0.55rem; }
+.stats-table-label .challenge-stat-icon { color: var(--text-tertiary); }
 .challenge-winner-line { margin-top: 0.5rem; font-weight: 400; font-size: 0.9rem; }
 
 .join-success-banner {

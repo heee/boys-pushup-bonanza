@@ -15,8 +15,21 @@ const now = new Date(2026, 7, 2, 12);
 test("challenge detail status and overview preserve active display", () => {
   assert.equal(challengeStatusLabel(challenge, now), "9 days left");
   assert.deepEqual(challengeOverviewStats(challenge, { participantCount: 3, total: 75, now }), [
-    { icon: "👥", label: "Participants", value: 3 },
-    { icon: "🔢", label: "Total pushups", value: 75 },
+    { icon: "participants", label: "Participants", value: 3 },
+    { icon: "total", label: "Total pushups", value: 75 },
+  ]);
+});
+
+test("challenge overview assigns stroke-icon ids to every stat type", () => {
+  const upcoming = challengeOverviewStats(
+    { ...challenge, start: "2026-08-20", end: "2026-08-25" },
+    { participantCount: 3, total: 75, now, locale: "en-US" }
+  );
+  assert.deepEqual(upcoming.map(({ icon, label }) => [icon, label]), [
+    ["duration", "Duration"],
+    ["participants", "Participants"],
+    ["total", "Total pushups"],
+    ["status", "Days until start"],
   ]);
 });
 
@@ -68,8 +81,8 @@ test("plank gauntlet overview stats accept a custom total label", () => {
   assert.deepEqual(
     challengeOverviewStats({ ...challenge, goalType: "plankGauntlet" }, { participantCount: 2, total: "5:20", now, totalLabel: "Total plank time" }),
     [
-      { icon: "👥", label: "Participants", value: 2 },
-      { icon: "🔢", label: "Total plank time", value: "5:20" },
+      { icon: "participants", label: "Participants", value: 2 },
+      { icon: "total", label: "Total plank time", value: "5:20" },
     ]
   );
 });

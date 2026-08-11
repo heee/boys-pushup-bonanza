@@ -46,7 +46,10 @@ export function normalizeDeviceLocationProfile(value) {
 export function formatTerritoryLocation(value, fallback = "Unknown location") {
   const location = normalizeTerritoryLocation(value);
   if (!location) return fallback;
-  const names = [location.neighborhood?.name, location.city?.name, location.country.name]
+  const countryName = location.country.name.toLocaleLowerCase() === "united states"
+    ? "US"
+    : location.country.name;
+  const names = [location.neighborhood?.name, location.city?.name, countryName]
     .filter(Boolean)
     .filter((name, index, all) => index === 0 || name.toLocaleLowerCase() !== all[index - 1].toLocaleLowerCase());
   return names.join(" · ") || fallback;

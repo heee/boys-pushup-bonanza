@@ -31,15 +31,15 @@ export function challengeStatusLabel(challenge, now = new Date()) {
 export function challengeOverviewStats(challenge, { participantCount, total, now = new Date(), locale, totalLabel = "Total pushups" } = {}) {
   const status = challengeStatus(challenge, now);
   const common = [
-    { icon: "👥", label: "Participants", value: participantCount },
-    { icon: "🔢", label: totalLabel, value: total },
+    { icon: "participants", label: "Participants", value: participantCount },
+    { icon: "total", label: totalLabel, value: total },
   ];
   if (status === "active") return common;
   const overview = status === "past" ? { label: "Status", value: "Ended" } : { label: "Days until start", value: daysUntilStart(challenge, now) };
   return [
-    { icon: "📅", label: "Duration", value: formatChallengeDates(challenge, locale) },
+    { icon: "duration", label: "Duration", value: formatChallengeDates(challenge, locale) },
     ...common,
-    { icon: "⏳", ...overview },
+    { icon: "status", ...overview },
   ];
 }
 
