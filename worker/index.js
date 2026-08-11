@@ -33,6 +33,8 @@
 //   POST /create-challenge -> { title, tagline, emoji, goalType, goal, start, end, gradient?, createdBy }
 //                              -> stores a user-created challenge in D1, server-assigns the id
 //   POST /horse-create -> { id?, word, sessionType, createdBy, players } -> creates a Horse game
+//   POST /horse-join   -> { gameId, user } -> joins an active Open game (max 4)
+//   POST /horse-cancel -> { gameId, user } -> host cancels an Open game before a challenger joins
 //   POST /horse-turn   -> { gameId, user, reps, modifier? } -> applies the current player's
 //                          completed set; modifier is recorded as the new target's
 //                          targetModifier, which the next player has to match
@@ -338,15 +340,78 @@ export default {
       }
 
       try {
-        const game = await loadHorseGame(env.DB, gameId);
-        if (!game) return json({ error: "game not found" }, 404, cors);
-        if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
-        if (currentTurnPlayer(game) !== user) return json({ error: "not this player's turn" }, 403, cors);
-        const updated = applyTurn(game, { user, reps, modifier, now: Date.now() });
-        await upsertHorseGame(env.DB, updated);
-        return json({ ok: true, game: updated }, 200, cors);
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadHorseGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
+          if (currentTurnPlayer(game) !== user) return json({ error: "not this player's turn" }, 403, cors);
+          const updated = applyTurn(game, { user, reps, modifier, now: Date.now() });
+          if (await replaceHorseGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while posting the turn; try again" }, 409, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/horse-join" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!gameId || !user) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadHorseGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          const updated = joinOpenPlayer(game, { user, now: Date.now() });
+          if (updated === game || await replaceHorseGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while joining; try again" }, 409, cors);
+      } catch (e) {
+        const status = /full|not active/i.test(e.message) ? 409 : 400;
+        return json({ error: e.message }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/horse-cancel" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!gameId || !user) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadHorseGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          const updated = cancelOpenGame(game, { user, now: Date.now() });
+          if (await replaceHorseGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while cancelling; try again" }, 409, cors);
+      } catch (e) {
+        return json({ error: e.message }, /already has challengers|not active/i.test(e.message) ? 409 : 403, cors);
       }
     }
 
@@ -748,13 +813,15 @@ export function validateHorseCreate(body) {
   if (!body || typeof body !== "object") return null;
   const word = typeof body.word === "string" ? body.word.trim().toUpperCase() : "";
   if (!/^[A-Z]{5}$/.test(word)) return null;
-  const sessionType = body.sessionType === "invite" ? "invite" : "live";
+  const sessionType = ["invite", "open"].includes(body.sessionType) ? body.sessionType : "live";
   const createdBy = typeof body.createdBy === "string" ? body.createdBy.trim().slice(0, 40) : "";
   if (!createdBy) return null;
   const players = Array.isArray(body.players)
     ? [...new Set(body.players.map((p) => (typeof p === "string" ? p.trim().slice(0, 40) : "")).filter(Boolean))]
     : [];
-  if (players.length < 2 || players.length > 8 || !players.includes(createdBy)) return null;
+  const minimumPlayers = sessionType === "open" ? 1 : 2;
+  const maximumPlayers = sessionType === "open" ? 4 : 8;
+  if (players.length < minimumPlayers || players.length > maximumPlayers || !players.includes(createdBy)) return null;
   const id = typeof body.id === "string" && /^[a-z0-9-]{1,64}$/.test(body.id)
     ? body.id
     : `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -762,11 +829,18 @@ export function validateHorseCreate(body) {
 }
 
 export function createHorseGame({ id, word, sessionType, createdBy, players, now = Date.now() }) {
-  if (!Array.isArray(players) || players.length < 2) throw new Error("Horse needs at least 2 players");
+  const minimumPlayers = sessionType === "open" ? 1 : 2;
+  if (!Array.isArray(players) || players.length < minimumPlayers) throw new Error(`Horse needs at least ${minimumPlayers} player${minimumPlayers === 1 ? "" : "s"}`);
+  if (sessionType === "open" && players.length > 4) throw new Error("Open Horse is limited to 4 players");
   if (!players.includes(createdBy)) throw new Error("Creator must be in the player list");
   const turnOrder = [...players];
   const playersState = {};
-  for (const name of turnOrder) playersState[name] = { letters: 0, out: false, outAt: null };
+  for (const name of turnOrder) playersState[name] = {
+    letters: 0,
+    out: false,
+    outAt: null,
+    ...(sessionType === "open" ? { joinedAt: now } : {}),
+  };
   return {
     id,
     word: word.toUpperCase(),
@@ -789,11 +863,41 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, now
 
 function horseCheckWinner(game) {
   const active = game.turnOrder.filter((name) => !game.players[name].out);
+  if (game.turnOrder.length < 2) return null;
   if (game.turnOrder.length === 2) {
     const outPlayer = game.turnOrder.find((name) => game.players[name].out);
     return outPlayer ? game.turnOrder.find((name) => name !== outPlayer) : null;
   }
   return active.length === 1 ? active[0] : null;
+}
+
+// Open links can be tapped by several people at once. Compare the exact JSON
+// read above before replacing it so concurrent joins/cancellation cannot
+// silently overwrite each other; callers retry from fresh state on conflict.
+async function replaceHorseGameIfUnchanged(db, before, after) {
+  const result = await db.prepare(
+    "UPDATE horse_games SET data_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND data_json = ?"
+  ).bind(JSON.stringify(after), before.id, JSON.stringify(before)).run();
+  return Number(result.meta?.changes || 0) === 1;
+}
+
+export function joinOpenPlayer(game, { user, now = Date.now() }) {
+  if (game.status !== "active" || game.sessionType !== "open") throw new Error("Open game is not active");
+  const name = String(user || "").trim();
+  if (!name) throw new Error("Player name is required");
+  if (game.turnOrder.includes(name)) return game;
+  if (game.turnOrder.length >= 4) throw new Error("Open game is full");
+  const turnOrder = [...game.turnOrder, name];
+  const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };
+  const hostSetBarWhileAlone = game.turnOrder.length === 1 && game.target != null;
+  return { ...game, turnOrder, players, ...(hostSetBarWhileAlone ? { turnIndex: 1, turnStartedAt: now } : {}) };
+}
+
+export function cancelOpenGame(game, { user, now = Date.now() }) {
+  if (game.status !== "active" || game.sessionType !== "open") throw new Error("Open game is not active");
+  if (game.createdBy !== user) throw new Error("Only the host can cancel this game");
+  if (game.turnOrder.length > 1) throw new Error("The game already has challengers");
+  return { ...game, status: "cancelled", cancelledAt: now, turnStartedAt: null };
 }
 
 function horseAdvanceTurn(game, now) {
@@ -868,6 +972,7 @@ export function skipStalledPlayer(game, { now = Date.now(), maxAgeMs = HORSE_STA
 export function declinePlayer(game, { user, now = Date.now() }) {
   if (game.status !== "active") throw new Error("Game is not active");
   if (!game.turnOrder.includes(user)) throw new Error("Player not in game");
+  if (game.sessionType === "open" && user === game.createdBy) throw new Error("The host must cancel the game");
   if (game.sets.some((set) => set.user === user)) throw new Error("Player already took a turn");
 
   const wasCurrentTurn = currentTurnPlayer(game) === user;
@@ -876,7 +981,7 @@ export function declinePlayer(game, { user, now = Date.now() }) {
   const players = { ...game.players };
   delete players[user];
 
-  if (turnOrder.length < 2) {
+  if (turnOrder.length < 2 && game.sessionType !== "open") {
     return { ...game, turnOrder, players, status: "voided", turnStartedAt: null };
   }
 

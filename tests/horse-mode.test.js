@@ -2,12 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   applyTurn,
+  cancelOpenGame,
   createHorseGame,
   currentTurnPlayer,
   declinePlayer,
   horsePlayerRows,
   horseTargetLabel,
   isTurnStalled,
+  joinOpenPlayer,
   skipStalledPlayer,
 } from "../horse.js";
 import { HORSE_WORDS, randomHorseWord } from "../horse-words.js";
@@ -33,6 +35,56 @@ test("createHorseGame normalizes the word and seeds player state", () => {
 test("createHorseGame rejects fewer than 2 players or a creator not in the list", () => {
   assert.throws(() => createHorseGame({ id: "x", word: "horse", sessionType: "live", createdBy: "You", players: ["You"] }));
   assert.throws(() => createHorseGame({ id: "x", word: "horse", sessionType: "live", createdBy: "Nobody", players: ["You", "Mia"] }));
+});
+
+test("Open Horse starts with the host alone and does not crown a solo winner", () => {
+  let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
+  g = applyTurn(g, { user: "You", reps: 24, now: 2 });
+  assert.equal(g.status, "active");
+  assert.equal(g.winner, null);
+  assert.equal(g.target, 24);
+});
+
+test("first Open challenger is immediately up when the host already set the bar", () => {
+  let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
+  g = applyTurn(g, { user: "You", reps: 24, now: 2 });
+  g = joinOpenPlayer(g, { user: "Mia", now: 3 });
+  assert.deepEqual(g.turnOrder, ["You", "Mia"]);
+  assert.equal(currentTurnPlayer(g), "Mia");
+  assert.equal(g.players.Mia.joinedAt, 3);
+});
+
+test("Open challengers joining before the first set queue behind the host in arrival order", () => {
+  let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
+  g = joinOpenPlayer(g, { user: "Mia", now: 2 });
+  g = joinOpenPlayer(g, { user: "Dev", now: 3 });
+  assert.equal(currentTurnPlayer(g), "You");
+  assert.deepEqual(g.turnOrder, ["You", "Mia", "Dev"]);
+  assert.equal(g.players.Dev.letters, 0);
+});
+
+test("Open Horse caps at four and treats repeat joins as idempotent", () => {
+  let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
+  for (const name of ["Mia", "Dev", "Lee"]) g = joinOpenPlayer(g, { user: name });
+  assert.equal(joinOpenPlayer(g, { user: "Mia" }), g);
+  assert.throws(() => joinOpenPlayer(g, { user: "Sam" }), /full/);
+});
+
+test("an Open player can leave before playing and frees the slot without voiding the host", () => {
+  let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
+  g = joinOpenPlayer(g, { user: "Mia", now: 2 });
+  g = declinePlayer(g, { user: "Mia", now: 3 });
+  assert.equal(g.status, "active");
+  assert.deepEqual(g.turnOrder, ["You"]);
+  assert.throws(() => declinePlayer(g, { user: "You" }), /cancel/);
+});
+
+test("only a solo Open host can cancel", () => {
+  const solo = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
+  assert.equal(cancelOpenGame(solo, { user: "You", now: 2 }).status, "cancelled");
+  const joined = joinOpenPlayer(solo, { user: "Mia", now: 3 });
+  assert.throws(() => cancelOpenGame(joined, { user: "You" }), /challengers/);
+  assert.throws(() => cancelOpenGame(solo, { user: "Mia" }), /host/);
 });
 
 test("opening set has no target and always sets the bar without a letter", () => {

@@ -39,3 +39,23 @@ export function horseSummaryRows(game) {
   });
   return winner ? [row(winner, true), ...others.map((name) => row(name, false))] : others.map((name) => row(name, false));
 }
+
+export function horseInviteUrl(gameId, locationLike = globalThis.location) {
+  const base = `${locationLike.origin}${locationLike.pathname}`;
+  return `${base}#horse=${encodeURIComponent(gameId)}`;
+}
+
+export function openHorseJoinModel(game, user) {
+  if (!game) return { state: "missing", title: "Session not found", canJoin: false };
+  if (game.sessionType !== "open") return { state: "unavailable", title: "This isn't an Open session", canJoin: false };
+  if (game.status === "cancelled") return { state: "cancelled", title: "Session cancelled", canJoin: false };
+  if (game.status !== "active") return { state: "finished", title: "This Horse game has ended", canJoin: false };
+  if (game.turnOrder.includes(user)) return { state: "joined", title: "You're already in", canJoin: false };
+  if (game.turnOrder.length >= 4) return { state: "full", title: "This session is full", canJoin: false };
+  return {
+    state: "ready",
+    title: `Join ${game.createdBy}'s Horse game?`,
+    canJoin: true,
+    slotsLeft: 4 - game.turnOrder.length,
+  };
+}

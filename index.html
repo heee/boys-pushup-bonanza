@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=160">
+<link rel="stylesheet" href="style.css?v=161">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -272,6 +272,7 @@
       <div id="horse-session-select" class="segmented" role="tablist">
         <button type="button" class="segment active" id="horse-session-live" data-horse-session="live">Live · pass phone</button>
         <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite">Invite friends</button>
+        <button type="button" class="segment" id="horse-session-open" data-horse-session="open">Open · share link</button>
       </div>
       <p id="horse-session-note" class="screen-sub hidden">Other players get a bell notification on Home when it's their turn.</p>
 
@@ -285,6 +286,22 @@
       <button id="btn-horse-start" type="button" class="btn btn-giant btn-primary horse-start-btn">Do your set — sets the bar</button>
     </section>
 
+    <!-- ============ SCREEN: OPEN HORSE LINK ============ -->
+    <section id="screen-horse-join" class="screen horse-join-screen">
+      <div class="horse-header-row">
+        <button id="btn-horse-join-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 class="screen-title">Open Horse</h1>
+      </div>
+      <div class="horse-open-card">
+        <div class="horse-open-icon" aria-hidden="true">🐴</div>
+        <h2 id="horse-join-title" class="horse-open-title"></h2>
+        <p id="horse-join-sub" class="screen-sub"></p>
+        <div id="horse-join-player-list" class="tier1-list"></div>
+      </div>
+      <button id="btn-horse-confirm-join" type="button" class="btn btn-giant btn-primary horse-start-btn">Join game</button>
+      <button id="btn-horse-view-joined" type="button" class="btn btn-giant btn-secondary horse-start-btn hidden">View game</button>
+    </section>
+
     <!-- ============ SCREEN: HORSE TURN ORDER ============ -->
     <section id="screen-horse-turn-order" class="screen">
       <div id="horse-turnorder-confetti" class="confetti" aria-hidden="true"></div>
@@ -296,6 +313,17 @@
         </button>
       </div>
       <p id="horse-order-target-line" class="screen-sub"></p>
+      <div id="horse-open-controls" class="horse-open-card hidden">
+        <div class="horse-open-share-row">
+          <div>
+            <p class="horse-open-eyebrow">OPEN SESSION</p>
+            <p id="horse-open-slots" class="horse-open-slots"></p>
+          </div>
+          <button id="btn-horse-open-share" type="button" class="btn btn-secondary horse-open-share-btn">Share invite</button>
+        </div>
+        <p id="horse-open-link" class="horse-open-link"></p>
+        <button id="btn-horse-open-exit" type="button" class="horse-open-exit-btn"></button>
+      </div>
       <div id="horse-turn-order-list" class="tier1-list"></div>
       <button id="btn-horse-take-turn" type="button" class="btn btn-giant btn-primary horse-start-btn">Do your set</button>
     </section>
@@ -1059,6 +1087,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=176"></script>
+<script type="module" src="app.js?v=177"></script>
 </body>
 </html>

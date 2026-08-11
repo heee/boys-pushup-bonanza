@@ -6,10 +6,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   applyTurn,
+  cancelOpenGame,
   createHorseGame,
   currentTurnPlayer,
   declinePlayer,
   isTurnStalled,
+  joinOpenPlayer,
   skipStalledPlayer,
   validateHorseCreate,
 } from "../worker/index.js";
@@ -111,4 +113,22 @@ test("validateHorseCreate enforces a 5-letter word, 2-8 players, and creator mem
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "Nobody", players: ["You", "Mia"] }), null);
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You", "You", "Mia"] }).players.length, 2);
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You", "Mia"], sessionType: "invite" }).sessionType, "invite");
+});
+
+test("Worker Open rules allow one host, queue up to three joins, and support cancellation", () => {
+  const input = validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You"], sessionType: "open" });
+  assert.equal(input.sessionType, "open");
+  let g = createHorseGame({ ...input, now: 1 });
+  g = applyTurn(g, { user: "You", reps: 20, now: 2 });
+  assert.equal(g.status, "active");
+  g = joinOpenPlayer(g, { user: "Mia", now: 3 });
+  assert.equal(currentTurnPlayer(g), "Mia");
+  g = declinePlayer(g, { user: "Mia", now: 4 });
+  assert.equal(g.status, "active");
+  assert.equal(cancelOpenGame(g, { user: "You", now: 5 }).status, "cancelled");
+});
+
+test("validateHorseCreate caps Open sessions at four players", () => {
+  assert.ok(validateHorseCreate({ word: "HORSE", createdBy: "A", players: ["A"], sessionType: "open" }));
+  assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "A", players: ["A", "B", "C", "D", "E"], sessionType: "open" }), null);
 });

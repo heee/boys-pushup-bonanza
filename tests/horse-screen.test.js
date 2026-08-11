@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { horseSummaryRows, horseTurnHeroCopy, horseWordChips } from "../screens/horse.js";
+import { horseInviteUrl, horseSummaryRows, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "../screens/horse.js";
 import { applyTurn, createHorseGame } from "../horse.js";
 
 test("horseWordChips marks the collected prefix filled", () => {
@@ -42,4 +42,16 @@ test("horseSummaryRows puts the winner first, then eliminated players by longest
   assert.deepEqual(rows.map((r) => r.name), ["Dev", "You", "Priya", "Mia"]);
   assert.equal(rows[0].isWinner, true);
   assert.equal(rows[1].wordSoFar, "HORS");
+});
+
+test("Open Horse share links preserve the app path and identify the game", () => {
+  assert.equal(horseInviteUrl("hg-123", { origin: "https://example.com", pathname: "/bonanza/" }), "https://example.com/bonanza/#horse=hg-123");
+});
+
+test("Open Horse join model handles ready, joined, full, and inactive links", () => {
+  const game = { sessionType: "open", status: "active", createdBy: "You", turnOrder: ["You"], players: { You: {} } };
+  assert.deepEqual(openHorseJoinModel(game, "Mia"), { state: "ready", title: "Join You's Horse game?", canJoin: true, slotsLeft: 3 });
+  assert.equal(openHorseJoinModel(game, "You").state, "joined");
+  assert.equal(openHorseJoinModel({ ...game, turnOrder: ["You", "A", "B", "C"] }, "Mia").state, "full");
+  assert.equal(openHorseJoinModel({ ...game, status: "cancelled" }, "Mia").state, "cancelled");
 });

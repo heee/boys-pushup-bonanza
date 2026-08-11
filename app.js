@@ -82,7 +82,7 @@ import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUser
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=3";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
 import { applyTurn, createHorseGame, currentTurnPlayer, horsePlayerRows, horseTargetLabel, isTurnStalled } from "./horse.js";
-import { horseSummaryRows, horseTurnHeroCopy, horseWordChips } from "./screens/horse.js";
+import { horseInviteUrl, horseSummaryRows, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
@@ -496,6 +496,12 @@ async function workerCreateChallenge(challenge) {
 
 async function workerCreateHorseGame(input) {
   return workerApi.createHorseGame(input);
+}
+async function workerJoinOpenHorseGame(gameId, user) {
+  return workerApi.joinOpenHorseGame(gameId, user);
+}
+async function workerCancelOpenHorseGame(gameId, user) {
+  return workerApi.cancelOpenHorseGame(gameId, user);
 }
 async function workerPostHorseTurn(payload) {
   return workerApi.postHorseTurn(payload);
@@ -1311,6 +1317,7 @@ const TAB_FOR_SCREEN = {
   "screen-explore-modes": "btn-nav-home",
   "screen-pyramid-setup": "btn-nav-home",
   "screen-horse-setup": "btn-nav-home",
+  "screen-horse-join": "btn-nav-home",
   "screen-horse-turn-order": "btn-nav-home",
   "screen-horse-letter": "btn-nav-home",
   "screen-horse-summary": "btn-nav-home",
@@ -1543,6 +1550,10 @@ function selectUser(name, avatarId) {
   state.currentUser = name;
   state.currentAvatar = avatarId || avatarForUser(name).id;
   localStorage.setItem(LS.lastUser, name);
+  if (horseLinkGameId()) {
+    openHorseGameFromHash();
+    return;
+  }
   showScreen("screen-workout");
 }
 
@@ -2230,7 +2241,11 @@ function renderHorseSessionUI() {
   document.querySelectorAll("#horse-session-select .segment[data-horse-session]").forEach((s) => {
     s.classList.toggle("active", s.dataset.horseSession === state.horseSessionType);
   });
-  $("horse-session-note").classList.toggle("hidden", state.horseSessionType !== "invite");
+  const note = $("horse-session-note");
+  note.classList.toggle("hidden", state.horseSessionType === "live");
+  note.textContent = state.horseSessionType === "open"
+    ? "Create a private link. Up to three players can join in link order, even after play starts."
+    : "Other players get a bell notification on Home when it's their turn.";
 }
 
 let horseInviteExpanded = false;
@@ -2254,7 +2269,9 @@ function renderHorsePlayerList() {
   const known = orderedUserNames(getAllSessionsForDisplay(), state.currentUser)
     .filter((name) => !state.horseSetupPlayers.includes(name));
   const candidates = $("horse-invite-candidates");
-  candidates.classList.toggle("hidden", !horseInviteExpanded);
+  const isOpen = state.horseSessionType === "open";
+  $("btn-horse-invite-more").classList.toggle("hidden", isOpen);
+  candidates.classList.toggle("hidden", isOpen || !horseInviteExpanded);
   if (horseInviteExpanded) {
     candidates.innerHTML = known.length
       ? known.map((name) => `
@@ -2266,8 +2283,11 @@ function renderHorsePlayerList() {
     candidates.querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
   }
   const startBtn = $("btn-horse-start");
-  startBtn.disabled = state.horseSetupPlayers.length < 2;
-  startBtn.textContent = state.horseSetupPlayers.length < 2 ? "Add at least one more player" : "Do your set — sets the bar";
+  const enoughPlayers = isOpen || state.horseSetupPlayers.length >= 2;
+  startBtn.disabled = !enoughPlayers;
+  startBtn.textContent = isOpen
+    ? "Create open session"
+    : enoughPlayers ? "Do your set — sets the bar" : "Add at least one more player";
 }
 
 // keepPlayers: true for Rematch, which reuses the same lineup instead of
@@ -2304,7 +2324,12 @@ $("horse-session-select").addEventListener("click", (e) => {
   const btn = e.target.closest(".segment[data-horse-session]");
   if (!btn) return;
   state.horseSessionType = btn.dataset.horseSession;
+  if (state.horseSessionType === "open") {
+    state.horseSetupPlayers = [state.currentUser];
+    horseInviteExpanded = false;
+  }
   renderHorseSessionUI();
+  renderHorsePlayerList();
 });
 
 $("horse-player-list").addEventListener("click", (e) => {
@@ -2343,7 +2368,7 @@ function beginHorseTurn(name) {
 }
 
 $("btn-horse-start").addEventListener("click", async () => {
-  if (state.horseSetupPlayers.length < 2) return;
+  if (state.horseSessionType !== "open" && state.horseSetupPlayers.length < 2) return;
   const input = {
     id: `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     word: state.horseWord,
@@ -2355,14 +2380,15 @@ $("btn-horse-start").addEventListener("click", async () => {
   // Invite games are server-authoritative from the start (other players read
   // them via /data on their own devices) — Live games stay purely local
   // until the game finishes, same as any other pushup mode's session.
-  if (state.horseSessionType === "invite") {
+  if (state.horseSessionType === "invite" || state.horseSessionType === "open") {
     const btn = $("btn-horse-start");
     btn.disabled = true;
     try {
       const { game } = await workerCreateHorseGame(input);
       state.horseGame = game;
       upsertLocalHorseGame(game);
-      beginHorseTurn(state.currentUser);
+      if (state.horseSessionType === "open") await openHorseTurnOrder();
+      else beginHorseTurn(state.currentUser);
     } catch (e) {
       toast("Couldn't create the game — check your connection and try again.", 4000);
     } finally {
@@ -2391,24 +2417,31 @@ function renderHorseTurnHero() {
 function renderHorseTurnOrder() {
   const game = state.horseGame;
   const rows = horsePlayerRows(game);
-  const stalled = game.sessionType === "invite" && isTurnStalled(game, Date.now());
-  $("horse-order-title").textContent = `Horse · Round ${game.round}`;
+  const isRemote = game.sessionType === "invite" || game.sessionType === "open";
+  const stalled = isRemote && isTurnStalled(game, Date.now());
+  const waitingForOpenChallenger = game.sessionType === "open" && game.turnOrder.length === 1 && game.target != null;
+  $("horse-order-title").textContent = game.sessionType === "open" && game.turnOrder.length === 1
+    ? "Horse · Open lobby"
+    : `Horse · Round ${game.round}`;
   const target = horseTargetLabel(game);
   const targetModifierMeta = game.targetModifier ? MODIFIERS.find((m) => m.id === game.targetModifier) : null;
   $("horse-order-target-line").textContent = target
-    ? `Beat ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} to stay clean`
+    ? waitingForOpenChallenger
+      ? `${game.targetSetBy} set ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} · waiting for a challenger`
+      : `Beat ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} to stay clean`
     : `${escapeHtml(game.turnOrder[0])} sets the bar`;
-  $("horse-turn-order-list").innerHTML = rows.map((row) => {
+  const playerRowsHTML = rows.map((row) => {
+    const displayedUp = row.status === "up" && !waitingForOpenChallenger;
     const statusHTML = row.status === "out"
       ? '<span class="horse-player-status-out">OUT</span>'
-      : row.status === "up"
+      : displayedUp
         ? '<span class="horse-player-tag">Up now</span>'
         : '<span class="horse-player-status-waiting">Waiting</span>';
-    const skipHTML = row.status === "up" && stalled
+    const skipHTML = displayedUp && stalled
       ? '<button type="button" class="icon-btn" data-skip-horse-game aria-label="Skip stalled turn">⏭</button>'
       : "";
     return `
-    <div class="tier1-row horse-player-row${row.status === "up" ? " horse-row-active" : ""}${row.status === "out" ? " horse-row-out" : ""}">
+    <div class="tier1-row horse-player-row${displayedUp ? " horse-row-active" : ""}${row.status === "out" ? " horse-row-out" : ""}">
       <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(row.name).id}"></span>
       <span class="horse-player-name${row.status === "out" ? " horse-summary-name-out" : ""}">${escapeHtml(row.name)}</span>
       <span class="horse-mini-strip">${horseMiniStripHTML(game.word, row.letters)}</span>
@@ -2416,15 +2449,41 @@ function renderHorseTurnOrder() {
       ${skipHTML}
     </div>`;
   }).join("");
+  const openSlotsHTML = game.sessionType === "open"
+    ? Array.from({ length: Math.max(0, 4 - rows.length) }, () => `
+      <div class="tier1-row horse-player-row horse-open-slot">
+        <span class="horse-open-slot-icon">＋</span>
+        <span class="horse-player-name">Open player slot</span>
+        <span class="horse-player-status-waiting">Invite link</span>
+      </div>`).join("")
+    : "";
+  $("horse-turn-order-list").innerHTML = playerRowsHTML + openSlotsHTML;
   $("horse-turn-order-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
   const upNow = currentTurnPlayer(game);
-  const canTakeTurn = game.sessionType === "live" || upNow === state.currentUser;
+  const canTakeTurn = !waitingForOpenChallenger && (game.sessionType === "live" || upNow === state.currentUser);
   $("btn-horse-take-turn").classList.toggle("hidden", !canTakeTurn);
   $("btn-horse-take-turn").textContent = upNow === state.currentUser ? "Do your set" : `Pass the phone to ${upNow} — do your set`;
   // Reminding only makes sense for async games where someone else is
   // dragging their feet — Live is a shared device, and there's no reason to
   // nag yourself.
-  $("btn-horse-remind").classList.toggle("hidden", game.sessionType !== "invite" || upNow === state.currentUser);
+  $("btn-horse-remind").classList.toggle("hidden", !isRemote || upNow === state.currentUser);
+
+  const openControls = $("horse-open-controls");
+  const isOpen = game.sessionType === "open";
+  openControls.classList.toggle("hidden", !isOpen);
+  if (isOpen) {
+    const slotsLeft = 4 - game.turnOrder.length;
+    $("horse-open-slots").textContent = `${game.turnOrder.length}/4 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
+    $("horse-open-link").textContent = horseInviteUrl(game.id);
+    $("btn-horse-open-share").classList.toggle("hidden", slotsLeft === 0);
+    $("horse-open-link").classList.toggle("hidden", slotsLeft === 0);
+    const exit = $("btn-horse-open-exit");
+    const canCancel = state.currentUser === game.createdBy && game.turnOrder.length === 1;
+    const canLeave = state.currentUser !== game.createdBy && !game.sets.some((set) => set.user === state.currentUser);
+    exit.classList.toggle("hidden", !canCancel && !canLeave);
+    exit.textContent = canCancel ? "Cancel session" : "Leave before my first turn";
+    exit.dataset.action = canCancel ? "cancel" : "leave";
+  }
 }
 
 async function shareHorseReminder() {
@@ -2432,7 +2491,7 @@ async function shareHorseReminder() {
   const game = state.horseGame;
   const name = currentTurnPlayer(game);
   const message = pickHorseReminderMessage({ name, targetLabel: horseTargetLabel(game) || "the bar" });
-  const url = location.href;
+  const url = game.sessionType === "open" ? horseInviteUrl(game.id) : location.href;
   if (navigator.share) {
     try {
       await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
@@ -2451,11 +2510,123 @@ async function shareHorseReminder() {
 
 $("btn-horse-remind").addEventListener("click", shareHorseReminder);
 
+async function shareOpenHorseInvite() {
+  const game = state.horseGame;
+  if (!game) return;
+  const url = horseInviteUrl(game.id);
+  const text = `Join ${game.createdBy}'s Open Horse push-up game.`;
+  if (navigator.share) {
+    try { await navigator.share({ title: "Open Horse", text, url }); } catch (e) { /* cancelled */ }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Invite link copied", 2500);
+  } catch (e) {
+    toast("Couldn't copy the link automatically.", 3500);
+  }
+}
+
+$("btn-horse-open-share").addEventListener("click", shareOpenHorseInvite);
+
+$("btn-horse-open-exit").addEventListener("click", async (e) => {
+  const game = state.horseGame;
+  if (!game) return;
+  e.currentTarget.disabled = true;
+  try {
+    const res = e.currentTarget.dataset.action === "cancel"
+      ? await workerCancelOpenHorseGame(game.id, state.currentUser)
+      : await workerDeclineHorseInvite(game.id, state.currentUser);
+    state.horseGame = res.game;
+    upsertLocalHorseGame(res.game);
+    history.replaceState(null, "", `${location.pathname}${location.search}`);
+    toast(e.currentTarget.dataset.action === "cancel" ? "Open session cancelled" : "You left the game", 2500);
+    showScreen("screen-user");
+  } catch (err) {
+    toast(err.message || "Couldn't update the game.", 4000);
+    e.currentTarget.disabled = false;
+  }
+});
+
+function horseLinkGameId() {
+  return location.hash.match(/^#horse=([a-z0-9-]{1,64})$/)?.[1] || null;
+}
+
+function renderOpenHorseJoin(game) {
+  const model = openHorseJoinModel(game, state.currentUser);
+  $("horse-join-title").textContent = model.title;
+  $("horse-join-sub").textContent = model.state === "ready"
+    ? `Joining as ${state.currentUser}. ${model.slotsLeft} player slot${model.slotsLeft === 1 ? "" : "s"} remaining.`
+    : model.state === "joined" ? `You're joining as ${state.currentUser}.` : "Ask the host for a current Open session link.";
+  const names = game?.turnOrder || [];
+  const playerRows = names.map((name) => `
+    <div class="tier1-row horse-player-row">
+      <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(name).id}"></span>
+      <span class="horse-player-name">${escapeHtml(name)}</span>
+      <span class="horse-player-tag">${name === game.createdBy ? "Host" : "Joined"}</span>
+    </div>`).join("");
+  const slots = game?.sessionType === "open"
+    ? Array.from({ length: Math.max(0, 4 - names.length) }, () => `
+      <div class="tier1-row horse-player-row horse-open-slot">
+        <span class="horse-open-slot-icon">＋</span><span class="horse-player-name">Open slot</span>
+      </div>`).join("")
+    : "";
+  $("horse-join-player-list").innerHTML = playerRows + slots;
+  $("horse-join-player-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  $("btn-horse-confirm-join").classList.toggle("hidden", !model.canJoin);
+  $("btn-horse-view-joined").classList.toggle("hidden", model.state !== "joined");
+}
+
+async function openHorseGameFromHash() {
+  const gameId = horseLinkGameId();
+  if (!gameId || !state.currentUser) return false;
+  let game = getCachedData().horseGames.find((item) => item.id === gameId);
+  if (!game && workerConfigured()) {
+    try {
+      await refreshFromRemote();
+      game = getCachedData().horseGames.find((item) => item.id === gameId);
+    } catch (e) { /* cached missing state below */ }
+  }
+  state.horseGame = game || null;
+  renderOpenHorseJoin(game);
+  showScreen("screen-horse-join");
+  return true;
+}
+
+$("btn-horse-confirm-join").addEventListener("click", async (e) => {
+  const game = state.horseGame;
+  if (!game) return;
+  e.currentTarget.disabled = true;
+  try {
+    const res = await workerJoinOpenHorseGame(game.id, state.currentUser);
+    state.horseGame = res.game;
+    upsertLocalHorseGame(res.game);
+    await openHorseTurnOrder();
+  } catch (err) {
+    await refreshFromRemote().catch(() => {});
+    const fresh = getCachedData().horseGames.find((item) => item.id === game.id);
+    state.horseGame = fresh || game;
+    renderOpenHorseJoin(fresh);
+    toast(err.message || "Couldn't join the game.", 4000);
+  } finally {
+    e.currentTarget.disabled = false;
+  }
+});
+
+$("btn-horse-view-joined").addEventListener("click", async () => {
+  await openHorseTurnOrder();
+});
+
+$("btn-horse-join-back").addEventListener("click", () => {
+  history.replaceState(null, "", `${location.pathname}${location.search}`);
+  showScreen("screen-user");
+});
+
 // Async (invite) games refresh from the server once on entry — see
 // HORSE_PLAN.md's "in-app polling only" decision, no live interval polling.
 async function openHorseTurnOrder() {
   const game = state.horseGame;
-  if (game && game.sessionType === "invite") {
+  if (game && (game.sessionType === "invite" || game.sessionType === "open")) {
     await refreshFromRemote();
     const fresh = getCachedData().horseGames.find((g) => g.id === game.id);
     if (fresh) state.horseGame = fresh;
@@ -2589,13 +2760,17 @@ function pendingHorseItems() {
   const games = getCachedData().horseGames || [];
   const items = [];
   for (const game of games) {
-    if (game.status !== "active" || game.sessionType !== "invite") continue;
+    if (game.status !== "active" || !["invite", "open"].includes(game.sessionType)) continue;
     if (!game.turnOrder.includes(user)) continue;
     const opponents = otherHorsePlayers(game, user);
+    if (game.sessionType === "open" && game.turnOrder.length === 1 && game.target != null) continue;
     if (currentTurnPlayer(game) === user) {
       items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game), opponents });
-    } else if (user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
+    } else if (game.sessionType === "invite" && user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
       items.push({ kind: "invite", gameId: game.id, from: game.createdBy, opponents });
+    } else if (game.sessionType === "open" && user === game.createdBy && game.turnOrder.length > 1) {
+      const newest = game.turnOrder.slice(1).sort((a, b) => (game.players[b]?.joinedAt || 0) - (game.players[a]?.joinedAt || 0))[0];
+      items.push({ kind: "joined", gameId: game.id, name: newest, opponents });
     } else {
       items.push({ kind: "waiting", gameId: game.id, upNow: currentTurnPlayer(game), opponents });
     }
@@ -2615,7 +2790,7 @@ function renderHorseBellDropdown() {
     if (item.kind === "turn") {
       return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-turn="${item.gameId}">
         <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name">Your turn in Horse vs. ${escapeHtml(item.opponents)}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
+        <span class="horse-player-name">Your turn in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : " · set the opening bar"}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
       </button>`;
     }
     if (item.kind === "invite") {
@@ -2629,6 +2804,12 @@ function renderHorseBellDropdown() {
         <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
         <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
       </div>`;
+    }
+    if (item.kind === "joined") {
+      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
+        <span aria-hidden="true">🐴</span>
+        <span class="horse-player-name">${escapeHtml(item.name)} joined your Open Horse game</span>
+      </button>`;
     }
     const otherWaiting = item.opponents.split(", ").filter((name) => name && name !== item.upNow).join(", ");
     return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
@@ -6560,7 +6741,7 @@ async function completeHorseTurn(rawCount) {
   try { await commitSession(session); } catch (e) { enqueueSession(session); }
 
   let updated;
-  if (game.sessionType === "invite") {
+  if (game.sessionType === "invite" || game.sessionType === "open") {
     try {
       const res = await workerPostHorseTurn({ gameId: game.id, user, reps: rawCount, modifier: state.resolvedModifier });
       updated = res.game;
@@ -8017,6 +8198,10 @@ async function init() {
       // offline or Worker unreachable; cached data (if any) is already shown
     }
   }
+
+  // Open Horse links use the remembered app profile. New devices stay on the
+  // normal profile picker; selecting or creating a profile resumes this link.
+  if (state.currentUser) await openHorseGameFromHash();
 
   // A shared challenge link (#challenge=id) jumps straight to that challenge's
   // detail screen — but only if this device already has a remembered name;

@@ -5,11 +5,18 @@
 const DEFAULT_STALL_MS = 48 * 60 * 60 * 1000;
 
 export function createHorseGame({ id, word, sessionType, createdBy, players, now = Date.now() }) {
-  if (!Array.isArray(players) || players.length < 2) throw new Error("Horse needs at least 2 players");
+  const minimumPlayers = sessionType === "open" ? 1 : 2;
+  if (!Array.isArray(players) || players.length < minimumPlayers) throw new Error(`Horse needs at least ${minimumPlayers} player${minimumPlayers === 1 ? "" : "s"}`);
+  if (sessionType === "open" && players.length > 4) throw new Error("Open Horse is limited to 4 players");
   if (!players.includes(createdBy)) throw new Error("Creator must be in the player list");
   const turnOrder = [...players];
   const playersState = {};
-  for (const name of turnOrder) playersState[name] = { letters: 0, out: false, outAt: null };
+  for (const name of turnOrder) playersState[name] = {
+    letters: 0,
+    out: false,
+    outAt: null,
+    ...(sessionType === "open" ? { joinedAt: now } : {}),
+  };
   return {
     id,
     word: word.toUpperCase(),
@@ -32,6 +39,9 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, now
 
 function checkWinner(game) {
   const active = game.turnOrder.filter((name) => !game.players[name].out);
+  // Open sessions can begin with the host alone. Their opening set establishes
+  // the target but cannot make them a winner before a challenger arrives.
+  if (game.turnOrder.length < 2) return null;
   // 2-player sessions end the instant either player is OUT.
   if (game.turnOrder.length === 2) {
     const outPlayer = game.turnOrder.find((name) => game.players[name].out);
@@ -39,6 +49,33 @@ function checkWinner(game) {
   }
   // 3+ player sessions play to last one standing.
   return active.length === 1 ? active[0] : null;
+}
+
+export function joinOpenPlayer(game, { user, now = Date.now() }) {
+  if (game.status !== "active" || game.sessionType !== "open") throw new Error("Open game is not active");
+  const name = String(user || "").trim();
+  if (!name) throw new Error("Player name is required");
+  if (game.turnOrder.includes(name)) return game;
+  if (game.turnOrder.length >= 4) throw new Error("Open game is full");
+
+  const turnOrder = [...game.turnOrder, name];
+  const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };
+  // If the host already set the opening bar while alone, the first arrival is
+  // immediately up. Otherwise they wait behind the host in normal join order.
+  const hostSetBarWhileAlone = game.turnOrder.length === 1 && game.target != null;
+  return {
+    ...game,
+    turnOrder,
+    players,
+    ...(hostSetBarWhileAlone ? { turnIndex: 1, turnStartedAt: now } : {}),
+  };
+}
+
+export function cancelOpenGame(game, { user, now = Date.now() }) {
+  if (game.status !== "active" || game.sessionType !== "open") throw new Error("Open game is not active");
+  if (game.createdBy !== user) throw new Error("Only the host can cancel this game");
+  if (game.turnOrder.length > 1) throw new Error("The game already has challengers");
+  return { ...game, status: "cancelled", cancelledAt: now, turnStartedAt: null };
 }
 
 function advanceTurn(game, now) {
@@ -117,6 +154,7 @@ export function skipStalledPlayer(game, { now = Date.now(), maxAgeMs = DEFAULT_S
 export function declinePlayer(game, { user, now = Date.now() }) {
   if (game.status !== "active") throw new Error("Game is not active");
   if (!game.turnOrder.includes(user)) throw new Error("Player not in game");
+  if (game.sessionType === "open" && user === game.createdBy) throw new Error("The host must cancel the game");
   if (game.sets.some((set) => set.user === user)) throw new Error("Player already took a turn");
 
   const wasCurrentTurn = currentTurnPlayer(game) === user;
@@ -125,7 +163,7 @@ export function declinePlayer(game, { user, now = Date.now() }) {
   const players = { ...game.players };
   delete players[user];
 
-  if (turnOrder.length < 2) {
+  if (turnOrder.length < 2 && game.sessionType !== "open") {
     return { ...game, turnOrder, players, status: "voided", turnStartedAt: null };
   }
 

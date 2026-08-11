@@ -5,7 +5,7 @@ design handoff (`Push-up Tracker Redesign (bundled).html`, section "Horse") —
 all visual specs (colors, chip sizes, rings, pills) live there and in the
 handoff .md; this doc locks product/engineering decisions.
 
-## Locked decisions (confirmed with Henning, 2026-08-08)
+## Locked decisions (confirmed with Henning, 2026-08-08; Open sessions added 2026-08-11)
 
 1. **Async = in-app polling only.** No OS/Web Push in v1. The Home bell badge
    lights when the app (re)fetches `data.json` and finds a pending action for
@@ -22,6 +22,12 @@ handoff .md; this doc locks product/engineering decisions.
    entries in a new `horse-words.js`). Reshuffle button re-rolls. Word is fixed
    at game creation.
 6. **Push-ups only** in v1 (no squat variant).
+7. **Open is a third session type.** The host creates a private link without
+   nominating opponents. Up to three players join immediately in link order
+   using their selected app profile. The host may set the opening bar while
+   alone; the first arrival then becomes the active challenger. Empty slots
+   remain joinable during play, late arrivals start with zero letters, and a
+   two-player game still ends immediately on the first elimination.
 
 ## Rules engine (as specced — note the bar behavior)
 
@@ -47,7 +53,7 @@ handoff .md; this doc locks product/engineering decisions.
 {
   "id": "hg-...",
   "word": "HORSE",
-  "sessionType": "live" | "invite",
+  "sessionType": "live" | "invite" | "open",
   "status": "active" | "complete",
   "createdBy": "Name",
   "createdAt": 0,
@@ -75,6 +81,8 @@ handoff .md; this doc locks product/engineering decisions.
   offline queue; the turn POST itself requires connectivity like join-challenge).
 - **New Worker endpoints** (`worker/index.js` — manual dashboard redeploy):
   - `POST /horse-create` — validate + append game.
+  - `POST /horse-join` — join an active Open game, capped at four players.
+  - `POST /horse-cancel` — host cancels before a challenger joins.
   - `POST /horse-turn` — apply set, run rules, advance turn.
   - `POST /horse-skip` — 48h-guarded letter + advance.
   - `POST /horse-decline` — invited player bows out before their first set;
@@ -82,7 +90,8 @@ handoff .md; this doc locks product/engineering decisions.
   - Rules logic shared conceptually with `horse.js` but duplicated in the
     Worker (it has no module imports today); keep both against `tests/`.
 - **Client API** (`api.js`): `createHorseGame`, `postHorseTurn`,
-  `skipHorsePlayer`, `declineHorseInvite`.
+  `skipHorsePlayer`, `declineHorseInvite`, `joinOpenHorseGame`,
+  `cancelOpenHorseGame`.
 
 ## Screens (new `screens/horse.js` + markup in `index.html`)
 

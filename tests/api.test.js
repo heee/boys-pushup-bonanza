@@ -36,3 +36,17 @@ test("location requests send only transient coordinates to Worker endpoints", as
     { url: "https://example.test/search-location", body: { query: "Montrose, Houston" } },
   ]);
 });
+
+test("Open Horse API sends join and cancel identities to dedicated endpoints", async () => {
+  const requests = [];
+  const api = createWorkerApi({ baseUrl: "https://example.test", appKey: "key", fetchImpl: async (url, init) => {
+    requests.push({ url, body: JSON.parse(init.body) });
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  } });
+  await api.joinOpenHorseGame("hg-1", "Mia");
+  await api.cancelOpenHorseGame("hg-1", "You");
+  assert.deepEqual(requests, [
+    { url: "https://example.test/horse-join", body: { gameId: "hg-1", user: "Mia" } },
+    { url: "https://example.test/horse-cancel", body: { gameId: "hg-1", user: "You" } },
+  ]);
+});
