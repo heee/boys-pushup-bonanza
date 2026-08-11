@@ -88,3 +88,7 @@ test("Worker preserves Zen and Sharpshooter mode tags without Zen modifiers", ()
   assert.equal(zen.modifier, undefined);
   assert.equal(sharpshooter.mode, "sharpshooter");
 });
+
+test("Worker preserves pull-up activity type", () => {
+  assert.equal(validateSession({ user: "Nelson", count: 8, type: "pullup" }).type, "pullup");
+});

@@ -8,6 +8,9 @@ import {
   HORSE_LETTER_LINES,
   HORSE_WIN_LINES,
   SHARPSHOOTER_HIT_LINES,
+  PULLUP_CHEER_LINES,
+  PULLUP_RECORD_LINE,
+  PULLUP_START_LINES,
   SITUP_CHEER_LINES,
   SITUP_RECORD_LINE,
   SITUP_START_LINES,
@@ -46,6 +49,13 @@ test("every squat start/cheer line and the record line are included in the pre-r
   for (const line of SQUAT_START_LINES) assert.equal(texts.has(line), true, line);
   for (const line of SQUAT_CHEER_LINES) assert.equal(texts.has(line), true, line);
   assert.equal(texts.has(SQUAT_RECORD_LINE), true, SQUAT_RECORD_LINE);
+});
+
+test("every pull-up start/cheer line and record line are in the voice corpus", () => {
+  const texts = new Set(buildCorpus().map((entry) => entry.text));
+  for (const line of PULLUP_START_LINES) assert.equal(texts.has(line), true, line);
+  for (const line of PULLUP_CHEER_LINES) assert.equal(texts.has(line), true, line);
+  assert.equal(texts.has(PULLUP_RECORD_LINE), true, PULLUP_RECORD_LINE);
 });
 
 test("squat corpus entries normalize to unique, non-empty keys", () => {

@@ -53,8 +53,21 @@ export function percentile(values, p) {
 // percentile as stand/squat. Percentiles (not raw min/max) reject the odd
 // detection glitch without needing an explicit two-step capture.
 export function estimateSquatRange(samples) {
+  const values = samples.map((sample) => typeof sample === "number" ? sample : sample.ratio);
   return {
-    standY: percentile(samples, 0.1),
-    squatY: percentile(samples, 0.9),
+    standY: percentile(values, 0.1),
+    squatY: percentile(values, 0.9),
   };
+}
+
+// Once calibration finds stable thresholds, replay the timestamped warmup
+// frames through the real counter so those first reps are not thrown away.
+export function replaySquatCalibration(samples, createCounter, thresholds) {
+  const counter = createCounter(thresholds);
+  for (const [index, sample] of (samples || []).entries()) {
+    const ratio = typeof sample === "number" ? sample : sample.ratio;
+    const t = typeof sample === "number" ? index * 100 : sample.t;
+    counter.advance(ratio, t);
+  }
+  return counter;
 }

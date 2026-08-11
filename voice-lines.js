@@ -361,6 +361,32 @@ export const FUN_MESSAGES = [
 // a new per-user best (SQUAT_RECORD_LINE, added to FIXED_PHRASES below).
 // Same unhinged drill-instructor register as CHASE_CHAOS_LINES, aimed at
 // thighs/chairs/the floor/gravity instead of the leaderboard.
+export const PULLUP_START_LINES = [
+  "Grab the bar! Gravity is about to lose custody!",
+  "Dead hang first, then put that chin over the bar! Let's pull!",
+  "The bar is high and your standards are higher! Pull-up time!",
+];
+
+export const PULLUP_CHEER_LINES = [
+  "Full hang, chin high! Make gravity regret showing up!",
+  "That bar is learning who runs this room! Again!",
+  "Lats online! Keep climbing without going anywhere!",
+  "Straight arms at the bottom! Earn every inch!",
+  "Chin over! Gravity under investigation!",
+  "Pull like the floor just insulted your family!",
+];
+
+export const PULLUP_RECORD_LINE = "New pull-up record! Gravity has officially lost custody!";
+
+export const FUN_MESSAGES_PULLUP = [
+  (n) => `${n} pull-ups. Gravity has requested arbitration.`,
+  (n) => `${n} strict reps and one deeply humbled bar.`,
+  (n) => `${n} pull-ups logged. Lats have entered the group chat.`,
+  (n) => `${n} trips over the bar without going anywhere. Efficient chaos.`,
+  (n) => `${n} pull-ups. Certified gravity-disrespecting behavior.`,
+  (n) => `${n} reps. The floor looked farther away every time.`,
+];
+
 export const SQUAT_START_LINES = [
   "Every chair in this house is about to lose its job! Let's go!",
   "Gravity signed up for this! Down we go!",
@@ -440,6 +466,7 @@ export const FIXED_PHRASES = [
   "Plank complete.",
   "New personal record! Absolute legend!",
   "New plank record! Absolute legend!",
+  PULLUP_RECORD_LINE,
   SQUAT_RECORD_LINE,
   SITUP_RECORD_LINE,
   "New rung record!",
@@ -496,6 +523,8 @@ export function buildCorpus() {
   for (const word of NAME_JOIN_WORDS) add(word, "hype");
   for (const line of ENCOURAGE_LINES) add(line, "hype");
   for (const line of CHASE_CHAOS_LINES) add(line, "hype");
+  for (const line of PULLUP_START_LINES) add(line, "hype");
+  for (const line of PULLUP_CHEER_LINES) add(line, "hype");
   for (const line of SQUAT_START_LINES) add(line, "hype");
   for (const line of SQUAT_CHEER_LINES) add(line, "hype");
   for (const line of SITUP_START_LINES) add(line, "hype");
@@ -520,6 +549,7 @@ export function buildCorpus() {
   }
   for (const fn of FUN_MESSAGES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_PLANK) for (const frag of templateFragments(fn)) add(frag, "hype");
+  for (const fn of FUN_MESSAGES_PULLUP) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SQUAT) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SITUP) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of CHASE_GAP_LINES) for (const frag of templateFragments(fn)) add(frag, "hype");

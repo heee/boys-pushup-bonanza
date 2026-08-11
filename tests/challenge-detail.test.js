@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  challengeActivityId,
   challengeLeaderboardRows,
   challengeOverviewStats,
   challengeShareContext,
@@ -8,6 +9,11 @@ import {
   progressThermometerModel,
   recentChallengeSessions,
 } from "../screens/challenges.js";
+
+test("challenge activity routing recognizes future pull-up challenges", () => {
+  assert.equal(challengeActivityId({ activity: "pullups" }), "pullups");
+  assert.equal(challengeActivityId({}), "pushups");
+});
 
 const challenge = { start: "2026-08-01", end: "2026-08-10", goal: 100, goalType: "individual", emoji: "💪", title: "August Flex" };
 const now = new Date(2026, 7, 2, 12);

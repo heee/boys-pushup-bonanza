@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRepCounter } from "../rep-counter.js";
-import { deriveSquatThresholds, estimateSquatRange, median, squatCalibrationValid, squatSwing } from "../modes/squat.js";
+import { deriveSquatThresholds, estimateSquatRange, median, replaySquatCalibration, squatCalibrationValid, squatSwing } from "../modes/squat.js";
 
 // Same replay harness as tests/rep-counter.test.js, but the samples are
 // bboxCenterY/videoHeight readings (standing near the top of frame, squatting
@@ -110,6 +110,16 @@ test("estimateSquatRange stays invalid when the boy barely moves", () => {
   const samples = [0.30, 0.31, 0.32, 0.30, 0.33, 0.31, 0.30, 0.32, 0.34, 0.31];
   const { standY, squatY } = estimateSquatRange(samples);
   assert.equal(squatCalibrationValid(standY, squatY), false);
+});
+
+test("timestamped calibration frames are replayed so warmup reps count", () => {
+  const samples = [
+    [STAND_Y, 0], [SQUAT_Y, 300], [STAND_Y, 600],
+    [SQUAT_Y, 900], [STAND_Y, 1200],
+  ].map(([ratio, t]) => ({ ratio, t }));
+  const thresholds = deriveSquatThresholds(STAND_Y, SQUAT_Y);
+  const counter = replaySquatCalibration(samples, (config) => createRepCounter(config), thresholds);
+  assert.equal(counter.count, 2);
 });
 
 test("counts multiple full-depth reps in a row", () => {

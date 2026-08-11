@@ -216,6 +216,15 @@ const SHARE_MESSAGES_SQUAT = [
   (n) => `Put up ${n} squats and made every chair in the house nervous.`,
 ];
 
+const SHARE_MESSAGES_PULLUP = [
+  (n) => `${n} pull-ups! 💪 Gravity got dragged into a meeting it did not schedule.`,
+  (n) => `Did ${n} pull-ups. The bar and I are no longer on speaking terms.`,
+  (n) => `${n} strict reps: dead hang, chin over bar, dignity somewhere below.`,
+  (n) => `Pulled up ${n} times. Gravity has requested arbitration.`,
+  (n) => `${n} pull-ups logged. Lats have entered the group chat.`,
+  (n) => `Camera counted ${n} pull-ups and the bar witnessed everything.`,
+];
+
 const SHARE_MESSAGES_SITUP = [
   (n) => `${n} situps! 🙇 The ceiling has never been so thoroughly inspected.`,
   (n) => `Did ${n} situps. My abs filed a formal statement.`,
@@ -595,6 +604,8 @@ export function pickShareMessage(count, ctx) {
     pool = SHARE_MESSAGES_ZEN_UNHINGED;
   } else if (mode === "plank") {
     pool = SHARE_MESSAGES_PLANK_UNHINGED;
+  } else if (mode === "pullup") {
+    pool = SHARE_MESSAGES_PULLUP;
   } else if (mode === "squat") {
     pool = SHARE_MESSAGES_SQUAT;
   } else if (mode === "situp") {

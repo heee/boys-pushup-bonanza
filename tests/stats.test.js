@@ -11,10 +11,11 @@ test("periods preserve Monday week and calendar boundaries", () => {
   assert.equal(periodStart("quarter", now).getMonth(), 6);
 });
 test("mode filters keep classic, tagged pushups, and planks distinct", () => {
-  const data = [session(1), session(2, { mode: "cards" }), session(3, { type: "plank" })];
+  const data = [session(1), session(2, { mode: "cards" }), session(3, { type: "plank" }), session(4, { type: "pullup" })];
   assert.equal(filterByMode(data, "all").length, 2);
   assert.equal(filterByMode(data, "classic").length, 1);
   assert.equal(filterByMode(data, "planks").length, 1);
+  assert.equal(filterByMode(data, "pullups").length, 1);
 });
 test("streak forgives one established rest day", () => {
   const now = new Date(2026, 7, 16, 12);

@@ -28,6 +28,10 @@ import {
   PYRAMID_COMPLETE_LINE,
   PYRAMID_ROW_CHEER_LINES,
   PYRAMID_TURNAROUND_LINE,
+  PULLUP_CHEER_LINES,
+  PULLUP_RECORD_LINE,
+  PULLUP_START_LINES,
+  FUN_MESSAGES_PULLUP,
   SHARPSHOOTER_HIT_LINES,
   SITUP_CHEER_LINES,
   SITUP_RECORD_LINE,
@@ -45,7 +49,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=137";
+} from "./voice-lines.js?v=138";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -71,15 +75,15 @@ import { createCameraController } from "./camera.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel } from "./screens/mode-stats.js?v=133";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=2";
+import { modeStatsModel } from "./screens/mode-stats.js?v=134";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=3";
 import { comparisonModel } from "./screens/comparison.js?v=132";
-import { challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
+import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=140";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=141";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=3";
+import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=4";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
 import { applyTurn, createHorseGame, currentTurnPlayer, horsePlayerRows, horseTargetLabel, isTurnStalled } from "./horse.js";
 import { horseInviteUrl, horseSummaryRows, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -98,7 +102,7 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
-import { deriveSquatThresholds, estimateSquatRange, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
+import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
 
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
@@ -108,6 +112,12 @@ const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models
 // a selfie-distance model and simply can't see a face 6+ feet away, which is
 // exactly where a squatter stands. Pose landmarks work at room scale.
 const POSE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
+let pullupModeModule = null;
+async function loadPullupMode() {
+  if (!pullupModeModule) pullupModeModule = await import("./modes/pullup.js");
+  return pullupModeModule;
+}
 
 // Every device talks to this one Worker instead of GitHub directly — it
 // holds the GitHub token server-side so no one has to paste a token in.
@@ -173,6 +183,9 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "chase", label: "Chase" },
   { id: "sharpshooter", label: "Sharpshooter" },
   { id: "pyramid", label: "Pyramid" },
+  { id: "pullups", label: "Pull-ups" },
+  { id: "squats", label: "Squats" },
+  { id: "situps", label: "Situps" },
   { id: "planks", label: "Planks" },
 ];
 const LEADERBOARD_MODE_IDS = new Set(LEADERBOARD_MODE_OPTIONS.map((option) => option.id));
@@ -180,13 +193,29 @@ const LEADERBOARD_MODE_IDS = new Set(LEADERBOARD_MODE_OPTIONS.map((option) => op
 const MY_SESSIONS_MODE_OPTIONS = [
   { id: "all", label: "All" },
   { id: "pushups", label: "Pushups" },
+  { id: "pullups", label: "Pull-ups" },
   { id: "situps", label: "Situps" },
   { id: "squats", label: "Squats" },
   { id: "planks", label: "Planks" },
 ];
 
 function sessionActivity(s) {
-  return s.type === "plank" ? "planks" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : "pushups";
+  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : "pushups";
+}
+
+function leaderboardActivity(mode) {
+  return ["planks", "pullups", "squats", "situps"].includes(mode) ? mode : "pushups";
+}
+
+function activityLabel(activity, singular = false) {
+  const words = {
+    pushups: singular ? "pushup" : "pushups",
+    pullups: singular ? "pull-up" : "pull-ups",
+    squats: singular ? "squat" : "squats",
+    situps: singular ? "situp" : "situps",
+    planks: singular ? "plank" : "planks",
+  };
+  return words[activity] || words.pushups;
 }
 
 function savedLeaderboardMode() {
@@ -534,14 +563,14 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], squats: [], situps: [] };
+  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
   const timestampBySession = new WeakMap();
 
   for (const session of sessions) {
-    const activity = session.type === "plank" ? "planks" : session.type === "squat" ? "squats" : session.type === "situp" ? "situps" : "pushups";
+    const activity = sessionActivity(session);
     const timestamp = Date.parse(session.timestamp);
     timestampBySession.set(session, Number.isFinite(timestamp) ? timestamp : 0);
 
@@ -549,15 +578,9 @@ function buildSessionIndex(sessions) {
     byUser.get(session.user).push(session);
     byActivity[activity].push(session);
 
-    // Squat and Situp sessions deliberately skip the shared leaderboard modes
-    // (their own screen/per-user best, minimal integration — see
-    // docs/squat-mode-plan.md and docs/situp-mode-plan.md) so they never land
-    // in byLeaderboardMode/byUserLeaderboardMode at all.
-    const leaderboardModes = session.type === "plank"
-      ? ["planks"]
-      : session.type === "squat" || session.type === "situp"
-      ? []
-      : ["all", session.mode || "classic"];
+    // Whole-body activities get independent leaderboard buckets; pushup
+    // sessions continue to use All plus their selected pushup-mode bucket.
+    const leaderboardModes = session.type ? [activity] : ["all", session.mode || "classic"];
     for (const mode of leaderboardModes) {
       if (!byLeaderboardMode[mode]) continue;
       byLeaderboardMode[mode].push(session);
@@ -1142,7 +1165,7 @@ const state = {
   openChallengeId: null,
   justJoinedChallengeId: null,
   leaderboardMode: savedLeaderboardMode(),
-  activityType: savedLeaderboardMode() === "planks" ? "planks" : "pushups",
+  activityType: leaderboardActivity(savedLeaderboardMode()),
   lastSessionType: "pushup",
   plankActive: false,
   plankBest: 0,
@@ -1151,6 +1174,10 @@ const state = {
   squatBest: 0,
   squatStartedAt: null,
   squatSessionLocation: null,
+  pullupActive: false,
+  pullupBest: 0,
+  pullupStartedAt: null,
+  pullupSessionLocation: null,
   situpActive: false,
   situpBest: 0,
   situpStartedAt: null,
@@ -1249,6 +1276,26 @@ const squatState = {
   up: DEFAULT_UP,
 };
 
+const PULLUP_WARMUP_MIN_MS = 1200;
+const PULLUP_WARMUP_MIN_SAMPLES = 12;
+const PULLUP_WARMUP_MAX_SAMPLES = 360;
+const PULLUP_WARMUP_HINT_MS = 9000;
+
+const pullupState = {
+  counter: null,
+  count: 0,
+  phase: "waiting-for-hang",
+  stage: "idle",
+  calSamples: [],
+  warmupStartedAt: 0,
+  thresholds: null,
+  lastSeenAt: 0,
+  paused: false,
+  lastRepSpokenAt: 0,
+  lastCheerAtCount: 0,
+  recordBroken: false,
+};
+
 // Same shape as the squat warmup constants — see docs/situp-mode-plan.md.
 const SITUP_WARMUP_MIN_MS = 1200;
 const SITUP_WARMUP_MIN_SAMPLES = 10;
@@ -1325,6 +1372,7 @@ const TAB_FOR_SCREEN = {
   "screen-plank-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
   "screen-squat-workout": "btn-nav-home",
+  "screen-pullup-workout": "btn-nav-home",
   "screen-situp-workout": "btn-nav-home",
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
@@ -1362,6 +1410,7 @@ function showScreen(id) {
   const minimized = (id === "screen-workout" && state.workoutActive) ||
     (id === "screen-plank-workout" && state.plankActive) ||
     (id === "screen-squat-workout" && state.squatActive) ||
+    (id === "screen-pullup-workout" && state.pullupActive) ||
     (id === "screen-situp-workout" && state.situpActive);
   setChromeMinimized(minimized);
   const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
@@ -1411,6 +1460,10 @@ function showScreen(id) {
     setAvatarEl($("squat-avatar"), state.currentAvatar, "2rem");
     renderSquatWeightedControls();
   }
+  if (id === "screen-pullup-workout" && !state.pullupActive) {
+    $("pullup-username").textContent = state.currentUser || "Friend";
+    setAvatarEl($("pullup-avatar"), state.currentAvatar, "2rem");
+  }
   if (id === "screen-situp-workout" && !state.situpActive) {
     $("situp-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("situp-avatar"), state.currentAvatar, "2rem");
@@ -1430,6 +1483,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this squat set? Your in-progress reps won't be saved.");
     if (!ok) return;
     stopSquatHard();
+  } else if (state.screen === "screen-pullup-workout" && state.pullupActive) {
+    const ok = confirm("Leave this pull-up set? Your in-progress reps won't be saved.");
+    if (!ok) return;
+    stopPullupHard();
   } else if (state.screen === "screen-situp-workout" && state.situpActive) {
     const ok = confirm("Leave this situp set? Your in-progress reps won't be saved.");
     if (!ok) return;
@@ -2184,13 +2241,18 @@ $("explore-modes-list").addEventListener("click", async (e) => {
       return;
     }
   }
-  // Plank, Squat, and Situp are whole separate activities/screens, not pushupMode toggles.
+  // These are whole separate activities/screens, not pushupMode toggles.
   if (modeId === "plank") {
     guardLeaveWorkout(() => showScreen("screen-plank-workout"));
     return;
   }
   if (modeId === "squat") {
     guardLeaveWorkout(() => showScreen("screen-squat-workout"));
+    return;
+  }
+  if (modeId === "pullup") {
+    await loadPullupMode();
+    guardLeaveWorkout(() => showScreen("screen-pullup-workout"));
     return;
   }
   if (modeId === "situp") {
@@ -3797,7 +3859,7 @@ function setLeaderboardModeMenuOpen(open, focusSelected = false) {
 function selectLeaderboardMode(mode) {
   if (!LEADERBOARD_MODE_IDS.has(mode)) return;
   state.leaderboardMode = mode;
-  state.activityType = mode === "planks" ? "planks" : "pushups";
+  state.activityType = leaderboardActivity(mode);
   localStorage.setItem(LS.leaderboardMode, mode);
   syncLeaderboardModeControl();
   setLeaderboardModeMenuOpen(false);
@@ -4107,7 +4169,7 @@ async function shareUserCompare() {
     periodStartMs: periodStart(state.dashboardPeriod).getTime(),
     now: new Date(),
   });
-  const activityWord = state.activityType === "planks" ? "plank" : "pushup";
+  const activityWord = activityLabel(state.activityType, true);
   let message;
   if (model.aWins === model.bWins) {
     message = pickFrom(COMPARE_SHARE_TIED)({ leader: selfUser, trailer: otherUser, leaderWins: model.aWins, activityWord });
@@ -4154,13 +4216,14 @@ function renderSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
+  const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
   $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000) : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL SITUPS" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL SITUPS" : "TOTAL PUSHUPS";
 
   $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
     <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
@@ -4209,9 +4272,10 @@ async function shareSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
+  const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} situps` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} situps` : `${formatNumber(session.count)} pushups`;
   const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
   const url = location.href;
   if (navigator.share) {
@@ -4237,7 +4301,7 @@ $("btn-session-detail-delete").addEventListener("click", async () => {
 
 function paintMyBonanza(sessions) {
   const isPlank = state.activityType === "planks";
-  const activityWord = isPlank ? "planks" : "pushups";
+  const activityWord = activityLabel(state.activityType);
   const mine = sessionIndex && sessions === sessionIndex.byLeaderboardMode[state.leaderboardMode]
     ? indexedSessionsForUserMode(state.currentUser)
     : sessions.filter((s) => s.user === state.currentUser);
@@ -4379,7 +4443,7 @@ function renderBoysModeStats(sessions) {
 
 function paintDashboard(sessions) {
   const isPlank = state.activityType === "planks";
-  const activityWord = isPlank ? "planks" : "pushups";
+  const activityWord = activityLabel(state.activityType);
   const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : formatNumber(n));
 
   renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank);
@@ -4459,11 +4523,12 @@ function paintDashboard(sessions) {
 
 function renderRecentList(sessions) {
   const isPlank = state.activityType === "planks";
+  const currentActivity = activityLabel(state.activityType);
   const recentList = $("recent-list");
   const recent = [...sessions].sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a)).slice(0, 10);
   recentList.innerHTML = "";
   if (!recent.length) {
-    recentList.innerHTML = `<p class="history-empty">No ${isPlank ? "planks" : "pushups"} logged yet. Get moving! 💪</p>`;
+    recentList.innerHTML = `<p class="history-empty">No ${currentActivity} logged yet. Get moving! 💪</p>`;
     return;
   }
   for (const s of recent) {
@@ -4522,7 +4587,7 @@ function challengeParticipantsOf(c) {
 // planks; everything else defaults to pushups unless the config says
 // otherwise (e.g. "squats" for a squat-tracking challenge).
 function challengeActivity(c) {
-  return c.goalType === "plankGauntlet" ? "planks" : (c.activity || "pushups");
+  return challengeActivityId(c);
 }
 
 function challengeSessions(c) {
@@ -4978,7 +5043,7 @@ function pickLeaderboardTemplate(pool) {
 
 async function shareLeaderboardStats() {
   const isPlank = state.activityType === "planks";
-  const activityWord = isPlank ? "planks" : "pushups";
+  const activityWord = activityLabel(state.activityType);
   const fmt = (n) => (isPlank ? formatDuration(n * 1000) : formatNumber(n));
 
   let message;
@@ -5501,6 +5566,10 @@ function getPlankBest(name) {
 
 function getSquatBest(name) {
   return bestFor(indexedSessionsForUser(name, "squats"), name, () => true);
+}
+
+function getPullupBest(name) {
+  return bestFor(indexedSessionsForUser(name, "pullups"), name, () => true);
 }
 
 function getSitupBest(name) {
@@ -7177,18 +7246,20 @@ function refreshSummaryRoadtripConquests() {
 
 function buildShareContext(adjustedCount) {
   const isPlank = state.lastSessionType === "plank";
+  const isPullup = state.lastSessionType === "pullup";
   const isSquat = state.lastSessionType === "squat";
   const isSitup = state.lastSessionType === "situp";
-  const isPushup = !isPlank && !isSquat && !isSitup;
-  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isSquat ? "squats" : isSitup ? "situps" : "pushups");
+  const isPushup = !isPlank && !isPullup && !isSquat && !isSitup;
+  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups");
   const weekStart = periodStart("week");
   const weekStartTime = weekStart.getTime();
   const weekTotalRaw = mine
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : isSquat ? "squat" : isSitup ? "situp" : state.pushupMode,
+    mode: isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : state.pushupMode,
     isPlank,
+    isPullup,
     isSquat,
     isSitup,
     isZen: isPushup && state.pushupMode === "zen",
@@ -7226,7 +7297,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=136").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=137").then((module) => {
       workoutShareMessages = module;
       return module;
     });
@@ -7276,7 +7347,7 @@ async function shareRoadtripConquest() {
 }
 
 $("btn-summary-again").addEventListener("click", () => {
-  const screenByType = { plank: "screen-plank-workout", squat: "screen-squat-workout", situp: "screen-situp-workout" };
+  const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout" };
   showScreen(screenByType[state.lastSessionType] || "screen-workout");
 });
 $("btn-summary-share").addEventListener("click", shareFlex);
@@ -7636,7 +7707,7 @@ const squatCamera = createCameraController({
     const bbox = squatBodyBBox(landmarks, video);
     if (bbox) updateSquatFaceBox(bbox);
     if (squatState.stage === "warmup") {
-      squatState.calSamples.push(hipY);
+      squatState.calSamples.push({ ratio: hipY, t: performance.now() });
       if (squatState.calSamples.length > SQUAT_WARMUP_MAX_SAMPLES) squatState.calSamples.shift();
       tickSquatWarmup();
     } else if (squatState.stage === "counting") {
@@ -7697,9 +7768,13 @@ function tickSquatWarmup() {
 function beginSquatCounting(thresholds) {
   squatState.down = thresholds.down;
   squatState.up = thresholds.up;
-  squatState.counter = createRepCounter({ down: thresholds.down, up: thresholds.up });
+  squatState.counter = replaySquatCalibration(
+    squatState.calSamples,
+    (config) => createRepCounter(config),
+    { down: thresholds.down, up: thresholds.up },
+  );
   squatState.phase = "up";
-  squatState.count = 0;
+  squatState.count = squatState.counter.count;
   squatState.lastSeenAt = performance.now();
   squatState.lastRepSpokenAt = 0;
   squatState.paused = false;
@@ -7707,10 +7782,9 @@ function beginSquatCounting(thresholds) {
   squatState.recordBroken = false;
   squatState.stage = "counting";
   state.squatBest = getSquatBest(state.currentUser);
-  state.squatStartedAt = new Date();
-  $("squat-rep-count").textContent = "0";
+  $("squat-rep-count").textContent = String(squatState.count);
   updateSquatPhaseIndicator("up");
-  updateSquatHighscoreMessage(0);
+  updateSquatHighscoreMessage(squatState.count);
   hideSquatStatusBanner();
   $("squat-cal-stage").classList.add("hidden");
   $("squat-count-stage").classList.remove("hidden");
@@ -7744,6 +7818,7 @@ async function startSquat() {
   await acquireWakeLock();
 
   state.squatActive = true;
+  state.squatStartedAt = new Date();
   $("squat-idle").classList.add("hidden");
   $("squat-in-progress").classList.remove("hidden");
   setChromeMinimized(true);
@@ -7839,6 +7914,269 @@ async function completeSquat() {
 $("btn-squat-start").addEventListener("click", startSquat);
 $("btn-squat-cancel").addEventListener("click", stopSquatHard);
 $("btn-squat-stop").addEventListener("click", completeSquat);
+
+// ------------------- pull-ups mode -------------------
+// The posture math/state machine lives in modes/pullup.js and is loaded only
+// when this activity is selected. This block is DOM and session orchestration.
+
+function updatePullupPoseBox(bbox) {
+  const video = $("pullup-camera-video");
+  const container = document.querySelector("#screen-pullup-workout .camera-wrap");
+  const scale = Math.max(container.clientWidth / video.videoWidth, container.clientHeight / video.videoHeight);
+  const offsetX = (container.clientWidth - video.videoWidth * scale) / 2;
+  const offsetY = (container.clientHeight - video.videoHeight * scale) / 2;
+  const box = $("pullup-pose-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+
+function hidePullupPoseBox() { $("pullup-pose-box").classList.add("hidden"); }
+function hidePullupStatusBanner() { $("pullup-status-banner").classList.add("hidden"); }
+function showPullupStatusBanner(text) {
+  $("pullup-status-banner").textContent = text;
+  $("pullup-status-banner").classList.remove("hidden");
+  announce(text);
+}
+
+function checkPullupLostTimeout() {
+  if (pullupState.paused || pullupState.stage !== "counting") return;
+  if (performance.now() - pullupState.lastSeenAt > FACE_LOST_TIMEOUT_MS) {
+    pullupState.paused = true;
+    showPullupStatusBanner("PAUSED — get your upper body in frame");
+    speak("Paused");
+  }
+}
+
+function updatePullupPhaseIndicator(phase) {
+  const labels = {
+    "waiting-for-hang": "FIND DEAD HANG",
+    pulling: "PULL — CHIN OVER BAR",
+    returning: "RETURN TO DEAD HANG",
+  };
+  const el = $("pullup-phase-indicator");
+  el.textContent = labels[phase] || "DEAD HANG";
+  el.classList.toggle("is-down", phase === "returning");
+}
+
+function updatePullupHighscoreMessage(count) {
+  const el = $("pullup-highscore-message");
+  if (!state.pullupBest) { el.textContent = ""; return; }
+  const remaining = state.pullupBest - count;
+  if (remaining > 0) el.textContent = `${remaining} pull-up${remaining === 1 ? "" : "s"} away from your best!`;
+  else if (remaining === 0) el.textContent = "Tied your best pull-up set — one more!";
+  else el.textContent = "New pull-up record! 🔥";
+}
+
+function maybeEncouragePullup(count) {
+  if (!state.pullupBest || state.pullupBest <= 1 || count - pullupState.lastCheerAtCount < 2) return null;
+  if (Math.random() < cheerProbability(count / state.pullupBest)) {
+    pullupState.lastCheerAtCount = count;
+    return pickFrom(PULLUP_CHEER_LINES);
+  }
+  return null;
+}
+
+function onPullupRepCounted(count) {
+  $("pullup-rep-count").textContent = String(count);
+  updatePullupHighscoreMessage(count);
+  let spoken = null;
+  let mustSpeak = false;
+  if (state.pullupBest && count === state.pullupBest + 1 && !pullupState.recordBroken) {
+    pullupState.recordBroken = true;
+    spoken = PULLUP_RECORD_LINE;
+    mustSpeak = true;
+    launchConfetti("pullup-confetti", CONFETTI_EMOJI);
+  } else {
+    spoken = maybeEncouragePullup(count);
+    mustSpeak = Boolean(spoken);
+  }
+  const now = performance.now();
+  const fastPace = now - pullupState.lastRepSpokenAt < REP_SPEECH_MIN_GAP_MS;
+  if (mustSpeak || !fastPace || count % 5 === 0) {
+    pullupState.lastRepSpokenAt = now;
+    speak(spoken || numberToWords(count));
+  }
+  vibrate(45);
+}
+
+function processPullupMetrics(metrics) {
+  pullupState.lastSeenAt = performance.now();
+  if (pullupState.paused) {
+    pullupState.paused = false;
+    hidePullupStatusBanner();
+    speak("Back to it");
+  }
+  const result = pullupState.counter.advance(metrics);
+  pullupState.phase = result.phase;
+  updatePullupPhaseIndicator(result.phase);
+  if (result.counted) {
+    pullupState.count = result.count;
+    onPullupRepCounted(result.count);
+  }
+}
+
+function tickPullupWarmup() {
+  const elapsed = performance.now() - pullupState.warmupStartedAt;
+  if (elapsed < PULLUP_WARMUP_MIN_MS || pullupState.calSamples.length < PULLUP_WARMUP_MIN_SAMPLES) return;
+  if (pullupModeModule.pullupCalibrationValid(pullupState.calSamples)) {
+    pullupState.thresholds = pullupModeModule.derivePullupThresholds(pullupState.calSamples);
+    pullupState.counter = pullupModeModule.replayPullupSamples(pullupState.calSamples, pullupState.thresholds);
+    pullupState.count = pullupState.counter.count;
+    pullupState.phase = pullupState.counter.phase;
+    pullupState.stage = "counting";
+    pullupState.lastSeenAt = performance.now();
+    pullupState.paused = false;
+    state.pullupBest = getPullupBest(state.currentUser);
+    $("pullup-cal-error").classList.add("hidden");
+    $("pullup-cal-stage").classList.add("hidden");
+    $("pullup-count-stage").classList.remove("hidden");
+    $("btn-pullup-cancel").classList.add("hidden");
+    $("btn-pullup-stop").classList.remove("hidden");
+    $("pullup-rep-count").textContent = String(pullupState.count);
+    updatePullupPhaseIndicator(pullupState.phase);
+    updatePullupHighscoreMessage(pullupState.count);
+    speak(pickFrom(PULLUP_START_LINES));
+    return;
+  }
+  if (elapsed > PULLUP_WARMUP_HINT_MS) {
+    $("pullup-cal-error").textContent = "Still watching — show a straight-arm dead hang, put your chin clearly over the bar, then return to hang.";
+    $("pullup-cal-error").classList.remove("hidden");
+  }
+}
+
+const pullupCamera = createCameraController({
+  moduleUrl: FACE_DETECTOR_MODULE_URL,
+  wasmUrl: FACE_DETECTOR_WASM_URL,
+  modelUrl: POSE_LANDMARKER_MODEL_URL,
+  detectorType: "pose",
+  getVideo: () => $("pullup-camera-video"),
+  onDetection(landmarks) {
+    const metrics = pullupModeModule?.pullupFrameMetrics(landmarks);
+    if (!metrics) { hidePullupPoseBox(); checkPullupLostTimeout(); return; }
+    const bbox = squatBodyBBox(landmarks.slice(0, 25), $("pullup-camera-video"));
+    if (bbox) updatePullupPoseBox(bbox);
+    if (pullupState.stage === "warmup") {
+      pullupState.calSamples.push({ ...metrics, t: performance.now() });
+      if (pullupState.calSamples.length > PULLUP_WARMUP_MAX_SAMPLES) pullupState.calSamples.shift();
+      tickPullupWarmup();
+    } else if (pullupState.stage === "counting") processPullupMetrics(metrics);
+  },
+  onNoDetection() { hidePullupPoseBox(); checkPullupLostTimeout(); },
+});
+
+async function startPullup() {
+  if (soundIsEnabled()) unlockVoice();
+  await loadPullupMode();
+  state.pullupSessionLocation = currentSessionLocationSnapshot();
+  let stream;
+  try { stream = await pullupCamera.requestStream(); }
+  catch { toast("Camera access is required to count pull-ups. Please allow camera permission.", 4000); return; }
+  toast("Loading body tracker…", 2000);
+  try { await pullupCamera.ensureDetector(); }
+  catch {
+    toast("Couldn't load the body tracking model. Check your connection and try again.", 4500);
+    stream.getTracks().forEach((track) => track.stop());
+    return;
+  }
+  const video = $("pullup-camera-video");
+  video.srcObject = stream;
+  try { await video.play(); } catch { /* autoplay quirks */ }
+  await acquireWakeLock();
+  state.pullupActive = true;
+  state.pullupStartedAt = new Date();
+  pullupState.stage = "warmup";
+  pullupState.calSamples = [];
+  pullupState.warmupStartedAt = performance.now();
+  pullupState.count = 0;
+  pullupState.lastCheerAtCount = 0;
+  pullupState.recordBroken = false;
+  $("pullup-idle").classList.add("hidden");
+  $("pullup-in-progress").classList.remove("hidden");
+  $("pullup-cal-stage").classList.remove("hidden");
+  $("pullup-count-stage").classList.add("hidden");
+  $("btn-pullup-stop").classList.add("hidden");
+  $("btn-pullup-cancel").classList.remove("hidden");
+  setChromeMinimized(true);
+  pullupCamera.startDetection();
+}
+
+function stopPullupHard() {
+  pullupCamera.stop();
+  releaseWakeLock();
+  state.pullupActive = false;
+  pullupState.stage = "idle";
+  hidePullupStatusBanner();
+  $("pullup-in-progress").classList.add("hidden");
+  $("pullup-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+let lastPullupFunMessageIndex = -1;
+function pickPullupFunMessage(count) {
+  let index;
+  do { index = Math.floor(Math.random() * FUN_MESSAGES_PULLUP.length); }
+  while (index === lastPullupFunMessageIndex && FUN_MESSAGES_PULLUP.length > 1);
+  lastPullupFunMessageIndex = index;
+  return FUN_MESSAGES_PULLUP[index](count);
+}
+
+async function completePullup() {
+  const count = pullupState.count;
+  if (count <= 0) {
+    toast("Complete one full dead-hang pull-up before stopping.", 3000);
+    return;
+  }
+  pullupCamera.stop();
+  await releaseWakeLock();
+  state.pullupActive = false;
+  pullupState.stage = "idle";
+  hidePullupStatusBanner();
+  $("pullup-in-progress").classList.add("hidden");
+  $("pullup-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+  const session = {
+    id: uuid(), user: state.currentUser, timestamp: new Date().toISOString(), count,
+    avatar: state.currentAvatar,
+    startedAt: state.pullupStartedAt?.toISOString(),
+    type: "pullup",
+    ...(state.pullupSessionLocation ? { location: state.pullupSessionLocation } : {}),
+  };
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+  state.lastSessionType = "pullup";
+  state.summarySessionId = session.id;
+  state.summaryBaseCount = count;
+  state.summaryExtra = 0;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = formatNumber(count);
+  $("missed-reps-count").textContent = "0";
+  $("missed-reps-wrap").classList.remove("hidden");
+  renderSummaryWeightedNote(count, count);
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", CONFETTI_EMOJI);
+  speak(`Session complete. ${pickPullupFunMessage(count)}`);
+  try { await commitSession(session); }
+  catch {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-pullup-start").addEventListener("click", startPullup);
+$("btn-pullup-cancel").addEventListener("click", stopPullupHard);
+$("btn-pullup-stop").addEventListener("click", completePullup);
 
 // ------------------- situp mode -------------------
 // Camera-counted free set, own screen (see docs/situp-mode-plan.md): phone

@@ -91,6 +91,13 @@ test("Planks aggregate hold counts and time", () => {
   assert.equal(metric("planks", "avgHold", sessions).value, 45);
 });
 
+test("Pull-ups aggregate as their own rep activity", () => {
+  const sessions = [session("A", 8), session("B", 4)];
+  assert.equal(metric("pullups", "sets", sessions).value, 2);
+  assert.equal(metric("pullups", "totalReps", sessions).value, 12);
+  assert.equal(metric("pullups", "avgReps", sessions).value, 6);
+});
+
 test("Unavailable metadata yields an empty metric and no leader", () => {
   const result = metric("cards", "cardsCleared", [session("A", 20)]);
   assert.equal(result.available, false);

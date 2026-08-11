@@ -79,6 +79,21 @@ const SPECS = {
     { id: "totalHold", label: "Total hold time", format: "seconds", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
     { id: "avgHold", label: "Avg hold time", format: "seconds", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
   ],
+  pullups: [
+    { id: "sets", label: "Pull-up sets", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalReps", label: "Total pull-ups", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
+    { id: "avgReps", label: "Avg pull-ups / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
+  ],
+  squats: [
+    { id: "sets", label: "Squat sets", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalReps", label: "Total squats", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
+    { id: "avgReps", label: "Avg squats / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
+  ],
+  situps: [
+    { id: "sets", label: "Situp sets", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalReps", label: "Total situps", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
+    { id: "avgReps", label: "Avg situps / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
+  ],
 };
 
 export function modeStatsModel(sessions, mode) {

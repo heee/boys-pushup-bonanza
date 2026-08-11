@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=161">
+<link rel="stylesheet" href="style.css?v=162">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -446,6 +446,39 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: PULL-UPS WORKOUT ============ -->
+    <section id="screen-pullup-workout" class="screen">
+      <div id="pullup-confetti" class="confetti" aria-hidden="true"></div>
+      <div id="pullup-idle" class="workout-idle">
+        <p class="workout-eyebrow">Boys Bonanza</p>
+        <p class="workout-hello"><span id="pullup-avatar" class="avatar-circle"></span>
+          Ready for pull-ups, <span id="pullup-username">Friend</span><span class="tight-q">?</span></p>
+        <p class="workout-instructions">Face the phone and frame your hands, head, shoulders, elbows, and hips. Start from a full dead hang.</p>
+        <button id="btn-pullup-start" class="btn btn-giant btn-primary">START</button>
+        <p class="workout-hint">Your first full reps calibrate the tracker and still count toward the set.</p>
+      </div>
+      <div id="pullup-in-progress" class="workout-active hidden">
+        <div class="camera-wrap">
+          <video id="pullup-camera-video" playsinline muted autoplay></video>
+          <div id="pullup-pose-box" class="face-box hidden"></div>
+        </div>
+        <div id="pullup-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — get your upper body in frame</div>
+        <div id="pullup-cal-stage" class="squat-cal-stage hidden">
+          <h2 class="squat-cal-title">Get your range</h2>
+          <p class="workout-instructions">Do a full pull-up: dead hang, chin over the bar, then back to dead hang. It will count.</p>
+          <p id="pullup-cal-error" class="settings-status err hidden"></p>
+        </div>
+        <div id="pullup-count-stage" class="rep-count-wrap hidden">
+          <div id="pullup-rep-count" class="rep-count">0</div>
+          <div class="rep-label">PULL-UPS</div>
+          <div id="pullup-phase-indicator" class="squat-phase-indicator">DEAD HANG</div>
+          <div id="pullup-highscore-message" class="highscore-message"></div>
+        </div>
+        <button id="btn-pullup-cancel" type="button" class="btn btn-secondary btn-small-wide">Cancel</button>
+        <button id="btn-pullup-stop" class="btn btn-giant btn-complete hidden">STOP</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: SITUP WORKOUT ============ -->
     <section id="screen-situp-workout" class="screen">
       <div id="situp-confetti" class="confetti" aria-hidden="true"></div>
@@ -558,6 +591,9 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="chase"><span>Chase</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="sharpshooter"><span>Sharpshooter</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pyramid"><span>Pyramid</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Situps</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
           </div>
         </div>
@@ -847,6 +883,7 @@
           <div id="mysessions-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="My sessions mode">
             <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mysessions-mode="all"><span>All</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pushups"><span>Pushups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Situps</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1087,6 +1124,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=178"></script>
+<script type="module" src="app.js?v=179"></script>
 </body>
 </html>

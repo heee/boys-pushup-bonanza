@@ -911,6 +911,11 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    just eyebrow + headline per the redesign, so this stays in the DOM
    (setAvatarEl still populates it harmlessly) but isn't shown here. */
 .workout-hello .avatar-circle { display: none; }
+#screen-pullup-workout .workout-hello {
+  display: block;
+  max-width: 22rem;
+  line-height: 1.15;
+}
 .workout-instructions { color: var(--text-dim); max-width: 30rem; margin: 0 0 1rem; }
 /* Coaching-cue state: same slot/size as the plain setup line, just recolored
    as a tip (see renderWorkoutInstructionLine in app.js). */
@@ -1060,14 +1065,17 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    elements (camera, status, count/buttons), so the space-between other
    modes use left this screen top-heavy with a dead lower half. */
 #screen-squat-workout .workout-active,
+#screen-pullup-workout .workout-active,
 #screen-situp-workout .workout-active { justify-content: center; }
 #screen-squat-workout .camera-wrap,
+#screen-pullup-workout .camera-wrap,
 #screen-situp-workout .camera-wrap {
   width: min(80vw, 24rem);
   height: min(46dvh, 30rem);
   border-radius: 16px;
 }
 #squat-camera-video,
+#pullup-camera-video,
 #situp-camera-video {
   width: 100%;
   height: 100%;
@@ -1146,7 +1154,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .squat-phase-indicator.is-down { background: var(--primary); color: #fff; }
 
-#squat-in-progress .btn-small-wide { max-width: 14rem; margin-top: 0.5rem; }
+#squat-in-progress .btn-small-wide,
+#pullup-in-progress .btn-small-wide { max-width: 14rem; margin-top: 0.5rem; }
 
 .rep-label {
   font-size: 1.1rem;

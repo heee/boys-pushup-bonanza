@@ -15,6 +15,8 @@ test("sessionModeId/Label fall back to classic and read plank type", () => {
   assert.equal(sessionModeId(session()), "classic");
   assert.equal(sessionModeId(session({ mode: "pyramid" })), "pyramid");
   assert.equal(sessionModeId(session({ type: "plank", count: 60 })), "planks");
+  assert.equal(sessionModeId(session({ type: "pullup", count: 8 })), "pullups");
+  assert.equal(sessionModeLabel(session({ type: "pullup", count: 8 })), "Pull-ups");
   assert.equal(sessionModeId(session({ type: "squat", count: 15 })), "squats");
   assert.equal(sessionModeLabel(session({ type: "squat", count: 15 })), "Squats");
   assert.equal(sessionModeId(session({ type: "situp", count: 15 })), "situps");
@@ -49,6 +51,10 @@ test("sessionKeyMetrics surfaces mode-specific fields and drops nulls", () => {
   const squats = sessionKeyMetrics(session({ type: "squat", count: 15 }));
   assert.ok(squats.some((m) => m.id === "duration"));
   assert.ok(squats.some((m) => m.id === "pace"));
+
+  const pullups = sessionKeyMetrics(session({ type: "pullup", count: 8 }));
+  assert.ok(pullups.some((m) => m.id === "duration"));
+  assert.ok(pullups.some((m) => m.id === "pace"));
 
   const situps = sessionKeyMetrics(session({ type: "situp", count: 15 }));
   assert.ok(situps.some((m) => m.id === "duration"));

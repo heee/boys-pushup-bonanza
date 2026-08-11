@@ -64,6 +64,10 @@ export function recentChallengeSessions(sessions, timestampOf, limit = 5) {
   return [...sessions].sort((a, b) => timestampOf(b) - timestampOf(a)).slice(0, limit);
 }
 
+export function challengeActivityId(challenge) {
+  return challenge?.goalType === "plankGauntlet" ? "planks" : (challenge?.activity || "pushups");
+}
+
 export function challengeShareContext(challenge, board, { formatNumber = String, formatDuration = String, locale, activityLabel = "pushups" } = {}) {
   const { endDate } = challengeWindow(challenge);
   const leader = board[0];

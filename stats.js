@@ -17,9 +17,12 @@ export function periodStart(period, now = new Date()) {
 
 export function filterByMode(sessions, mode) {
   if (mode === "planks") return sessions.filter((session) => session.type === "plank");
-  if (mode === "all") return sessions.filter((session) => session.type !== "plank");
-  if (mode === "classic") return sessions.filter((session) => session.type !== "plank" && !session.mode);
-  return sessions.filter((session) => session.type !== "plank" && session.mode === mode);
+  if (mode === "pullups") return sessions.filter((session) => session.type === "pullup");
+  if (mode === "squats") return sessions.filter((session) => session.type === "squat");
+  if (mode === "situps") return sessions.filter((session) => session.type === "situp");
+  if (mode === "all") return sessions.filter((session) => !session.type);
+  if (mode === "classic") return sessions.filter((session) => !session.type && !session.mode);
+  return sessions.filter((session) => !session.type && session.mode === mode);
 }
 
 export function computeStreakCore(sessions, now = new Date(), timestamp = (s) => Date.parse(s.timestamp)) {
