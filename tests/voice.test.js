@@ -341,7 +341,7 @@ test("route releases after a grace period of silence and re-claims on the next u
   assert.equal(audioContext.state, "running");
 });
 
-test("squat start/cheer/record lines and a squat fun-message resolve to clips instead of falling back", async (t) => {
+test("squat and pull-up mode lines resolve to clips instead of falling back", async (t) => {
   const originalWindow = globalThis.window;
   const originalAudio = globalThis.Audio;
   const originalFetch = globalThis.fetch;
@@ -407,7 +407,17 @@ test("squat start/cheer/record lines and a squat fun-message resolve to clips in
     }
   });
 
-  const { buildCorpus, FUN_MESSAGES_SQUAT, SQUAT_CHEER_LINES, SQUAT_RECORD_LINE, SQUAT_START_LINES } =
+  const {
+    buildCorpus,
+    FUN_MESSAGES_PULLUP,
+    FUN_MESSAGES_SQUAT,
+    PULLUP_CHEER_LINES,
+    PULLUP_RECORD_LINE,
+    PULLUP_START_LINES,
+    SQUAT_CHEER_LINES,
+    SQUAT_RECORD_LINE,
+    SQUAT_START_LINES,
+  } =
     await import(`../voice-lines.js?squat-resolution-lines=${Date.now()}`);
 
   // A manifest generated for the full corpus (as scripts/generate-voice.js
@@ -426,7 +436,16 @@ test("squat start/cheer/record lines and a squat fun-message resolve to clips in
   assert.equal(await initVoice(), true);
   unlockVoice();
 
-  const sampleLines = [SQUAT_START_LINES[0], SQUAT_CHEER_LINES[0], SQUAT_RECORD_LINE, FUN_MESSAGES_SQUAT[0](12)];
+  const sampleLines = [
+    SQUAT_START_LINES[0],
+    SQUAT_CHEER_LINES[0],
+    SQUAT_RECORD_LINE,
+    FUN_MESSAGES_SQUAT[0](12),
+    PULLUP_START_LINES[0],
+    PULLUP_CHEER_LINES[0],
+    PULLUP_RECORD_LINE,
+    FUN_MESSAGES_PULLUP[0](12),
+  ];
   for (const text of sampleLines) {
     assert.equal(speakClips(text), true, `expected "${text}" to resolve to pre-rendered clips`);
   }
