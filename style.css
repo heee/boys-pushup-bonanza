@@ -1844,6 +1844,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .horse-remind-btn .icon-share { color: var(--text-dim); }
 
+.horse-timer-line { margin-top: -0.3rem; }
+.horse-timer-line-urgent { color: var(--danger); font-weight: 700; }
+
 /* Collected-letter chip pairing — muted red-brown, distinct from the
    accent-orange "selected" language used everywhere else. */
 :root, :root[data-theme="dark"] { --horse-letter-bg: #5a3530; --horse-letter-text: #e0876f; }

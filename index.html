@@ -276,6 +276,17 @@
       </div>
       <p id="horse-session-note" class="screen-sub hidden">Other players get a bell notification on Home when it's their turn.</p>
 
+      <div id="horse-time-limit-section" class="hidden">
+        <p class="pyramid-setup-section-label">Time limit</p>
+        <div id="horse-time-select" class="segmented" role="tablist">
+          <button type="button" class="segment" id="horse-time-24h" data-horse-time="24h">24 hours</button>
+          <button type="button" class="segment active" id="horse-time-48h" data-horse-time="48h">48 hours</button>
+          <button type="button" class="segment" id="horse-time-72h" data-horse-time="72h">72 hours</button>
+          <button type="button" class="segment" id="horse-time-unlimited" data-horse-time="unlimited">Unlimited</button>
+        </div>
+        <p id="horse-time-note" class="screen-sub">Clock starts once the second player takes their first turn. When time's up, whoever has the fewest letters wins.</p>
+      </div>
+
       <p class="pyramid-setup-section-label">Players</p>
       <div id="horse-player-list" class="tier1-list"></div>
       <button id="btn-horse-invite-more" type="button" class="horse-dashed-invite">
@@ -313,6 +324,7 @@
         </button>
       </div>
       <p id="horse-order-target-line" class="screen-sub"></p>
+      <p id="horse-order-timer-line" class="screen-sub horse-timer-line hidden"></p>
       <div id="horse-open-controls" class="horse-open-card hidden">
         <div class="horse-open-share-row">
           <div>
@@ -326,6 +338,7 @@
       </div>
       <div id="horse-turn-order-list" class="tier1-list"></div>
       <button id="btn-horse-take-turn" type="button" class="btn btn-giant btn-primary horse-start-btn">Do your set</button>
+      <button id="btn-horse-tally" type="button" class="btn btn-giant btn-primary horse-start-btn hidden">⏰ Time's up — tally scores</button>
     </section>
 
     <!-- ============ SCREEN: HORSE LETTER COLLECTED ============ -->

@@ -6,11 +6,12 @@ import {
   createHorseGame,
   currentTurnPlayer,
   declinePlayer,
+  HORSE_TIME_LIMITS,
   horsePlayerRows,
   horseTargetLabel,
-  isTurnStalled,
+  isTimeUp,
   joinOpenPlayer,
-  skipStalledPlayer,
+  tallyGame,
 } from "../horse.js";
 import { HORSE_WORDS, randomHorseWord } from "../horse-words.js";
 
@@ -26,10 +27,18 @@ test("createHorseGame normalizes the word and seeds player state", () => {
   assert.equal(g.word, "HORSE");
   assert.equal(g.turnIndex, 0);
   assert.equal(g.target, null);
+  assert.equal(g.timeLimit, null);
+  assert.equal(g.timerStartedAt, null);
   assert.deepEqual(g.players, {
     You: { letters: 0, out: false, outAt: null },
     Mia: { letters: 0, out: false, outAt: null },
   });
+});
+
+test("createHorseGame accepts a match time limit from HORSE_TIME_LIMITS", () => {
+  const g = createHorseGame({ id: "g1", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"], timeLimit: HORSE_TIME_LIMITS["48h"] });
+  assert.equal(g.timeLimit, 48 * 60 * 60 * 1000);
+  assert.equal(g.timerStartedAt, null);
 });
 
 test("createHorseGame rejects fewer than 2 players or a creator not in the list", () => {
@@ -111,14 +120,6 @@ test("targetModifier tracks whatever modifier the target-setter used, regardless
   assert.equal(g.targetModifier, null);
 });
 
-test("skipping a stalled turn leaves targetModifier unchanged (no set was actually played)", () => {
-  let g = game2();
-  g = applyTurn(g, { user: "You", reps: 20, modifier: "wide", now: 1 });
-  const stalled = { ...g, turnStartedAt: 0 };
-  const skipped = skipStalledPlayer(stalled, { now: 48 * 60 * 60 * 1000 + 1 });
-  assert.equal(skipped.targetModifier, "wide");
-});
-
 test("a failed set awards a letter AND resets the bar to the new low", () => {
   let g = game2();
   g = applyTurn(g, { user: "You", reps: 20, now: 1 });
@@ -149,7 +150,7 @@ test("2-player game ends immediately the instant one player spells the whole wor
     g = applyTurn(g, { user: "You", reps: misses[i], now: i + 10 });
   }
   assert.equal(g.status, "complete");
-  assert.equal(g.winner, "You");
+  assert.deepEqual(g.winner, ["You"]);
   assert.equal(g.players.Mia.letters, 5);
   assert.equal(g.players.Mia.out, true);
 });
@@ -185,24 +186,53 @@ test("last-one-standing wins a 3+ player game", () => {
   g = { ...g, turnIndex: g.turnOrder.indexOf("Dev") };
   g = applyTurn(g, { user: "Dev", reps: 1, now: 2 }); // fails, 5th letter -> OUT
   assert.equal(g.status, "complete");
-  assert.equal(g.winner, "You");
+  assert.deepEqual(g.winner, ["You"]);
 });
 
-test("skip awards a letter but leaves the target bar unchanged", () => {
-  let g = game2();
-  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
-  const stalled = { ...g, turnStartedAt: 0 };
-  assert.equal(isTurnStalled(stalled, 48 * 60 * 60 * 1000 + 1), true);
-  assert.equal(isTurnStalled(stalled, 1000), false);
-  const skipped = skipStalledPlayer(stalled, { now: 48 * 60 * 60 * 1000 + 1 });
-  assert.equal(skipped.players.Mia.letters, 1);
-  assert.equal(skipped.target, 20); // unchanged, unlike a played miss
-  assert.equal(currentTurnPlayer(skipped), "You");
+test("the match timer starts only once the second distinct player takes their first turn", () => {
+  let g = createHorseGame({ id: "g1", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"], timeLimit: HORSE_TIME_LIMITS["24h"], now: 0 });
+  assert.equal(g.timerStartedAt, null);
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 }); // first player's first turn — clock still not running
+  assert.equal(g.timerStartedAt, null);
+  g = applyTurn(g, { user: "Mia", reps: 25, now: 500 }); // second player's first turn — clock starts now
+  assert.equal(g.timerStartedAt, 500);
+  g = applyTurn(g, { user: "You", reps: 30, now: 900 }); // later turns never move the start
+  assert.equal(g.timerStartedAt, 500);
 });
 
-test("skipStalledPlayer throws if the turn is not actually stalled", () => {
-  const g = game2(1000);
-  assert.throws(() => skipStalledPlayer(g, { now: 2000 }));
+test("isTimeUp only fires once the timer has started and the limit has elapsed", () => {
+  const DAY = HORSE_TIME_LIMITS["24h"];
+  let g = createHorseGame({ id: "g1", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"], timeLimit: DAY, now: 0 });
+  g = applyTurn(g, { user: "You", reps: 20, now: 0 });
+  g = applyTurn(g, { user: "Mia", reps: 15, now: 1000 }); // starts the clock at 1000
+  assert.equal(isTimeUp(g, 1000 + DAY - 1), false);
+  assert.equal(isTimeUp(g, 1000 + DAY), true);
+  // Unlimited games never time out, even with a running clock.
+  const unlimited = createHorseGame({ id: "g2", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"], now: 0 });
+  assert.equal(isTimeUp(unlimited, Number.MAX_SAFE_INTEGER), false);
+});
+
+test("tallyGame crowns whoever has the fewest letters once the timer expires, ties share the win", () => {
+  const DAY = HORSE_TIME_LIMITS["24h"];
+  let g = createHorseGame({ id: "g1", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia", "Dev"], timeLimit: DAY, now: 0 });
+  g = applyTurn(g, { user: "You", reps: 20, now: 0 });
+  g = applyTurn(g, { user: "Mia", reps: 25, now: 10 }); // starts the clock at 10
+  g = { ...g, players: {
+    You: { letters: 2, out: false, outAt: null },
+    Mia: { letters: 0, out: false, outAt: null },
+    Dev: { letters: 3, out: false, outAt: null },
+  } };
+  assert.throws(() => tallyGame(g, 10 + DAY - 1), /not expired/);
+  const tallied = tallyGame(g, 10 + DAY);
+  assert.equal(tallied.status, "complete");
+  assert.deepEqual(tallied.winner, ["Mia"]);
+
+  const tied = { ...g, players: {
+    You: { letters: 1, out: false, outAt: null },
+    Mia: { letters: 1, out: false, outAt: null },
+    Dev: { letters: 4, out: false, outAt: null },
+  } };
+  assert.deepEqual(tallyGame(tied, 10 + DAY).winner, ["You", "Mia"]);
 });
 
 test("declining before a first set removes the player from turn order", () => {

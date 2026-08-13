@@ -29,7 +29,7 @@ test("horseTurnHeroCopy surfaces the modifier the next player has to match", () 
 test("horseSummaryRows puts the winner first, then eliminated players by longest survival", () => {
   const game = {
     word: "HORSE",
-    winner: "Dev",
+    winner: ["Dev"],
     turnOrder: ["You", "Mia", "Dev", "Priya"],
     players: {
       You: { letters: 4, out: true, outAt: 300 },
@@ -42,6 +42,25 @@ test("horseSummaryRows puts the winner first, then eliminated players by longest
   assert.deepEqual(rows.map((r) => r.name), ["Dev", "You", "Priya", "Mia"]);
   assert.equal(rows[0].isWinner, true);
   assert.equal(rows[1].wordSoFar, "HORS");
+});
+
+test("horseSummaryRows supports a shared (co-winner) match-timer tally", () => {
+  const game = {
+    word: "HORSE",
+    winner: ["You", "Mia"],
+    turnOrder: ["You", "Mia", "Dev"],
+    players: {
+      You: { letters: 1, out: false, outAt: null },
+      Mia: { letters: 1, out: false, outAt: null },
+      Dev: { letters: 3, out: false, outAt: null },
+    },
+  };
+  const rows = horseSummaryRows(game);
+  assert.deepEqual(rows.map((r) => r.name), ["You", "Mia", "Dev"]);
+  assert.equal(rows[0].isWinner, true);
+  assert.equal(rows[1].isWinner, true);
+  assert.equal(rows[2].isWinner, false);
+  assert.equal(rows[2].out, false);
 });
 
 test("Open Horse share links preserve the app path and identify the game", () => {

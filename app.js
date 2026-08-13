@@ -85,7 +85,7 @@ import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/m
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=4";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
-import { applyTurn, createHorseGame, currentTurnPlayer, horsePlayerRows, horseTargetLabel, isTurnStalled } from "./horse.js";
+import { applyTurn, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseInviteUrl, horseSummaryRows, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
@@ -535,8 +535,8 @@ async function workerCancelOpenHorseGame(gameId, user) {
 async function workerPostHorseTurn(payload) {
   return workerApi.postHorseTurn(payload);
 }
-async function workerSkipHorseGame(gameId) {
-  return workerApi.skipHorseGame(gameId);
+async function workerTallyHorseGame(gameId) {
+  return workerApi.tallyHorseGame(gameId);
 }
 async function workerDeclineHorseInvite(gameId, user) {
   return workerApi.declineHorseInvite(gameId, user);
@@ -1219,6 +1219,7 @@ const state = {
   horseWordMode: "classic",
   horseWord: "HORSE",
   horseSessionType: "live",
+  horseTimeLimit: "48h",
   horseSetupPlayers: [],
   horseLetterEvent: null,
 };
@@ -2308,6 +2309,15 @@ function renderHorseSessionUI() {
   note.textContent = state.horseSessionType === "open"
     ? "Create a private link. Up to three players can join in link order, even after play starts."
     : "Other players get a bell notification on Home when it's their turn.";
+  // A match timer only makes sense for async play — Live is one shared
+  // device, played through in a single sitting.
+  $("horse-time-limit-section").classList.toggle("hidden", state.horseSessionType === "live");
+}
+
+function renderHorseTimeUI() {
+  document.querySelectorAll("#horse-time-select .segment[data-horse-time]").forEach((s) => {
+    s.classList.toggle("active", s.dataset.horseTime === state.horseTimeLimit);
+  });
 }
 
 let horseInviteExpanded = false;
@@ -2358,10 +2368,12 @@ function renderHorseSetup(keepPlayers = false) {
   state.horseWordMode = "classic";
   state.horseWord = "HORSE";
   state.horseSessionType = "live";
+  state.horseTimeLimit = "48h";
   if (!keepPlayers || !state.horseSetupPlayers?.length) state.horseSetupPlayers = [state.currentUser];
   horseInviteExpanded = false;
   renderHorseWordUI();
   renderHorseSessionUI();
+  renderHorseTimeUI();
   renderHorsePlayerList();
 }
 
@@ -2392,6 +2404,13 @@ $("horse-session-select").addEventListener("click", (e) => {
   }
   renderHorseSessionUI();
   renderHorsePlayerList();
+});
+
+$("horse-time-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment[data-horse-time]");
+  if (!btn) return;
+  state.horseTimeLimit = btn.dataset.horseTime;
+  renderHorseTimeUI();
 });
 
 $("horse-player-list").addEventListener("click", (e) => {
@@ -2431,12 +2450,17 @@ function beginHorseTurn(name) {
 
 $("btn-horse-start").addEventListener("click", async () => {
   if (state.horseSessionType !== "open" && state.horseSetupPlayers.length < 2) return;
+  // Live is pass-the-phone, played through in one sitting — the match timer
+  // only applies to async (invite/open) play, whatever the setup UI shows.
+  const timeLimitKey = state.horseSessionType === "live" ? "unlimited" : state.horseTimeLimit;
   const input = {
     id: `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     word: state.horseWord,
     sessionType: state.horseSessionType,
     createdBy: state.currentUser,
     players: state.horseSetupPlayers,
+    timeLimit: HORSE_TIME_LIMITS[timeLimitKey],
+    timeLimitKey,
   };
   state.horseLetterEvent = null;
   // Invite games are server-authoritative from the start (other players read
@@ -2476,11 +2500,23 @@ function renderHorseTurnHero() {
   $("horse-target-sub").classList.toggle("hidden", !copy.sub);
 }
 
+// Rounds down to the minute — a countdown that ticked over every ms would be
+// noise; the app only ever re-renders this on load/refetch anyway.
+function horseFormatRemaining(ms) {
+  const totalMinutes = Math.max(0, Math.round(ms / 60000));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 function renderHorseTurnOrder() {
   const game = state.horseGame;
   const rows = horsePlayerRows(game);
   const isRemote = game.sessionType === "invite" || game.sessionType === "open";
-  const stalled = isRemote && isTurnStalled(game, Date.now());
+  const timeUp = isRemote && isTimeUp(game, Date.now());
   const waitingForOpenChallenger = game.sessionType === "open" && game.turnOrder.length === 1 && game.target != null;
   $("horse-order-title").textContent = game.sessionType === "open" && game.turnOrder.length === 1
     ? "Horse · Open lobby"
@@ -2492,6 +2528,25 @@ function renderHorseTurnOrder() {
       ? `${game.targetSetBy} set ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} · waiting for a challenger`
       : `Beat ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} to stay clean`
     : `${escapeHtml(game.turnOrder[0])} sets the bar`;
+
+  const timerLine = $("horse-order-timer-line");
+  if (!isRemote || game.timeLimit == null) {
+    timerLine.classList.add("hidden");
+  } else if (timeUp) {
+    timerLine.textContent = "⏰ Time's up — tally the scores below to crown a winner.";
+    timerLine.classList.remove("hidden");
+    timerLine.classList.add("horse-timer-line-urgent");
+  } else if (game.timerStartedAt == null) {
+    timerLine.textContent = "Match timer starts once the second player takes their first turn.";
+    timerLine.classList.remove("hidden");
+    timerLine.classList.remove("horse-timer-line-urgent");
+  } else {
+    const remaining = game.timeLimit - (Date.now() - game.timerStartedAt);
+    timerLine.textContent = `${horseFormatRemaining(remaining)} left on the clock`;
+    timerLine.classList.remove("hidden");
+    timerLine.classList.remove("horse-timer-line-urgent");
+  }
+
   const playerRowsHTML = rows.map((row) => {
     const displayedUp = row.status === "up" && !waitingForOpenChallenger;
     const statusHTML = row.status === "out"
@@ -2499,16 +2554,12 @@ function renderHorseTurnOrder() {
       : displayedUp
         ? '<span class="horse-player-tag">Up now</span>'
         : '<span class="horse-player-status-waiting">Waiting</span>';
-    const skipHTML = displayedUp && stalled
-      ? '<button type="button" class="icon-btn" data-skip-horse-game aria-label="Skip stalled turn">⏭</button>'
-      : "";
     return `
     <div class="tier1-row horse-player-row${displayedUp ? " horse-row-active" : ""}${row.status === "out" ? " horse-row-out" : ""}">
       <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(row.name).id}"></span>
       <span class="horse-player-name${row.status === "out" ? " horse-summary-name-out" : ""}">${escapeHtml(row.name)}</span>
       <span class="horse-mini-strip">${horseMiniStripHTML(game.word, row.letters)}</span>
       ${statusHTML}
-      ${skipHTML}
     </div>`;
   }).join("");
   const openSlotsHTML = game.sessionType === "open"
@@ -2522,13 +2573,15 @@ function renderHorseTurnOrder() {
   $("horse-turn-order-list").innerHTML = playerRowsHTML + openSlotsHTML;
   $("horse-turn-order-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
   const upNow = currentTurnPlayer(game);
-  const canTakeTurn = !waitingForOpenChallenger && (game.sessionType === "live" || upNow === state.currentUser);
+  const canTakeTurn = !timeUp && !waitingForOpenChallenger && (game.sessionType === "live" || upNow === state.currentUser);
   $("btn-horse-take-turn").classList.toggle("hidden", !canTakeTurn);
   $("btn-horse-take-turn").textContent = upNow === state.currentUser ? "Do your set" : `Pass the phone to ${upNow} — do your set`;
   // Reminding only makes sense for async games where someone else is
   // dragging their feet — Live is a shared device, and there's no reason to
   // nag yourself.
-  $("btn-horse-remind").classList.toggle("hidden", !isRemote || upNow === state.currentUser);
+  $("btn-horse-remind").classList.toggle("hidden", !isRemote || timeUp || upNow === state.currentUser);
+  // Once the clock runs out, play stops — any player can tally the scores.
+  $("btn-horse-tally").classList.toggle("hidden", !timeUp);
 
   const openControls = $("horse-open-controls");
   const isOpen = game.sessionType === "open";
@@ -2708,22 +2761,18 @@ $("btn-horse-take-turn").addEventListener("click", () => {
   beginHorseTurn(currentTurnPlayer(state.horseGame));
 });
 
-$("horse-turn-order-list").addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-skip-horse-game]");
-  if (!btn) return;
+$("btn-horse-tally").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
   btn.disabled = true;
   try {
-    const res = await workerSkipHorseGame(state.horseGame.id);
+    const res = await workerTallyHorseGame(state.horseGame.id);
     state.horseGame = res.game;
     upsertLocalHorseGame(res.game);
-    if (res.game.status === "complete") {
-      renderHorseSummary();
-      showScreen("screen-horse-summary");
-      return;
-    }
-    renderHorseTurnOrder();
+    renderHorseSummary();
+    showScreen("screen-horse-summary");
   } catch (err) {
-    toast("Couldn't skip — check your connection.", 3500);
+    toast("Couldn't tally the scores — check your connection.", 3500);
+  } finally {
     btn.disabled = false;
   }
 });
@@ -2765,14 +2814,19 @@ let horseWinAnnouncedForGameId = null;
 
 function renderHorseSummary() {
   const game = state.horseGame;
-  if (game.winner === state.currentUser && horseWinAnnouncedForGameId !== game.id) {
+  if (game.winner?.includes(state.currentUser) && horseWinAnnouncedForGameId !== game.id) {
     horseWinAnnouncedForGameId = game.id;
     speak(pickFrom(HORSE_WIN_LINES));
   }
   const rows = horseSummaryRows(game);
-  $("horse-summary-crown").innerHTML = `👑 ${escapeHtml(game.winner)} wins`;
+  $("horse-summary-crown").innerHTML = `👑 ${game.winner.map(escapeHtml).join(" & ")} wins`;
   $("horse-summary-list").innerHTML = rows.map((row) => {
-    const subtitle = row.isWinner ? `Winner${row.letters === 0 ? " · never spelled a letter" : ""}` : `OUT · ${row.wordSoFar}`;
+    // Elimination ends the game with the losers all OUT; a match-timer tally
+    // can end it with non-winners still in play — "letters" reads truer than
+    // a false "OUT" for them.
+    const subtitle = row.isWinner
+      ? `Winner${row.letters === 0 ? " · never spelled a letter" : ""}`
+      : row.out ? `OUT · ${row.wordSoFar}` : `${row.letters} letter${row.letters === 1 ? "" : "s"} · ${row.wordSoFar}`;
     return `
     <div class="tier1-row horse-player-row${row.isWinner ? " horse-summary-row-winner" : ""}">
       <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(row.name).id}"></span>
@@ -2795,7 +2849,7 @@ $("btn-horse-share").addEventListener("click", async () => {
   const game = state.horseGame;
   if (!game) return;
   const rows = horseSummaryRows(game);
-  const text = `🐴 Horse: ${game.winner} wins!\n${rows.map((r) => `${r.isWinner ? "👑" : "❌"} ${r.name} — ${r.isWinner ? "Winner" : `OUT · ${r.wordSoFar}`}`).join("\n")}`;
+  const text = `🐴 Horse: ${game.winner.join(" & ")} wins!\n${rows.map((r) => `${r.isWinner ? "👑" : "❌"} ${r.name} — ${r.isWinner ? "Winner" : r.out ? `OUT · ${r.wordSoFar}` : `${r.wordSoFar || "no letters"}`}`).join("\n")}`;
   if (navigator.share) {
     try { await navigator.share({ text }); } catch (e) { /* user cancelled the share sheet */ }
   } else if (navigator.clipboard) {

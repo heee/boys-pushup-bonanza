@@ -24,20 +24,22 @@ export function horseTurnHeroCopy(game) {
   };
 }
 
-// Winner first, then eliminated players ordered by how long they survived
-// (most recently OUT ranks just below the winner).
+// Winner(s) first (a match-timer tally can end in a shared win), then
+// eliminated players ordered by how long they survived (most recently OUT
+// ranks just below the winners).
 export function horseSummaryRows(game) {
-  const winner = game.winner;
+  const winners = game.winner || [];
   const others = game.turnOrder
-    .filter((name) => name !== winner)
+    .filter((name) => !winners.includes(name))
     .sort((a, b) => (game.players[b].outAt || 0) - (game.players[a].outAt || 0));
   const row = (name, isWinner) => ({
     name,
     isWinner,
     letters: game.players[name].letters,
+    out: game.players[name].out,
     wordSoFar: game.word.slice(0, game.players[name].letters),
   });
-  return winner ? [row(winner, true), ...others.map((name) => row(name, false))] : others.map((name) => row(name, false));
+  return [...winners.map((name) => row(name, true)), ...others.map((name) => row(name, false))];
 }
 
 export function horseInviteUrl(gameId, locationLike = globalThis.location) {

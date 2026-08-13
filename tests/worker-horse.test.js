@@ -10,9 +10,10 @@ import {
   createHorseGame,
   currentTurnPlayer,
   declinePlayer,
-  isTurnStalled,
+  HORSE_TIME_LIMITS,
+  isTimeUp,
   joinOpenPlayer,
-  skipStalledPlayer,
+  tallyGame,
   validateHorseCreate,
 } from "../worker/index.js";
 
@@ -68,7 +69,7 @@ test("2-player game ends immediately once one player spells the whole word", () 
     g = applyTurn(g, { user: "You", reps: misses[i] + 5, now: i + 10 });
   }
   assert.equal(g.status, "complete");
-  assert.equal(g.winner, "You");
+  assert.deepEqual(g.winner, ["You"]);
   assert.equal(g.players.Mia.out, true);
 });
 
@@ -82,18 +83,23 @@ test("3+ player last-one-standing wins", () => {
   g = { ...g, turnIndex: g.turnOrder.indexOf("Dev") };
   g = applyTurn(g, { user: "Dev", reps: 1, now: 2 });
   assert.equal(g.status, "complete");
-  assert.equal(g.winner, "You");
+  assert.deepEqual(g.winner, ["You"]);
 });
 
-test("skip awards a letter but leaves the target bar unchanged, and requires an actual stall", () => {
-  let g = game2();
+test("match timer starts on the second player's first turn and tallyGame crowns the fewest letters", () => {
+  const DAY = HORSE_TIME_LIMITS["24h"];
+  let g = createHorseGame({ id: "g1", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"], timeLimit: DAY, now: 0 });
   g = applyTurn(g, { user: "You", reps: 20, now: 1 });
-  assert.throws(() => skipStalledPlayer(g, { now: 2000 }));
-  const stalled = { ...g, turnStartedAt: 0 };
-  assert.equal(isTurnStalled(stalled, 48 * 60 * 60 * 1000 + 1), true);
-  const skipped = skipStalledPlayer(stalled, { now: 48 * 60 * 60 * 1000 + 1 });
-  assert.equal(skipped.players.Mia.letters, 1);
-  assert.equal(skipped.target, 20);
+  assert.equal(g.timerStartedAt, null);
+  assert.throws(() => tallyGame(g, DAY), /not expired/);
+  g = applyTurn(g, { user: "Mia", reps: 25, now: 2 });
+  assert.equal(g.timerStartedAt, 2);
+  assert.equal(isTimeUp(g, 2 + DAY - 1), false);
+  assert.equal(isTimeUp(g, 2 + DAY), true);
+  g = { ...g, players: { You: { letters: 3, out: false, outAt: null }, Mia: { letters: 1, out: false, outAt: null } } };
+  const tallied = tallyGame(g, 2 + DAY);
+  assert.equal(tallied.status, "complete");
+  assert.deepEqual(tallied.winner, ["Mia"]);
 });
 
 test("declining before a first set removes the player; declining to <2 voids the game", () => {

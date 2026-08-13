@@ -2,9 +2,16 @@
 // both drive this same logic against a plain game-state object (see
 // HORSE_PLAN.md for the shape).
 
-const DEFAULT_STALL_MS = 48 * 60 * 60 * 1000;
+// Match-length timer options for the setup screen — a whole-game deadline,
+// not a per-turn one. null ("unlimited") means no deadline at all.
+export const HORSE_TIME_LIMITS = {
+  "24h": 24 * 60 * 60 * 1000,
+  "48h": 48 * 60 * 60 * 1000,
+  "72h": 72 * 60 * 60 * 1000,
+  unlimited: null,
+};
 
-export function createHorseGame({ id, word, sessionType, createdBy, players, now = Date.now() }) {
+export function createHorseGame({ id, word, sessionType, createdBy, players, timeLimit = null, now = Date.now() }) {
   const minimumPlayers = sessionType === "open" ? 1 : 2;
   if (!Array.isArray(players) || players.length < minimumPlayers) throw new Error(`Horse needs at least ${minimumPlayers} player${minimumPlayers === 1 ? "" : "s"}`);
   if (sessionType === "open" && players.length > 4) throw new Error("Open Horse is limited to 4 players");
@@ -34,6 +41,8 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, now
     players: playersState,
     sets: [],
     winner: null,
+    timeLimit: timeLimit == null ? null : timeLimit,
+    timerStartedAt: null,
   };
 }
 
@@ -110,6 +119,16 @@ export function currentTurnPlayer(game) {
 // targetModifier regardless of success/failure, same as the target number
 // itself, so the next player has to match it (fair comparison, not just a
 // number to beat). null means no modifier was in play.
+// The match timer starts the moment the second distinct player to ever take
+// a turn completes THEIR first set — not at game creation, and not just on
+// joining. Once set it never moves again.
+function computeTimerStart(game) {
+  if (game.timerStartedAt != null || game.sets.length === 0) return game.timerStartedAt;
+  const firstUser = game.sets[0].user;
+  const secondSet = game.sets.find((set) => set.user !== firstUser);
+  return secondSet ? secondSet.at : null;
+}
+
 export function applyTurn(game, { user, reps, modifier = null, now = Date.now() }) {
   if (game.status !== "active") throw new Error("Game is not active");
   if (currentTurnPlayer(game) !== user) throw new Error("Not this player's turn");
@@ -121,32 +140,27 @@ export function applyTurn(game, { user, reps, modifier = null, now = Date.now() 
 
   const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
   const next = { ...game, players, sets, target: reps, targetSetBy: user, targetModifier: modifier };
+  next.timerStartedAt = computeTimerStart(next);
 
   const winner = checkWinner(next);
-  if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };
+  if (winner) return { ...next, status: "complete", winner: [winner], turnStartedAt: null };
 
   const { turnIndex, round, turnStartedAt } = advanceTurn(next, now);
   return { ...next, turnIndex, round, turnStartedAt };
 }
 
-export function isTurnStalled(game, now = Date.now(), maxAgeMs = DEFAULT_STALL_MS) {
-  return game.status === "active" && game.turnStartedAt != null && now - game.turnStartedAt >= maxAgeMs;
+export function isTimeUp(game, now = Date.now()) {
+  return game.status === "active" && game.timeLimit != null && game.timerStartedAt != null
+    && now - game.timerStartedAt >= game.timeLimit;
 }
 
-// A skipped turn awards a letter but leaves the target bar unchanged —
-// unlike a played (failed) set, which resets the bar to the new low.
-export function skipStalledPlayer(game, { now = Date.now(), maxAgeMs = DEFAULT_STALL_MS } = {}) {
-  if (!isTurnStalled(game, now, maxAgeMs)) throw new Error("Turn is not stalled yet");
-  const user = currentTurnPlayer(game);
-  const players = awardLetter(game.players, user, now);
-  const sets = [...game.sets, { user, reps: null, needed: game.target, letter: true, skipped: true, at: now }];
-  const next = { ...game, players, sets };
-
-  const winner = checkWinner(next);
-  if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };
-
-  const { turnIndex, round, turnStartedAt } = advanceTurn(next, now);
-  return { ...next, turnIndex, round, turnStartedAt };
+// Match deadline hit: whoever has collected the fewest letters wins, ties
+// share the win. Replaces the old per-turn 48h stall-skip.
+export function tallyGame(game, now = Date.now()) {
+  if (!isTimeUp(game, now)) throw new Error("Timer has not expired yet");
+  const minLetters = Math.min(...game.turnOrder.map((name) => game.players[name].letters));
+  const winner = game.turnOrder.filter((name) => game.players[name].letters === minLetters);
+  return { ...game, status: "complete", winner, turnStartedAt: null };
 }
 
 // Invited player bows out before ever taking a set. Removes them from turn

@@ -32,18 +32,21 @@
 //   POST /join-challenge  -> { user, challengeId } -> adds user to that challenge's participant list
 //   POST /create-challenge -> { title, tagline, emoji, goalType, goal, start, end, gradient?, createdBy }
 //                              -> stores a user-created challenge in D1, server-assigns the id
-//   POST /horse-create -> { id?, word, sessionType, createdBy, players } -> creates a Horse game
+//   POST /horse-create -> { id?, word, sessionType, createdBy, players, timeLimitKey? } -> creates
+//                          a Horse game; timeLimitKey is one of "24h"/"48h"/"72h"/"unlimited"
+//                          (defaults to "unlimited" if omitted/unrecognized)
 //   POST /horse-join   -> { gameId, user } -> joins an active Open game (max 4)
 //   POST /horse-cancel -> { gameId, user } -> host cancels an Open game before a challenger joins
 //   POST /horse-turn   -> { gameId, user, reps, modifier? } -> applies the current player's
 //                          completed set; modifier is recorded as the new target's
 //                          targetModifier, which the next player has to match
-//   POST /horse-skip   -> { gameId } -> awards the stalled current player a letter (48h+ since
-//                          their turn started) and advances play; any player may call this
+//   POST /horse-tally  -> { gameId } -> once the match timer has expired, ends the game and
+//                          crowns whoever has the fewest letters (ties share the win); any
+//                          player may call this. Replaces the old per-turn 48h skip.
 //   POST /horse-decline -> { gameId, user } -> removes an invited player who hasn't taken a set yet
 //                          (voids the game if fewer than 2 players remain)
 //   Async "Invite friends" Horse games are the reason /data below also returns `horseGames` —
-//   see HORSE_PLAN.md. The rules engine (createHorseGame/applyTurn/skipStalledPlayer/
+//   see HORSE_PLAN.md. The rules engine (createHorseGame/applyTurn/tallyGame/
 //   declinePlayer below) is a deliberate duplicate of horse.js: this file is deployed by
 //   pasting it whole into the Cloudflare dashboard, so it can't import sibling modules.
 //   Keep the two in sync — both are covered by tests (tests/horse-mode.test.js and
@@ -415,7 +418,7 @@ export default {
       }
     }
 
-    if (url.pathname === "/horse-skip" && request.method === "POST") {
+    if (url.pathname === "/horse-tally" && request.method === "POST") {
       if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
         return json({ error: "unauthorized" }, 401, cors);
       }
@@ -432,8 +435,8 @@ export default {
         const game = await loadHorseGame(env.DB, gameId);
         if (!game) return json({ error: "game not found" }, 404, cors);
         if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
-        if (!isTurnStalled(game, Date.now())) return json({ error: "turn is not stalled yet" }, 409, cors);
-        const updated = skipStalledPlayer(game, { now: Date.now() });
+        if (!isTimeUp(game, Date.now())) return json({ error: "timer has not expired yet" }, 409, cors);
+        const updated = tallyGame(game, Date.now());
         await upsertHorseGame(env.DB, updated);
         return json({ ok: true, game: updated }, 200, cors);
       } catch (e) {
@@ -825,10 +828,23 @@ export function validateHorseCreate(body) {
   const id = typeof body.id === "string" && /^[a-z0-9-]{1,64}$/.test(body.id)
     ? body.id
     : `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  return { id, word, sessionType, createdBy, players };
+  const timeLimit = Object.prototype.hasOwnProperty.call(HORSE_TIME_LIMITS, body.timeLimitKey)
+    ? HORSE_TIME_LIMITS[body.timeLimitKey]
+    : null;
+  return { id, word, sessionType, createdBy, players, timeLimit };
 }
 
-export function createHorseGame({ id, word, sessionType, createdBy, players, now = Date.now() }) {
+// Match-length timer options for the setup screen — a whole-game deadline,
+// not a per-turn one. null ("unlimited") means no deadline at all. Must stay
+// in sync with horse.js's HORSE_TIME_LIMITS.
+export const HORSE_TIME_LIMITS = {
+  "24h": 24 * 60 * 60 * 1000,
+  "48h": 48 * 60 * 60 * 1000,
+  "72h": 72 * 60 * 60 * 1000,
+  unlimited: null,
+};
+
+export function createHorseGame({ id, word, sessionType, createdBy, players, timeLimit = null, now = Date.now() }) {
   const minimumPlayers = sessionType === "open" ? 1 : 2;
   if (!Array.isArray(players) || players.length < minimumPlayers) throw new Error(`Horse needs at least ${minimumPlayers} player${minimumPlayers === 1 ? "" : "s"}`);
   if (sessionType === "open" && players.length > 4) throw new Error("Open Horse is limited to 4 players");
@@ -858,6 +874,8 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, now
     players: playersState,
     sets: [],
     winner: null,
+    timeLimit: timeLimit == null ? null : timeLimit,
+    timerStartedAt: null,
   };
 }
 
@@ -927,6 +945,16 @@ export function currentTurnPlayer(game) {
   return game.turnOrder[game.turnIndex];
 }
 
+// The match timer starts the moment the second distinct player to ever take
+// a turn completes THEIR first set. Once set it never moves again. Must stay
+// in sync with horse.js's computeTimerStart.
+function horseComputeTimerStart(game) {
+  if (game.timerStartedAt != null || game.sets.length === 0) return game.timerStartedAt;
+  const firstUser = game.sets[0].user;
+  const secondSet = game.sets.find((set) => set.user !== firstUser);
+  return secondSet ? secondSet.at : null;
+}
+
 // modifier is whatever grip/hand-position (see screens/modifiers.js on the
 // client) the player used for this set — stored as targetModifier so the
 // next player has to match it. Must stay in sync with horse.js's applyTurn.
@@ -941,32 +969,28 @@ export function applyTurn(game, { user, reps, modifier = null, now = Date.now() 
 
   const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
   const next = { ...game, players, sets, target: reps, targetSetBy: user, targetModifier: modifier };
+  next.timerStartedAt = horseComputeTimerStart(next);
 
   const winner = horseCheckWinner(next);
-  if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };
+  if (winner) return { ...next, status: "complete", winner: [winner], turnStartedAt: null };
 
   const { turnIndex, round, turnStartedAt } = horseAdvanceTurn(next, now);
   return { ...next, turnIndex, round, turnStartedAt };
 }
 
-const HORSE_STALL_MS = 48 * 60 * 60 * 1000;
-
-export function isTurnStalled(game, now = Date.now(), maxAgeMs = HORSE_STALL_MS) {
-  return game.status === "active" && game.turnStartedAt != null && now - game.turnStartedAt >= maxAgeMs;
+export function isTimeUp(game, now = Date.now()) {
+  return game.status === "active" && game.timeLimit != null && game.timerStartedAt != null
+    && now - game.timerStartedAt >= game.timeLimit;
 }
 
-export function skipStalledPlayer(game, { now = Date.now(), maxAgeMs = HORSE_STALL_MS } = {}) {
-  if (!isTurnStalled(game, now, maxAgeMs)) throw new Error("Turn is not stalled yet");
-  const user = currentTurnPlayer(game);
-  const players = horseAwardLetter(game.players, user, now);
-  const sets = [...game.sets, { user, reps: null, needed: game.target, letter: true, skipped: true, at: now }];
-  const next = { ...game, players, sets };
-
-  const winner = horseCheckWinner(next);
-  if (winner) return { ...next, status: "complete", winner, turnStartedAt: null };
-
-  const { turnIndex, round, turnStartedAt } = horseAdvanceTurn(next, now);
-  return { ...next, turnIndex, round, turnStartedAt };
+// Match deadline hit: whoever has collected the fewest letters wins, ties
+// share the win. Replaces the old per-turn 48h stall-skip. Must stay in sync
+// with horse.js's tallyGame.
+export function tallyGame(game, now = Date.now()) {
+  if (!isTimeUp(game, now)) throw new Error("Timer has not expired yet");
+  const minLetters = Math.min(...game.turnOrder.map((name) => game.players[name].letters));
+  const winner = game.turnOrder.filter((name) => game.players[name].letters === minLetters);
+  return { ...game, status: "complete", winner, turnStartedAt: null };
 }
 
 export function declinePlayer(game, { user, now = Date.now() }) {
