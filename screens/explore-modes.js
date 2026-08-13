@@ -5,7 +5,7 @@ export const EXPLORE_MODES = [
   { id: "dice", icon: "🎲", title: "Dice roll", tagline: "Hit the number before next roll", live: true },
   { id: "plank", icon: "🪵", title: "Plank", tagline: "Hold your ground, beat your own time", live: true },
   { id: "squat", icon: "🦵", title: "Squat", tagline: "Camera-counted squats, own your reps", live: true },
-  { id: "pullup", icon: "💪", title: "Pull-ups", tagline: "Strict reps from dead hang to chin over bar", live: true },
+  { id: "pullup", icon: "💪", title: "Pull-ups", tagline: "Camera-counted pull-ups, own your reps", live: true },
   { id: "situp", icon: "🙇", title: "Situp", tagline: "Camera-counted situps, own your reps", live: true },
   { id: "ladder", icon: "🪜", title: "Ladder", tagline: "Climb the ladder, cash out anytime", live: true },
   { id: "fortune", icon: "🥠", title: "Fortune cookie", tagline: "One set, one revealed challenge", live: true },
