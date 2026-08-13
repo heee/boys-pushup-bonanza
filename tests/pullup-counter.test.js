@@ -73,3 +73,8 @@ test("pose geometry infers the wrist bar line, full hang, and chin clearance", (
   const top = pullupFrameMetrics(pose({ shoulderY: 0.28, elbowY: 0.30, wristY: 0.20, noseY: 0.10, mouthY: 0.15 }));
   assert.equal(top.chinClearsBar, true);
 });
+
+test("standing with arms at the sides is not mistaken for chin-over-bar", () => {
+  const standing = pullupFrameMetrics(pose({ shoulderY: 0.30, elbowY: 0.55, wristY: 0.75, noseY: 0.12, mouthY: 0.18 }));
+  assert.equal(standing, null);
+});

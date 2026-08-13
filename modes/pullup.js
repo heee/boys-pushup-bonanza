@@ -56,6 +56,13 @@ export function pullupFrameMetrics(landmarks) {
   const nose = landmarks?.[NOSE];
   if (!wrists || !shoulders || !mouth || !visible(nose)) return null;
 
+  // Hands must be raised above the shoulders — true throughout any real hang,
+  // top, or return. Without this gate, standing normally with arms at the
+  // sides (e.g. walking to the bar) reads as "chin clears the bar" (the chin
+  // is above wherever the hands happen to be) and its shoulder-to-wrist
+  // distance flips sign relative to a real hang, corrupting calibration.
+  if (wrists.y >= shoulders.y) return null;
+
   const elbowAngle = averageFinite([
     angleDegrees(landmarks[LEFT_SHOULDER], landmarks[LEFT_ELBOW], landmarks[LEFT_WRIST]),
     angleDegrees(landmarks[RIGHT_SHOULDER], landmarks[RIGHT_ELBOW], landmarks[RIGHT_WRIST]),
