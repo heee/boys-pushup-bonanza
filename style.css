@@ -368,10 +368,16 @@ button, input {
      no gap of mismatched body/bg color behind the home indicator. */
   padding: 0.5rem 0.4rem calc(0.5rem + env(safe-area-inset-bottom));
   transition: opacity 0.25s ease, transform 0.25s ease;
+  /* Forces its own GPU compositing layer at all times. Without this, iOS
+     Safari occasionally loses track of this fixed element while the inner
+     #app-main scroll container is scrolling and paints it mid-page instead
+     of pinned to the viewport bottom until the next repaint. */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
 }
 .tab-bar.hidden {
   opacity: 0;
-  transform: translateY(100%);
+  transform: translateY(100%) translateZ(0);
   pointer-events: none;
 }
 .tab-item {
@@ -401,6 +407,7 @@ button, input {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   /* Tab bar is fixed/out-of-flow now, so its clearance has to come from
      here explicitly instead of natural flex stacking. */
   padding: 1.25rem 1.1rem calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 1rem);
