@@ -2024,7 +2024,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .horse-letter-screen .horse-word-preview { justify-content: center; margin: 1rem auto; }
 .horse-letter-screen .horse-word-preview .horse-word-chip { width: 32px; height: 32px; }
-.horse-letter-screen .btn { margin-top: 1.6rem; }
+.horse-letter-actions {
+  display: flex;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 21rem;
+  margin: 1.6rem auto 0;
+}
+.horse-letter-actions .btn { flex: 1; width: auto; max-width: none; margin-top: 0; }
 
 .horse-crown-pill {
   display: inline-flex;
@@ -2343,6 +2350,19 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+}
+
+/* Stroke-only right-arrow glyph, same currentColor-mask technique as
+   .icon-share — paired with "Continue" wherever it sits beside a share
+   action so both buttons read as equal-weight, iconed actions. */
+.icon-arrow-right {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3Cpolyline points='12 5 19 12 12 19'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3Cpolyline points='12 5 19 12 12 19'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
 /* ---------------- Dashboard ---------------- */
@@ -3706,6 +3726,62 @@ body:has(#screen-challenges.active) #app {
   max-width: 90vw;
   text-align: center;
 }
+
+/* ---------------- Holland mode ---------------- */
+
+.holland-difficulty-cards { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; max-width: 24rem; margin-top: 1rem; }
+.holland-difficulty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  border: 1.5px solid transparent;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.holland-difficulty-name { font-weight: 800; font-size: 1rem; }
+.holland-difficulty-targets { font-size: 0.78rem; color: var(--text-tertiary); }
+.holland-difficulty-card.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--bg-elevated)); }
+.holland-difficulty-card.selected .holland-difficulty-name { color: var(--primary); }
+
+.holland-hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; margin: 0.6rem 0; }
+.holland-hud-chip {
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.holland-hud-chip:empty { display: none; }
+
+.holland-correction-row { justify-content: center; margin-top: 0.6rem; }
+
+.holland-transition-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 26rem;
+  margin-top: 0.5rem;
+  padding: 1.1rem 1rem;
+  border-radius: 18px;
+  background: var(--bg-elevated);
+  text-align: center;
+}
+.holland-transition-stage .btn { margin-top: 0.6rem; width: 100%; max-width: 14rem; }
+
+.summary-holland-result { max-width: 29rem; margin-top: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 14px; background: var(--bg-elevated); color: var(--text); text-align: center; }
+.holland-summary-difficulty { font-size: 0.95rem; font-weight: 800; color: var(--accent); }
+.holland-summary-breakdown { margin-top: 0.25rem; font-size: 0.82rem; color: var(--text-tertiary); }
+.holland-27-badge { margin-top: 0.4rem; font-size: 0.85rem; font-weight: 800; color: var(--flame); }
 
 .hidden { display: none !important; }
 .sr-only { position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important; }

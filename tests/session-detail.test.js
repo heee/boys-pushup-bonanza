@@ -22,6 +22,8 @@ test("sessionModeId/Label fall back to classic and read plank type", () => {
   assert.equal(sessionModeId(session({ type: "situp", count: 15 })), "situps");
   assert.equal(sessionModeLabel(session({ type: "situp", count: 15 })), "Situps");
   assert.equal(sessionModeLabel(session({ mode: "ladder" })), "Ladder");
+  assert.equal(sessionModeId(session({ type: "holland" })), "holland");
+  assert.equal(sessionModeLabel(session({ type: "holland" })), "Holland Mode");
 });
 
 test("sessionDurationMs/Pace derive from startedAt, and reject bad ranges", () => {
@@ -38,6 +40,11 @@ test("sessionBadges include mode, pyramid direction, modifier, and weighted", ()
   assert.equal(badges[1].label, "Up & Down");
   assert.equal(badges[2].label, "Wide");
   assert.equal(badges[3].label, "+20 lbs");
+
+  const holland = sessionBadges(session({ type: "holland", hollandDifficulty: "hard", hollandAchievement: "holland27" }));
+  assert.deepEqual(holland.map((b) => b.id), ["mode", "holland-difficulty", "holland-27"]);
+  assert.equal(holland[1].label, "Hard");
+  assert.equal(holland[2].label, "Holland 27");
 });
 
 test("sessionKeyMetrics surfaces mode-specific fields and drops nulls", () => {
@@ -62,6 +69,18 @@ test("sessionKeyMetrics surfaces mode-specific fields and drops nulls", () => {
 
   const poker = sessionKeyMetrics(session({ mode: "poker", pokerHandsCompleted: 3, pokerBestRank: 6 }));
   assert.deepEqual(poker.find((m) => m.id === "pokerBestHand"), { id: "pokerBestHand", label: "Best hand", format: "pokerHand", value: 6 });
+
+  const holland = sessionKeyMetrics(session({
+    type: "holland", hollandDifficulty: "hard", hollandCycles: 27, hollandCircuits: 9,
+    hollandPullups: 135, hollandPushups: 270, hollandSquats: 405,
+  }));
+  assert.ok(holland.some((m) => m.id === "duration"));
+  assert.ok(!holland.some((m) => m.id === "pace")); // time is context only, not a rate
+  assert.ok(!holland.some((m) => m.id === "hollandCycles")); // cycles is already the hero number, not repeated in the table
+  assert.equal(holland.find((m) => m.id === "hollandCircuits").value, 9);
+  assert.equal(holland.find((m) => m.id === "hollandPullups").value, 135);
+  assert.equal(holland.find((m) => m.id === "hollandPushups").value, 270);
+  assert.equal(holland.find((m) => m.id === "hollandSquats").value, 405);
 });
 
 test("sessionRings compares against personal and group pools, same mode+modifier first", () => {

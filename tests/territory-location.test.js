@@ -92,3 +92,42 @@ test("Worker preserves Zen and Sharpshooter mode tags without Zen modifiers", ()
 test("Worker preserves pull-up activity type", () => {
   assert.equal(validateSession({ user: "Nelson", count: 8, type: "pullup" }).type, "pullup");
 });
+
+test("Worker validates Holland sessions and derives cycles server-side", () => {
+  const session = validateSession({
+    user: "Nelson", count: 30, type: "holland",
+    hollandDifficulty: "normal", hollandPullups: 5, hollandPushups: 10, hollandSquats: 15,
+    hollandCircuits: 1, hollandAchievement: "holland27",
+  });
+  assert.equal(session.type, "holland");
+  assert.equal(session.hollandDifficulty, "normal");
+  assert.equal(session.hollandPullups, 5);
+  assert.equal(session.hollandPushups, 10);
+  assert.equal(session.hollandSquats, 15);
+  assert.equal(session.hollandCycles, 1);
+  assert.equal(session.hollandCircuits, 1);
+  // hollandAchievement is client-supplied but not blindly trusted for
+  // anything security-sensitive — it's just carried through for display.
+  assert.equal(session.hollandAchievement, "holland27");
+});
+
+test("Worker rejects a Holland session whose components don't sum to count", () => {
+  assert.equal(validateSession({
+    user: "Nelson", count: 31, type: "holland",
+    hollandDifficulty: "normal", hollandPullups: 5, hollandPushups: 10, hollandSquats: 15,
+  }), null);
+});
+
+test("Worker rejects a Holland session with an unrecognized difficulty", () => {
+  assert.equal(validateSession({
+    user: "Nelson", count: 30, type: "holland",
+    hollandDifficulty: "legendary", hollandPullups: 5, hollandPushups: 10, hollandSquats: 15,
+  }), null);
+});
+
+test("Worker rejects a Holland session with a negative component count", () => {
+  assert.equal(validateSession({
+    user: "Nelson", count: 25, type: "holland",
+    hollandDifficulty: "normal", hollandPullups: -5, hollandPushups: 10, hollandSquats: 20,
+  }), null);
+});

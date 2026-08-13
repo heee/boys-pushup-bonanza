@@ -98,6 +98,18 @@ test("Pull-ups aggregate as their own rep activity", () => {
   assert.equal(metric("pullups", "avgReps", sessions).value, 6);
 });
 
+test("Holland aggregates workouts, cycles, and the Holland 27 achievement count", () => {
+  const sessions = [
+    session("A", 300, { type: "holland", hollandCycles: 24.6, hollandAchievement: undefined }),
+    session("A", 810, { type: "holland", hollandCycles: 27, hollandAchievement: "holland27" }),
+    session("B", 30, { type: "holland", hollandCycles: 1, hollandAchievement: undefined }),
+  ];
+  assert.equal(metric("holland", "workouts", sessions).value, 3);
+  assert.equal(metric("holland", "totalCycles", sessions).value, 24.6 + 27 + 1);
+  assert.equal(metric("holland", "bestCycles", sessions).value, 27);
+  assert.equal(metric("holland", "holland27", sessions).value, 1);
+});
+
 test("Unavailable metadata yields an empty metric and no leader", () => {
   const result = metric("cards", "cardsCleared", [session("A", 20)]);
   assert.equal(result.available, false);

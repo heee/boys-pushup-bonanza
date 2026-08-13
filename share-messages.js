@@ -653,3 +653,29 @@ export function pickHorseReminderMessage(ctx) {
   lastHorseReminderTemplate = template;
   return template(ctx);
 }
+
+// Share copy for the "you picked up a letter" screen — owns the miss, then
+// shoves the ball into the next player's court. c.name is whoever just
+// missed, c.letter the letter they picked up, c.nextName who's up next
+// (may equal c.name if the game only has one player left to nag, or be
+// omitted once the game is already over).
+const SHARE_MESSAGES_HORSE_LETTER_FAIL = [
+  (c) => `${c.name} just choked and picked up a ${c.letter} 🐴 ${c.nextName ? `${c.nextName}, your move.` : "Get up here."}`,
+  (c) => `🚨 ${c.name} missed it. That's a ${c.letter}.${c.nextName ? ` ${c.nextName}, don't be next.` : ""}`,
+  (c) => `${c.name} bricked it and is one letter closer to being spelled out.${c.nextName ? ` ${c.nextName}, up.` : ""}`,
+  (c) => `Letter ${c.letter} goes to ${c.name} 💀${c.nextName ? ` ${c.nextName}, show us how it's done.` : ""}`,
+  (c) => `${c.name} couldn't get it done. Picked up ${c.letter}.${c.nextName ? ` ${c.nextName}, on the clock.` : ""}`,
+  (c) => `Another letter for ${c.name} 📉 (${c.letter}).${c.nextName ? ` ${c.nextName}, your turn to not embarrass yourself.` : ""}`,
+  (c) => `${c.name} missed the bar and picked up a ${c.letter}.${c.nextName ? ` ${c.nextName}, get up here already.` : ""}`,
+  (c) => `${c.name} is spelling out a word nobody wants to finish (${c.letter}).${c.nextName ? ` ${c.nextName}'s up.` : ""}`,
+];
+
+let lastHorseLetterFailTemplate = null;
+export function pickHorseLetterFailMessage(ctx) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(SHARE_MESSAGES_HORSE_LETTER_FAIL); guard++; }
+  while (template === lastHorseLetterFailTemplate && SHARE_MESSAGES_HORSE_LETTER_FAIL.length > 1 && guard < 10);
+  lastHorseLetterFailTemplate = template;
+  return template(ctx);
+}

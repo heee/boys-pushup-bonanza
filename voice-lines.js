@@ -448,6 +448,35 @@ export const FUN_MESSAGES_SITUP = [
   (n) => `${n} situps. Certified core-crushing behavior.`,
 ];
 
+// Holland mode — continuous pull-up/pushup/squat circuit (see AGENTS.md
+// "Holland mode" and app.js's startHolland/triggerHollandTransition/
+// completeHolland). Subtle, original spider-inspired web-slinger flavor —
+// deep red/midnight-blue energy aimed at bars/pavement/gravity, never a
+// named character, franchise dialogue, or claim that "27" is a real record.
+export const HOLLAND_START_LINES = [
+  "Web's up! Pull-ups, pushups, squats — swing through all three, no landing!",
+  "Circuit's live! Climb, push, drop low, repeat till you call it!",
+  "Suit up! The city's watching and the circuit never stops!",
+];
+
+export const HOLLAND_TO_PULLUP_LINES = [
+  "Back to the bar! Climb like the rooftop's on fire!",
+  "Web up and pull! Gravity's still losing this fight!",
+];
+
+export const HOLLAND_TO_PUSHUP_LINES = [
+  "Down to the street! Push like the pavement owes you rent!",
+  "Ground level! Push through — the block's still watching!",
+];
+
+export const HOLLAND_TO_SQUAT_LINES = [
+  "Drop low! Squat like you're loading up a launch!",
+  "Legs up! Squat deep, the swing's about to need it!",
+];
+
+export const HOLLAND_CIRCUIT_COMPLETE_LINE = "Circuit complete! One more web slung clean across the city!";
+export const HOLLAND_27_LINE = "Holland 27! Legend of the circuit — the city owes you one!";
+
 export const FUN_MESSAGES_PLANK = [
   (s) => `${s} second plank! Somewhere, a yoga instructor sheds a single tear.`,
   (s) => `Held it for ${s} seconds. Absolute plank behavior.`,
@@ -529,6 +558,12 @@ export function buildCorpus() {
   for (const line of SQUAT_CHEER_LINES) add(line, "hype");
   for (const line of SITUP_START_LINES) add(line, "hype");
   for (const line of SITUP_CHEER_LINES) add(line, "hype");
+  for (const line of HOLLAND_START_LINES) add(line, "hype");
+  for (const line of HOLLAND_TO_PULLUP_LINES) add(line, "hype");
+  for (const line of HOLLAND_TO_PUSHUP_LINES) add(line, "hype");
+  for (const line of HOLLAND_TO_SQUAT_LINES) add(line, "hype");
+  add(HOLLAND_CIRCUIT_COMPLETE_LINE, "hype");
+  add(HOLLAND_27_LINE, "hype");
   for (const line of LADDER_CHEER_LINES) add(line, "hype");
   for (const line of SHARPSHOOTER_HIT_LINES) add(line, "hype");
   for (const line of PYRAMID_ROW_CHEER_LINES) add(line, "hype");

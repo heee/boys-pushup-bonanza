@@ -1,3 +1,5 @@
+import { hollandComponentSessions } from "./modes/holland.js";
+
 export function weightedMultiplier(profile, bonusFactor = 2) {
   if (!profile?.bodyweightLbs || profile.bodyweightLbs <= 0) return 1;
   return (profile.bodyweightLbs + bonusFactor * Math.max(0, profile.addedWeightLbs || 0)) / profile.bodyweightLbs;
@@ -15,14 +17,29 @@ export function periodStart(period, now = new Date()) {
   return dayStart;
 }
 
+// Makes a Holland session's pull-up/pushup/squat component reps visible to
+// every mode-scoped aggregation below, alongside (never instead of) the
+// canonical Holland session itself, so Holland reps are never omitted from
+// the existing per-exercise totals/leaderboards nor double counted.
+export function expandHollandProjections(sessions) {
+  const expanded = [];
+  for (const session of sessions) {
+    expanded.push(session);
+    if (session.type === "holland") expanded.push(...hollandComponentSessions(session));
+  }
+  return expanded;
+}
+
 export function filterByMode(sessions, mode) {
-  if (mode === "planks") return sessions.filter((session) => session.type === "plank");
-  if (mode === "pullups") return sessions.filter((session) => session.type === "pullup");
-  if (mode === "squats") return sessions.filter((session) => session.type === "squat");
-  if (mode === "situps") return sessions.filter((session) => session.type === "situp");
-  if (mode === "all") return sessions.filter((session) => !session.type);
-  if (mode === "classic") return sessions.filter((session) => !session.type && !session.mode);
-  return sessions.filter((session) => !session.type && session.mode === mode);
+  if (mode === "holland") return sessions.filter((session) => session.type === "holland");
+  const pool = expandHollandProjections(sessions);
+  if (mode === "planks") return pool.filter((session) => session.type === "plank");
+  if (mode === "pullups") return pool.filter((session) => session.type === "pullup");
+  if (mode === "squats") return pool.filter((session) => session.type === "squat");
+  if (mode === "situps") return pool.filter((session) => session.type === "situp");
+  if (mode === "all") return pool.filter((session) => !session.type);
+  if (mode === "classic") return pool.filter((session) => !session.type && !session.mode);
+  return pool.filter((session) => !session.type && session.mode === mode);
 }
 
 export function computeStreakCore(sessions, now = new Date(), timestamp = (s) => Date.parse(s.timestamp)) {

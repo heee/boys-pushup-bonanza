@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import {
   buildCorpus,
   normalizeSpoken,
+  HOLLAND_27_LINE,
+  HOLLAND_CIRCUIT_COMPLETE_LINE,
+  HOLLAND_START_LINES,
+  HOLLAND_TO_PULLUP_LINES,
+  HOLLAND_TO_PUSHUP_LINES,
+  HOLLAND_TO_SQUAT_LINES,
   HORSE_CLEAR_LINES,
   HORSE_ELIMINATED_LINES,
   HORSE_LETTER_LINES,
@@ -56,6 +62,16 @@ test("every pull-up start/cheer line and record line are in the voice corpus", (
   for (const line of PULLUP_START_LINES) assert.equal(texts.has(line), true, line);
   for (const line of PULLUP_CHEER_LINES) assert.equal(texts.has(line), true, line);
   assert.equal(texts.has(PULLUP_RECORD_LINE), true, PULLUP_RECORD_LINE);
+});
+
+test("every Holland transition/circuit/27 line is included in the pre-rendered voice corpus", () => {
+  const texts = new Set(buildCorpus().map((entry) => entry.text));
+  for (const line of HOLLAND_START_LINES) assert.equal(texts.has(line), true, line);
+  for (const line of HOLLAND_TO_PULLUP_LINES) assert.equal(texts.has(line), true, line);
+  for (const line of HOLLAND_TO_PUSHUP_LINES) assert.equal(texts.has(line), true, line);
+  for (const line of HOLLAND_TO_SQUAT_LINES) assert.equal(texts.has(line), true, line);
+  assert.equal(texts.has(HOLLAND_CIRCUIT_COMPLETE_LINE), true, HOLLAND_CIRCUIT_COMPLETE_LINE);
+  assert.equal(texts.has(HOLLAND_27_LINE), true, HOLLAND_27_LINE);
 });
 
 test("squat corpus entries normalize to unique, non-empty keys", () => {

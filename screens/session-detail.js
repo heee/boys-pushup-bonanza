@@ -19,6 +19,7 @@ export const MODE_META = {
   squats: { label: "Squats", icon: "🦵" },
   pullups: { label: "Pull-ups", icon: "💪" },
   situps: { label: "Situps", icon: "🙇" },
+  holland: { label: "Holland Mode", icon: "🇳🇱" },
 };
 
 export function sessionModeId(session) {
@@ -26,6 +27,7 @@ export function sessionModeId(session) {
   if (session?.type === "squat") return "squats";
   if (session?.type === "pullup") return "pullups";
   if (session?.type === "situp") return "situps";
+  if (session?.type === "holland") return "holland";
   return session?.mode || "classic";
 }
 
@@ -54,6 +56,13 @@ export function sessionBadges(session) {
   if (modeId === "pyramid" && session.pyramidSize) {
     badges.push({ id: "pyramid-direction", icon: "↕️", label: session.pyramidDirection === "updown" ? "Up & Down" : "Ascending" });
   }
+  if (modeId === "holland" && session.hollandDifficulty) {
+    const label = session.hollandDifficulty.charAt(0).toUpperCase() + session.hollandDifficulty.slice(1);
+    badges.push({ id: "holland-difficulty", icon: "🕸️", label });
+  }
+  if (modeId === "holland" && session.hollandAchievement === "holland27") {
+    badges.push({ id: "holland-27", icon: "🕷️", label: "Holland 27", tone: "achievement" });
+  }
   if (session.modifier) {
     const modifierMeta = MODIFIERS_BY_ID[session.modifier];
     badges.push({ id: "modifier", icon: modifierMeta?.icon || "🤲", label: modifierMeta?.title || session.modifier, tone: "modifier" });
@@ -72,7 +81,7 @@ export function sessionKeyMetrics(session) {
 
   if (modeId !== "planks") {
     metrics.push({ id: "duration", label: "Duration", format: "duration", value: sessionDurationMs(session) });
-    metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
+    if (modeId !== "holland") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
   }
 
   if (modeId === "pyramid" && session.pyramidSize != null) {
@@ -99,6 +108,12 @@ export function sessionKeyMetrics(session) {
   if (modeId === "sharpshooter") {
     if (session.sharpshooterTargetsDestroyed != null) metrics.push({ id: "sharpshooterTargets", label: "Targets destroyed", format: "integer", value: session.sharpshooterTargetsDestroyed });
     if (session.sharpshooterLongestShot != null) metrics.push({ id: "sharpshooterLongestShot", label: "Longest shot", format: "integer", value: session.sharpshooterLongestShot });
+  }
+  if (modeId === "holland") {
+    if (session.hollandCircuits != null) metrics.push({ id: "hollandCircuits", label: "Full circuits", format: "integer", value: session.hollandCircuits });
+    if (session.hollandPullups != null) metrics.push({ id: "hollandPullups", label: "Pull-ups", format: "integer", value: session.hollandPullups });
+    if (session.hollandPushups != null) metrics.push({ id: "hollandPushups", label: "Pushups", format: "integer", value: session.hollandPushups });
+    if (session.hollandSquats != null) metrics.push({ id: "hollandSquats", label: "Squats", format: "integer", value: session.hollandSquats });
   }
   if (modeId === "chase") {
     metrics.push({ id: "chaseResult", label: session.chaseOvertaken ? "Overtook" : "Chasing", format: "text", value: session.chaseRival || "rival" });

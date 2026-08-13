@@ -1,3 +1,5 @@
+import { expandHollandProjections } from "../stats.js";
+
 // Ranked "which mode dominates" breakdown for the Bonanza stats screen.
 // Plank sessions track hold-time in seconds, not reps, so they're excluded
 // to avoid mixing units into the same reps bar. Squat and Situp sessions are
@@ -24,9 +26,14 @@ export const STATS_MODES = [
 const LABEL_BY_ID = new Map(STATS_MODES.map((mode) => [mode.id, mode.label]));
 
 export function modeBreakdownModel(sessions) {
+  const pool = expandHollandProjections(sessions);
   const byMode = new Map();
-  for (const session of sessions) {
-    if (session.type === "plank") continue;
+  for (const session of pool) {
+    // Plank tracks hold-time (seconds) and Holland tracks normalized cycles —
+    // neither shares the reps unit this breakdown bars by. Holland's own reps
+    // still land here via its projected pullup/pushup/squat component
+    // sessions above, so nothing is lost, just kept in the right unit.
+    if (session.type === "plank" || session.type === "holland") continue;
     const id = session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : (session.mode || "classic");
     if (!LABEL_BY_ID.has(id)) continue;
     if (!byMode.has(id)) byMode.set(id, { reps: 0, sessions: 0, users: new Set() });

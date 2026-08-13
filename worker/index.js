@@ -8,8 +8,16 @@
 //   POST /search-location  -> { query } -> sanitized Geoapify forward-geocode results
 //   POST /session      -> validates and stores a completed session in D1
 //                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session,
-//                          "squat" for a camera-counted squat set, "situp" for a camera-counted situp set;
-//                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks;
+//                          "squat" for a camera-counted squat set, "situp" for a camera-counted situp set,
+//                          "holland" for a continuous pull-up/pushup/squat circuit (see AGENTS.md);
+//                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks,
+//                          total raw reps across all three exercises for Holland;
+//                          hollandDifficulty/hollandPullups/hollandPushups/hollandSquats: Holland-mode-only —
+//                          "normal"/"medium"/"hard" and the nonnegative-integer per-exercise component reps,
+//                          which must sum to `count` (aggregate consistency, enforced server-side);
+//                          hollandCycles/hollandCircuits/hollandAchievement: Holland-mode-only — normalized
+//                          cycles (server-derived from count, not client-trusted), full physical circuits
+//                          completed, and "holland27" once 27.0 normalized cycles is reached;
 //                          rawCount/weightLbs are optional weighted-mode transparency fields — the actual
 //                          physical reps and added weight behind an already-scaled-up `count`;
 //                          mode: omit for Classic, "countdown", "cards", "dice", "ladder", "fortune", "chase", or
@@ -515,8 +523,32 @@ export function validateSession(body) {
   if (typeof body.startedAt === "string" && !isNaN(new Date(body.startedAt).getTime())) {
     session.startedAt = body.startedAt;
   }
-  if (body.type === "plank" || body.type === "pullup" || body.type === "squat" || body.type === "situp") {
+  if (body.type === "plank" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland") {
     session.type = body.type;
+  }
+  // Holland mode's own fields: difficulty catalog + per-exercise component
+  // reps that also feed the existing pull-up/pushup/squat aggregations
+  // client-side. Reject the whole session (not just the extra fields) if the
+  // difficulty is unrecognized or the components don't sum to `count` —
+  // partial/inconsistent Holland data is worse than none, since it would
+  // silently under- or double-count reps in those shared aggregations.
+  if (body.type === "holland") {
+    const HOLLAND_VALID_DIFFICULTIES = ["normal", "medium", "hard"];
+    const validComponent = (n) => Number.isFinite(n) && n >= 0 && n <= 100000;
+    const difficulty = HOLLAND_VALID_DIFFICULTIES.includes(body.hollandDifficulty) ? body.hollandDifficulty : null;
+    const pullups = Math.floor(Number(body.hollandPullups));
+    const pushups = Math.floor(Number(body.hollandPushups));
+    const squats = Math.floor(Number(body.hollandSquats));
+    if (!difficulty || !validComponent(pullups) || !validComponent(pushups) || !validComponent(squats)) return null;
+    if (pullups + pushups + squats !== count) return null;
+    session.hollandDifficulty = difficulty;
+    session.hollandPullups = pullups;
+    session.hollandPushups = pushups;
+    session.hollandSquats = squats;
+    session.hollandCycles = count / 30;
+    const circuits = Math.floor(Number(body.hollandCircuits));
+    if (Number.isFinite(circuits) && circuits >= 0 && circuits <= 100000) session.hollandCircuits = circuits;
+    if (body.hollandAchievement === "holland27") session.hollandAchievement = "holland27";
   }
   // Weighted-mode transparency fields: the raw physical rep count and the
   // added weight used to scale it up into `count`. Optional and pushup-only.
@@ -726,7 +758,7 @@ function parseStoredJson(value, fallback) {
 
 function sessionFromRow(row) {
   const session = { id: row.id, user: row.user, timestamp: row.timestamp, count: row.count };
-  const fields = { avatar: "avatar", started_at: "startedAt", type: "type", raw_count: "rawCount", weight_lbs: "weightLbs", mode: "mode", ladder_max_rung: "ladderMaxRung", pyramid_size: "pyramidSize", pyramid_direction: "pyramidDirection", poker_hands_completed: "pokerHandsCompleted", poker_best_rank: "pokerBestRank", poker_premium_hands: "pokerPremiumHands", fortune_challenge_id: "fortuneChallengeId", fortune_grip_side: "fortuneGripSide", modifier: "modifier" };
+  const fields = { avatar: "avatar", started_at: "startedAt", type: "type", raw_count: "rawCount", weight_lbs: "weightLbs", mode: "mode", ladder_max_rung: "ladderMaxRung", pyramid_size: "pyramidSize", pyramid_direction: "pyramidDirection", poker_hands_completed: "pokerHandsCompleted", poker_best_rank: "pokerBestRank", poker_premium_hands: "pokerPremiumHands", fortune_challenge_id: "fortuneChallengeId", fortune_grip_side: "fortuneGripSide", modifier: "modifier", holland_difficulty: "hollandDifficulty", holland_pullups: "hollandPullups", holland_pushups: "hollandPushups", holland_squats: "hollandSquats", holland_cycles: "hollandCycles", holland_circuits: "hollandCircuits", holland_achievement: "hollandAchievement" };
   for (const [column, key] of Object.entries(fields)) if (row[column] !== null) session[key] = row[column];
   if (row.pyramid_peak_reached !== null) session.pyramidPeakReached = Boolean(row.pyramid_peak_reached);
   if (row.pyramid_completed !== null) session.pyramidCompleted = Boolean(row.pyramid_completed);
@@ -767,8 +799,8 @@ async function upsertHorseGame(db, game) {
 
 async function insertSession(db, session) {
   const userId = await ensureUser(db, session.user);
-  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
-    session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null,
+  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json,holland_difficulty,holland_pullups,holland_pushups,holland_squats,holland_cycles,holland_circuits,holland_achievement) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+    session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null, session.hollandDifficulty ?? null, session.hollandPullups ?? null, session.hollandPushups ?? null, session.hollandSquats ?? null, session.hollandCycles ?? null, session.hollandCircuits ?? null, session.hollandAchievement ?? null,
   ).run();
 }
 

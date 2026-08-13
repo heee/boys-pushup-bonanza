@@ -94,6 +94,12 @@ const SPECS = {
     { id: "totalReps", label: "Total situps", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
     { id: "avgReps", label: "Avg situps / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
   ],
+  holland: [
+    { id: "workouts", label: "Holland workouts", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalCycles", label: "Total Holland cycles", format: "decimal", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.hollandCycles) || 0) : null },
+    { id: "bestCycles", label: "Best Holland cycles", format: "decimal", qualifier: "group best", value: (s) => s.length ? Math.max(...s.map((x) => Number(x.hollandCycles) || 0)) : null },
+    { id: "holland27", label: "Holland 27 unlocked", format: "integer", qualifier: "total", value: (s) => s.filter((x) => x.hollandAchievement === "holland27").length },
+  ],
 };
 
 export function modeStatsModel(sessions, mode) {

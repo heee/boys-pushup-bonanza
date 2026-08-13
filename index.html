@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=208">
+<link rel="stylesheet" href="style.css?v=209">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -348,7 +348,10 @@
       <h1 id="horse-letter-headline" class="screen-title"></h1>
       <div id="horse-letter-word" class="horse-word-preview"></div>
       <p id="horse-letter-sub" class="screen-sub"></p>
-      <button id="btn-horse-letter-continue" type="button" class="btn btn-giant btn-secondary">Continue</button>
+      <div class="horse-letter-actions">
+        <button id="btn-horse-letter-continue" type="button" class="btn btn-giant btn-secondary btn-with-icon">Continue <span class="icon-arrow-right" aria-hidden="true"></span></button>
+        <button id="btn-horse-letter-share" type="button" class="btn btn-giant btn-secondary btn-with-icon">Share <span class="icon-share" aria-hidden="true"></span></button>
+      </div>
     </section>
 
     <!-- ============ SCREEN: HORSE SUMMARY ============ -->
@@ -492,6 +495,78 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: HOLLAND MODE ============ -->
+    <section id="screen-holland-workout" class="screen">
+      <div id="holland-confetti" class="confetti" aria-hidden="true"></div>
+
+      <div id="holland-idle" class="workout-idle">
+        <p class="workout-eyebrow">Boys Bonanza</p>
+        <p class="workout-hello">
+          <span id="holland-avatar" class="avatar-circle"></span>
+          Ready for Holland Mode, <span id="holland-username">Friend</span><span class="tight-q">?</span></p>
+        <p class="workout-instructions">Pull-ups, pushups, and squats — nonstop, circuit after circuit, until you call it.</p>
+        <div id="holland-difficulty-cards" class="holland-difficulty-cards">
+          <button type="button" class="holland-difficulty-card" data-difficulty="normal">
+            <div class="holland-difficulty-name">Normal</div>
+            <div class="holland-difficulty-targets">5 pull-ups · 10 pushups · 15 squats</div>
+          </button>
+          <button type="button" class="holland-difficulty-card" data-difficulty="medium">
+            <div class="holland-difficulty-name">Medium</div>
+            <div class="holland-difficulty-targets">10 pull-ups · 20 pushups · 30 squats</div>
+          </button>
+          <button type="button" class="holland-difficulty-card" data-difficulty="hard">
+            <div class="holland-difficulty-name">Hard</div>
+            <div class="holland-difficulty-targets">15 pull-ups · 30 pushups · 45 squats</div>
+          </button>
+        </div>
+        <p id="holland-personal-best" class="highscore-message"></p>
+        <button id="btn-holland-start" class="btn btn-giant btn-primary">START</button>
+        <p class="workout-hint">Each exercise calibrates once, the first time it comes up, then reuses that calibration every later circuit.</p>
+      </div>
+
+      <div id="holland-in-progress" class="workout-active hidden">
+        <div class="camera-wrap">
+          <video id="holland-camera-video" playsinline muted autoplay></video>
+          <div id="holland-pose-box" class="face-box hidden"></div>
+        </div>
+
+        <div id="holland-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — get back in frame</div>
+
+        <div id="holland-hud" class="holland-hud">
+          <span id="holland-hud-difficulty" class="holland-hud-chip"></span>
+          <span id="holland-hud-circuit" class="holland-hud-chip"></span>
+          <span id="holland-hud-cycles" class="holland-hud-chip"></span>
+          <span id="holland-hud-timer" class="holland-hud-chip"></span>
+        </div>
+
+        <div id="holland-cal-stage" class="squat-cal-stage hidden">
+          <h2 id="holland-cal-title" class="squat-cal-title">Get your range</h2>
+          <p id="holland-cal-instructions" class="workout-instructions"></p>
+          <p id="holland-cal-error" class="settings-status err hidden"></p>
+        </div>
+
+        <div id="holland-count-stage" class="rep-count-wrap hidden">
+          <div id="holland-rep-count" class="rep-count">0</div>
+          <div id="holland-rep-label" class="rep-label">PULL-UPS</div>
+          <div id="holland-rep-target" class="highscore-message"></div>
+          <div class="stepper-row holland-correction-row">
+            <button id="btn-holland-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <button id="btn-holland-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+          </div>
+        </div>
+
+        <div id="holland-transition-stage" class="holland-transition-stage hidden">
+          <h2 id="holland-transition-title" class="squat-cal-title"></h2>
+          <p id="holland-transition-body" class="workout-instructions"></p>
+          <p id="holland-transition-cycles" class="highscore-message"></p>
+          <button id="btn-holland-ready" class="btn btn-giant btn-primary">READY</button>
+        </div>
+
+        <button id="btn-holland-cancel" type="button" class="btn btn-secondary btn-small-wide">Cancel</button>
+        <button id="btn-holland-finish" class="btn btn-giant btn-complete">FINISH WORKOUT</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: SITUP WORKOUT ============ -->
     <section id="screen-situp-workout" class="screen">
       <div id="situp-confetti" class="confetti" aria-hidden="true"></div>
@@ -536,6 +611,7 @@
       <div class="summary-body">
         <h1 class="screen-title">Session complete! 🎉</h1>
         <div class="summary-count" id="summary-count">0</div>
+        <div id="summary-holland-result" class="summary-holland-result hidden"></div>
         <div id="summary-weighted-note" class="weighted-note hidden"></div>
         <div id="summary-chase-result" class="summary-chase-result hidden"></div>
         <button type="button" id="summary-roadtrip-cue" class="workout-instructions is-cue summary-roadtrip-cue hidden"></button>
@@ -608,6 +684,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Situps</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="holland"><span>Holland</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
           </div>
         </div>
       </div>
@@ -900,6 +977,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Situps</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="holland"><span>Holland</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
           </div>
         </div>
       </div>
@@ -1137,6 +1215,6 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=209"></script>
+<script type="module" src="app.js?v=211"></script>
 </body>
 </html>

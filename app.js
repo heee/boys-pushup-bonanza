@@ -15,6 +15,12 @@ import {
   FIXED_PHRASES,
   FUN_MESSAGES,
   FUN_MESSAGES_PLANK,
+  HOLLAND_27_LINE,
+  HOLLAND_CIRCUIT_COMPLETE_LINE,
+  HOLLAND_START_LINES,
+  HOLLAND_TO_PULLUP_LINES,
+  HOLLAND_TO_PUSHUP_LINES,
+  HOLLAND_TO_SQUAT_LINES,
   HORSE_CLEAR_LINES,
   HORSE_ELIMINATED_LINES,
   HORSE_LETTER_LINES,
@@ -49,7 +55,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=138";
+} from "./voice-lines.js?v=139";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -75,15 +81,15 @@ import { createCameraController } from "./camera.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel } from "./screens/mode-stats.js?v=134";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=3";
+import { modeStatsModel } from "./screens/mode-stats.js?v=135";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=209";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=141";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=142";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=4";
+import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=6";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
 import { applyTurn, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseInviteUrl, horseSummaryRows, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -104,6 +110,24 @@ import {
 } from "./roadtrip.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
+import {
+  HOLLAND_TARGETS,
+  hollandAdvanceSegment,
+  hollandApplyCorrection,
+  hollandBuildSession,
+  hollandComponentSessions,
+  hollandCreateState,
+  hollandCurrentExercise,
+  hollandCyclesLabel,
+  hollandDifficultyLabel,
+  hollandFinish,
+  hollandFormatCycles,
+  hollandNormalizedCycles,
+  hollandQualifiesForHolland27,
+  hollandRecordReps,
+  hollandSegmentTarget,
+  hollandTotalReps,
+} from "./modes/holland.js";
 
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -155,6 +179,7 @@ const LS = {
   roadtripPeriod: "bpb-roadtrip-period",
   roadtripTier: "bpb-roadtrip-tier",
   roadtripPrompted: "bpb-roadtrip-location-prompted",
+  hollandDifficulty: "bpb-holland-difficulty",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -187,6 +212,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "squats", label: "Squats" },
   { id: "situps", label: "Situps" },
   { id: "planks", label: "Planks" },
+  { id: "holland", label: "Holland" },
 ];
 const LEADERBOARD_MODE_IDS = new Set(LEADERBOARD_MODE_OPTIONS.map((option) => option.id));
 
@@ -197,14 +223,15 @@ const MY_SESSIONS_MODE_OPTIONS = [
   { id: "situps", label: "Situps" },
   { id: "squats", label: "Squats" },
   { id: "planks", label: "Planks" },
+  { id: "holland", label: "Holland" },
 ];
 
 function sessionActivity(s) {
-  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : "pushups";
+  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : "pushups";
 }
 
 function leaderboardActivity(mode) {
-  return ["planks", "pullups", "squats", "situps"].includes(mode) ? mode : "pushups";
+  return ["planks", "pullups", "squats", "situps", "holland"].includes(mode) ? mode : "pushups";
 }
 
 function activityLabel(activity, singular = false) {
@@ -214,6 +241,7 @@ function activityLabel(activity, singular = false) {
     squats: singular ? "squat" : "squats",
     situps: singular ? "situp" : "situps",
     planks: singular ? "plank" : "planks",
+    holland: singular ? "Holland cycle" : "Holland cycles",
   };
   return words[activity] || words.pushups;
 }
@@ -221,6 +249,11 @@ function activityLabel(activity, singular = false) {
 function savedLeaderboardMode() {
   const saved = localStorage.getItem(LS.leaderboardMode) || "all";
   return LEADERBOARD_MODE_IDS.has(saved) ? saved : "all";
+}
+
+function savedHollandDifficulty() {
+  const saved = localStorage.getItem(LS.hollandDifficulty);
+  return HOLLAND_TARGETS[saved] ? saved : "normal";
 }
 
 const AVATARS = [
@@ -563,23 +596,20 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [] };
+  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [], holland: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
   const timestampBySession = new WeakMap();
 
-  for (const session of sessions) {
-    const activity = sessionActivity(session);
-    const timestamp = Date.parse(session.timestamp);
-    timestampBySession.set(session, Number.isFinite(timestamp) ? timestamp : 0);
-
-    if (!byUser.has(session.user)) byUser.set(session.user, []);
-    byUser.get(session.user).push(session);
+  // Whole-body activities get independent leaderboard buckets; pushup
+  // sessions continue to use All plus their selected pushup-mode bucket.
+  // Shared by both the real session and (for Holland) its projected
+  // pullup/pushup/squat component sessions, so Holland reps reach the
+  // existing per-exercise leaderboards/personal-bests without a second
+  // My Sessions row (byUser is only populated for the real session, below).
+  function indexActivityAndLeaderboard(session, activity) {
     byActivity[activity].push(session);
-
-    // Whole-body activities get independent leaderboard buckets; pushup
-    // sessions continue to use All plus their selected pushup-mode bucket.
     const leaderboardModes = session.type ? [activity] : ["all", session.mode || "classic"];
     for (const mode of leaderboardModes) {
       if (!byLeaderboardMode[mode]) continue;
@@ -588,10 +618,26 @@ function buildSessionIndex(sessions) {
       if (!byUserLeaderboardMode.has(userModeKey)) byUserLeaderboardMode.set(userModeKey, []);
       byUserLeaderboardMode.get(userModeKey).push(session);
     }
-
     const userActivityKey = `${activity}\0${session.user}`;
     if (!byUserActivity.has(userActivityKey)) byUserActivity.set(userActivityKey, []);
     byUserActivity.get(userActivityKey).push(session);
+  }
+
+  for (const session of sessions) {
+    const activity = sessionActivity(session);
+    const timestamp = Date.parse(session.timestamp);
+    timestampBySession.set(session, Number.isFinite(timestamp) ? timestamp : 0);
+
+    if (!byUser.has(session.user)) byUser.set(session.user, []);
+    byUser.get(session.user).push(session);
+
+    indexActivityAndLeaderboard(session, activity);
+
+    if (session.type === "holland") {
+      for (const projected of hollandComponentSessions(session)) {
+        indexActivityAndLeaderboard(projected, sessionActivity(projected));
+      }
+    }
   }
 
   const newestFirst = [...sessions].sort((a, b) =>
@@ -1182,6 +1228,10 @@ const state = {
   situpBest: 0,
   situpStartedAt: null,
   situpSessionLocation: null,
+  hollandActive: false,
+  hollandBest: 0,
+  hollandDifficulty: savedHollandDifficulty(),
+  hollandSessionLocation: null,
   summarySessionId: null,
   summaryBaseCount: 0,
   summaryExtra: 0,
@@ -1375,6 +1425,7 @@ const TAB_FOR_SCREEN = {
   "screen-squat-workout": "btn-nav-home",
   "screen-pullup-workout": "btn-nav-home",
   "screen-situp-workout": "btn-nav-home",
+  "screen-holland-workout": "btn-nav-home",
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
   "screen-user-compare": "btn-nav-dashboard",
@@ -1412,7 +1463,8 @@ function showScreen(id) {
     (id === "screen-plank-workout" && state.plankActive) ||
     (id === "screen-squat-workout" && state.squatActive) ||
     (id === "screen-pullup-workout" && state.pullupActive) ||
-    (id === "screen-situp-workout" && state.situpActive);
+    (id === "screen-situp-workout" && state.situpActive) ||
+    (id === "screen-holland-workout" && state.hollandActive);
   setChromeMinimized(minimized);
   const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
   document.querySelectorAll("#tab-bar .tab-item").forEach((btn) => {
@@ -1429,6 +1481,9 @@ function showScreen(id) {
     userCreationOpen = false;
     renderUserList();
     renderDeviceLocation();
+  }
+  if (id === "screen-summary" && state.lastSessionType !== "holland") {
+    $("summary-holland-result")?.classList.add("hidden");
   }
   if (id === "screen-dashboard") renderDashboard();
   if (id === "screen-session-detail") renderSessionDetail();
@@ -1469,6 +1524,11 @@ function showScreen(id) {
     $("situp-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("situp-avatar"), state.currentAvatar, "2rem");
   }
+  if (id === "screen-holland-workout" && !state.hollandActive) {
+    $("holland-username").textContent = state.currentUser || "Friend";
+    setAvatarEl($("holland-avatar"), state.currentAvatar, "2rem");
+    renderHollandIdle();
+  }
 }
 
 function guardLeaveWorkout(next) {
@@ -1492,6 +1552,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this situp set? Your in-progress reps won't be saved.");
     if (!ok) return;
     stopSitupHard();
+  } else if (state.screen === "screen-holland-workout" && state.hollandActive) {
+    const ok = confirm("Leave this Holland workout? Your in-progress circuit won't be saved.");
+    if (!ok) return;
+    stopHollandHard();
   }
   next();
 }
@@ -2275,6 +2339,10 @@ $("explore-modes-list").addEventListener("click", async (e) => {
     guardLeaveWorkout(() => showScreen("screen-horse-setup"));
     return;
   }
+  if (modeId === "holland") {
+    guardLeaveWorkout(() => showScreen("screen-holland-workout"));
+    return;
+  }
   openPushupModeFromExplore(modeId);
 });
 
@@ -2805,6 +2873,29 @@ $("btn-horse-letter-continue").addEventListener("click", async () => {
     showScreen("screen-horse-summary");
   } else {
     await openHorseTurnOrder();
+  }
+});
+
+$("btn-horse-letter-share").addEventListener("click", async () => {
+  const { pickHorseLetterFailMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+  const evt = state.horseLetterEvent;
+  const game = state.horseGame;
+  const nextName = game.status === "complete" ? null : currentTurnPlayer(game);
+  const message = pickHorseLetterFailMessage({ name: evt.forUser, letter: game.word[4 - evt.lettersLeft], nextName });
+  const url = game.sessionType === "open" ? horseInviteUrl(game.id) : location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — paste it in the group chat!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy your result manually.", 4000);
   }
 });
 
@@ -4005,7 +4096,8 @@ function streakRingSvg(streak) {
 // Shared by "My Bonanza" (one user's sessions) and "Boys Bonanza" (every
 // user's sessions, cumulative) — same 7-day bar chart + trend-vs-prior-week
 // line, just fed a different session set.
-function renderWeekChart(sessions, chartElId, trendElId, isPlank) {
+function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false) {
+  const metricOf = (session) => (isHolland ? Number(session.hollandCycles) || 0 : Number(session.count) || 0);
   const now = new Date();
   const days = [];
   for (let i = 6; i >= 0; i--) {
@@ -4021,10 +4113,10 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank) {
   for (const session of sessions) {
     const timestamp = sessionTimestamp(session);
     if (timestamp >= priorWeekStartTime && timestamp < windowStart) {
-      priorWeekTotal += session.count;
+      priorWeekTotal += metricOf(session);
     } else if (timestamp >= windowStart && timestamp < windowEnd) {
       const dayIndex = dayIndexByDate.get(new Date(timestamp).toDateString());
-      if (dayIndex !== undefined) dayTotals[dayIndex].total += session.count;
+      if (dayIndex !== undefined) dayTotals[dayIndex].total += metricOf(session);
     }
   }
   const maxTotal = Math.max(1, ...dayTotals.map((d) => d.total));
@@ -4033,7 +4125,7 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank) {
     const isToday = date.toDateString() === now.toDateString();
     const label = isToday ? "Today" : date.toLocaleDateString(undefined, { weekday: "short" });
     const heightPct = total > 0 ? Math.max(6, Math.round((total / maxTotal) * 100)) : 3;
-    const valueDisplay = total > 0 ? (isPlank ? formatDuration(total * 1000) : formatNumber(total)) : "";
+    const valueDisplay = total > 0 ? (isPlank ? formatDuration(total * 1000) : isHolland ? total.toFixed(1) : formatNumber(total)) : "";
     return `
       <div class="week-bar-col${isToday ? " week-bar-col-today" : ""}">
         <div class="week-bar-value">${valueDisplay}</div>
@@ -4273,11 +4365,14 @@ function renderSessionDetail() {
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
+  const isHolland = session.type === "holland";
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
-  $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000) : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL SITUPS" : "TOTAL PUSHUPS";
+  $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000)
+    : isHolland ? hollandFormatCycles(Number(session.hollandCycles) || 0)
+    : formatNumber(session.count);
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL SITUPS" : isHolland ? "HOLLAND CYCLES" : "TOTAL PUSHUPS";
 
   $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
     <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
@@ -4329,7 +4424,9 @@ async function shareSessionDetail() {
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} situps` : `${formatNumber(session.count)} pushups`;
+  const isHolland = session.type === "holland";
+  const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} situps` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : `${formatNumber(session.count)} pushups`;
   const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
   const url = location.href;
   if (navigator.share) {
@@ -4355,12 +4452,13 @@ $("btn-session-detail-delete").addEventListener("click", async () => {
 
 function paintMyBonanza(sessions) {
   const isPlank = state.activityType === "planks";
+  const isHolland = state.activityType === "holland";
   const activityWord = activityLabel(state.activityType);
   const mine = sessionIndex && sessions === sessionIndex.byLeaderboardMode[state.leaderboardMode]
     ? indexedSessionsForUserMode(state.currentUser)
     : sessions.filter((s) => s.user === state.currentUser);
 
-  renderWeekChart(mine, "week-chart", "week-trend", isPlank);
+  renderWeekChart(mine, "week-chart", "week-trend", isPlank, isHolland);
 
   const tilesEl = $("personal-stats-tiles");
   const statsEl = $("personal-stats");
@@ -4370,8 +4468,9 @@ function paintMyBonanza(sessions) {
     return;
   }
   const streak = computeStreak(mine);
-  const { allTimeTotal, personalBest, avgPerSession } = personalStatsModel(mine, streak);
-  const fmt = isPlank ? (n) => formatDuration(n * 1000) : formatNumber;
+  const metricOf = isHolland ? (s) => Number(s.hollandCycles) || 0 : (s) => s.count;
+  const { allTimeTotal, personalBest, avgPerSession } = personalStatsModel(mine, streak, metricOf, !isHolland);
+  const fmt = isPlank ? (n) => formatDuration(n * 1000) : isHolland ? (n) => n.toFixed(1) : formatNumber;
 
   // The 4 key metrics always form the 2x2 tile grid, streak first as a ring.
   tilesEl.innerHTML = `
@@ -4497,10 +4596,12 @@ function renderBoysModeStats(sessions) {
 
 function paintDashboard(sessions) {
   const isPlank = state.activityType === "planks";
+  const isHolland = state.activityType === "holland";
   const activityWord = activityLabel(state.activityType);
-  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : formatNumber(n));
+  const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
+  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
 
-  renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank);
+  renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank, isHolland);
 
   const start = periodStart(state.dashboardPeriod);
   const startTime = start.getTime();
@@ -4508,7 +4609,7 @@ function paintDashboard(sessions) {
 
   const totals = new Map();
   for (const s of filtered) {
-    totals.set(s.user, (totals.get(s.user) || 0) + s.count);
+    totals.set(s.user, (totals.get(s.user) || 0) + metricOf(s));
   }
   const ranked = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
 
@@ -4558,7 +4659,7 @@ function paintDashboard(sessions) {
       for (const s of userSessions) {
         const sessionRow = document.createElement("div");
         sessionRow.className = "history-session-row compare-clickable";
-        sessionRow.innerHTML = `<span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${fmtCount(s.count)}</span>`;
+        sessionRow.innerHTML = `<span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${fmtCount(metricOf(s))}</span>`;
         sessionRow.addEventListener("click", (e) => {
           e.stopPropagation();
           openSessionDetail(s, "screen-dashboard");
@@ -4577,6 +4678,7 @@ function paintDashboard(sessions) {
 
 function renderRecentList(sessions) {
   const isPlank = state.activityType === "planks";
+  const isHolland = state.activityType === "holland";
   const currentActivity = activityLabel(state.activityType);
   const recentList = $("recent-list");
   const recent = [...sessions].sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a)).slice(0, 10);
@@ -4591,7 +4693,7 @@ function renderRecentList(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${isPlank ? formatDuration(s.count * 1000) : formatNumber(s.count)}</div>
+      <div class="recent-count">${isPlank ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : formatNumber(s.count)}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     makeNameCompareClickable(row.querySelector(".recent-name"), s.user, true);
@@ -5636,6 +5738,10 @@ function getSquatBest(name) {
 
 function getPullupBest(name) {
   return bestFor(indexedSessionsForUser(name, "pullups"), name, () => true);
+}
+
+function getHollandBest(name) {
+  return bestFor(indexedSessionsForUser(name, "holland"), name, () => true, "hollandCycles");
 }
 
 function getSitupBest(name) {
@@ -7363,7 +7469,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=137").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=138").then((module) => {
       workoutShareMessages = module;
       return module;
     });
@@ -8243,6 +8349,492 @@ async function completePullup() {
 $("btn-pullup-start").addEventListener("click", startPullup);
 $("btn-pullup-cancel").addEventListener("click", stopPullupHard);
 $("btn-pullup-stop").addEventListener("click", completePullup);
+
+// ------------------- Holland mode -------------------
+// Continuous pull-up/pushup/squat circuit (see AGENTS.md "Holland mode").
+// Reuses each existing mode's own calibration math through
+// modes/holland-adapter.js rather than re-deriving it, and modes/holland.js
+// for the difficulty catalog/segment state machine/normalized-cycle math.
+// Pull-ups and squats share one pose-tracking camera pipeline; pushups use
+// the app's own face-tracking pipeline and its already-calibrated Settings
+// thresholds — the live camera controller is only recreated when the
+// detector type actually needs to change between segments.
+
+const HOLLAND_WARMUP_MIN_MS = 1200;
+const HOLLAND_WARMUP_MIN_SAMPLES = 10;
+const HOLLAND_WARMUP_MAX_SAMPLES = 300;
+const HOLLAND_WARMUP_HINT_MS = 8000;
+
+const HOLLAND_LABELS = { pullup: "PULL-UPS", pushup: "PUSHUPS", squat: "SQUATS" };
+const HOLLAND_CAL_INSTRUCTIONS = {
+  pullup: "Do a full pull-up: dead hang, chin over the bar, then back to dead hang. It will count.",
+  pushup: "Do a couple of pushups — we'll start counting automatically.",
+  squat: "Squat up and down a couple of times — we'll start counting automatically.",
+};
+const HOLLAND_REPOSITION_HINTS = {
+  pullup: "Face the phone and frame your hands, head, shoulders, elbows, and hips.",
+  pushup: "Prop the phone so your face fills the frame.",
+  squat: "Prop the phone against a wall and stand back so your whole body is in frame.",
+};
+const HOLLAND_TRANSITION_LINES = {
+  pullup: HOLLAND_TO_PULLUP_LINES,
+  pushup: HOLLAND_TO_PUSHUP_LINES,
+  squat: HOLLAND_TO_SQUAT_LINES,
+};
+
+let hollandAdapterModule = null;
+let hollandAdapterPromise = null;
+function loadHollandAdapter() {
+  if (!hollandAdapterPromise) {
+    hollandAdapterPromise = Promise.all([loadPullupMode(), import("./modes/holland-adapter.js")])
+      .then(([, adapterModule]) => { hollandAdapterModule = adapterModule; });
+  }
+  return hollandAdapterPromise;
+}
+
+const hollandState = {
+  stage: "idle", // idle | warmup | counting | transition
+  rules: null,
+  detectorType: null, // "pose" | "face" currently backing hollandCamera
+  calSamples: [],
+  warmupStartedAt: 0,
+  counter: null,
+  lastSeenAt: 0,
+  paused: false,
+  lastRepSpokenAt: 0,
+  startedAt: null,
+  holland27Announced: false,
+  calibratedThresholds: { pullup: null, pushup: null, squat: null },
+};
+
+let hollandCamera = null;
+async function ensureHollandCamera(detectorType) {
+  if (hollandCamera && hollandState.detectorType === detectorType) return hollandCamera;
+  if (hollandCamera) hollandCamera.stop();
+  hollandCamera = createCameraController({
+    moduleUrl: FACE_DETECTOR_MODULE_URL,
+    wasmUrl: FACE_DETECTOR_WASM_URL,
+    modelUrl: detectorType === "pose" ? POSE_LANDMARKER_MODEL_URL : FACE_DETECTOR_MODEL_URL,
+    detectorType,
+    getVideo: () => $("holland-camera-video"),
+    onDetection: detectorType === "pose" ? hollandOnPoseDetection : hollandOnFaceDetection,
+    onNoDetection: hollandOnNoDetection,
+  });
+  const stream = await hollandCamera.requestStream();
+  await hollandCamera.ensureDetector();
+  const video = $("holland-camera-video");
+  video.srcObject = stream;
+  try { await video.play(); } catch { /* autoplay quirks */ }
+  hollandState.detectorType = detectorType;
+  hollandCamera.startDetection();
+  return hollandCamera;
+}
+
+function updateHollandBox(bbox) {
+  const video = $("holland-camera-video");
+  const container = document.querySelector("#screen-holland-workout .camera-wrap");
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const scale = Math.max(cw / vw, ch / vh);
+  const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
+  const box = $("holland-pose-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+function hideHollandBox() { $("holland-pose-box").classList.add("hidden"); }
+function hideHollandStatusBanner() { $("holland-status-banner").classList.add("hidden"); }
+function showHollandStatusBanner(text) {
+  $("holland-status-banner").textContent = text;
+  $("holland-status-banner").classList.remove("hidden");
+  announce(text);
+}
+function checkHollandLostTimeout() {
+  if (hollandState.paused || hollandState.stage !== "counting") return;
+  const now = performance.now();
+  if (now - hollandState.lastSeenAt > FACE_LOST_TIMEOUT_MS) {
+    hollandState.paused = true;
+    showHollandStatusBanner("PAUSED — get back in frame");
+    speak("Paused");
+  }
+}
+
+function processHollandRatio(ratio) {
+  const now = performance.now();
+  hollandState.lastSeenAt = now;
+  if (hollandState.paused) {
+    hollandState.paused = false;
+    hideHollandStatusBanner();
+    speak("Back to it");
+  }
+  if (!hollandState.counter) return;
+  const result = hollandState.counter.advance(ratio, now);
+  if (result.counted) onHollandRepCounted();
+}
+
+function processHollandPullupMetrics(metrics) {
+  const now = performance.now();
+  hollandState.lastSeenAt = now;
+  if (hollandState.paused) {
+    hollandState.paused = false;
+    hideHollandStatusBanner();
+    speak("Back to it");
+  }
+  if (!hollandState.counter) return;
+  const result = hollandState.counter.advance(metrics);
+  if (result.counted) onHollandRepCounted();
+}
+
+function hollandOnPoseDetection(landmarks) {
+  const exercise = hollandCurrentExercise(hollandState.rules);
+  const video = $("holland-camera-video");
+  if (exercise === "pullup") {
+    const metrics = pullupModeModule?.pullupFrameMetrics(landmarks);
+    if (!metrics) { hideHollandBox(); checkHollandLostTimeout(); return; }
+    const bbox = squatBodyBBox(landmarks.slice(0, 25), video);
+    if (bbox) updateHollandBox(bbox);
+    if (hollandState.stage === "warmup") {
+      hollandState.calSamples.push({ ...metrics, t: performance.now() });
+      if (hollandState.calSamples.length > HOLLAND_WARMUP_MAX_SAMPLES) hollandState.calSamples.shift();
+      tickHollandWarmup();
+    } else if (hollandState.stage === "counting") {
+      processHollandPullupMetrics(metrics);
+    }
+    return;
+  }
+  // squat
+  const hipY = squatHipY(landmarks);
+  if (hipY == null) { hideHollandBox(); checkHollandLostTimeout(); return; }
+  const bbox = squatBodyBBox(landmarks, video);
+  if (bbox) updateHollandBox(bbox);
+  if (hollandState.stage === "warmup") {
+    hollandState.calSamples.push({ ratio: hipY, t: performance.now() });
+    if (hollandState.calSamples.length > HOLLAND_WARMUP_MAX_SAMPLES) hollandState.calSamples.shift();
+    tickHollandWarmup();
+  } else if (hollandState.stage === "counting") {
+    processHollandRatio(hipY);
+  }
+}
+
+function hollandOnFaceDetection(bbox) {
+  const video = $("holland-camera-video");
+  updateHollandBox(bbox);
+  if (hollandState.stage === "counting") processHollandRatio(bbox.height / video.videoHeight);
+}
+
+function hollandOnNoDetection() {
+  hideHollandBox();
+  checkHollandLostTimeout();
+}
+
+function renderHollandRepDisplay() {
+  const exercise = hollandCurrentExercise(hollandState.rules);
+  const target = hollandSegmentTarget(hollandState.rules);
+  $("holland-rep-count").textContent = String(hollandState.rules.segmentReps);
+  $("holland-rep-label").textContent = HOLLAND_LABELS[exercise];
+  $("holland-rep-target").textContent = `${hollandState.rules.segmentReps} / ${target} this circuit`;
+  renderHollandHUD();
+}
+
+function renderHollandHUD() {
+  const cycles = hollandNormalizedCycles(hollandState.rules.totals);
+  $("holland-hud-difficulty").textContent = hollandDifficultyLabel(hollandState.rules.difficulty);
+  $("holland-hud-circuit").textContent = `Circuit ${hollandState.rules.circuitsCompleted + 1}`;
+  $("holland-hud-cycles").textContent = `${hollandFormatCycles(cycles)} cycles`;
+}
+
+let hollandTimerInterval = null;
+function startHollandTimer() {
+  stopHollandTimer();
+  hollandTimerInterval = setInterval(() => {
+    if (!hollandState.startedAt) return;
+    $("holland-hud-timer").textContent = formatDuration(Date.now() - hollandState.startedAt.getTime());
+  }, 1000);
+}
+function stopHollandTimer() {
+  if (hollandTimerInterval) { clearInterval(hollandTimerInterval); hollandTimerInterval = null; }
+}
+
+function onHollandRepCounted() {
+  const result = hollandRecordReps(hollandState.rules, 1);
+  renderHollandRepDisplay();
+  if (soundIsEnabled()) {
+    const now = performance.now();
+    const fastPace = now - hollandState.lastRepSpokenAt < REP_SPEECH_MIN_GAP_MS;
+    if (!fastPace) {
+      hollandState.lastRepSpokenAt = now;
+      speak(numberToWords(hollandState.rules.segmentReps));
+    }
+  }
+  vibrate(45);
+  if (result.reachedTarget) triggerHollandTransition();
+}
+
+function triggerHollandTransition() {
+  hollandState.stage = "transition";
+  hollandCamera?.stop();
+  const completedExercise = hollandCurrentExercise(hollandState.rules);
+  const completedTarget = hollandSegmentTarget(hollandState.rules);
+  hollandAdvanceSegment(hollandState.rules);
+  const nextExercise = hollandCurrentExercise(hollandState.rules);
+  const nextTarget = hollandSegmentTarget(hollandState.rules);
+  const cycles = hollandNormalizedCycles(hollandState.rules.totals);
+
+  $("holland-transition-title").textContent = `${completedTarget} ${HOLLAND_LABELS[completedExercise]} done!`;
+  $("holland-transition-body").textContent = `Next up: ${nextTarget} ${HOLLAND_LABELS[nextExercise]}. ${HOLLAND_REPOSITION_HINTS[nextExercise]}`;
+  $("holland-transition-cycles").textContent = hollandCyclesLabel(cycles, hollandState.rules.difficulty);
+  $("holland-cal-stage").classList.add("hidden");
+  $("holland-count-stage").classList.add("hidden");
+  $("holland-transition-stage").classList.remove("hidden");
+  hideHollandStatusBanner();
+  renderHollandHUD();
+
+  const newlyQualified = hollandQualifiesForHolland27(cycles) && !hollandState.holland27Announced;
+  if (newlyQualified) {
+    hollandState.holland27Announced = true;
+    launchConfetti("holland-confetti", CONFETTI_EMOJI);
+  }
+  const justCompletedCircuit = nextExercise === "pullup" && hollandState.rules.circuitsCompleted > 0 && hollandState.rules.segmentReps === 0;
+  if (soundIsEnabled()) {
+    const line = newlyQualified ? HOLLAND_27_LINE
+      : justCompletedCircuit ? HOLLAND_CIRCUIT_COMPLETE_LINE
+      : pickFrom(HOLLAND_TRANSITION_LINES[nextExercise]);
+    speak(line);
+  }
+}
+
+function beginHollandCounting(exercise, thresholds, calSamples = null) {
+  const counter = calSamples
+    ? hollandAdapterModule.hollandReplayCalibration(exercise, calSamples, thresholds)
+    : hollandAdapterModule.hollandCreateCounter(exercise, thresholds);
+  hollandState.counter = counter;
+  hollandState.stage = "counting";
+  hollandState.lastSeenAt = performance.now();
+  hollandState.paused = false;
+  $("holland-cal-stage").classList.add("hidden");
+  $("holland-count-stage").classList.remove("hidden");
+  hideHollandStatusBanner();
+  if (counter.count > 0) {
+    const result = hollandRecordReps(hollandState.rules, counter.count);
+    if (result.reachedTarget) { triggerHollandTransition(); return; }
+  }
+  renderHollandRepDisplay();
+}
+
+function renderHollandWarmup(exercise) {
+  $("holland-cal-title").textContent = "Get your range";
+  $("holland-cal-instructions").textContent = HOLLAND_CAL_INSTRUCTIONS[exercise];
+  $("holland-cal-error").classList.add("hidden");
+}
+
+function beginHollandWarmup(exercise) {
+  hollandState.stage = "warmup";
+  hollandState.calSamples = [];
+  hollandState.warmupStartedAt = performance.now();
+  $("holland-cal-stage").classList.remove("hidden");
+  $("holland-count-stage").classList.add("hidden");
+  hideHollandStatusBanner();
+  renderHollandWarmup(exercise);
+}
+
+function tickHollandWarmup() {
+  const exercise = hollandCurrentExercise(hollandState.rules);
+  const elapsed = performance.now() - hollandState.warmupStartedAt;
+  if (elapsed < HOLLAND_WARMUP_MIN_MS || hollandState.calSamples.length < HOLLAND_WARMUP_MIN_SAMPLES) return;
+  if (!hollandAdapterModule.hollandCalibrationValid(exercise, hollandState.calSamples)) {
+    if (elapsed > HOLLAND_WARMUP_HINT_MS) {
+      $("holland-cal-error").textContent = "Still watching — keep going, or reposition so you're fully in frame.";
+      $("holland-cal-error").classList.remove("hidden");
+    }
+    return;
+  }
+  $("holland-cal-error").classList.add("hidden");
+  const thresholds = hollandAdapterModule.hollandDeriveThresholds(exercise, hollandState.calSamples);
+  hollandState.calibratedThresholds[exercise] = thresholds;
+  beginHollandCounting(exercise, thresholds, hollandState.calSamples);
+}
+
+// Only warms up the first time an exercise comes up in this workout —
+// later circuits reuse the thresholds captured then. Pushup has no warmup
+// at all; it reuses whatever's already calibrated in Settings.
+async function beginHollandSegment(exercise) {
+  const detectorType = exercise === "pushup" ? "face" : "pose";
+  try {
+    await ensureHollandCamera(detectorType);
+  } catch {
+    toast("Camera error — check camera permission and try again.", 4500);
+    return false;
+  }
+  const cached = hollandState.calibratedThresholds[exercise];
+  if (exercise === "pushup") beginHollandCounting(exercise, { down: getThresholdDown(), up: getThresholdUp() });
+  else if (cached) beginHollandCounting(exercise, cached);
+  else beginHollandWarmup(exercise);
+  return true;
+}
+
+async function hollandReadyForNextSegment() {
+  $("holland-transition-stage").classList.add("hidden");
+  await beginHollandSegment(hollandCurrentExercise(hollandState.rules));
+}
+
+function selectHollandDifficulty(difficulty) {
+  if (!HOLLAND_TARGETS[difficulty]) return;
+  state.hollandDifficulty = difficulty;
+  localStorage.setItem(LS.hollandDifficulty, difficulty);
+  renderHollandIdle();
+}
+
+function renderHollandIdle() {
+  document.querySelectorAll("#holland-difficulty-cards .holland-difficulty-card").forEach((card) => {
+    card.classList.toggle("selected", card.dataset.difficulty === state.hollandDifficulty);
+  });
+  state.hollandBest = getHollandBest(state.currentUser);
+  $("holland-personal-best").textContent = state.hollandBest > 0
+    ? `Personal best: ${hollandFormatCycles(state.hollandBest)} Holland cycles`
+    : "";
+}
+
+async function startHolland() {
+  if (soundIsEnabled()) unlockVoice();
+  await loadHollandAdapter();
+  state.hollandSessionLocation = currentSessionLocationSnapshot();
+  hollandState.rules = hollandCreateState(state.hollandDifficulty);
+  hollandState.startedAt = new Date();
+  hollandState.holland27Announced = false;
+  hollandState.calibratedThresholds = { pullup: null, pushup: null, squat: null };
+  hollandState.paused = false;
+  hollandState.lastRepSpokenAt = 0;
+  hollandState.detectorType = null;
+  hollandState.counter = null;
+
+  const ok = await beginHollandSegment(hollandCurrentExercise(hollandState.rules));
+  if (!ok) return;
+
+  await acquireWakeLock();
+  state.hollandActive = true;
+  $("holland-idle").classList.add("hidden");
+  $("holland-in-progress").classList.remove("hidden");
+  $("holland-transition-stage").classList.add("hidden");
+  setChromeMinimized(true);
+  startHollandTimer();
+  renderHollandHUD();
+  if (soundIsEnabled()) speak(pickFrom(HOLLAND_START_LINES));
+}
+
+function stopHollandHard() {
+  hollandCamera?.stop();
+  stopHollandTimer();
+  releaseWakeLock();
+  state.hollandActive = false;
+  hollandState.stage = "idle";
+  hollandState.counter = null;
+  hideHollandStatusBanner();
+  $("holland-in-progress").classList.add("hidden");
+  $("holland-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+function renderSummaryHollandResult(session) {
+  const el = $("summary-holland-result");
+  if (!el) return;
+  if (!session || session.type !== "holland") {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  const achievementMarkup = session.hollandAchievement === "holland27"
+    ? `<div class="holland-27-badge">🕷️ Holland 27 unlocked!</div>` : "";
+  el.innerHTML = `
+    <div class="holland-summary-difficulty">${escapeHtml(hollandCyclesLabel(session.hollandCycles, session.hollandDifficulty))}</div>
+    <div class="holland-summary-breakdown">${session.hollandPullups} pull-ups · ${session.hollandPushups} pushups · ${session.hollandSquats} squats</div>
+    ${achievementMarkup}
+  `;
+  el.classList.remove("hidden");
+}
+
+async function completeHolland() {
+  hollandCamera?.stop();
+  stopHollandTimer();
+  await releaseWakeLock();
+  state.hollandActive = false;
+  hollandState.stage = "idle";
+  hideHollandStatusBanner();
+  $("holland-in-progress").classList.add("hidden");
+  $("holland-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+
+  hollandFinish(hollandState.rules, new Date());
+  const cycles = hollandNormalizedCycles(hollandState.rules.totals);
+  const session = hollandBuildSession(hollandState.rules, {
+    id: uuid(),
+    user: state.currentUser,
+    avatar: state.currentAvatar,
+    location: state.hollandSessionLocation,
+  });
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+  state.lastSessionType = "holland";
+  state.summarySessionId = session.id;
+  state.summaryBaseCount = session.count;
+  state.summaryExtra = 0;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = `${hollandFormatCycles(cycles)} cycles`;
+  $("missed-reps-wrap").classList.add("hidden");
+  renderSummaryWeightedNote(0, 0);
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  renderSummaryHollandResult(session);
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", CONFETTI_EMOJI);
+  speak(session.hollandAchievement === "holland27"
+    ? HOLLAND_27_LINE
+    : `Session complete. ${hollandCyclesLabel(cycles, session.hollandDifficulty)}.`);
+  try { await commitSession(session); }
+  catch {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+async function confirmFinishHolland() {
+  if (!hollandState.rules || hollandTotalReps(hollandState.rules.totals) <= 0) {
+    toast("Complete at least one rep before finishing.", 3000);
+    return;
+  }
+  if (!confirm("Finish this Holland workout? Your completed and partial progress will be saved.")) return;
+  await completeHolland();
+}
+
+function applyHollandCorrection(delta) {
+  if (!hollandState.rules || hollandState.stage !== "counting") return;
+  hollandApplyCorrection(hollandState.rules, delta);
+  renderHollandRepDisplay();
+  if (delta > 0 && hollandState.rules.segmentReps >= hollandSegmentTarget(hollandState.rules)) {
+    triggerHollandTransition();
+  }
+}
+
+$("btn-holland-start").addEventListener("click", startHolland);
+$("btn-holland-cancel").addEventListener("click", stopHollandHard);
+$("btn-holland-finish").addEventListener("click", confirmFinishHolland);
+$("btn-holland-ready").addEventListener("click", hollandReadyForNextSegment);
+$("btn-holland-minus").addEventListener("click", () => applyHollandCorrection(-1));
+$("btn-holland-plus").addEventListener("click", () => applyHollandCorrection(1));
+$("holland-difficulty-cards").addEventListener("click", (e) => {
+  const card = e.target.closest(".holland-difficulty-card");
+  if (!card) return;
+  selectHollandDifficulty(card.dataset.difficulty);
+});
 
 // ------------------- situp mode -------------------
 // Camera-counted free set, own screen (see docs/situp-mode-plan.md): phone
