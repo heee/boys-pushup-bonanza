@@ -4916,7 +4916,7 @@ function buildChallengeCard(c, now) {
   html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="${progressGoal}" aria-valuenow="${Math.min(progressCurrent, progressGoal)}">${buildProgressThermometer(progressCurrent, progressGoal)}</div>`;
 
   if (status !== "past" && joined) {
-    html += `<span class="challenge-joined-chip">✓ In</span>`;
+    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
   } else if (status === "past") {
     const winners = challengeWinners(c);
     if (winners.length) {
