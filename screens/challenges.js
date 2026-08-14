@@ -23,7 +23,7 @@ export function challengeStatusLabel(challenge, now = new Date()) {
   }
   if (status === "upcoming") {
     const count = daysUntilStart(challenge, now);
-    return `Starts in ${count} day${count === 1 ? "" : "s"}`;
+    return `in ${count} day${count === 1 ? "" : "s"}`;
   }
   return "Ended";
 }

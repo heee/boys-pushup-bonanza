@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=211">
+<link rel="stylesheet" href="style.css?v=212">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -781,7 +781,7 @@
     <section id="screen-challenges" class="screen">
       <div class="challenges-header">
         <h1 class="screen-title">Challenges 🎯</h1>
-        <button id="btn-challenge-create" type="button" class="btn btn-small challenges-create-btn">+ Create</button>
+        <button id="btn-challenge-create" type="button" class="btn btn-small btn-secondary btn-with-icon challenges-create-btn"><span class="icon-plus" aria-hidden="true"></span>Create</button>
       </div>
 
       <div id="challenge-tab-select" class="segmented segmented-underline" role="tablist">
@@ -1213,8 +1213,9 @@
 </div>
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+<div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=212"></script>
+<script type="module" src="app.js?v=213"></script>
 </body>
 </html>

@@ -84,7 +84,7 @@ import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel } from "./screens/mode-stats.js?v=135";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=132";
-import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=209";
+import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=210";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=142";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
@@ -1209,7 +1209,6 @@ const state = {
   sessionStartedAt: null,
   challengeTab: "active",
   openChallengeId: null,
-  justJoinedChallengeId: null,
   leaderboardMode: savedLeaderboardMode(),
   activityType: leaderboardActivity(savedLeaderboardMode()),
   lastSessionType: "pushup",
@@ -4927,24 +4926,28 @@ function paintChallengeList() {
     return;
   }
   for (const c of list) {
-    if (c.id === state.justJoinedChallengeId) el.appendChild(buildJoinedBanner(c, now));
     el.appendChild(buildChallengeCard(c, now));
   }
 }
 
-// Success banner directly above the card it confirms, instead of a floating
-// toast disconnected from the list. Checkmark glyph built from CSS borders.
-function buildJoinedBanner(c, now) {
-  const banner = document.createElement("div");
-  banner.className = "join-success-banner";
+// Floating confirmation above the tab bar, instead of a banner inserted
+// inline between cards. Checkmark glyph built from CSS borders.
+function showChallengeJoinToast(c, now) {
+  const el = $("challenge-join-toast");
   const text = challengeStatus(c, now) === "upcoming"
     ? `You're in — first flex logs when it starts in ${daysUntilStart(c, now)} day${daysUntilStart(c, now) === 1 ? "" : "s"}`
     : "You're in — first flex logs today";
-  banner.innerHTML = `
+  el.innerHTML = `
     <span class="join-success-check" aria-hidden="true"></span>
     <span>${text}</span>
   `;
-  return banner;
+  clearTimeout(showChallengeJoinToast._fadeT);
+  clearTimeout(showChallengeJoinToast._hideT);
+  el.classList.remove("hidden", "challenge-join-toast-fade");
+  showChallengeJoinToast._fadeT = setTimeout(() => {
+    el.classList.add("challenge-join-toast-fade");
+    showChallengeJoinToast._hideT = setTimeout(() => el.classList.add("hidden"), 400);
+  }, 2600);
 }
 
 // Challenge stats use the same simple, rounded, stroke-only visual language
@@ -4988,7 +4991,7 @@ function buildChallengeCard(c, now) {
     dateLabel = `${d} day${d === 1 ? "" : "s"} left`;
   } else if (status === "upcoming") {
     const d = daysUntilStart(c, now);
-    dateLabel = `Starts in ${d} day${d === 1 ? "" : "s"}`;
+    dateLabel = `in ${d} day${d === 1 ? "" : "s"}`;
   } else {
     dateLabel = `Ended ${challengeWindow(c).endDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
   }
@@ -5004,12 +5007,16 @@ function buildChallengeCard(c, now) {
     metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatNumber(total)} total ${challengeActivity(c)} so far`;
   }
 
+  // The top-right badge already shows the date label once the user has joined
+  // (see challenge-joined-chip below), so skip the inline chip then to avoid
+  // showing the same text twice on one card.
+  const showInlineChip = !(status !== "past" && joined);
   let html = `
     <div class="challenge-card-header">
       <div class="challenge-card-emoji">${c.emoji}</div>
       <div class="challenge-card-heading">
         <div class="challenge-card-title">${escapeHtml(c.title)}</div>
-        <div class="challenge-card-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${dateLabel}</span></div>
+        <div class="challenge-card-dates">${formatChallengeDates(c)}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
       </div>
     </div>
     <div class="challenge-card-meta">${metaLine}</div>
@@ -5488,16 +5495,9 @@ async function joinChallenge(id) {
     toast(queued ? "Joined on this device — waiting to sync." : "You're in! 💪");
     renderChallengeDetail();
   } else {
-    // Inline banner directly above the joined card, instead of a floating
-    // toast disconnected from it — auto-dismisses after a few seconds.
-    state.justJoinedChallengeId = id;
     paintChallengeList();
-    setTimeout(() => {
-      if (state.justJoinedChallengeId === id) {
-        state.justJoinedChallengeId = null;
-        if (state.screen === "screen-challenges") paintChallengeList();
-      }
-    }, 6000);
+    const c = challengeDefs.find((x) => x.id === id);
+    if (c) showChallengeJoinToast(c, new Date());
   }
 }
 
