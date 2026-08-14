@@ -4501,7 +4501,7 @@ function paintMyBonanza(sessions) {
       </div>
     </div>` : "";
   statsEl.innerHTML = secondary.map((metric) => `
-    <div class="stats-table-row"><span class="stats-table-label">${metric.label}</span><span class="stats-table-value">${formatModeMetric(metric)}</span></div>
+    <div class="stats-table-row"><span class="stats-table-label">${challengeStatIconHTML(modeStatIcon(metric.format))}<span>${metric.label}</span></span><span class="stats-table-value">${formatModeMetric(metric)}</span></div>
   `).join("") + achievementMarkup;
 }
 
@@ -4956,8 +4956,19 @@ function challengeStatIconHTML(icon) {
     total: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     duration: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
     status: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    time: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>',
+    pace: '<path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/>',
+    percent: '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+    trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+    award: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
   };
   return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
+}
+
+// Maps a mode-stat's numeric format to the stroke icon that best represents
+// it, so every leaderboard mode (not just the default) gets a sensible glyph.
+function modeStatIcon(format) {
+  return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[format] || "total";
 }
 
 function buildChallengeCard(c, now) {

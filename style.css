@@ -3203,6 +3203,7 @@ body:has(#screen-challenges.active) #app {
 .challenge-stat-icon { display: block; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; }
 .stats-table-label { display: inline-flex; align-items: center; gap: 0.55rem; }
 .stats-table-label .challenge-stat-icon { color: var(--text-tertiary); }
+#personal-stats .stats-table-label { font-weight: 500; }
 .challenge-winner-line { margin-top: 0.5rem; font-weight: 400; font-size: 0.9rem; }
 
 .join-success-banner {
