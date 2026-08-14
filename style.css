@@ -3204,6 +3204,7 @@ body:has(#screen-challenges.active) #app {
 }
 .challenge-card:active { transform: scale(0.98); }
 .challenge-card-header { display: flex; align-items: center; gap: 0.7rem; padding-right: 3.5rem; }
+.challenge-card-header-winner { padding-right: 55%; }
 .challenge-card-emoji { flex: 0 0 auto; font-size: 2.35rem; line-height: 1; }
 .challenge-card-heading { min-width: 0; }
 .challenge-card-title { font-size: 1.15rem; font-weight: 900; line-height: 1.12; }
@@ -3213,7 +3214,6 @@ body:has(#screen-challenges.active) #app {
 .stats-table-label { display: inline-flex; align-items: center; gap: 0.55rem; }
 .stats-table-label .challenge-stat-icon { color: var(--text-tertiary); }
 #personal-stats .stats-table-label { font-weight: 500; }
-.challenge-winner-line { margin-top: 0.5rem; font-weight: 400; font-size: 0.9rem; }
 
 .join-success-check {
   flex-shrink: 0;
@@ -3288,6 +3288,20 @@ body:has(#screen-challenges.active) #app {
   padding: 0.3rem 0.7rem;
   font-weight: 400;
   font-size: 0.8rem;
+}
+.challenge-winner-chip {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  max-width: 55%;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 0.3rem 0.65rem;
+  font-weight: 400;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-align: right;
+  white-space: normal;
 }
 
 .challenge-status-chip {

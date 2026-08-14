@@ -84,7 +84,7 @@ import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel } from "./screens/mode-stats.js?v=135";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=132";
-import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=210";
+import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=211";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=142";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
@@ -4992,8 +4992,6 @@ function buildChallengeCard(c, now) {
   } else if (status === "upcoming") {
     const d = daysUntilStart(c, now);
     dateLabel = `in ${d} day${d === 1 ? "" : "s"}`;
-  } else {
-    dateLabel = `Ended ${challengeWindow(c).endDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
   }
 
   let metaLine;
@@ -5007,16 +5005,27 @@ function buildChallengeCard(c, now) {
     metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatNumber(total)} total ${challengeActivity(c)} so far`;
   }
 
+  let winnerChipHTML = "";
+  if (status === "past") {
+    const winners = challengeWinners(c);
+    if (winners.length) {
+      const board = challengeLeaderboard(c);
+      const scoreText = c.goalType === "streak" ? `${formatNumber(board[0].score)} days` : c.goalType === "plankGauntlet" ? formatDuration(board[0].score * 1000) : formatNumber(board[0].score);
+      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${winners.map(escapeHtml).join(" & ")} — ${scoreText}</span>`;
+    }
+  }
+
   // The top-right badge already shows the date label once the user has joined
-  // (see challenge-joined-chip below), so skip the inline chip then to avoid
-  // showing the same text twice on one card.
-  const showInlineChip = !(status !== "past" && joined);
+  // (see challenge-joined-chip below), and past challenges get no date pill
+  // at all (their top-right badge shows the winner instead) — so skip the
+  // inline chip in both cases to avoid showing the same text twice.
+  const showInlineChip = status !== "past" && !joined;
   let html = `
-    <div class="challenge-card-header">
+    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
       <div class="challenge-card-emoji">${c.emoji}</div>
       <div class="challenge-card-heading">
         <div class="challenge-card-title">${escapeHtml(c.title)}</div>
-        <div class="challenge-card-dates">${formatChallengeDates(c)}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
+        <div class="challenge-card-dates">${formatChallengeDates(c, undefined, { includeYear: status === "past" })}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
       </div>
     </div>
     <div class="challenge-card-meta">${metaLine}</div>
@@ -5037,13 +5046,8 @@ function buildChallengeCard(c, now) {
 
   if (status !== "past" && joined) {
     html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
-  } else if (status === "past") {
-    const winners = challengeWinners(c);
-    if (winners.length) {
-      const board = challengeLeaderboard(c);
-      const scoreText = c.goalType === "streak" ? `${formatNumber(board[0].score)} days` : c.goalType === "plankGauntlet" ? formatDuration(board[0].score * 1000) : formatNumber(board[0].score);
-      html += `<div class="challenge-winner-line">🥇 ${winners.map(escapeHtml).join(" & ")} — ${scoreText}</div>`;
-    }
+  } else if (winnerChipHTML) {
+    html += winnerChipHTML;
   }
 
   card.innerHTML = html;

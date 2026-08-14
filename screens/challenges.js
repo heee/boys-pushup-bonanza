@@ -9,10 +9,11 @@ export function challengeStatus(challenge, now = new Date()) {
 }
 export function daysLeft(challenge, now = new Date()) { return Math.max(0, Math.ceil((challengeWindow(challenge).endDate - now) / 86400000)); }
 export function daysUntilStart(challenge, now = new Date()) { return Math.max(0, Math.ceil((challengeWindow(challenge).startDate - now) / 86400000)); }
-export function formatChallengeDates(challenge, locale) {
+export function formatChallengeDates(challenge, locale, { includeYear = false } = {}) {
   const { startDate, endDate } = challengeWindow(challenge);
   const fmt = (date) => date.toLocaleDateString(locale, { month: "short", day: "numeric" });
-  return startDate.toDateString() === endDate.toDateString() ? fmt(startDate) : `${fmt(startDate)} – ${fmt(endDate)}`;
+  const range = startDate.toDateString() === endDate.toDateString() ? fmt(startDate) : `${fmt(startDate)} – ${fmt(endDate)}`;
+  return includeYear ? `${range}, ${endDate.getFullYear()}` : range;
 }
 
 export function challengeStatusLabel(challenge, now = new Date()) {
