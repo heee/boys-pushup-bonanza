@@ -8965,12 +8965,18 @@ const situpCamera = createCameraController({
     // Undetected is the expected reading while lying flat (see header
     // comment) — still feed the (clamped) ratio through the same pipeline
     // instead of pausing, so a lying-flat stretch behaves like any other
-    // low-face-size frame.
+    // low-face-size frame. During warmup, only once we've actually seen his
+    // face at least once — otherwise "not detected yet because he isn't in
+    // frame/positioned" (before dropoutTrack has a lastRatio) reads as
+    // "lying flat" and can lock calibration onto pure setup noise before he's
+    // even started (see bug: counted immediately, kept counting lying still).
     const ratio = situpRatioForFrame(false, null);
     if (situpState.stage === "warmup") {
-      situpState.calSamples.push(ratio);
-      if (situpState.calSamples.length > SITUP_WARMUP_MAX_SAMPLES) situpState.calSamples.shift();
-      tickSitupWarmup();
+      if (situpState.dropoutTrack.lastRatio != null) {
+        situpState.calSamples.push(ratio);
+        if (situpState.calSamples.length > SITUP_WARMUP_MAX_SAMPLES) situpState.calSamples.shift();
+        tickSitupWarmup();
+      }
     } else if (situpState.stage === "counting") {
       processSitupRatio(ratio);
     }
