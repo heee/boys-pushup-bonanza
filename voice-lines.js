@@ -423,29 +423,29 @@ export const FUN_MESSAGES_SQUAT = [
 export const SITUP_START_LINES = [
   "Ceiling's about to get real familiar with the back of your head! Let's crunch!",
   "Abs, assemble! Every crunch is a personal insult to gravity!",
-  "That couch has no idea what's coming! Situp time!",
+  "That couch has no idea what's coming! Crunch time!",
 ];
 
 export const SITUP_CHEER_LINES = [
   "That's ab-dominal authority right there! Keep crunching!",
-  "The ceiling has seen enough of you today! Sit UP!",
+  "The ceiling has seen enough of you today! Crunch UP!",
   "Your abs just filed for a promotion! Again!",
   "That couch is watching and it is deeply jealous! Keep going!",
   "Crunch like the floor owes you money! Up!",
   "Six-pack incoming, deductible not included! Keep crunching!",
   "That ceiling tile is filing a restraining order! Stop staring and CRUNCH!",
-  "Somewhere a sit-up bench just wept with pride! Again!",
+  "Somewhere a crunch bench just wept with pride! Again!",
 ];
 
-export const SITUP_RECORD_LINE = "New situp record! The ceiling has officially lost its favorite audience!";
+export const SITUP_RECORD_LINE = "New crunch record! The ceiling has officially lost its favorite audience!";
 
 export const FUN_MESSAGES_SITUP = [
-  (n) => `${n} situps deep. The ceiling has never been so thoroughly inspected.`,
-  (n) => `That's ${n} situps of pure ab-dominal chaos.`,
+  (n) => `${n} crunches deep. The ceiling has never been so thoroughly inspected.`,
+  (n) => `That's ${n} crunches of pure ab-dominal chaos.`,
   (n) => `${n} crunches! Somewhere, a couch just filed for emotional damages.`,
   (n) => `${n} down. Your abs just issued a formal statement.`,
-  (n) => `${n} situps logged. Gravity remains undefeated but bruised.`,
-  (n) => `${n} situps. Certified core-crushing behavior.`,
+  (n) => `${n} crunches logged. Gravity remains undefeated but bruised.`,
+  (n) => `${n} crunches. Certified core-crushing behavior.`,
 ];
 
 // Holland mode — continuous pull-up/pushup/squat circuit (see AGENTS.md

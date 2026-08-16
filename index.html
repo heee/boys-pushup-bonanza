@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=217">
+<link rel="stylesheet" href="style.css?v=218">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -614,7 +614,7 @@
         <p class="workout-eyebrow">Boys Bonanza</p>
         <p class="workout-hello">
           <span id="situp-avatar" class="avatar-circle"></span>
-          Ready to situp, <span id="situp-username">Friend</span><span class="tight-q">?</span></p>
+          Ready to crunch, <span id="situp-username">Friend</span><span class="tight-q">?</span></p>
         <p class="workout-instructions">Prop your phone at your feet facing you, about 1–1.5 m from your face at the top of a crunch.</p>
         <button id="btn-situp-start" class="btn btn-giant btn-primary">START</button>
         <p class="workout-hint">We'll ask for camera access, then start counting once we see you crunch.</p>
@@ -628,13 +628,13 @@
 
         <div id="situp-cal-stage" class="squat-cal-stage hidden">
           <h2 id="situp-cal-title" class="squat-cal-title">Get your range</h2>
-          <p id="situp-cal-instructions" class="workout-instructions">Do a couple of situps — we'll start counting automatically.</p>
+          <p id="situp-cal-instructions" class="workout-instructions">Do a couple of crunches — we'll start counting automatically.</p>
           <p id="situp-cal-error" class="settings-status err hidden"></p>
         </div>
 
         <div id="situp-count-stage" class="rep-count-wrap hidden">
           <div id="situp-rep-count" class="rep-count">0</div>
-          <div class="rep-label">SITUPS</div>
+          <div class="rep-label">CRUNCHES</div>
           <div id="situp-phase-indicator" class="squat-phase-indicator">LYING BACK</div>
           <div id="situp-highscore-message" class="highscore-message"></div>
         </div>
@@ -721,7 +721,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pyramid"><span>Pyramid</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Situps</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="holland"><span>Holland</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
           </div>
@@ -1016,7 +1016,7 @@
             <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mysessions-mode="all"><span>All</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pushups"><span>Pushups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Situps</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="holland"><span>Holland</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1098,14 +1098,14 @@
 
           <div class="settings-divider"></div>
 
-          <p class="settings-hint">Phase 0 feasibility spike for Situp mode: prop the phone at your feet facing you, and do ten situps to check face detection holds up at the crunch top and the swing is big enough to count reps.</p>
+          <p class="settings-hint">Phase 0 feasibility spike for Crunch mode: prop the phone at your feet facing you, and do ten crunches to check face detection holds up at the crunch top and the swing is big enough to count reps.</p>
           <div id="situp-capture-test-wrap" class="camera-wrap hidden">
             <video id="situp-capture-test-video" playsinline muted autoplay></video>
             <div id="situp-capture-test-face-box" class="face-box hidden"></div>
           </div>
           <div class="settings-side-by-side">
-            <button id="btn-situp-capture-test" type="button" class="btn btn-secondary btn-small-wide">Situp capture test</button>
-            <button id="btn-download-situp-trace" type="button" class="btn btn-secondary btn-small-wide hidden">Download situp trace</button>
+            <button id="btn-situp-capture-test" type="button" class="btn btn-secondary btn-small-wide">Crunch capture test</button>
+            <button id="btn-download-situp-trace" type="button" class="btn btn-secondary btn-small-wide hidden">Download crunch trace</button>
           </div>
           <p id="situp-capture-test-status" class="settings-status"></p>
 
@@ -1258,6 +1258,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=217"></script>
+<script type="module" src="app.js?v=218"></script>
 </body>
 </html>

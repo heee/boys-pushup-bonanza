@@ -210,7 +210,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "pyramid", label: "Pyramid" },
   { id: "pullups", label: "Pull-ups" },
   { id: "squats", label: "Squats" },
-  { id: "situps", label: "Situps" },
+  { id: "situps", label: "Crunches" },
   { id: "planks", label: "Planks" },
   { id: "holland", label: "Holland" },
 ];
@@ -220,7 +220,7 @@ const MY_SESSIONS_MODE_OPTIONS = [
   { id: "all", label: "All" },
   { id: "pushups", label: "Pushups" },
   { id: "pullups", label: "Pull-ups" },
-  { id: "situps", label: "Situps" },
+  { id: "situps", label: "Crunches" },
   { id: "squats", label: "Squats" },
   { id: "planks", label: "Planks" },
   { id: "holland", label: "Holland" },
@@ -239,7 +239,7 @@ function activityLabel(activity, singular = false) {
     pushups: singular ? "pushup" : "pushups",
     pullups: singular ? "pull-up" : "pull-ups",
     squats: singular ? "squat" : "squats",
-    situps: singular ? "situp" : "situps",
+    situps: singular ? "crunch" : "crunches",
     planks: singular ? "plank" : "planks",
     holland: singular ? "Holland cycle" : "Holland cycles",
   };
@@ -1550,7 +1550,7 @@ function guardLeaveWorkout(next) {
     if (!ok) return;
     stopPullupHard();
   } else if (state.screen === "screen-situp-workout" && state.situpActive) {
-    const ok = confirm("Leave this situp set? Your in-progress reps won't be saved.");
+    const ok = confirm("Leave this crunch set? Your in-progress reps won't be saved.");
     if (!ok) return;
     stopSitupHard();
   } else if (state.screen === "screen-holland-workout" && state.hollandActive) {
@@ -4050,7 +4050,7 @@ async function startSitupCaptureTest() {
   situpTraceState.running = true;
   $("situp-capture-test-wrap").classList.remove("hidden");
   $("btn-situp-capture-test").textContent = "Stop capture test";
-  $("situp-capture-test-status").textContent = "Capturing — prop at your feet, do ten situps.";
+  $("situp-capture-test-status").textContent = "Capturing — prop at your feet, do ten crunches.";
   $("btn-download-situp-trace").classList.add("hidden");
   situpTestCamera.startDetection();
 }
@@ -4060,7 +4060,7 @@ function stopSitupCaptureTest() {
   situpTestCamera.stop();
   situpTraceState.running = false;
   $("situp-capture-test-wrap").classList.add("hidden");
-  $("btn-situp-capture-test").textContent = "Situp capture test";
+  $("btn-situp-capture-test").textContent = "Crunch capture test";
   const total = situpTraceState.trace.length;
   const detected = situpTraceState.trace.filter((s) => s.detected).length;
   const rate = total ? Math.round((detected / total) * 100) : 0;
@@ -4555,7 +4555,7 @@ function renderSessionDetail() {
   $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000)
     : isHolland ? hollandFormatCycles(Number(session.hollandCycles) || 0)
     : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL SITUPS" : isHolland ? "HOLLAND CYCLES" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : "TOTAL PUSHUPS";
 
   $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
     <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
@@ -4609,7 +4609,7 @@ async function shareSessionDetail() {
   const isSitup = session.type === "situp";
   const isHolland = session.type === "holland";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} situps` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : `${formatNumber(session.count)} pushups`;
   const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
   const url = location.href;
   if (navigator.share) {
@@ -9098,11 +9098,11 @@ function updateSitupHighscoreMessage(count) {
   }
   const remaining = state.situpBest - count;
   if (remaining > 0) {
-    el.textContent = `${remaining} situp${remaining === 1 ? "" : "s"} away from your best!`;
+    el.textContent = `${remaining} crunch${remaining === 1 ? "" : "es"} away from your best!`;
   } else if (remaining === 0) {
-    el.textContent = "Tied your best situp set — one more!";
+    el.textContent = "Tied your best crunch set — one more!";
   } else {
-    el.textContent = "New situp record! 🔥";
+    el.textContent = "New crunch record! 🔥";
   }
 }
 
@@ -9276,7 +9276,7 @@ async function startSitup() {
   try {
     stream = await situpCamera.requestStream();
   } catch (e) {
-    toast("Camera access is required to count situps. Please allow camera permission.", 4000);
+    toast("Camera access is required to count crunches. Please allow camera permission.", 4000);
     return;
   }
   toast("Loading face detector…", 2000);

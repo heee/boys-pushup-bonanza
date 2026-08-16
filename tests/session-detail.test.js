@@ -20,7 +20,7 @@ test("sessionModeId/Label fall back to classic and read plank type", () => {
   assert.equal(sessionModeId(session({ type: "squat", count: 15 })), "squats");
   assert.equal(sessionModeLabel(session({ type: "squat", count: 15 })), "Squats");
   assert.equal(sessionModeId(session({ type: "situp", count: 15 })), "situps");
-  assert.equal(sessionModeLabel(session({ type: "situp", count: 15 })), "Situps");
+  assert.equal(sessionModeLabel(session({ type: "situp", count: 15 })), "Crunches");
   assert.equal(sessionModeLabel(session({ mode: "ladder" })), "Ladder");
   assert.equal(sessionModeId(session({ type: "holland" })), "holland");
   assert.equal(sessionModeLabel(session({ type: "holland" })), "Holland Mode");

@@ -20,7 +20,7 @@ export const STATS_MODES = [
   { id: "zen", label: "Zen Mode" },
   { id: "squat", label: "Squat" },
   { id: "pullup", label: "Pull-ups" },
-  { id: "situp", label: "Situp" },
+  { id: "situp", label: "Crunch" },
 ];
 
 const LABEL_BY_ID = new Map(STATS_MODES.map((mode) => [mode.id, mode.label]));

@@ -90,9 +90,9 @@ const SPECS = {
     { id: "avgReps", label: "Avg squats / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
   ],
   situps: [
-    { id: "sets", label: "Situp sets", format: "integer", qualifier: "total", value: (s) => s.length },
-    { id: "totalReps", label: "Total situps", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
-    { id: "avgReps", label: "Avg situps / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
+    { id: "sets", label: "Crunch sets", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalReps", label: "Total crunches", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
+    { id: "avgReps", label: "Avg crunches / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
   ],
   holland: [
     { id: "workouts", label: "Holland workouts", format: "integer", qualifier: "total", value: (s) => s.length },

@@ -226,14 +226,14 @@ const SHARE_MESSAGES_PULLUP = [
 ];
 
 const SHARE_MESSAGES_SITUP = [
-  (n) => `${n} situps! 🙇 The ceiling has never been so thoroughly inspected.`,
-  (n) => `Did ${n} situps. My abs filed a formal statement.`,
+  (n) => `${n} crunches! 🙇 The ceiling has never been so thoroughly inspected.`,
+  (n) => `Did ${n} crunches. My abs filed a formal statement.`,
   (n) => `${n} reps of ab-dominal chaos, no witnesses, one deeply jealous couch.`,
   (n) => `Crunched ${n} times. Gravity sends its regards and a lawyer.`,
-  (n) => `${n} situps deep. The floor has seen entirely too much of me today.`,
-  (n) => `Camera counted ${n} situps and did not editorialize. Impressive restraint.`,
-  (n) => `${n} situps logged. Six-pack incoming, deductible not included.`,
-  (n) => `Put up ${n} situps and made every recliner in the house nervous.`,
+  (n) => `${n} crunches deep. The floor has seen entirely too much of me today.`,
+  (n) => `Camera counted ${n} crunches and did not editorialize. Impressive restraint.`,
+  (n) => `${n} crunches logged. Six-pack incoming, deductible not included.`,
+  (n) => `Put up ${n} crunches and made every recliner in the house nervous.`,
 ];
 
 const SHARE_MESSAGES_STREAK = [

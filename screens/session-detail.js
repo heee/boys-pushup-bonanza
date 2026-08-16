@@ -18,7 +18,7 @@ export const MODE_META = {
   planks: { label: "Planks", icon: "🪵" },
   squats: { label: "Squats", icon: "🦵" },
   pullups: { label: "Pull-ups", icon: "💪" },
-  situps: { label: "Situps", icon: "🙇" },
+  situps: { label: "Crunches", icon: "🙇" },
   holland: { label: "Holland Mode", icon: "🇳🇱" },
 };
 
