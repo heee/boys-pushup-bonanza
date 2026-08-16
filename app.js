@@ -568,6 +568,9 @@ async function workerCancelOpenHorseGame(gameId, user) {
 async function workerPostHorseTurn(payload) {
   return workerApi.postHorseTurn(payload);
 }
+async function workerChooseHorseTarget(payload) {
+  return workerApi.chooseHorseTarget(payload);
+}
 async function workerTallyHorseGame(gameId) {
   return workerApi.tallyHorseGame(gameId);
 }
@@ -2591,10 +2594,12 @@ function renderHorseTurnOrder() {
     : `Horse · Round ${game.round}`;
   const target = horseTargetLabel(game);
   const targetModifierMeta = game.targetModifier ? MODIFIERS.find((m) => m.id === game.targetModifier) : null;
+  const forcedReps = horseTargetWasLowered(game);
+  const wentLowerNote = forcedReps ? ` · ${game.targetSetBy} could've forced ${forcedReps}` : "";
   $("horse-order-target-line").textContent = target
     ? waitingForOpenChallenger
       ? `${game.targetSetBy} set ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} · waiting for a challenger`
-      : `Beat ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} to stay clean`
+      : `Beat ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} to stay clean${wentLowerNote}`
     : `${escapeHtml(game.turnOrder[0])} sets the bar`;
 
   const timerLine = $("horse-order-timer-line");
@@ -2822,7 +2827,8 @@ async function openHorseTurnOrder() {
     return;
   }
   // The match clock ran out but nobody's tallied yet — skip the turn-order
-  // screen's "time's up" holding pattern and go straight to the scores.
+  // screen's "time's up" holding pattern (and any stuck target choice) and
+  // go straight to the scores.
   if (state.horseGame.sessionType !== "live" && isTimeUp(state.horseGame)) {
     try {
       const res = await workerTallyHorseGame(state.horseGame.id);
@@ -2832,13 +2838,102 @@ async function openHorseTurnOrder() {
       showScreen("screen-horse-summary");
       return;
     } catch (err) {
-      // Fall through to the turn-order screen, which still offers a manual
-      // Tally button if the auto-tally couldn't reach the server.
+      // Fall through — still show whatever's next (choice screen or
+      // turn-order) if the auto-tally couldn't reach the server.
     }
+  }
+  // A set just met/beat an existing bar and is waiting on the shooter's
+  // target choice. The shooter gets the interactive picker; anyone else
+  // reopening the game mid-choice gets a read-only "waiting on X" view —
+  // see renderHorseChoiceScreen.
+  if (state.horseGame.pendingChoice) {
+    renderHorseChoiceScreen();
+    showScreen("screen-horse-target-choice");
+    return;
   }
   renderHorseTurnOrder();
   showScreen("screen-horse-turn-order");
 }
+
+function renderHorseChoiceScreen() {
+  const game = state.horseGame;
+  const copy = horseChoiceCopy(game);
+  if (!copy) return;
+  const isShooter = copy.user === state.currentUser;
+  $("horse-choice-kicker").textContent = isShooter ? "YOU CLEARED IT" : `${copy.user.toUpperCase()} CLEARED IT`;
+  $("horse-choice-reps").textContent = `${copy.reps}`;
+  $("horse-choice-modifier").textContent = copy.modifierLabel ? `Match required: ${copy.modifierLabel}` : "";
+  $("horse-choice-modifier").classList.toggle("hidden", !copy.modifierLabel);
+  $("horse-choice-prompt").textContent = isShooter
+    ? "How do you want to leave it for the next player?"
+    : `Waiting on ${copy.user} to set the next target.`;
+  $("btn-horse-choice-match").textContent = `Force the full ${copy.reps}`;
+  $("btn-horse-choice-match").classList.toggle("hidden", !isShooter);
+  const slider = $("horse-choice-slider");
+  slider.min = "1";
+  slider.max = String(copy.reps);
+  slider.value = String(copy.reps);
+  $("horse-choice-slider-value").textContent = String(copy.reps);
+  // Nowhere to go lower than 1 — hide the custom picker entirely if the
+  // shooter's reps were already 1, and always hide it for onlookers.
+  $("horse-choice-custom-section").classList.toggle("hidden", !isShooter || copy.reps <= 1);
+}
+
+async function resolveHorseChoice(mode, customTarget) {
+  const game = state.horseGame;
+  if (!game?.pendingChoice) return;
+  const user = game.pendingChoice.user;
+  let updated;
+  if (game.sessionType === "invite" || game.sessionType === "open") {
+    try {
+      const res = await workerChooseHorseTarget({ gameId: game.id, user, mode, customTarget });
+      updated = res.game;
+    } catch (e) {
+      // Best-effort local fallback so this device's UI still progresses —
+      // the server stays the source of truth and the next successful
+      // refresh (see openHorseTurnOrder) reconciles it.
+      toast("Couldn't sync your pick — check your connection. Your view may be out of date until it reconnects.", 5000);
+      updated = chooseHorseTarget(game, { user, mode, customTarget, now: Date.now() });
+    }
+  } else {
+    updated = chooseHorseTarget(game, { user, mode, customTarget, now: Date.now() });
+  }
+  state.horseGame = updated;
+  upsertLocalHorseGame(updated);
+  if (updated.status === "complete") {
+    renderHorseSummary();
+    showScreen("screen-horse-summary");
+    launchConfetti("horse-summary-confetti");
+    return;
+  }
+  await openHorseTurnOrder();
+}
+
+$("btn-horse-choice-match").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  try { await resolveHorseChoice("match"); } finally { btn.disabled = false; }
+});
+
+$("btn-horse-choice-dec").addEventListener("click", () => {
+  const slider = $("horse-choice-slider");
+  slider.value = String(Math.max(Number(slider.min), Number(slider.value) - 1));
+  $("horse-choice-slider-value").textContent = slider.value;
+});
+$("btn-horse-choice-inc").addEventListener("click", () => {
+  const slider = $("horse-choice-slider");
+  slider.value = String(Math.min(Number(slider.max), Number(slider.value) + 1));
+  $("horse-choice-slider-value").textContent = slider.value;
+});
+$("horse-choice-slider").addEventListener("input", (e) => {
+  $("horse-choice-slider-value").textContent = e.target.value;
+});
+
+$("btn-horse-choice-custom").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  try { await resolveHorseChoice("custom", Number($("horse-choice-slider").value)); } finally { btn.disabled = false; }
+});
 
 $("btn-horse-take-turn").addEventListener("click", () => {
   beginHorseTurn(currentTurnPlayer(state.horseGame));
@@ -3006,6 +3101,11 @@ function pendingHorseItems() {
     if (game.sessionType === "open" && game.turnOrder.length === 1 && game.target != null) continue;
     if (isTimeUp(game)) {
       items.push({ kind: "expired", gameId: game.id, opponents });
+    } else if (game.pendingChoice && game.pendingChoice.user === user) {
+      // currentTurnPlayer still resolves to the shooter while their choice
+      // is pending — call it out separately from "turn" so the bell doesn't
+      // say "do your set" when it's actually "pick the next target".
+      items.push({ kind: "choosing", gameId: game.id, opponents });
     } else if (currentTurnPlayer(game) === user) {
       items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game), opponents });
     } else if (game.sessionType === "invite" && user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
@@ -3023,9 +3123,9 @@ function pendingHorseItems() {
 function renderHorseBellDropdown() {
   const items = pendingHorseItems();
   $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
-  // "turn" (your move right now) gets the full urgent treatment — opaque +
-  // wiggling. "invite"/"waiting" still light the dot, but stay calm.
-  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn"));
+  // "turn"/"choosing" (your move right now) get the full urgent treatment —
+  // opaque + wiggling. "invite"/"waiting" still light the dot, but stay calm.
+  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn" || item.kind === "choosing"));
   $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => item.kind !== "waiting"));
   const list = $("horse-bell-list");
   list.innerHTML = items.length ? items.map((item) => {
@@ -3046,6 +3146,12 @@ function renderHorseBellDropdown() {
         <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
         <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
       </div>`;
+    }
+    if (item.kind === "choosing") {
+      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
+        <span aria-hidden="true">🐴</span>
+        <span class="horse-player-name">Your turn to set the target in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""}</span>
+      </button>`;
     }
     if (item.kind === "expired") {
       return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
@@ -4133,67 +4239,78 @@ function streakRingSvg(streak) {
 }
 
 // Shared by "My Bonanza" (one user's sessions) and "Boys Bonanza" (every
-// user's sessions, cumulative) — same 7-day bar chart + trend-vs-prior-week
+// user's sessions, cumulative) — same 7-bar chart + trend-vs-prior-window
 // line, just fed a different session set.
-// The chart always shows 7 bars; only the width of time each bar covers
-// changes with the period toggle, so bigger periods stay meaningfully
-// summarized instead of the chart growing without bound.
+// The chart always shows 7 bars; each bar is one calendar unit of the
+// selected period (one day, one week, one month, one quarter, one year),
+// with the rightmost bar always the current, in-progress unit — so
+// switching periods reframes the same chart at a different zoom level
+// instead of the chart growing without bound.
 const CHART_PERIOD_BUCKETS = {
-  day: { unitDays: 1, headerLabel: "Last 7 days" },
-  week: { unitDays: 1, headerLabel: "Last 7 days" },
-  month: { unitDays: 4, headerLabel: "Last 4 weeks" },
-  quarter: { unitDays: 13, headerLabel: "Last 13 weeks" },
-  year: { unitDays: 52, headerLabel: "Last 12 months" },
+  day: { headerLabel: "Last 7 days" },
+  week: { headerLabel: "Last 7 weeks" },
+  month: { headerLabel: "Last 7 months" },
+  quarter: { headerLabel: "Last 7 quarters" },
+  year: { headerLabel: "Last 7 years" },
 };
 
-// A pure day-count (UTC-projected local calendar date) so bucket-index math
-// below is never off by an hour across a DST transition.
-function localDayNumber(date) {
-  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+// Start of the calendar unit for `period` that is `offset` units away from
+// the current one (offset 0 = the unit containing `now`, -1 = the previous
+// unit, etc). Built on the same period-start convention used everywhere
+// else (e.g. Monday-start weeks), so bucket boundaries always agree with
+// the rest of the app's "this week/month/quarter/year" math.
+function periodBoundary(period, now, offset) {
+  const d = new Date(periodStart(period, now));
+  switch (period) {
+    case "week": d.setDate(d.getDate() + offset * 7); break;
+    case "month": d.setMonth(d.getMonth() + offset); break;
+    case "quarter": d.setMonth(d.getMonth() + offset * 3); break;
+    case "year": d.setFullYear(d.getFullYear() + offset); break;
+    default: d.setDate(d.getDate() + offset); break;
+  }
+  return d;
 }
+
+const CHART_BUCKET_LABEL_FORMAT = {
+  day: { weekday: "short" },
+  week: { month: "numeric", day: "numeric" },
+  month: { month: "short" },
+  quarter: { month: "short" },
+  year: { year: "numeric" },
+};
 
 function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false, period = "day", headerElId = null) {
   const metricOf = (session) => (isHolland ? Number(session.hollandCycles) || 0 : Number(session.count) || 0);
   const config = CHART_PERIOD_BUCKETS[period] || CHART_PERIOD_BUCKETS.day;
-  const unitDays = config.unitDays;
   const bucketCount = 7;
-  const totalDays = unitDays * bucketCount;
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const buckets = [];
   for (let i = bucketCount - 1; i >= 0; i--) {
-    const bucketEnd = new Date(todayStart);
-    bucketEnd.setDate(bucketEnd.getDate() - i * unitDays);
-    const bucketStart = new Date(bucketEnd);
-    bucketStart.setDate(bucketStart.getDate() - (unitDays - 1));
-    buckets.push({ start: bucketStart, total: 0 });
+    const offset = -i;
+    buckets.push({ start: periodBoundary(period, now, offset), end: periodBoundary(period, now, offset + 1), total: 0 });
   }
   const windowStart = buckets[0].start.getTime();
-  const windowStartDayNum = localDayNumber(buckets[0].start);
-  const windowEnd = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate() + 1).getTime();
-  const priorWindowStart = new Date(buckets[0].start);
-  priorWindowStart.setDate(priorWindowStart.getDate() - totalDays);
-  const priorWindowStartTime = priorWindowStart.getTime();
+  const windowEnd = buckets[bucketCount - 1].end.getTime();
+  const priorWindowStart = periodBoundary(period, now, -(2 * bucketCount - 1)).getTime();
 
   let priorWindowTotal = 0;
   for (const session of sessions) {
     const timestamp = sessionTimestamp(session);
-    if (timestamp >= priorWindowStartTime && timestamp < windowStart) {
+    if (timestamp >= priorWindowStart && timestamp < windowStart) {
       priorWindowTotal += metricOf(session);
     } else if (timestamp >= windowStart && timestamp < windowEnd) {
-      const sessionDayNum = localDayNumber(new Date(timestamp));
-      const bucketIndex = Math.min(bucketCount - 1, Math.max(0, Math.floor((sessionDayNum - windowStartDayNum) / unitDays)));
-      buckets[bucketIndex].total += metricOf(session);
+      const bucket = buckets.find((b) => timestamp >= b.start.getTime() && timestamp < b.end.getTime());
+      if (bucket) bucket.total += metricOf(session);
     }
   }
   const maxTotal = Math.max(1, ...buckets.map((b) => b.total));
 
   $(chartElId).innerHTML = buckets.map((bucket, i) => {
     const isCurrent = i === bucketCount - 1;
-    const label = unitDays === 1
-      ? (isCurrent ? "Today" : bucket.start.toLocaleDateString(undefined, { weekday: "short" }))
-      : (isCurrent ? "Now" : bucket.start.toLocaleDateString(undefined, { month: "numeric", day: "numeric" }));
+    const label = isCurrent
+      ? (period === "day" ? "Today" : "This")
+      : bucket.start.toLocaleDateString(undefined, CHART_BUCKET_LABEL_FORMAT[period] || CHART_BUCKET_LABEL_FORMAT.day);
     const heightPct = bucket.total > 0 ? Math.max(6, Math.round((bucket.total / maxTotal) * 100)) : 3;
     const valueDisplay = bucket.total > 0 ? (isPlank ? formatDuration(bucket.total * 1000) : isHolland ? bucket.total.toFixed(1) : formatNumber(bucket.total)) : "";
     return `
@@ -7132,7 +7249,12 @@ async function completeHorseTurn(rawCount) {
     return;
   }
   await openHorseTurnOrder();
-  if (beatTheBar) launchConfetti(state.screen === "screen-horse-summary" ? "horse-summary-confetti" : "horse-turnorder-confetti");
+  if (beatTheBar) {
+    const confettiId = state.screen === "screen-horse-summary" ? "horse-summary-confetti"
+      : state.screen === "screen-horse-target-choice" ? "horse-choice-confetti"
+      : "horse-turnorder-confetti";
+    launchConfetti(confettiId);
+  }
 }
 
 async function completeWorkout() {
