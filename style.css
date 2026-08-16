@@ -3218,19 +3218,30 @@ body:has(#screen-challenges.active) #app {
   position: relative;
   border-radius: 18px;
   padding: 0.8rem 1rem;
-  color: #fff;
+  background: var(--bg-elevated);
+  color: var(--text);
   box-shadow: var(--shadow);
   cursor: pointer;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 .challenge-card:active { transform: scale(0.98); }
 .challenge-card-header { display: flex; align-items: center; gap: 0.7rem; padding-right: 3.5rem; }
 .challenge-card-header-winner { padding-right: 55%; }
-.challenge-card-emoji { flex: 0 0 auto; font-size: 2.35rem; line-height: 1; }
+.challenge-card-emoji {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 13px;
+  background: var(--challenge-color);
+  font-size: 1.5rem;
+  line-height: 1;
+}
 .challenge-card-heading { min-width: 0; }
-.challenge-card-title { font-size: 1.15rem; font-weight: 900; line-height: 1.12; }
-.challenge-card-dates { font-size: 0.82rem; font-weight: 400; opacity: 0.92; margin-top: 0.15rem; }
-.challenge-card-meta { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 400; margin-top: 0.45rem; opacity: 0.95; }
+.challenge-card-title { font-size: 1.15rem; font-weight: 900; line-height: 1.12; color: var(--text); }
+.challenge-card-dates { font-size: 0.82rem; font-weight: 400; opacity: 0.92; margin-top: 0.15rem; color: var(--text-dim); }
+.challenge-card-meta { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 400; margin-top: 0.45rem; color: var(--text-tertiary); }
 .challenge-stat-icon { display: block; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; }
 .stats-table-label { display: inline-flex; align-items: center; gap: 0.55rem; }
 .stats-table-label .challenge-stat-icon { color: var(--text-tertiary); }
@@ -3287,9 +3298,9 @@ body:has(#screen-challenges.active) #app {
    colors, which would clash against whichever gradient the challenge uses. */
 .challenge-card .thermometer-wrap { max-width: none; margin: 0.6rem 0 0; }
 .challenge-card-progress { line-height: 0; }
-.challenge-card .thermometer-track { height: 4px; background: rgba(0, 0, 0, 0.2); }
-.challenge-card .thermometer-fill { background: var(--text-on-accent); }
-.challenge-card .thermometer-fill.thermometer-win { background: var(--text-on-accent); }
+.challenge-card .thermometer-track { height: 4px; background: var(--bg-elevated-2); }
+.challenge-card .thermometer-fill { background: var(--challenge-color); }
+.challenge-card .thermometer-fill.thermometer-win { background: var(--success); }
 
 .challenge-join-btn {
   position: absolute;
@@ -3304,7 +3315,8 @@ body:has(#screen-challenges.active) #app {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--bg-elevated-2);
+  color: var(--text-dim);
   border-radius: 999px;
   padding: 0.3rem 0.7rem;
   font-weight: 400;
@@ -3315,7 +3327,8 @@ body:has(#screen-challenges.active) #app {
   top: 0.9rem;
   right: 1rem;
   max-width: 55%;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--bg-elevated-2);
+  color: var(--text-dim);
   border-radius: 12px;
   padding: 0.3rem 0.65rem;
   font-weight: 400;
@@ -3327,7 +3340,8 @@ body:has(#screen-challenges.active) #app {
 
 .challenge-status-chip {
   display: inline-block;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-elevated-2);
+  color: var(--text-dim);
   border-radius: 999px;
   padding: 0.2rem 0.65rem;
   font-size: 0.78rem;

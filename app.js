@@ -5061,7 +5061,7 @@ function buildChallengeCard(c, now) {
 
   const card = document.createElement("div");
   card.className = "challenge-card";
-  card.style.background = `linear-gradient(135deg, ${c.gradient[0]}, ${c.gradient[1]})`;
+  card.style.setProperty("--challenge-color", c.gradient[0]);
   card.addEventListener("click", () => openChallengeDetail(c.id));
 
   let dateLabel;
