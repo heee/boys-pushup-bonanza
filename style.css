@@ -2045,13 +2045,28 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   border-radius: 999px;
   margin: 0 auto 1.2rem;
 }
-.horse-summary-row-winner { box-shadow: 0 0 0 1.5px var(--gold); border-radius: 12px; background: var(--bg-elevated-2); }
+/* Inset border on ::after, not a box-shadow on the row — same fix as
+   .horse-row-active. A box-shadow drawn on the row itself gets clipped by
+   .tier1-list's overflow:hidden rounded corners on whichever edges touch
+   the list boundary (top edge for the winner, who sorts first). */
+.horse-summary-row-winner { position: relative; border-radius: 12px; background: var(--bg-elevated-2); }
+.horse-summary-row-winner::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1.5px solid var(--gold);
+  border-radius: 10px;
+  pointer-events: none;
+}
 .horse-summary-name-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
 .horse-summary-name { font-weight: 700; }
 .horse-summary-name-out { text-decoration: line-through; color: var(--text-dim); }
 .horse-summary-subtitle { font-size: 0.78rem; color: var(--text-tertiary); }
 .horse-summary-row-winner .horse-summary-subtitle { color: var(--gold); }
-.horse-summary-actions { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.4rem; }
+.horse-summary-total { font-weight: 700; color: var(--text-dim); }
+.horse-summary-stats { text-align: center; margin: 0 0 1.2rem; }
+.horse-summary-actions { display: flex; gap: 0.7rem; margin-top: 1.4rem; }
+.horse-summary-actions .btn { flex: 1; width: auto; max-width: none; margin-top: 0; }
 
 /* ---------------- Pyramid mode (active workout) ---------------- */
 

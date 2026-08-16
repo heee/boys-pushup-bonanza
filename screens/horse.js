@@ -24,6 +24,10 @@ export function horseTurnHeroCopy(game) {
   };
 }
 
+function totalRepsFor(game, name) {
+  return (game.sets || []).filter((set) => set.user === name).reduce((sum, set) => sum + (set.reps || 0), 0);
+}
+
 // Winner(s) first (a match-timer tally can end in a shared win), then
 // eliminated players ordered by how long they survived (most recently OUT
 // ranks just below the winners).
@@ -38,8 +42,21 @@ export function horseSummaryRows(game) {
     letters: game.players[name].letters,
     out: game.players[name].out,
     wordSoFar: game.word.slice(0, game.players[name].letters),
+    totalReps: totalRepsFor(game, name),
   });
   return [...winners.map((name) => row(name, true)), ...others.map((name) => row(name, false))];
+}
+
+// Match-ending commentary: how long the whole thing ran and how many rounds
+// it took. End time is the latest timestamp we actually have on record (last
+// set taken or last elimination) rather than "now" — a tallied game may sit
+// untallied for a while after the clock actually ran out.
+export function horseSummaryStats(game) {
+  if (game.createdAt == null) return { rounds: game.round, durationMs: null };
+  const setTimes = (game.sets || []).map((set) => set.at).filter((t) => t != null);
+  const outTimes = Object.values(game.players).map((p) => p.outAt).filter((t) => t != null);
+  const endAt = Math.max(game.createdAt, ...setTimes, ...outTimes);
+  return { rounds: game.round, durationMs: endAt - game.createdAt };
 }
 
 export function horseInviteUrl(gameId, locationLike = globalThis.location) {

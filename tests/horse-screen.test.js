@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { horseInviteUrl, horseSummaryRows, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "../screens/horse.js";
+import { horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "../screens/horse.js";
 import { applyTurn, createHorseGame } from "../horse.js";
 
 test("horseWordChips marks the collected prefix filled", () => {
@@ -61,6 +61,44 @@ test("horseSummaryRows supports a shared (co-winner) match-timer tally", () => {
   assert.equal(rows[1].isWinner, true);
   assert.equal(rows[2].isWinner, false);
   assert.equal(rows[2].out, false);
+});
+
+test("horseSummaryRows sums each player's reps across every set they took", () => {
+  const game = {
+    word: "HORSE",
+    winner: ["Dev"],
+    turnOrder: ["You", "Dev"],
+    players: {
+      You: { letters: 5, out: true, outAt: 300 },
+      Dev: { letters: 0, out: false, outAt: null },
+    },
+    sets: [
+      { user: "Dev", reps: 30, at: 1 },
+      { user: "You", reps: 10, at: 2 },
+      { user: "Dev", reps: 32, at: 3 },
+      { user: "You", reps: 12, at: 4 },
+    ],
+  };
+  const rows = horseSummaryRows(game);
+  assert.equal(rows.find((r) => r.name === "Dev").totalReps, 62);
+  assert.equal(rows.find((r) => r.name === "You").totalReps, 22);
+});
+
+test("horseSummaryStats reports rounds and elapsed time from creation to the last recorded event", () => {
+  const game = {
+    round: 4,
+    createdAt: 1000,
+    players: {
+      You: { outAt: 5000 },
+      Dev: { outAt: null },
+    },
+    sets: [{ user: "Dev", reps: 30, at: 4000 }],
+  };
+  assert.deepEqual(horseSummaryStats(game), { rounds: 4, durationMs: 4000 });
+});
+
+test("horseSummaryStats returns a null duration when createdAt is unavailable", () => {
+  assert.deepEqual(horseSummaryStats({ round: 2, players: {} }), { rounds: 2, durationMs: null });
 });
 
 test("Open Horse share links preserve the app path and identify the game", () => {

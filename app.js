@@ -92,7 +92,7 @@ import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUser
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=6";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
 import { applyTurn, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
-import { horseInviteUrl, horseSummaryRows, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
+import { horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
@@ -2567,16 +2567,17 @@ function renderHorseTurnHero() {
   $("horse-target-sub").classList.toggle("hidden", !copy.sub);
 }
 
-// Rounds down to the minute — a countdown that ticked over every ms would be
-// noise; the app only ever re-renders this on load/refetch anyway.
-function horseFormatRemaining(ms) {
+// Rounds down to the minute — a countdown/duration that ticked over every ms
+// would be noise; the app only ever re-renders this on load/refetch anyway.
+function horseFormatDuration(ms) {
   const totalMinutes = Math.max(0, Math.round(ms / 60000));
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
   if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return "<1m";
 }
 
 function renderHorseTurnOrder() {
@@ -2609,7 +2610,7 @@ function renderHorseTurnOrder() {
     timerLine.classList.remove("horse-timer-line-urgent");
   } else {
     const remaining = game.timeLimit - (Date.now() - game.timerStartedAt);
-    timerLine.textContent = `${horseFormatRemaining(remaining)} left on the clock`;
+    timerLine.textContent = `${horseFormatDuration(remaining)} left on the clock`;
     timerLine.classList.remove("hidden");
     timerLine.classList.remove("horse-timer-line-urgent");
   }
@@ -2820,6 +2821,21 @@ async function openHorseTurnOrder() {
     showScreen("screen-horse-summary");
     return;
   }
+  // The match clock ran out but nobody's tallied yet — skip the turn-order
+  // screen's "time's up" holding pattern and go straight to the scores.
+  if (state.horseGame.sessionType !== "live" && isTimeUp(state.horseGame)) {
+    try {
+      const res = await workerTallyHorseGame(state.horseGame.id);
+      state.horseGame = res.game;
+      upsertLocalHorseGame(res.game);
+      renderHorseSummary();
+      showScreen("screen-horse-summary");
+      return;
+    } catch (err) {
+      // Fall through to the turn-order screen, which still offers a manual
+      // Tally button if the auto-tally couldn't reach the server.
+    }
+  }
   renderHorseTurnOrder();
   showScreen("screen-horse-turn-order");
 }
@@ -2910,6 +2926,9 @@ function renderHorseSummary() {
   }
   const rows = horseSummaryRows(game);
   $("horse-summary-crown").innerHTML = `👑 ${game.winner.map(escapeHtml).join(" & ")} wins`;
+  const stats = horseSummaryStats(game);
+  const roundsLabel = `${stats.rounds} round${stats.rounds === 1 ? "" : "s"}`;
+  $("horse-summary-stats").textContent = stats.durationMs == null ? roundsLabel : `${roundsLabel} · ${horseFormatDuration(stats.durationMs)}`;
   $("horse-summary-list").innerHTML = rows.map((row) => {
     // Elimination ends the game with the losers all OUT; a match-timer tally
     // can end it with non-winners still in play — "letters" reads truer than
@@ -2924,6 +2943,7 @@ function renderHorseSummary() {
         <span class="horse-summary-name${row.isWinner ? "" : " horse-summary-name-out"}">${escapeHtml(row.name)}</span>
         <span class="horse-summary-subtitle">${escapeHtml(subtitle)}</span>
       </span>
+      <span class="horse-summary-total">${row.totalReps}</span>
     </div>`;
   }).join("");
   $("horse-summary-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
@@ -2972,7 +2992,9 @@ function pendingHorseItems() {
     if (!game.turnOrder.includes(user)) continue;
     const opponents = otherHorsePlayers(game, user);
     if (game.sessionType === "open" && game.turnOrder.length === 1 && game.target != null) continue;
-    if (currentTurnPlayer(game) === user) {
+    if (isTimeUp(game)) {
+      items.push({ kind: "expired", gameId: game.id, opponents });
+    } else if (currentTurnPlayer(game) === user) {
       items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game), opponents });
     } else if (game.sessionType === "invite" && user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
       items.push({ kind: "invite", gameId: game.id, from: game.createdBy, opponents });
@@ -3012,6 +3034,12 @@ function renderHorseBellDropdown() {
         <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
         <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
       </div>`;
+    }
+    if (item.kind === "expired") {
+      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
+        <span aria-hidden="true">⏰</span>
+        <span class="horse-player-name">Horse challenge${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""} ended — tally the scores</span>
+      </button>`;
     }
     if (item.kind === "joined") {
       return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
