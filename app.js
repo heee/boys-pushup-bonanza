@@ -2959,7 +2959,19 @@ $("btn-horse-share").addEventListener("click", async () => {
   const game = state.horseGame;
   if (!game) return;
   const rows = horseSummaryRows(game);
-  const text = `🐴 Horse: ${game.winner.join(" & ")} wins!\n${rows.map((r) => `${r.isWinner ? "👑" : "❌"} ${r.name} — ${r.isWinner ? "Winner" : r.out ? `OUT · ${r.wordSoFar}` : `${r.wordSoFar || "no letters"}`}`).join("\n")}`;
+  const stats = horseSummaryStats(game);
+  const winners = game.winner || [];
+  const { pickHorseCompleteMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+  const intro = pickHorseCompleteMessage({
+    winnerText: winners.join(" & "),
+    winnerIsPlural: winners.length > 1,
+    word: game.word,
+    rounds: stats.rounds,
+    durationText: stats.durationMs != null ? horseFormatDuration(stats.durationMs) : null,
+    loserCount: Math.max(0, rows.length - winners.length),
+    topTotal: Math.max(0, ...rows.map((r) => r.totalReps)),
+  });
+  const text = `${intro}\n${rows.map((r) => `${r.isWinner ? "👑" : "❌"} ${r.name} — ${r.isWinner ? "Winner" : r.out ? `OUT · ${r.wordSoFar}` : `${r.wordSoFar || "no letters"}`}`).join("\n")}`;
   if (navigator.share) {
     try { await navigator.share({ text }); } catch (e) { /* user cancelled the share sheet */ }
   } else if (navigator.clipboard) {
@@ -7551,7 +7563,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=138").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=139").then((module) => {
       workoutShareMessages = module;
       return module;
     });

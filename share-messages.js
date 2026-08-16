@@ -679,3 +679,34 @@ export function pickHorseLetterFailMessage(ctx) {
   lastHorseLetterFailTemplate = template;
   return template(ctx);
 }
+
+// Lead-in commentary for the final Horse share, ahead of the plain per-player
+// tally. c.winnerText is already joined ("Phil" or "Phil & Mia"),
+// c.winnerIsPlural picks the right verb, c.durationText may be null (very old
+// / malformed games with no createdAt — see horseSummaryStats).
+const SHARE_MESSAGES_HORSE_COMPLETE = [
+  (c) => `🐴 HORSE IS OVER. The crown goes to ${c.winnerText} after ${c.rounds} round${c.rounds === 1 ? "" : "s"}${c.durationText ? ` and ${c.durationText} of psychological warfare` : ""}. ${c.loserCount} other${c.loserCount === 1 ? "" : "s"} got spelled out like a cursed word problem.`,
+  (c) => `The word ${c.word} has claimed its victims. ${c.winnerText} ${c.winnerIsPlural ? "survive" : "survives"} unscathed. Everyone else is now fluent in disappointment.`,
+  (c) => `${c.rounds} round${c.rounds === 1 ? "" : "s"}${c.durationText ? ` over ${c.durationText}` : ""} and it all comes down to this: the crown belongs to ${c.winnerText}. The bar has been retired to a farm upstate.`,
+  (c) => `HORSE has concluded. ${c.loserCount} player${c.loserCount === 1 ? "" : "s"} got fully spelled out, ${c.winnerText} ${c.winnerIsPlural ? "made it through" : "made it through"} un-spelled, and somebody put up ${c.topTotal} total reps chasing this nonsense.`,
+  (c) => `${c.winnerText} ${c.winnerIsPlural ? "have" : "has"} been crowned after ${c.rounds} round${c.rounds === 1 ? "" : "s"} of pure targeted violence. The rest of the group is now legally the word "${c.word}."`,
+  (c) => `Final bell: it's ${c.winnerText}. ${c.rounds} round${c.rounds === 1 ? "" : "s"}${c.durationText ? `, ${c.durationText}` : ""}, and ${c.topTotal} reps from whoever refused to lose gracefully. The horse has left the barn.`,
+  (c) => `Somebody just went ${c.topTotal} reps deep trying not to spell "${c.word}." That somebody did not win. ${c.winnerText} did.`,
+  (c) => `${c.rounds} round${c.rounds === 1 ? "" : "s"} of pushup roulette later, ${c.winnerText} ${c.winnerIsPlural ? "walk" : "walks"} away un-spelled while ${c.loserCount} other${c.loserCount === 1 ? "" : "s"} ${c.loserCount === 1 ? "is" : "are"} somewhere grieving.`,
+  (c) => `The bar rose, the bar fell, ${c.loserCount} player${c.loserCount === 1 ? "" : "s"} got spelled into oblivion, and ${c.winnerText} ${c.winnerIsPlural ? "are" : "is"} the last one${c.winnerIsPlural ? "s" : ""} standing.`,
+  (c) => `HORSE report: ${c.rounds} round${c.rounds === 1 ? "" : "s"}${c.durationText ? `, ${c.durationText} of runtime` : ""}, ${c.topTotal} reps from the group's most stubborn competitor, and a crown for ${c.winnerText}.`,
+  (c) => `${c.winnerText} just spelled disaster for everyone else. ${c.loserCount} full word${c.loserCount === 1 ? "" : "s"} completed against their will, ${c.rounds} round${c.rounds === 1 ? "" : "s"} it took.`,
+  (c) => `This took ${c.rounds} round${c.rounds === 1 ? "" : "s"}${c.durationText ? ` and ${c.durationText}` : ""} of everyone lying about how easy the last number was. ${c.winnerText} won anyway.`,
+  (c) => `${c.topTotal} reps at the top of the leaderboard and it still wasn't enough to save everyone. ${c.word} has been fully spelled ${c.loserCount} time${c.loserCount === 1 ? "" : "s"}. Crown: ${c.winnerText}.`,
+  (c) => `Somewhere around round ${c.rounds}, ${c.word} finished eating ${c.loserCount} player${c.loserCount === 1 ? "" : "s"} alive. ${c.winnerText} watched it happen from the top of the leaderboard.`,
+];
+
+let lastHorseCompleteTemplate = null;
+export function pickHorseCompleteMessage(ctx) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(SHARE_MESSAGES_HORSE_COMPLETE); guard++; }
+  while (template === lastHorseCompleteTemplate && SHARE_MESSAGES_HORSE_COMPLETE.length > 1 && guard < 10);
+  lastHorseCompleteTemplate = template;
+  return template(ctx);
+}

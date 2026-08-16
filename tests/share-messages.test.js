@@ -119,3 +119,29 @@ test("Horse reminder messages avoid repeating the same template twice in a row",
     assert.notEqual(first, second);
   }, "horse-reminder-repeat");
 });
+
+test("Horse completion messages weave in the winner, rounds, duration, and loser count", async () => {
+  await withFirstTemplate(({ pickHorseCompleteMessage }) => {
+    const message = pickHorseCompleteMessage({
+      winnerText: "Phil",
+      winnerIsPlural: false,
+      word: "HORSE",
+      rounds: 6,
+      durationText: "2h 14m",
+      loserCount: 2,
+      topTotal: 184,
+    });
+    assert.match(message, /Phil/);
+    assert.match(message, /6 rounds/);
+  }, "horse-complete");
+});
+
+test("Horse completion messages avoid repeating the same template twice in a row", async () => {
+  await withFirstTemplate(({ pickHorseCompleteMessage }) => {
+    const ctx = { winnerText: "Mia & You", winnerIsPlural: true, word: "HORSE", rounds: 4, durationText: null, loserCount: 1, topTotal: 90 };
+    const first = pickHorseCompleteMessage(ctx);
+    Math.random = () => 0.999999;
+    const second = pickHorseCompleteMessage(ctx);
+    assert.notEqual(first, second);
+  }, "horse-complete-repeat");
+});
