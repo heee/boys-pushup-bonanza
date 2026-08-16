@@ -83,6 +83,29 @@ test("share context preserves numeric and PR leader semantics", () => {
   assert.equal(pr.hasLeader, false);
 });
 
+test("share context surfaces remaining amount and urgency for collective goals", () => {
+  const collective = { ...challenge, goalType: "collective", goal: 2500, end: "2026-08-02" };
+  const soon = new Date(2026, 7, 2, 12);
+  const ctx = challengeShareContext(collective, [{ name: "Phil", score: 1200 }], {
+    formatNumber: String,
+    locale: "en-US",
+    groupTotal: 1600,
+    now: soon,
+  });
+  assert.equal(ctx.hasRemaining, true);
+  assert.equal(ctx.remainingText, "900 pushups");
+  assert.equal(ctx.urgencyPhrase, "today");
+  assert.equal(ctx.leaderName, "Phil");
+
+  const finished = challengeShareContext(collective, [{ name: "Phil", score: 2600 }], {
+    formatNumber: String,
+    locale: "en-US",
+    groupTotal: 2600,
+    now: soon,
+  });
+  assert.equal(finished.hasRemaining, false);
+});
+
 test("plank gauntlet share context formats scores as durations and never 'exceeds' a goal", () => {
   const plankChallenge = { ...challenge, goalType: "plankGauntlet", goal: undefined };
   const ctx = challengeShareContext(plankChallenge, [{ name: "A", score: 320, cumulative: 260, longest: 60 }], {

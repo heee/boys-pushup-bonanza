@@ -81,11 +81,20 @@ export function challengeActivityId(challenge) {
   return challenge?.goalType === "plankGauntlet" ? "planks" : (challenge?.activity || "pushups");
 }
 
-export function challengeShareContext(challenge, board, { formatNumber = String, formatDuration = String, locale, activityLabel = "pushups" } = {}) {
+export function challengeShareContext(challenge, board, { formatNumber = String, formatDuration = String, locale, activityLabel = "pushups", groupTotal, now = new Date() } = {}) {
   const { endDate } = challengeWindow(challenge);
   const leader = board[0];
   const isRanked = challenge.goalType === "pr" || challenge.goalType === "plankGauntlet";
   const hasLeader = challenge.goalType === "pr" ? !!leader?.achieved : !!leader && leader.score > 0;
+  const exceeded = !isRanked && hasLeader && leader.score >= challenge.goal;
+
+  // "Remaining" framing only makes sense for a shared numeric finish line —
+  // collective challenges (e.g. King of the Hill) race toward one group total.
+  const daysLeftCount = daysLeft(challenge, now);
+  const isCollectiveGoal = challenge.goalType === "collective" && typeof groupTotal === "number";
+  const remaining = isCollectiveGoal ? Math.max(0, challenge.goal - groupTotal) : 0;
+  const hasRemaining = isCollectiveGoal && !exceeded && remaining > 0;
+
   return {
     titleWithEmoji: `${challenge.emoji} ${challenge.title}`,
     deadlineText: endDate.toLocaleDateString(locale, { month: "short", day: "numeric" }),
@@ -101,6 +110,9 @@ export function challengeShareContext(challenge, board, { formatNumber = String,
         : formatNumber(leader.score)
     ) : "",
     leaderPct: hasLeader ? (isRanked ? 100 : Math.round((leader.score / challenge.goal) * 100)) : 0,
-    exceeded: !isRanked && hasLeader && leader.score >= challenge.goal,
+    exceeded,
+    hasRemaining,
+    remainingText: hasRemaining ? `${formatNumber(remaining)} ${activityLabel}` : "",
+    urgencyPhrase: daysLeftCount <= 1 ? "today" : `in ${daysLeftCount} days`,
   };
 }

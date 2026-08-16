@@ -84,15 +84,15 @@ import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel } from "./screens/mode-stats.js?v=135";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=132";
-import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=211";
+import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=142";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=6";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
-import { applyTurn, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
-import { horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
+import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
+import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
@@ -5156,7 +5156,12 @@ function openChallengeDetail(id) {
 // Bundles everything a share message might reference so the variations
 // below can freely mix and match without recomputing anything.
 function buildChallengeShareContext(c) {
-  return challengeShareContext(c, challengeLeaderboard(c), { formatNumber, formatDuration: (seconds) => formatDuration(seconds * 1000), activityLabel: challengeActivity(c) });
+  return challengeShareContext(c, challengeLeaderboard(c), {
+    formatNumber,
+    formatDuration: (seconds) => formatDuration(seconds * 1000),
+    activityLabel: challengeActivity(c),
+    groupTotal: c.goalType === "collective" ? challengeTotal(c) : undefined,
+  });
 }
 
 const CHALLENGE_INVITE_MESSAGES = [
@@ -5165,10 +5170,17 @@ const CHALLENGE_INVITE_MESSAGES = [
   (ctx) => ctx.exceeded
     ? `${ctx.titleWithEmoji} is live and ${ctx.leaderName} already smashed the ${ctx.goalAmountText} goal with ${ctx.leaderScoreText} (${ctx.leaderPct}%) 🔥 Go beat them before it's over!`
     : `${ctx.titleWithEmoji} is live. Get in before it's over 🔥 ${ctx.goalAmountText} by ${ctx.deadlineText}.`,
-  (ctx) => `Boys, ${ctx.titleWithEmoji} needs you 🚀 ${ctx.hasLeader ? `${ctx.leaderName}'s out front with ${ctx.leaderScoreText} (${ctx.leaderPct}%) — ` : ""}tap in before ${ctx.deadlineText}.`,
-  (ctx) => `Don't sleep on ${ctx.titleWithEmoji} 🏆 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} leading at ${ctx.leaderPct}%` : ""}.`,
+  (ctx) => ctx.hasRemaining
+    ? `Boys, ${ctx.titleWithEmoji} needs you 🚀 ${ctx.remainingText} left ${ctx.urgencyPhrase}${ctx.hasLeader ? ` — don't let ${ctx.leaderName} run away with it` : ""}. Tap in before ${ctx.deadlineText}.`
+    : `Boys, ${ctx.titleWithEmoji} needs you 🚀 ${ctx.hasLeader ? `${ctx.leaderName}'s out front with ${ctx.leaderScoreText} (${ctx.leaderPct}%) — ` : ""}tap in before ${ctx.deadlineText}.`,
+  (ctx) => ctx.hasRemaining
+    ? `${ctx.remainingText} left on ${ctx.titleWithEmoji} ${ctx.urgencyPhrase} 🏆${ctx.hasLeader ? ` Don't let ${ctx.leaderName} take the crown!` : ""}`
+    : `Don't sleep on ${ctx.titleWithEmoji} 🏆 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} leading at ${ctx.leaderPct}%` : ""}.`,
   (ctx) => ctx.exceeded
     ? `${ctx.leaderName} already crushed ${ctx.titleWithEmoji}'s goal (${ctx.leaderScoreText}, ${ctx.leaderPct}%) 😤 Go beat them before it's over!`
+    : `${ctx.titleWithEmoji}: ${ctx.goalAmountText} by ${ctx.deadlineText}. Join the bonanza before it's too late 👀`,
+  (ctx) => ctx.hasRemaining
+    ? `⛰️ ${ctx.remainingText} left ${ctx.urgencyPhrase} on ${ctx.titleWithEmoji}${ctx.hasLeader ? ` — ${ctx.leaderName}'s wearing the crown for now` : ""}. Let's close it out, boys!`
     : `${ctx.titleWithEmoji}: ${ctx.goalAmountText} by ${ctx.deadlineText}. Join the bonanza before it's too late 👀`,
 ];
 
