@@ -47,15 +47,21 @@
 //   POST /horse-cancel -> { gameId, user } -> host cancels an Open game before a challenger joins
 //   POST /horse-turn   -> { gameId, user, reps, modifier? } -> applies the current player's
 //                          completed set; modifier is recorded as the new target's
-//                          targetModifier, which the next player has to match
+//                          targetModifier, which the next player has to match. A set that
+//                          meets/beats an existing bar leaves the game on pendingChoice
+//                          instead of finalizing the target — see /horse-choose-target
+//   POST /horse-choose-target -> { gameId, user, mode: "match"|"custom", customTarget? } ->
+//                          resolves game.pendingChoice (only the shooter who beat the bar
+//                          may call this); "match" forces the shooter's exact reps, "custom"
+//                          sets any whole number from 1 up to those reps
 //   POST /horse-tally  -> { gameId } -> once the match timer has expired, ends the game and
 //                          crowns whoever has the fewest letters (ties share the win); any
 //                          player may call this. Replaces the old per-turn 48h skip.
 //   POST /horse-decline -> { gameId, user } -> removes an invited player who hasn't taken a set yet
 //                          (voids the game if fewer than 2 players remain)
 //   Async "Invite friends" Horse games are the reason /data below also returns `horseGames` —
-//   see HORSE_PLAN.md. The rules engine (createHorseGame/applyTurn/tallyGame/
-//   declinePlayer below) is a deliberate duplicate of horse.js: this file is deployed by
+//   see HORSE_PLAN.md. The rules engine (createHorseGame/applyTurn/chooseHorseTarget/
+//   tallyGame/declinePlayer below) is a deliberate duplicate of horse.js: this file is deployed by
 //   pasting it whole into the Cloudflare dashboard, so it can't import sibling modules.
 //   Keep the two in sync — both are covered by tests (tests/horse-mode.test.js and
 //   tests/worker-horse.test.js).
@@ -364,6 +370,40 @@ export default {
         return json({ error: "game changed while posting the turn; try again" }, 409, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/horse-choose-target" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      const mode = body?.mode === "custom" ? "custom" : body?.mode === "match" ? "match" : "";
+      const customTarget = body?.customTarget;
+      if (!gameId || !user || !mode) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadHorseGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
+          if (!game.pendingChoice) return json({ error: "no target choice is pending" }, 409, cors);
+          if (game.pendingChoice.user !== user) return json({ error: "not this player's choice to make" }, 403, cors);
+          const updated = chooseHorseTarget(game, { user, mode, customTarget, now: Date.now() });
+          if (await replaceHorseGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while resolving the choice; try again" }, 409, cors);
+      } catch (e) {
+        return json({ error: e.message }, 400, cors);
       }
     }
 
@@ -908,6 +948,7 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, tim
     winner: null,
     timeLimit: timeLimit == null ? null : timeLimit,
     timerStartedAt: null,
+    pendingChoice: null,
   };
 }
 
@@ -987,11 +1028,25 @@ function horseComputeTimerStart(game) {
   return secondSet ? secondSet.at : null;
 }
 
+// Shared tail once a target number is finalized for the round. Must stay in
+// sync with horse.js's finalizeTarget.
+function horseFinalizeTarget(game, { target, targetSetBy, targetModifier, now }) {
+  const next = { ...game, target, targetSetBy, targetModifier, pendingChoice: null };
+  next.timerStartedAt = horseComputeTimerStart(next);
+
+  const winner = horseCheckWinner(next);
+  if (winner) return { ...next, status: "complete", winner: [winner], turnStartedAt: null };
+
+  const { turnIndex, round, turnStartedAt } = horseAdvanceTurn(next, now);
+  return { ...next, turnIndex, round, turnStartedAt };
+}
+
 // modifier is whatever grip/hand-position (see screens/modifiers.js on the
 // client) the player used for this set — stored as targetModifier so the
 // next player has to match it. Must stay in sync with horse.js's applyTurn.
 export function applyTurn(game, { user, reps, modifier = null, now = Date.now() }) {
   if (game.status !== "active") throw new Error("Game is not active");
+  if (game.pendingChoice) throw new Error("Waiting on the shooter's target choice");
   if (currentTurnPlayer(game) !== user) throw new Error("Not this player's turn");
 
   const needed = game.target;
@@ -1000,14 +1055,35 @@ export function applyTurn(game, { user, reps, modifier = null, now = Date.now() 
   if (!success) players = horseAwardLetter(players, user, now);
 
   const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
-  const next = { ...game, players, sets, target: reps, targetSetBy: user, targetModifier: modifier };
-  next.timerStartedAt = horseComputeTimerStart(next);
+  const next = { ...game, players, sets };
 
-  const winner = horseCheckWinner(next);
-  if (winner) return { ...next, status: "complete", winner: [winner], turnStartedAt: null };
+  // A set that meets or beats an existing bar hands the shooter a choice —
+  // see horseChooseTarget. The opening bar-setting shot (needed == null) and
+  // any miss skip this; the number is simply whatever they did.
+  if (success && needed != null) return { ...next, pendingChoice: { user, reps, modifier } };
 
-  const { turnIndex, round, turnStartedAt } = horseAdvanceTurn(next, now);
-  return { ...next, turnIndex, round, turnStartedAt };
+  return horseFinalizeTarget(next, { target: reps, targetSetBy: user, targetModifier: modifier, now });
+}
+
+// Resolves the shooter's pending choice from applyTurn above. Must stay in
+// sync with horse.js's chooseHorseTarget.
+export function chooseHorseTarget(game, { user, mode, customTarget, now = Date.now() }) {
+  if (game.status !== "active") throw new Error("Game is not active");
+  if (!game.pendingChoice) throw new Error("No target choice is pending");
+  if (game.pendingChoice.user !== user) throw new Error("Not this player's choice to make");
+
+  const { reps, modifier } = game.pendingChoice;
+  let target;
+  if (mode === "match") {
+    target = reps;
+  } else if (mode === "custom") {
+    const n = Math.floor(Number(customTarget));
+    if (!Number.isFinite(n) || n < 1 || n > reps) throw new Error(`Custom target must be a whole number between 1 and ${reps}`);
+    target = n;
+  } else {
+    throw new Error("Unknown target choice mode");
+  }
+  return horseFinalizeTarget(game, { target, targetSetBy: user, targetModifier: modifier, now });
 }
 
 export function isTimeUp(game, now = Date.now()) {

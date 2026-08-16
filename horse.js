@@ -43,6 +43,7 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, tim
     winner: null,
     timeLimit: timeLimit == null ? null : timeLimit,
     timerStartedAt: null,
+    pendingChoice: null,
   };
 }
 
@@ -129,8 +130,23 @@ function computeTimerStart(game) {
   return secondSet ? secondSet.at : null;
 }
 
+// Shared tail once a target number is finalized for the round: stamp who set
+// it, start the match timer if this was the second player's first-ever turn,
+// then check for a winner or hand off to the next live player.
+function finalizeTarget(game, { target, targetSetBy, targetModifier, now }) {
+  const next = { ...game, target, targetSetBy, targetModifier, pendingChoice: null };
+  next.timerStartedAt = computeTimerStart(next);
+
+  const winner = checkWinner(next);
+  if (winner) return { ...next, status: "complete", winner: [winner], turnStartedAt: null };
+
+  const { turnIndex, round, turnStartedAt } = advanceTurn(next, now);
+  return { ...next, turnIndex, round, turnStartedAt };
+}
+
 export function applyTurn(game, { user, reps, modifier = null, now = Date.now() }) {
   if (game.status !== "active") throw new Error("Game is not active");
+  if (game.pendingChoice) throw new Error("Waiting on the shooter's target choice");
   if (currentTurnPlayer(game) !== user) throw new Error("Not this player's turn");
 
   const needed = game.target;
@@ -139,14 +155,39 @@ export function applyTurn(game, { user, reps, modifier = null, now = Date.now() 
   if (!success) players = awardLetter(players, user, now);
 
   const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
-  const next = { ...game, players, sets, target: reps, targetSetBy: user, targetModifier: modifier };
-  next.timerStartedAt = computeTimerStart(next);
+  const next = { ...game, players, sets };
 
-  const winner = checkWinner(next);
-  if (winner) return { ...next, status: "complete", winner: [winner], turnStartedAt: null };
+  // A set that meets or beats an existing bar hands the shooter a choice:
+  // force the next player to match their exact number, or set something
+  // lower (down to what they just did) — see chooseHorseTarget. The opening
+  // bar-setting shot (needed == null) and any miss skip this entirely; the
+  // number is simply whatever they did, same as before.
+  if (success && needed != null) return { ...next, pendingChoice: { user, reps, modifier } };
 
-  const { turnIndex, round, turnStartedAt } = advanceTurn(next, now);
-  return { ...next, turnIndex, round, turnStartedAt };
+  return finalizeTarget(next, { target: reps, targetSetBy: user, targetModifier: modifier, now });
+}
+
+// Resolves the shooter's pending choice from applyTurn above. mode "match"
+// forces the next player to meet/beat the shooter's exact reps (today's
+// default behavior); mode "custom" lets the shooter set anything from 1 up
+// to (but not above) what they just did.
+export function chooseHorseTarget(game, { user, mode, customTarget, now = Date.now() }) {
+  if (game.status !== "active") throw new Error("Game is not active");
+  if (!game.pendingChoice) throw new Error("No target choice is pending");
+  if (game.pendingChoice.user !== user) throw new Error("Not this player's choice to make");
+
+  const { reps, modifier } = game.pendingChoice;
+  let target;
+  if (mode === "match") {
+    target = reps;
+  } else if (mode === "custom") {
+    const n = Math.floor(Number(customTarget));
+    if (!Number.isFinite(n) || n < 1 || n > reps) throw new Error(`Custom target must be a whole number between 1 and ${reps}`);
+    target = n;
+  } else {
+    throw new Error("Unknown target choice mode");
+  }
+  return finalizeTarget(game, { target, targetSetBy: user, targetModifier: modifier, now });
 }
 
 export function isTimeUp(game, now = Date.now()) {

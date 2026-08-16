@@ -354,6 +354,31 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: HORSE TARGET CHOICE ============ -->
+    <!-- Shown to the shooter right after a set that meets/beats an existing
+         bar — see horse.js's pendingChoice. Force the full number, or dial
+         in something lower (down to 1) with the slider/steppers. -->
+    <section id="screen-horse-target-choice" class="screen horse-choice-screen">
+      <div id="horse-choice-confetti" class="confetti" aria-hidden="true"></div>
+      <p id="horse-choice-kicker" class="horse-choice-kicker"></p>
+      <h1 id="horse-choice-reps" class="horse-choice-reps"></h1>
+      <p id="horse-choice-modifier" class="horse-choice-modifier hidden"></p>
+      <p id="horse-choice-prompt" class="screen-sub horse-choice-prompt"></p>
+      <button id="btn-horse-choice-match" type="button" class="btn btn-giant btn-primary horse-start-btn"></button>
+      <div id="horse-choice-custom-section" class="horse-choice-custom">
+        <p class="horse-choice-custom-label">Or set it lower</p>
+        <div class="horse-choice-slider-row">
+          <button type="button" id="btn-horse-choice-dec" class="horse-choice-stepper" aria-label="Decrease target">−</button>
+          <div class="horse-choice-slider-col">
+            <input type="range" id="horse-choice-slider" class="horse-choice-slider" min="1" step="1" aria-label="Custom target" />
+            <div id="horse-choice-slider-value" class="horse-choice-slider-value"></div>
+          </div>
+          <button type="button" id="btn-horse-choice-inc" class="horse-choice-stepper" aria-label="Increase target">+</button>
+        </div>
+        <button id="btn-horse-choice-custom" type="button" class="btn btn-giant btn-secondary">Set this target</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: HORSE SUMMARY ============ -->
     <section id="screen-horse-summary" class="screen">
       <div id="horse-summary-confetti" class="confetti" aria-hidden="true"></div>

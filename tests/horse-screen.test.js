@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "../screens/horse.js";
-import { applyTurn, createHorseGame } from "../horse.js";
+import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "../screens/horse.js";
+import { applyTurn, chooseHorseTarget, createHorseGame } from "../horse.js";
 
 test("horseWordChips marks the collected prefix filled", () => {
   assert.deepEqual(horseWordChips("HORSE", 2), [
@@ -99,6 +99,31 @@ test("horseSummaryStats reports rounds and elapsed time from creation to the las
 
 test("horseSummaryStats returns a null duration when createdAt is unavailable", () => {
   assert.deepEqual(horseSummaryStats({ round: 2, players: {} }), { rounds: 2, durationMs: null });
+});
+
+test("horseChoiceCopy reflects the pending shooter choice and clears once resolved", () => {
+  let g = createHorseGame({ id: "g", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"] });
+  assert.equal(horseChoiceCopy(g), null);
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  assert.equal(horseChoiceCopy(g), null); // opening shot never triggers a choice
+  g = applyTurn(g, { user: "Mia", reps: 32, modifier: "wide", now: 2 });
+  assert.deepEqual(horseChoiceCopy(g), { user: "Mia", reps: 32, modifierLabel: "Wide Grip" });
+  g = chooseHorseTarget(g, { user: "Mia", mode: "match", now: 3 });
+  assert.equal(horseChoiceCopy(g), null);
+});
+
+test("horseTargetWasLowered flags a custom pick below the shooter's reps, not a match/miss/opening bar", () => {
+  let g = createHorseGame({ id: "g", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia"] });
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 }); // opening bar — never "lowered"
+  assert.equal(horseTargetWasLowered(g), null);
+  g = applyTurn(g, { user: "Mia", reps: 12, now: 2 }); // miss — target snaps to exactly the miss
+  assert.equal(horseTargetWasLowered(g), null);
+  g = applyTurn(g, { user: "You", reps: 40, now: 3 }); // beats 12 by a lot
+  g = chooseHorseTarget(g, { user: "You", mode: "match", now: 4 });
+  assert.equal(horseTargetWasLowered(g), null); // forced the full number — nothing to call out
+  g = applyTurn(g, { user: "Mia", reps: 60, now: 5 }); // beats 40
+  g = chooseHorseTarget(g, { user: "Mia", mode: "custom", customTarget: 45, now: 6 });
+  assert.equal(horseTargetWasLowered(g), 60); // could've forced 60, went with 45
 });
 
 test("Open Horse share links preserve the app path and identify the game", () => {

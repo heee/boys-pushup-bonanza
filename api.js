@@ -74,6 +74,7 @@ export function createWorkerApi({ baseUrl, appKey, timeoutMs = DEFAULT_TIMEOUT_M
     joinOpenHorseGame: (gameId, user) => request("/horse-join", { method: "POST", body: { gameId, user } }),
     cancelOpenHorseGame: (gameId, user) => request("/horse-cancel", { method: "POST", body: { gameId, user } }),
     postHorseTurn: (payload) => request("/horse-turn", { method: "POST", body: payload }),
+    chooseHorseTarget: (payload) => request("/horse-choose-target", { method: "POST", body: payload }),
     tallyHorseGame: (gameId) => request("/horse-tally", { method: "POST", body: { gameId } }),
     declineHorseInvite: (gameId, user) => request("/horse-decline", { method: "POST", body: { gameId, user } }),
   };

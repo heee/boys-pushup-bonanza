@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   applyTurn,
   cancelOpenGame,
+  chooseHorseTarget,
   createHorseGame,
   currentTurnPlayer,
   declinePlayer,
@@ -22,6 +23,15 @@ function game2(now = 0) {
 }
 function game3(now = 0) {
   return createHorseGame({ id: "g2", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia", "Dev"], now });
+}
+
+// Beating an existing bar hands the shooter a choice instead of finalizing
+// the target immediately (see tests/horse-mode.test.js). Fast-forward
+// through it for tests that only care about the old always-1-up outcome.
+function applyAndResolve(g, args) {
+  g = applyTurn(g, args);
+  if (g.pendingChoice) g = chooseHorseTarget(g, { user: g.pendingChoice.user, mode: "match", now: args.now });
+  return g;
 }
 
 test("createHorseGame normalizes the word and seeds player state", () => {
@@ -48,6 +58,7 @@ test("targetModifier tracks whoever set the target's modifier, mirroring horse.j
   assert.equal(g.targetModifier, "wide");
   assert.equal(g.sets[0].modifier, "wide");
   g = applyTurn(g, { user: "Mia", reps: 25, now: 2 });
+  g = chooseHorseTarget(g, { user: "Mia", mode: "match", now: 3 });
   assert.equal(g.targetModifier, null);
 });
 
@@ -66,7 +77,7 @@ test("2-player game ends immediately once one player spells the whole word", () 
   for (let i = 0; i < 5; i += 1) {
     g = applyTurn(g, { user: "Mia", reps: misses[i], now: i + 2 });
     if (g.status === "complete") break;
-    g = applyTurn(g, { user: "You", reps: misses[i] + 5, now: i + 10 });
+    g = applyAndResolve(g, { user: "You", reps: misses[i] + 5, now: i + 10 });
   }
   assert.equal(g.status, "complete");
   assert.deepEqual(g.winner, ["You"]);
@@ -93,6 +104,7 @@ test("match timer starts on the second player's first turn and tallyGame crowns 
   assert.equal(g.timerStartedAt, null);
   assert.throws(() => tallyGame(g, DAY), /not expired/);
   g = applyTurn(g, { user: "Mia", reps: 25, now: 2 });
+  g = chooseHorseTarget(g, { user: "Mia", mode: "match", now: 3 });
   assert.equal(g.timerStartedAt, 2);
   assert.equal(isTimeUp(g, 2 + DAY - 1), false);
   assert.equal(isTimeUp(g, 2 + DAY), true);
@@ -100,6 +112,19 @@ test("match timer starts on the second player's first turn and tallyGame crowns 
   const tallied = tallyGame(g, 2 + DAY);
   assert.equal(tallied.status, "complete");
   assert.deepEqual(tallied.winner, ["Mia"]);
+});
+
+test("chooseHorseTarget mirrors horse.js: match/custom paths, bounds, and authorization", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  g = applyTurn(g, { user: "Mia", reps: 40, now: 2 }); // beats 20 by a lot, choice pending
+  assert.throws(() => applyTurn(g, { user: "You", reps: 5, now: 3 }), /choice/);
+  assert.throws(() => chooseHorseTarget(g, { user: "You", mode: "match", now: 3 }), /not this player's choice/i);
+  assert.throws(() => chooseHorseTarget(g, { user: "Mia", mode: "custom", customTarget: 41, now: 3 }), /between 1 and 40/);
+  const lowered = chooseHorseTarget(g, { user: "Mia", mode: "custom", customTarget: 25, now: 3 });
+  assert.equal(lowered.target, 25);
+  assert.equal(lowered.pendingChoice, null);
+  assert.equal(currentTurnPlayer(lowered), "You");
 });
 
 test("declining before a first set removes the player; declining to <2 voids the game", () => {

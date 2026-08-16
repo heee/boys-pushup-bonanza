@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applyTurn,
   cancelOpenGame,
+  chooseHorseTarget,
   createHorseGame,
   currentTurnPlayer,
   declinePlayer,
@@ -20,6 +21,15 @@ function game2(now = 0) {
 }
 function game3(now = 0) {
   return createHorseGame({ id: "g2", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia", "Dev"], now });
+}
+
+// Beating an existing bar now hands the shooter a choice instead of
+// finalizing the target immediately. Tests that only care about the old
+// always-1-up outcome use this to fast-forward through that choice.
+function applyAndResolve(g, args) {
+  g = applyTurn(g, args);
+  if (g.pendingChoice) g = chooseHorseTarget(g, { user: g.pendingChoice.user, mode: "match", now: args.now });
+  return g;
 }
 
 test("createHorseGame normalizes the word and seeds player state", () => {
@@ -115,8 +125,11 @@ test("targetModifier tracks whatever modifier the target-setter used, regardless
   // the new target's modifier is HERS now, not You's.
   g = applyTurn(g, { user: "Mia", reps: 12, modifier: "diamond", now: 2 });
   assert.equal(g.targetModifier, "diamond");
-  // No modifier passed at all defaults to null (no grip requirement).
+  // You beats it, triggering the shooter's choice — picking "match" finalizes
+  // it exactly like the old always-1-up behavior. No modifier passed at all
+  // defaults to null (no grip requirement).
   g = applyTurn(g, { user: "You", reps: 25, now: 3 });
+  g = chooseHorseTarget(g, { user: "You", mode: "match", now: 4 });
   assert.equal(g.targetModifier, null);
 });
 
@@ -135,7 +148,65 @@ test("meeting or beating the target sets a new (higher or equal) bar with no let
   g = applyTurn(g, { user: "You", reps: 20, now: 1 });
   g = applyTurn(g, { user: "Mia", reps: 20, now: 2 }); // exactly matches
   assert.equal(g.players.Mia.letters, 0);
+  // Beating an existing bar doesn't finalize the target right away — it
+  // hands Mia the choice of what to leave the next player.
+  assert.deepEqual(g.pendingChoice, { user: "Mia", reps: 20, modifier: null });
+  assert.equal(g.target, 20); // still the bar Mia just beat, unchanged until she picks
+  g = chooseHorseTarget(g, { user: "Mia", mode: "match", now: 3 });
   assert.equal(g.target, 20);
+  assert.equal(g.pendingChoice, null);
+});
+
+test("the opening bar-setting shot never triggers a target choice", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  assert.equal(g.pendingChoice, null);
+  assert.equal(g.target, 20);
+});
+
+test("a miss never triggers a target choice, even against a bar it fails to beat", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  g = applyTurn(g, { user: "Mia", reps: 12, now: 2 }); // fails
+  assert.equal(g.pendingChoice, null);
+  assert.equal(g.target, 12);
+});
+
+test("no one can take a turn while a target choice is pending", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  g = applyTurn(g, { user: "Mia", reps: 20, now: 2 }); // beats it, choice pending
+  assert.throws(() => applyTurn(g, { user: "You", reps: 5, now: 3 }), /choice/);
+  assert.throws(() => applyTurn(g, { user: "Mia", reps: 5, now: 3 }), /choice/);
+});
+
+test("chooseHorseTarget rejects anyone but the shooter from resolving the choice", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  g = applyTurn(g, { user: "Mia", reps: 20, now: 2 });
+  assert.throws(() => chooseHorseTarget(g, { user: "You", mode: "match", now: 3 }), /not this player's choice/i);
+});
+
+test("chooseHorseTarget custom mode bounds the target to [1, shooter's reps]", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  g = applyTurn(g, { user: "Mia", reps: 40, now: 2 }); // beats 20 by a lot
+  assert.throws(() => chooseHorseTarget(g, { user: "Mia", mode: "custom", customTarget: 0, now: 3 }), /between 1 and 40/);
+  assert.throws(() => chooseHorseTarget(g, { user: "Mia", mode: "custom", customTarget: 41, now: 3 }), /between 1 and 40/);
+  assert.throws(() => chooseHorseTarget(g, { user: "Mia", mode: "custom", customTarget: NaN, now: 3 }), /between 1 and 40/);
+  const lowered = chooseHorseTarget(g, { user: "Mia", mode: "custom", customTarget: 25, now: 3 });
+  assert.equal(lowered.target, 25);
+  assert.equal(lowered.targetSetBy, "Mia");
+  assert.equal(lowered.pendingChoice, null);
+  assert.equal(currentTurnPlayer(lowered), "You");
+});
+
+test("chooseHorseTarget rejects an unknown mode and calling with no choice pending", () => {
+  let g = game2();
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 }); // opening shot, no pending choice
+  assert.throws(() => chooseHorseTarget(g, { user: "You", mode: "match", now: 2 }), /no target choice is pending/i);
+  g = applyTurn(g, { user: "Mia", reps: 20, now: 2 }); // now one is pending
+  assert.throws(() => chooseHorseTarget(g, { user: "Mia", mode: "bogus", now: 3 }), /unknown/i);
 });
 
 test("2-player game ends immediately the instant one player spells the whole word", () => {
@@ -147,7 +218,7 @@ test("2-player game ends immediately the instant one player spells the whole wor
   for (let i = 0; i < 5; i += 1) {
     g = applyTurn(g, { user: "Mia", reps: misses[i] - 1 < 1 ? 1 : misses[i] - 1, now: i + 2 });
     if (g.status === "complete") break;
-    g = applyTurn(g, { user: "You", reps: misses[i], now: i + 10 });
+    g = applyAndResolve(g, { user: "You", reps: misses[i], now: i + 10 });
   }
   assert.equal(g.status, "complete");
   assert.deepEqual(g.winner, ["You"]);
@@ -165,10 +236,12 @@ test("3+ player game continues after one OUT, ends at last one standing", () => 
     g = applyTurn(g, { user: "Mia", reps: miss, now: 10 + i });
     bar = miss;
     if (g.players.Mia.out) break;
-    // Dev and You both clear the (now lower) bar to keep the loop simple
-    g = applyTurn(g, { user: "Dev", reps: bar + 10, now: 20 + i });
+    // Dev and You both clear the (now lower) bar to keep the loop simple —
+    // each clear triggers the shooter's choice; "match" reproduces the old
+    // always-1-up behavior.
+    g = applyAndResolve(g, { user: "Dev", reps: bar + 10, now: 20 + i });
     bar = bar + 10;
-    g = applyTurn(g, { user: "You", reps: bar + 10, now: 30 + i });
+    g = applyAndResolve(g, { user: "You", reps: bar + 10, now: 30 + i });
     bar = bar + 10;
   }
   assert.equal(g.players.Mia.out, true);
@@ -194,7 +267,11 @@ test("the match timer starts only once the second distinct player takes their fi
   assert.equal(g.timerStartedAt, null);
   g = applyTurn(g, { user: "You", reps: 20, now: 1 }); // first player's first turn — clock still not running
   assert.equal(g.timerStartedAt, null);
-  g = applyTurn(g, { user: "Mia", reps: 25, now: 500 }); // second player's first turn — clock starts now
+  g = applyTurn(g, { user: "Mia", reps: 25, now: 500 }); // second player's first turn — beats the bar, so it's pending on her choice
+  assert.equal(g.timerStartedAt, null);
+  // The clock reflects when Mia's set actually happened (now: 500), not
+  // whenever she gets around to resolving the choice.
+  g = chooseHorseTarget(g, { user: "Mia", mode: "match", now: 700 });
   assert.equal(g.timerStartedAt, 500);
   g = applyTurn(g, { user: "You", reps: 30, now: 900 }); // later turns never move the start
   assert.equal(g.timerStartedAt, 500);
@@ -216,7 +293,8 @@ test("tallyGame crowns whoever has the fewest letters once the timer expires, ti
   const DAY = HORSE_TIME_LIMITS["24h"];
   let g = createHorseGame({ id: "g1", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia", "Dev"], timeLimit: DAY, now: 0 });
   g = applyTurn(g, { user: "You", reps: 20, now: 0 });
-  g = applyTurn(g, { user: "Mia", reps: 25, now: 10 }); // starts the clock at 10
+  g = applyTurn(g, { user: "Mia", reps: 25, now: 10 }); // beats the bar — pending on her choice
+  g = chooseHorseTarget(g, { user: "Mia", mode: "match", now: 10 }); // starts the clock at 10
   g = { ...g, players: {
     You: { letters: 2, out: false, outAt: null },
     Mia: { letters: 0, out: false, outAt: null },

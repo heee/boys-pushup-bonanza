@@ -28,6 +28,26 @@ function totalRepsFor(game, name) {
   return (game.sets || []).filter((set) => set.user === name).reduce((sum, set) => sum + (set.reps || 0), 0);
 }
 
+// Copy for the shooter's target-choice screen — game.pendingChoice is set
+// right after a set that meets or beats an existing bar (see horse.js's
+// applyTurn). Returns null when there's nothing pending.
+export function horseChoiceCopy(game) {
+  const choice = game.pendingChoice;
+  if (!choice) return null;
+  return { user: choice.user, reps: choice.reps, modifierLabel: modifierCueLabel(choice.modifier) };
+}
+
+// The current target came from the shooter deliberately setting something
+// lower than what they actually did (chooseHorseTarget's "custom" mode) —
+// returns the reps they could've forced instead, or null for a straight
+// match/opening bar/miss (all of which always finalize at exactly what
+// happened, so there's nothing to call out).
+export function horseTargetWasLowered(game) {
+  const lastSet = game.sets[game.sets.length - 1];
+  if (!lastSet || game.target == null || lastSet.user !== game.targetSetBy) return null;
+  return lastSet.reps > game.target ? lastSet.reps : null;
+}
+
 // Winner(s) first (a match-timer tally can end in a shared win), then
 // eliminated players ordered by how long they survived (most recently OUT
 // ranks just below the winners).
