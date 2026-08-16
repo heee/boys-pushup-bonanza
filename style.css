@@ -2894,13 +2894,13 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
 }
-.settings-category-icon-profile { background: color-mix(in srgb, var(--primary) 22%, transparent); }
-.settings-category-icon-mysessions { background: color-mix(in srgb, var(--gold) 22%, transparent); }
-.settings-category-icon-workout { background: color-mix(in srgb, var(--flame) 22%, transparent); }
-.settings-category-icon-appearance { background: color-mix(in srgb, var(--accent) 26%, transparent); }
-.settings-category-icon-bonanza { background: color-mix(in srgb, var(--success) 22%, transparent); }
+.settings-category-icon svg { width: 1.15rem; height: 1.15rem; display: block; }
+.settings-category-icon-profile { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); }
+.settings-category-icon-mysessions { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+.settings-category-icon-workout { background: color-mix(in srgb, var(--flame) 22%, transparent); color: var(--flame); }
+.settings-category-icon-appearance { background: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--accent); }
+.settings-category-icon-bonanza { background: color-mix(in srgb, var(--success) 22%, transparent); color: var(--success); }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-chevron { flex-shrink: 0; color: var(--text-tertiary); font-size: 1.1rem; }
