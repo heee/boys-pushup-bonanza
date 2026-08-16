@@ -2613,15 +2613,16 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .boys-mode-stat {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
   padding: 0.7rem 1rem;
   border-bottom: 1px solid var(--border);
 }
 .boys-mode-stat:last-child { border-bottom: none; }
-.boys-mode-stat-label { flex: 1; min-width: 0; font-weight: 400; font-size: 0.95rem; color: var(--text); }
-.boys-mode-stat-values { display: flex; align-items: baseline; gap: 0.5rem; flex-shrink: 0; }
+.boys-mode-stat-label { display: inline-flex; align-items: center; gap: 0.55rem; flex: 1; min-width: 0; font-weight: 400; font-size: 0.95rem; color: var(--text); }
+.boys-mode-stat-label .challenge-stat-icon { color: var(--text-tertiary); }
+.boys-mode-stat-values { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 .boys-mode-stat-value { font-weight: 800; font-size: 1.05rem; color: var(--text); }
 .boys-mode-stat-avatars { display: flex; align-items: center; }
 .boys-mode-stat-avatars .avatar-circle + .avatar-circle { margin-left: -0.4rem; }

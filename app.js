@@ -4095,38 +4095,69 @@ function streakRingSvg(streak) {
 // Shared by "My Bonanza" (one user's sessions) and "Boys Bonanza" (every
 // user's sessions, cumulative) — same 7-day bar chart + trend-vs-prior-week
 // line, just fed a different session set.
-function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false) {
+// The chart always shows 7 bars; only the width of time each bar covers
+// changes with the period toggle, so bigger periods stay meaningfully
+// summarized instead of the chart growing without bound.
+const CHART_PERIOD_BUCKETS = {
+  day: { unitDays: 1, headerLabel: "Last 7 days" },
+  week: { unitDays: 1, headerLabel: "Last 7 days" },
+  month: { unitDays: 4, headerLabel: "Last 4 weeks" },
+  quarter: { unitDays: 13, headerLabel: "Last 13 weeks" },
+  year: { unitDays: 52, headerLabel: "Last 12 months" },
+};
+
+// A pure day-count (UTC-projected local calendar date) so bucket-index math
+// below is never off by an hour across a DST transition.
+function localDayNumber(date) {
+  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+}
+
+function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false, period = "day", headerElId = null) {
   const metricOf = (session) => (isHolland ? Number(session.hollandCycles) || 0 : Number(session.count) || 0);
+  const config = CHART_PERIOD_BUCKETS[period] || CHART_PERIOD_BUCKETS.day;
+  const unitDays = config.unitDays;
+  const bucketCount = 7;
+  const totalDays = unitDays * bucketCount;
   const now = new Date();
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const buckets = [];
+  for (let i = bucketCount - 1; i >= 0; i--) {
+    const bucketEnd = new Date(todayStart);
+    bucketEnd.setDate(bucketEnd.getDate() - i * unitDays);
+    const bucketStart = new Date(bucketEnd);
+    bucketStart.setDate(bucketStart.getDate() - (unitDays - 1));
+    buckets.push({ start: bucketStart, total: 0 });
   }
-  const dayTotals = days.map((date) => ({ date, total: 0 }));
-  const windowStart = days[0].getTime();
-  const windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
-  const priorWeekStart = new Date(days[0].getFullYear(), days[0].getMonth(), days[0].getDate() - 7);
-  const priorWeekStartTime = priorWeekStart.getTime();
-  const dayIndexByDate = new Map(days.map((date, index) => [date.toDateString(), index]));
-  let priorWeekTotal = 0;
+  const windowStart = buckets[0].start.getTime();
+  const windowStartDayNum = localDayNumber(buckets[0].start);
+  const windowEnd = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate() + 1).getTime();
+  const priorWindowStart = new Date(buckets[0].start);
+  priorWindowStart.setDate(priorWindowStart.getDate() - totalDays);
+  const priorWindowStartTime = priorWindowStart.getTime();
+
+  let priorWindowTotal = 0;
   for (const session of sessions) {
     const timestamp = sessionTimestamp(session);
-    if (timestamp >= priorWeekStartTime && timestamp < windowStart) {
-      priorWeekTotal += metricOf(session);
+    if (timestamp >= priorWindowStartTime && timestamp < windowStart) {
+      priorWindowTotal += metricOf(session);
     } else if (timestamp >= windowStart && timestamp < windowEnd) {
-      const dayIndex = dayIndexByDate.get(new Date(timestamp).toDateString());
-      if (dayIndex !== undefined) dayTotals[dayIndex].total += metricOf(session);
+      const sessionDayNum = localDayNumber(new Date(timestamp));
+      const bucketIndex = Math.min(bucketCount - 1, Math.max(0, Math.floor((sessionDayNum - windowStartDayNum) / unitDays)));
+      buckets[bucketIndex].total += metricOf(session);
     }
   }
-  const maxTotal = Math.max(1, ...dayTotals.map((d) => d.total));
+  const maxTotal = Math.max(1, ...buckets.map((b) => b.total));
 
-  $(chartElId).innerHTML = dayTotals.map(({ date, total }) => {
-    const isToday = date.toDateString() === now.toDateString();
-    const label = isToday ? "Today" : date.toLocaleDateString(undefined, { weekday: "short" });
-    const heightPct = total > 0 ? Math.max(6, Math.round((total / maxTotal) * 100)) : 3;
-    const valueDisplay = total > 0 ? (isPlank ? formatDuration(total * 1000) : isHolland ? total.toFixed(1) : formatNumber(total)) : "";
+  $(chartElId).innerHTML = buckets.map((bucket, i) => {
+    const isCurrent = i === bucketCount - 1;
+    const label = unitDays === 1
+      ? (isCurrent ? "Today" : bucket.start.toLocaleDateString(undefined, { weekday: "short" }))
+      : (isCurrent ? "Now" : bucket.start.toLocaleDateString(undefined, { month: "numeric", day: "numeric" }));
+    const heightPct = bucket.total > 0 ? Math.max(6, Math.round((bucket.total / maxTotal) * 100)) : 3;
+    const valueDisplay = bucket.total > 0 ? (isPlank ? formatDuration(bucket.total * 1000) : isHolland ? bucket.total.toFixed(1) : formatNumber(bucket.total)) : "";
     return `
-      <div class="week-bar-col${isToday ? " week-bar-col-today" : ""}">
+      <div class="week-bar-col${isCurrent ? " week-bar-col-today" : ""}">
         <div class="week-bar-value">${valueDisplay}</div>
         <div class="week-bar" style="height:${heightPct}%"></div>
         <div class="week-bar-label">${label}</div>
@@ -4134,18 +4165,20 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     `;
   }).join("");
 
-  // Trend vs the 7 days immediately before this window — "are we improving".
-  const thisWeekTotal = dayTotals.reduce((sum, d) => sum + d.total, 0);
+  // Trend vs the same-length window immediately before this one — "are we improving".
+  const windowTotal = buckets.reduce((sum, b) => sum + b.total, 0);
   const trendEl = $(trendElId);
-  if (priorWeekTotal > 0) {
-    const pct = Math.round(((thisWeekTotal - priorWeekTotal) / priorWeekTotal) * 100);
-    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct)}% vs prior week`;
+  if (priorWindowTotal > 0) {
+    const pct = Math.round(((windowTotal - priorWindowTotal) / priorWindowTotal) * 100);
+    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct)}% vs prior period`;
     trendEl.classList.toggle("week-trend-up", pct >= 0);
     trendEl.classList.toggle("week-trend-down", pct < 0);
     trendEl.classList.remove("hidden");
   } else {
     trendEl.classList.add("hidden");
   }
+
+  if (headerElId) $(headerElId).textContent = config.headerLabel;
 }
 
 // ------------------- head-to-head comparison -------------------
@@ -4457,7 +4490,7 @@ function paintMyBonanza(sessions) {
     ? indexedSessionsForUserMode(state.currentUser)
     : sessions.filter((s) => s.user === state.currentUser);
 
-  renderWeekChart(mine, "week-chart", "week-trend", isPlank, isHolland);
+  renderWeekChart(mine, "week-chart", "week-trend", isPlank, isHolland, state.dashboardPeriod, "week-header");
 
   const tilesEl = $("personal-stats-tiles");
   const statsEl = $("personal-stats");
@@ -4584,11 +4617,12 @@ function renderBoysModeStats(sessions) {
   const el = $("boys-mode-stats");
   const metrics = modeStatsModel(sessions, state.leaderboardMode);
   el.innerHTML = metrics.map((metric) => {
-    if (!metric.available) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${metric.label}</span><span class="boys-mode-stat-value">—</span></div>`;
+    const icon = challengeStatIconHTML(modeStatIcon(metric.format));
+    if (!metric.available) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
     const avatars = metric.leaders.slice(0, 3).map((entry) => avatarCircleHTML(avatarForUser(entry.user), "0.95rem")).join("");
     const leaderValue = metric.leaders.length ? formatModeMetric(metric, metric.leaders[0].value) : "—";
     return `<div class="boys-mode-stat">
-      <span class="boys-mode-stat-label">${metric.label}</span>
+      <span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span>
       <span class="boys-mode-stat-values">
         <span class="boys-mode-stat-value">${formatModeMetric(metric)}</span>
         <span class="boys-mode-stat-avatars">${avatars}</span>
@@ -4605,7 +4639,7 @@ function paintDashboard(sessions) {
   const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
   const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
 
-  renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank, isHolland);
+  renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank, isHolland, state.dashboardPeriod, "boys-week-header");
 
   const start = periodStart(state.dashboardPeriod);
   const startTime = start.getTime();

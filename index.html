@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=215">
+<link rel="stylesheet" href="style.css?v=216">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -697,7 +697,7 @@
         <button id="btn-leaderboard-share" type="button" class="icon-btn" aria-label="Share stats" title="Share stats"><span class="icon-share" aria-hidden="true"></span></button>
       </div>
 
-      <div id="period-select" class="segmented" role="tablist">
+      <div id="period-select" class="segmented segmented-underline" role="tablist">
         <button class="segment active" data-period="day">Day</button>
         <button class="segment" data-period="week">Week</button>
         <button class="segment" data-period="month">Month</button>
@@ -708,7 +708,7 @@
       <div id="boys-bonanza-view" class="hidden">
         <div class="mybonanza-chart-card tier2-card">
           <div class="chart-card-header">
-            <span class="tier1-eyebrow" style="margin:0">Last 7 days</span>
+            <span id="boys-week-header" class="tier1-eyebrow" style="margin:0">Last 7 days</span>
             <span id="boys-week-trend" class="week-trend hidden"></span>
           </div>
           <div id="boys-week-chart" class="week-chart"></div>
@@ -733,7 +733,7 @@
       <div id="my-bonanza-view">
         <div class="mybonanza-chart-card tier2-card">
           <div class="chart-card-header">
-            <span class="tier1-eyebrow" style="margin:0">Last 7 days</span>
+            <span id="week-header" class="tier1-eyebrow" style="margin:0">Last 7 days</span>
             <span id="week-trend" class="week-trend hidden"></span>
           </div>
           <div id="week-chart" class="week-chart"></div>
@@ -1219,6 +1219,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=215"></script>
+<script type="module" src="app.js?v=216"></script>
 </body>
 </html>
