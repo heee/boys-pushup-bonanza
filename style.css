@@ -1911,6 +1911,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    competing-for-attention control — de-emphasize like the other secondary
    segmented toggles (period/pushup-mode selects) above. */
 #horse-session-select .segment:not(.active) { font-weight: 400; }
+#horse-time-select .segment:not(.active) { font-weight: 400; }
+#horse-session-note, #horse-time-note { font-style: italic; }
 
 .horse-player-row { display: flex; align-items: center; gap: 0.7rem; }
 .horse-player-row .avatar-circle { width: 2rem; height: 2rem; font-size: 1.1rem; }

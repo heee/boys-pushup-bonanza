@@ -2371,10 +2371,12 @@ function renderHorseSessionUI() {
     s.classList.toggle("active", s.dataset.horseSession === state.horseSessionType);
   });
   const note = $("horse-session-note");
-  note.classList.toggle("hidden", state.horseSessionType === "live");
+  note.classList.remove("hidden");
   note.textContent = state.horseSessionType === "open"
     ? "Create a private link. Up to three players can join in link order, even after play starts."
-    : "Other players get a bell notification on Home when it's their turn.";
+    : state.horseSessionType === "invite"
+    ? "Other players get a bell notification on Home when it's their turn."
+    : "Everyone plays in turn on this device, one shot after another.";
   // A match timer only makes sense for async play — Live is one shared
   // device, played through in a single sitting.
   $("horse-time-limit-section").classList.toggle("hidden", state.horseSessionType === "live");
