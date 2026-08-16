@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=216">
+<link rel="stylesheet" href="style.css?v=217">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -258,26 +258,36 @@
         <h1 class="screen-title">Horse</h1>
       </div>
 
-      <p class="pyramid-setup-section-label">Word</p>
-      <div id="horse-word-select" class="segmented" role="tablist">
-        <button type="button" class="segment active" id="horse-word-classic" data-horse-word-mode="classic">Classic · HORSE</button>
-        <button type="button" class="segment" id="horse-word-random" data-horse-word-mode="random">Random word</button>
-      </div>
-      <div class="horse-word-preview-row">
-        <div id="horse-word-preview" class="horse-word-preview"></div>
-        <button id="btn-horse-reshuffle" type="button" class="horse-reshuffle-btn hidden" aria-label="Reshuffle word">🔀</button>
-      </div>
-
-      <p class="pyramid-setup-section-label">Session type</p>
+      <p class="pyramid-setup-section-label horse-section-label">
+        <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        Session type
+      </p>
       <div id="horse-session-select" class="segmented" role="tablist">
-        <button type="button" class="segment active" id="horse-session-live" data-horse-session="live">Live · pass phone</button>
-        <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite">Invite friends</button>
-        <button type="button" class="segment" id="horse-session-open" data-horse-session="open">Open · share link</button>
+        <button type="button" class="segment active" id="horse-session-live" data-horse-session="live">Live</button>
+        <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite">Invite</button>
+        <button type="button" class="segment" id="horse-session-open" data-horse-session="open">Open</button>
       </div>
       <p id="horse-session-note" class="screen-sub hidden">Other players get a bell notification on Home when it's their turn.</p>
 
+      <p class="pyramid-setup-section-label horse-section-label">
+        <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        Word
+      </p>
+      <div class="horse-word-preview-row">
+        <div id="horse-word-preview" class="horse-word-preview"></div>
+        <button id="btn-horse-randomize-word" type="button" class="horse-reshuffle-btn" aria-label="Randomize word">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        </button>
+        <button id="btn-horse-reset-word" type="button" class="horse-reshuffle-btn hidden" aria-label="Reset to HORSE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        </button>
+      </div>
+
       <div id="horse-time-limit-section" class="hidden">
-        <p class="pyramid-setup-section-label">Time limit</p>
+        <p class="pyramid-setup-section-label horse-section-label">
+          <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Time limit
+        </p>
         <div id="horse-time-select" class="segmented" role="tablist">
           <button type="button" class="segment" id="horse-time-24h" data-horse-time="24h">24 hours</button>
           <button type="button" class="segment active" id="horse-time-48h" data-horse-time="48h">48 hours</button>
@@ -287,7 +297,10 @@
         <p id="horse-time-note" class="screen-sub">Clock starts once the second player takes their first turn. When time's up, whoever has the fewest letters wins.</p>
       </div>
 
-      <p class="pyramid-setup-section-label">Players</p>
+      <p class="pyramid-setup-section-label horse-section-label">
+        <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
+        Players
+      </p>
       <div id="horse-player-list" class="tier1-list"></div>
       <button id="btn-horse-invite-more" type="button" class="horse-dashed-invite">
         <span class="new-user-plus">＋</span><span>Invite more</span>
@@ -1245,6 +1258,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=216"></script>
+<script type="module" src="app.js?v=217"></script>
 </body>
 </html>

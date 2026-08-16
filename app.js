@@ -1268,7 +1268,6 @@ const state = {
   sessionLocation: null,
   plankSessionLocation: null,
   horseGame: null,
-  horseWordMode: "classic",
   horseWord: "HORSE",
   horseSessionType: "live",
   horseTimeLimit: "48h",
@@ -2363,11 +2362,8 @@ function horseMiniStripHTML(word, lettersCollected) {
 }
 
 function renderHorseWordUI() {
-  document.querySelectorAll("#horse-word-select .segment[data-horse-word-mode]").forEach((s) => {
-    s.classList.toggle("active", s.dataset.horseWordMode === state.horseWordMode);
-  });
   $("horse-word-preview").innerHTML = state.horseWord.split("").map((l) => `<span class="horse-word-chip">${escapeHtml(l)}</span>`).join("");
-  $("btn-horse-reshuffle").classList.toggle("hidden", state.horseWordMode !== "random");
+  $("btn-horse-reset-word").classList.toggle("hidden", state.horseWord === "HORSE");
 }
 
 function renderHorseSessionUI() {
@@ -2435,7 +2431,6 @@ function renderHorsePlayerList() {
 // keepPlayers: true for Rematch, which reuses the same lineup instead of
 // resetting to just the current user.
 function renderHorseSetup(keepPlayers = false) {
-  state.horseWordMode = "classic";
   state.horseWord = "HORSE";
   state.horseSessionType = "live";
   state.horseTimeLimit = "48h";
@@ -2451,16 +2446,13 @@ $("btn-horse-setup-back").addEventListener("click", () => {
   guardLeaveWorkout(() => showScreen("screen-explore-modes"));
 });
 
-$("horse-word-select").addEventListener("click", (e) => {
-  const btn = e.target.closest(".segment[data-horse-word-mode]");
-  if (!btn) return;
-  state.horseWordMode = btn.dataset.horseWordMode;
-  state.horseWord = state.horseWordMode === "random" ? randomHorseWord() : "HORSE";
+$("btn-horse-randomize-word").addEventListener("click", () => {
+  state.horseWord = randomHorseWord(state.horseWord);
   renderHorseWordUI();
 });
 
-$("btn-horse-reshuffle").addEventListener("click", () => {
-  state.horseWord = randomHorseWord(state.horseWord);
+$("btn-horse-reset-word").addEventListener("click", () => {
+  state.horseWord = "HORSE";
   renderHorseWordUI();
 });
 
