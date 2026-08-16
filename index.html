@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=214">
+<link rel="stylesheet" href="style.css?v=215">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -716,7 +716,10 @@
 
         <div id="leaderboard-list" class="leaderboard-list"></div>
 
-        <div id="boys-mode-stats" class="boys-mode-stats"></div>
+        <div class="boys-mode-stats-section">
+          <span class="tier1-eyebrow boys-mode-stats-eyebrow">Group stats</span>
+          <div id="boys-mode-stats" class="boys-mode-stats"></div>
+        </div>
 
         <div id="history-view-select" class="segmented segmented-underline" role="tablist">
           <button class="segment active" data-view="recent">Last flexers</button>
@@ -1216,6 +1219,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=214"></script>
+<script type="module" src="app.js?v=215"></script>
 </body>
 </html>

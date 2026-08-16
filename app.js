@@ -4584,12 +4584,17 @@ function renderBoysModeStats(sessions) {
   const el = $("boys-mode-stats");
   const metrics = modeStatsModel(sessions, state.leaderboardMode);
   el.innerHTML = metrics.map((metric) => {
-    if (!metric.available) return `<div class="boys-mode-stat tier2-card"><div class="boys-mode-stat-label">${metric.label}</div><div class="boys-mode-stat-value">—</div><div class="boys-mode-stat-leader">Not enough data yet</div></div>`;
-    const leaderNames = metric.leaders.map((entry) => entry.user);
-    const avatars = metric.leaders.slice(0, 3).map((entry) => avatarCircleHTML(avatarForUser(entry.user), "1.35rem")).join("");
-    const names = leaderNames.length <= 2 ? leaderNames.join(" + ") : `${leaderNames.slice(0, 2).join(" + ")} +${leaderNames.length - 2}`;
+    if (!metric.available) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${metric.label}</span><span class="boys-mode-stat-value">—</span></div>`;
+    const avatars = metric.leaders.slice(0, 3).map((entry) => avatarCircleHTML(avatarForUser(entry.user), "0.95rem")).join("");
     const leaderValue = metric.leaders.length ? formatModeMetric(metric, metric.leaders[0].value) : "—";
-    return `<div class="boys-mode-stat tier2-card"><div class="boys-mode-stat-label">${metric.label}</div><div class="boys-mode-stat-value">${formatModeMetric(metric)} <span>${metric.qualifier}</span></div><div class="boys-mode-stat-leader">${avatars}<span>${escapeHtml(names)} leads · ${leaderValue}</span></div></div>`;
+    return `<div class="boys-mode-stat">
+      <span class="boys-mode-stat-label">${metric.label}</span>
+      <span class="boys-mode-stat-values">
+        <span class="boys-mode-stat-value">${formatModeMetric(metric)}</span>
+        <span class="boys-mode-stat-avatars">${avatars}</span>
+        <span class="boys-mode-stat-leader-value">${leaderValue}</span>
+      </span>
+    </div>`;
   }).join("");
 }
 

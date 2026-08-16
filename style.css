@@ -2602,25 +2602,30 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   border-radius: 16px;
   overflow: hidden;
 }
+.boys-mode-stats-section { margin-top: 0.85rem; }
+.boys-mode-stats-eyebrow { margin: 0 0 8px 2px; }
 .boys-mode-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
-  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  overflow: hidden;
 }
-.boys-mode-stat { min-width: 0; padding: 0.7rem; }
-.boys-mode-stat-label { color: var(--text-dim); font-size: 0.66rem; font-weight: 800; line-height: 1.2; text-transform: uppercase; }
-.boys-mode-stat-value { margin-top: 0.38rem; color: var(--text); font-size: 1.05rem; font-weight: 900; }
-.boys-mode-stat-value span { display: block; color: var(--text-tertiary); font-size: 0.58rem; font-weight: 700; }
-.boys-mode-stat-leader { display: flex; align-items: center; gap: 0.25rem; margin-top: 0.55rem; color: var(--text-dim); font-size: 0.62rem; line-height: 1.25; }
-.boys-mode-stat-leader .avatar-circle + .avatar-circle { margin-left: -0.45rem; }
-.boys-mode-stat-leader span:last-child { min-width: 0; overflow-wrap: anywhere; }
-@media (max-width: 560px) {
-  .boys-mode-stats { grid-template-columns: 1fr; }
-  .boys-mode-stat { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 0.7rem; }
-  .boys-mode-stat-value { margin-top: 0; text-align: right; }
-  .boys-mode-stat-leader { grid-column: 1 / -1; }
+.boys-mode-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
 }
+.boys-mode-stat:last-child { border-bottom: none; }
+.boys-mode-stat-label { flex: 1; min-width: 0; font-weight: 400; font-size: 0.95rem; color: var(--text); }
+.boys-mode-stat-values { display: flex; align-items: baseline; gap: 0.5rem; flex-shrink: 0; }
+.boys-mode-stat-value { font-weight: 800; font-size: 1.05rem; color: var(--text); }
+.boys-mode-stat-avatars { display: flex; align-items: center; }
+.boys-mode-stat-avatars .avatar-circle + .avatar-circle { margin-left: -0.4rem; }
+.boys-mode-stat-leader-value { min-width: 2.2rem; text-align: right; color: var(--text-tertiary); font-size: 0.85rem; }
 
 /* Secondary information relative to the main leaderboard above — deliberately
    muted so the ranked leaderboard reads as the primary content. */
