@@ -65,6 +65,26 @@
 //   pasting it whole into the Cloudflare dashboard, so it can't import sibling modules.
 //   Keep the two in sync — both are covered by tests (tests/horse-mode.test.js and
 //   tests/worker-horse.test.js).
+//   POST /tow-create -> { id?, target, rounds, sessionType, createdBy, teams?, rosterSize? } ->
+//                          creates a Tug of War game. Live/Online supply full team rosters up
+//                          front (teams: { a: { name, players }, b: { name, players } }) and the
+//                          game starts "active" immediately; Open supplies no teams (the host is
+//                          auto-seated on team A) and the game starts "lobby" until /tow-start.
+//   POST /tow-join     -> { gameId, user } -> joins an Open game's lobby, auto-balanced onto
+//                          whichever team has fewer players, capped at rosterSize
+//   POST /tow-cancel   -> { gameId, user } -> host cancels an Open game while still in lobby
+//   POST /tow-start    -> { gameId, user } -> host starts an Open game early (or once full),
+//                          locking the roster and moving it from "lobby" to "active"
+//   POST /tow-turn     -> { gameId, user, reps } -> applies the current player's completed
+//                          burst to their team's running total; ends the match instantly if
+//                          either team reaches the target, otherwise advances the strictly
+//                          alternating turn order (see turnSequenceForTowRound)
+//   POST /tow-decline  -> { gameId, user } -> removes a player who hasn't taken a burst yet
+//                          (voids the game if it empties their team)
+//   Async Tug of War games are the reason /data below also returns `towGames`. The rules engine
+//   (createTowGame/applyTowBurst/etc. below) is a deliberate duplicate of tug-of-war.js for the
+//   same pasted-into-the-dashboard reason as Horse's. Keep the two in sync — both are covered by
+//   tests (tests/tug-of-war-mode.test.js and tests/worker-tug-of-war.test.js).
 //
 // Required Worker binding/secrets/variables (set in the Cloudflare dashboard under
 // Settings -> Variables and Secrets):
@@ -517,6 +537,175 @@ export default {
       }
     }
 
+    if (url.pathname === "/tow-create" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const input = validateTowCreate(body);
+      if (!input) return json({ error: "invalid game payload" }, 400, cors);
+
+      try {
+        const game = createTowGame(input);
+        await upsertTowGame(env.DB, game);
+        return json({ ok: true, game }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 400, cors);
+      }
+    }
+
+    if (url.pathname === "/tow-join" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!gameId || !user) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadTowGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          const updated = joinTowOpenPlayer(game, { user, now: Date.now() });
+          if (updated === game || await replaceTowGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while joining; try again" }, 409, cors);
+      } catch (e) {
+        const status = /full|no longer accepting/i.test(e.message) ? 409 : 400;
+        return json({ error: e.message }, status, cors);
+      }
+    }
+
+    if (url.pathname === "/tow-cancel" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!gameId || !user) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadTowGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          const updated = cancelTowOpenGame(game, { user, now: Date.now() });
+          if (await replaceTowGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while cancelling; try again" }, 409, cors);
+      } catch (e) {
+        return json({ error: e.message }, /already started/i.test(e.message) ? 409 : 403, cors);
+      }
+    }
+
+    if (url.pathname === "/tow-start" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!gameId || !user) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadTowGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          const updated = startTowOpenMatch(game, { user, now: Date.now() });
+          if (await replaceTowGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while starting; try again" }, 409, cors);
+      } catch (e) {
+        return json({ error: e.message }, /already started/i.test(e.message) ? 409 : 403, cors);
+      }
+    }
+
+    if (url.pathname === "/tow-turn" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      const reps = Math.floor(Number(body?.reps));
+      if (!gameId || !user || !Number.isFinite(reps) || reps < 0 || reps > 2000) {
+        return json({ error: "invalid payload" }, 400, cors);
+      }
+
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const game = await loadTowGame(env.DB, gameId);
+          if (!game) return json({ error: "game not found" }, 404, cors);
+          if (game.status !== "active") return json({ error: "game is not active" }, 409, cors);
+          if (currentTowTurnPlayer(game) !== user) return json({ error: "not this player's turn" }, 403, cors);
+          const updated = applyTowBurst(game, { user, reps, now: Date.now() });
+          if (await replaceTowGameIfUnchanged(env.DB, game, updated)) {
+            return json({ ok: true, game: updated }, 200, cors);
+          }
+        }
+        return json({ error: "game changed while posting the burst; try again" }, 409, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/tow-decline" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const gameId = typeof body?.gameId === "string" ? body.gameId.trim().slice(0, 64) : "";
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      if (!gameId || !user) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        const game = await loadTowGame(env.DB, gameId);
+        if (!game) return json({ error: "game not found" }, 404, cors);
+        const updated = declineTowPlayer(game, { user, now: Date.now() });
+        await upsertTowGame(env.DB, updated);
+        return json({ ok: true, game: updated }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 400, cors);
+      }
+    }
+
     return json({ error: "not found" }, 404, cors);
   },
 };
@@ -810,12 +999,13 @@ function sessionFromRow(row) {
 
 async function fetchData(db) {
   if (!db) throw new Error("D1 database binding is not configured");
-  const [sessionRows, avatarRows, membershipRows, challengeRows, horseGameRows] = await db.batch([
+  const [sessionRows, avatarRows, membershipRows, challengeRows, horseGameRows, towGameRows] = await db.batch([
     db.prepare("SELECT s.*, u.name AS user FROM sessions s JOIN users u ON u.id = s.user_id ORDER BY s.rowid"),
     db.prepare("SELECT u.name, a.avatar FROM avatars a JOIN users u ON u.id = a.user_id ORDER BY a.rowid"),
     db.prepare("SELECT m.challenge_id, u.name FROM challenge_memberships m JOIN users u ON u.id = m.user_id ORDER BY m.rowid"),
     db.prepare("SELECT * FROM custom_challenges ORDER BY rowid"),
     db.prepare("SELECT data_json FROM horse_games ORDER BY updated_at DESC LIMIT 50"),
+    db.prepare("SELECT data_json FROM tow_games ORDER BY updated_at DESC LIMIT 50"),
   ]);
   const avatars = {};
   for (const row of avatarRows.results) avatars[row.name] = row.avatar;
@@ -823,7 +1013,8 @@ async function fetchData(db) {
   for (const row of membershipRows.results) (challengeParticipants[row.challenge_id] ||= []).push(row.name);
   const customChallenges = challengeRows.results.map((row) => ({ id: row.id, title: row.title, tagline: row.tagline, emoji: row.emoji, goalType: row.goal_type, goal: row.goal, start: row.start, end: row.end, gradient: parseStoredJson(row.gradient_json, ["#4a2a5e", "#e8762e"]), createdBy: row.created_by }));
   const horseGames = horseGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
-  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames };
+  const towGames = towGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
+  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames, towGames };
 }
 
 async function loadHorseGame(db, id) {
@@ -835,6 +1026,27 @@ async function upsertHorseGame(db, game) {
   await db.prepare(
     "INSERT INTO horse_games (id, data_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET data_json = excluded.data_json, updated_at = CURRENT_TIMESTAMP"
   ).bind(game.id, JSON.stringify(game)).run();
+}
+
+async function loadTowGame(db, id) {
+  const row = await db.prepare("SELECT data_json FROM tow_games WHERE id = ?").bind(id).first();
+  return row ? parseStoredJson(row.data_json, null) : null;
+}
+
+async function upsertTowGame(db, game) {
+  await db.prepare(
+    "INSERT INTO tow_games (id, data_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET data_json = excluded.data_json, updated_at = CURRENT_TIMESTAMP"
+  ).bind(game.id, JSON.stringify(game)).run();
+}
+
+// Same optimistic-concurrency pattern as replaceHorseGameIfUnchanged — Open
+// joins/starts can race, so compare the exact JSON read above before
+// replacing it; callers retry from fresh state on conflict.
+async function replaceTowGameIfUnchanged(db, before, after) {
+  const result = await db.prepare(
+    "UPDATE tow_games SET data_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND data_json = ?"
+  ).bind(JSON.stringify(after), before.id, JSON.stringify(before)).run();
+  return Number(result.meta?.changes || 0) === 1;
 }
 
 async function insertSession(db, session) {
@@ -1122,4 +1334,213 @@ export function declinePlayer(game, { user, now = Date.now() }) {
   }
   const currentName = game.turnOrder[game.turnIndex];
   return { ...game, turnOrder, players, turnIndex: turnOrder.indexOf(currentName) };
+}
+
+// ------------------- Tug of War mode rules engine -------------------
+// Deliberate duplicate of tug-of-war.js (see the top-of-file note). Any
+// change here must be mirrored there, and vice versa -- tests/worker-tug-of-war.test.js
+// runs the same scenarios as tests/tug-of-war-mode.test.js against this copy.
+
+export const TOW_OPEN_ROSTER_SIZE = 6;
+
+export function validateTowCreate(body) {
+  if (!body || typeof body !== "object") return null;
+  const target = Math.floor(Number(body.target));
+  const rounds = Math.floor(Number(body.rounds));
+  if (!Number.isFinite(target) || target <= 0 || target > 100000) return null;
+  if (!Number.isFinite(rounds) || rounds <= 0 || rounds > 100) return null;
+  const sessionType = ["online", "open"].includes(body.sessionType) ? body.sessionType : "live";
+  const createdBy = typeof body.createdBy === "string" ? body.createdBy.trim().slice(0, 40) : "";
+  if (!createdBy) return null;
+  const id = typeof body.id === "string" && /^[a-z0-9-]{1,64}$/.test(body.id)
+    ? body.id
+    : "tow-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+  const rosterSize = Number.isFinite(Number(body.rosterSize)) && Number(body.rosterSize) >= 2 && Number(body.rosterSize) <= 40
+    ? Math.floor(Number(body.rosterSize))
+    : TOW_OPEN_ROSTER_SIZE;
+
+  if (sessionType === "open") {
+    return { id, target, rounds, sessionType, createdBy, rosterSize };
+  }
+
+  const cleanNames = (list) => Array.isArray(list)
+    ? [...new Set(list.map((p) => (typeof p === "string" ? p.trim().slice(0, 40) : "")).filter(Boolean))]
+    : [];
+  const a = cleanNames(body.teams?.a?.players);
+  const b = cleanNames(body.teams?.b?.players);
+  if (a.length < 1 || b.length < 1) return null;
+  if (!a.includes(createdBy) && !b.includes(createdBy)) return null;
+  const nameA = typeof body.teams?.a?.name === "string" ? body.teams.a.name.trim().slice(0, 60) || "Team A" : "Team A";
+  const nameB = typeof body.teams?.b?.name === "string" ? body.teams.b.name.trim().slice(0, 60) || "Team B" : "Team B";
+  return { id, target, rounds, sessionType, createdBy, teams: { a: { name: nameA, players: a }, b: { name: nameB, players: b } } };
+}
+
+export function createTowGame({ id, target, rounds, sessionType, createdBy, teams, rosterSize, now = Date.now() }) {
+  const targetReps = Math.floor(Number(target));
+  const roundCount = Math.floor(Number(rounds));
+  if (!Number.isFinite(targetReps) || targetReps <= 0) throw new Error("Target reps must be a positive whole number");
+  if (!Number.isFinite(roundCount) || roundCount <= 0) throw new Error("Round count must be a positive whole number");
+  if (sessionType !== "live" && sessionType !== "online" && sessionType !== "open") throw new Error("Unknown session type");
+  const createdByName = String(createdBy || "").trim();
+  if (!createdByName) throw new Error("Creator is required");
+
+  const base = {
+    id,
+    target: targetReps,
+    rounds: roundCount,
+    sessionType,
+    createdBy: createdByName,
+    createdAt: now,
+    status: sessionType === "open" ? "lobby" : "active",
+    round: 1,
+    turnIndex: 0,
+    turnStartedAt: sessionType === "open" ? null : now,
+    sudden: false,
+    scores: { a: 0, b: 0 },
+    playerTotals: {},
+    bursts: [],
+    winner: null,
+  };
+
+  if (sessionType === "open") {
+    return {
+      ...base,
+      rosterSize: Number.isFinite(Number(rosterSize)) && Number(rosterSize) >= 2 ? Math.floor(Number(rosterSize)) : TOW_OPEN_ROSTER_SIZE,
+      teams: {
+        a: { name: teams?.a?.name || "Team A", players: [createdByName] },
+        b: { name: teams?.b?.name || "Team B", players: [] },
+      },
+    };
+  }
+
+  const a = Array.isArray(teams?.a?.players) ? [...new Set(teams.a.players)] : [];
+  const b = Array.isArray(teams?.b?.players) ? [...new Set(teams.b.players)] : [];
+  if (a.length < 1 || b.length < 1) throw new Error("Each team needs at least one player");
+  if (!a.includes(createdByName) && !b.includes(createdByName)) throw new Error("Creator must be on a team");
+  const playerTotals = {};
+  for (const name of [...a, ...b]) playerTotals[name] = 0;
+  return {
+    ...base,
+    playerTotals,
+    teams: {
+      a: { name: teams.a.name || "Team A", players: a },
+      b: { name: teams.b.name || "Team B", players: b },
+    },
+  };
+}
+
+export function teamOfTowPlayer(game, user) {
+  if (game.teams.a.players.includes(user)) return "a";
+  if (game.teams.b.players.includes(user)) return "b";
+  return null;
+}
+
+export function joinTowOpenPlayer(game, { user, now = Date.now() }) {
+  if (game.sessionType !== "open") throw new Error("Not an Open game");
+  if (game.status !== "lobby") throw new Error("This game is no longer accepting players");
+  const name = String(user || "").trim();
+  if (!name) throw new Error("Player name is required");
+  if (game.teams.a.players.includes(name) || game.teams.b.players.includes(name)) return game;
+  const total = game.teams.a.players.length + game.teams.b.players.length;
+  if (total >= game.rosterSize) throw new Error("This game is full");
+  const side = game.teams.a.players.length <= game.teams.b.players.length ? "a" : "b";
+  const teams = { ...game.teams, [side]: { ...game.teams[side], players: [...game.teams[side].players, name] } };
+  return { ...game, teams };
+}
+
+export function cancelTowOpenGame(game, { user, now = Date.now() }) {
+  if (game.sessionType !== "open") throw new Error("Not an Open game");
+  if (game.status !== "lobby") throw new Error("Game already started");
+  if (game.createdBy !== user) throw new Error("Only the host can cancel this game");
+  return { ...game, status: "cancelled", cancelledAt: now };
+}
+
+export function startTowOpenMatch(game, { user, now = Date.now() }) {
+  if (game.sessionType !== "open") throw new Error("Not an Open game");
+  if (game.status !== "lobby") throw new Error("Game already started");
+  if (game.createdBy !== user) throw new Error("Only the host can start this game");
+  if (game.teams.a.players.length < 1 || game.teams.b.players.length < 1) throw new Error("Each team needs at least one player");
+  const playerTotals = {};
+  for (const name of [...game.teams.a.players, ...game.teams.b.players]) playerTotals[name] = 0;
+  return { ...game, status: "active", playerTotals, round: 1, turnIndex: 0, turnStartedAt: now };
+}
+
+export function declineTowPlayer(game, { user, now = Date.now() }) {
+  if (game.status !== "active" && game.status !== "lobby") throw new Error("Game is not active");
+  const side = teamOfTowPlayer(game, user);
+  if (!side) throw new Error("Player not in game");
+  if (game.bursts.some((b) => b.user === user)) throw new Error("Player already took a burst");
+
+  const teams = { ...game.teams, [side]: { ...game.teams[side], players: game.teams[side].players.filter((n) => n !== user) } };
+  if (teams[side].players.length === 0) {
+    return { ...game, teams, status: "voided", turnStartedAt: null };
+  }
+  const playerTotals = { ...game.playerTotals };
+  delete playerTotals[user];
+  let next = { ...game, teams, playerTotals };
+  if (next.status === "active") {
+    const seq = turnSequenceForTowRound(next, next.round);
+    if (next.turnIndex >= seq.length) next = { ...next, round: next.round + 1, turnIndex: 0, turnStartedAt: now };
+  }
+  return next;
+}
+
+function towRotatedOrder(players, round) {
+  const n = players.length;
+  if (n === 0) return [];
+  const offset = (round - 1) % n;
+  return players.map((_, i) => players[(i + offset) % n]);
+}
+
+export function turnSequenceForTowRound(game, round) {
+  const a = towRotatedOrder(game.teams.a.players, round);
+  const b = towRotatedOrder(game.teams.b.players, round);
+  const maxLen = Math.max(a.length, b.length);
+  const seq = [];
+  for (let i = 0; i < maxLen; i += 1) {
+    if (a.length) seq.push({ team: "a", user: a[i % a.length] });
+    if (b.length) seq.push({ team: "b", user: b[i % b.length] });
+  }
+  return seq;
+}
+
+export function currentTowTurnPlayer(game) {
+  return turnSequenceForTowRound(game, game.round)[game.turnIndex]?.user ?? null;
+}
+
+export function currentTowTurnTeam(game) {
+  return turnSequenceForTowRound(game, game.round)[game.turnIndex]?.team ?? null;
+}
+
+export function applyTowBurst(game, { user, reps, now = Date.now() }) {
+  if (game.status !== "active") throw new Error("Game is not active");
+  const seq = turnSequenceForTowRound(game, game.round);
+  const turn = seq[game.turnIndex];
+  if (!turn || turn.user !== user) throw new Error("Not this player's turn");
+
+  const addedReps = Math.max(0, Math.floor(Number(reps)) || 0);
+  const team = turn.team;
+  const scores = { ...game.scores, [team]: game.scores[team] + addedReps };
+  const playerTotals = { ...game.playerTotals, [user]: (game.playerTotals[user] || 0) + addedReps };
+  const bursts = [...game.bursts, { user, team, reps: addedReps, round: game.round, sudden: game.sudden, at: now }];
+  const next = { ...game, scores, playerTotals, bursts };
+
+  if (scores[team] >= next.target) {
+    return { ...next, status: "complete", winner: team, turnStartedAt: null };
+  }
+
+  const nextIndex = game.turnIndex + 1;
+  if (nextIndex < seq.length) {
+    return { ...next, turnIndex: nextIndex, turnStartedAt: now };
+  }
+
+  const cappedOut = next.sudden || game.round >= next.rounds;
+  if (!cappedOut) {
+    return { ...next, round: game.round + 1, turnIndex: 0, turnStartedAt: now };
+  }
+  if (scores.a === scores.b) {
+    return { ...next, round: game.round + 1, turnIndex: 0, sudden: true, turnStartedAt: now };
+  }
+  const winner = scores.a > scores.b ? "a" : "b";
+  return { ...next, status: "complete", winner, turnStartedAt: null };
 }

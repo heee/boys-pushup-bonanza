@@ -77,5 +77,11 @@ export function createWorkerApi({ baseUrl, appKey, timeoutMs = DEFAULT_TIMEOUT_M
     chooseHorseTarget: (payload) => request("/horse-choose-target", { method: "POST", body: payload }),
     tallyHorseGame: (gameId) => request("/horse-tally", { method: "POST", body: { gameId } }),
     declineHorseInvite: (gameId, user) => request("/horse-decline", { method: "POST", body: { gameId, user } }),
+    createTowGame: (input) => request("/tow-create", { method: "POST", body: input }),
+    joinOpenTowGame: (gameId, user) => request("/tow-join", { method: "POST", body: { gameId, user } }),
+    cancelOpenTowGame: (gameId, user) => request("/tow-cancel", { method: "POST", body: { gameId, user } }),
+    startOpenTowGame: (gameId, user) => request("/tow-start", { method: "POST", body: { gameId, user } }),
+    postTowBurst: (payload) => request("/tow-turn", { method: "POST", body: payload }),
+    declineTowInvite: (gameId, user) => request("/tow-decline", { method: "POST", body: { gameId, user } }),
   };
 }

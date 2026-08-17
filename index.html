@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=218">
+<link rel="stylesheet" href="style.css?v=219">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -47,7 +47,7 @@
           🔔<span id="horse-bell-dot" class="horse-bell-dot hidden"></span>
         </button>
         <div id="horse-bell-dropdown" class="horse-bell-dropdown hidden">
-          <p class="horse-bell-title">Horse</p>
+          <p class="horse-bell-title">Notifications</p>
           <div id="horse-bell-list"></div>
         </div>
       </div>
@@ -181,6 +181,8 @@
           <div id="pyramid-window" class="pyramid-window"></div>
           <div id="pyramid-counter-badge" class="mode-counter-badge"></div>
         </div>
+
+        <span id="tow-workout-round-pill" class="tow-round-pill tow-workout-round-pill hidden"></span>
 
         <div id="horse-hud" class="horse-hud hidden">
           <div id="horse-letters-pill" class="horse-letters-pill"></div>
@@ -402,6 +404,176 @@
       <div class="horse-summary-actions">
         <button id="btn-horse-rematch" type="button" class="btn btn-giant btn-primary">Rematch</button>
         <button id="btn-horse-share" type="button" class="btn btn-giant btn-secondary btn-with-icon">Share <span class="icon-share" aria-hidden="true"></span></button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: TUG OF WAR SETUP ============ -->
+    <section id="screen-tow-setup" class="screen">
+      <div class="horse-header-row">
+        <button id="btn-tow-setup-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 class="screen-title">Tug of war</h1>
+        <button id="btn-tow-setup-share" type="button" class="horse-remind-btn hidden" aria-label="Share invite link"><span class="icon-share" aria-hidden="true"></span></button>
+      </div>
+
+      <p class="pyramid-setup-section-label horse-section-label">TARGET &amp; ROUNDS</p>
+      <div class="tow-target-rounds-row">
+        <div class="tow-stat-tile">
+          <p class="tow-stat-tile-label">Target reps</p>
+          <div class="tow-stepper-row">
+            <button type="button" id="btn-tow-target-dec" class="horse-choice-stepper" aria-label="Decrease target">−</button>
+            <div id="tow-target-value" class="tow-stepper-value">300</div>
+            <button type="button" id="btn-tow-target-inc" class="horse-choice-stepper" aria-label="Increase target">+</button>
+          </div>
+        </div>
+        <div class="tow-stat-tile">
+          <p class="tow-stat-tile-label">Rounds</p>
+          <div class="tow-stepper-row">
+            <button type="button" id="btn-tow-rounds-dec" class="horse-choice-stepper" aria-label="Decrease rounds">−</button>
+            <div id="tow-rounds-value" class="tow-stepper-value">5</div>
+            <button type="button" id="btn-tow-rounds-inc" class="horse-choice-stepper" aria-label="Increase rounds">+</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="pyramid-setup-section-label horse-section-label">TEAMS</p>
+      <p id="tow-shuffle-hint" class="screen-sub">Shuffle teams · tap a name to switch sides</p>
+      <p id="tow-name-note" class="screen-sub tow-name-note"><em>Team names are auto-generated from the app's own vocabulary — reroll for two new ones before you start.</em></p>
+      <button id="btn-tow-invite-more" type="button" class="horse-dashed-invite">+ Add player</button>
+      <div id="tow-invite-candidates" class="tier1-list hidden"></div>
+
+      <div class="tow-teams-row">
+        <div id="tow-team-a-card" class="tow-team-card">
+          <p id="tow-team-a-count" class="tow-team-count hidden"></p>
+          <p id="tow-team-a-name" class="tow-team-name"></p>
+          <div id="tow-team-a-list" class="tow-team-player-list"></div>
+        </div>
+        <div id="tow-team-b-card" class="tow-team-card">
+          <p id="tow-team-b-count" class="tow-team-count hidden"></p>
+          <p id="tow-team-b-name" class="tow-team-name"></p>
+          <div id="tow-team-b-list" class="tow-team-player-list"></div>
+        </div>
+      </div>
+      <div id="tow-team-actions" class="tow-team-actions">
+        <button type="button" id="btn-tow-reroll-names" class="horse-reshuffle-btn">🎲 Reroll names</button>
+        <button type="button" id="btn-tow-shuffle-teams" class="horse-reshuffle-btn">🔀 Shuffle teams</button>
+      </div>
+      <p id="tow-open-hint" class="screen-sub hidden">Joiners tap a link and land in whichever team has room</p>
+
+      <div id="tow-session-type-section">
+        <p class="pyramid-setup-section-label horse-section-label">SESSION TYPE</p>
+        <div id="tow-session-select" class="segmented" role="tablist">
+          <button type="button" class="segment active" data-tow-session="live">Live</button>
+          <button type="button" class="segment" data-tow-session="online">Online</button>
+          <button type="button" class="segment" data-tow-session="open">Open</button>
+        </div>
+        <p id="tow-session-note" class="screen-sub"></p>
+      </div>
+
+      <button id="btn-tow-start" type="button" class="btn btn-giant btn-primary horse-start-btn">Start match</button>
+    </section>
+
+    <!-- ============ SCREEN: TUG OF WAR JOIN (Open invite link) ============ -->
+    <section id="screen-tow-join" class="screen horse-join-screen">
+      <div class="horse-header-row">
+        <button id="btn-tow-join-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 class="screen-title">Join Tug of War</h1>
+      </div>
+      <div class="horse-open-card">
+        <div class="horse-open-icon" aria-hidden="true">🪢</div>
+        <h2 id="tow-join-title" class="horse-open-title"></h2>
+        <p id="tow-join-sub" class="screen-sub"></p>
+        <div class="tow-teams-row">
+          <div class="tow-team-card">
+            <p id="tow-join-team-a-name" class="tow-team-name"></p>
+            <div id="tow-join-team-a-list" class="tow-team-player-list"></div>
+          </div>
+          <div class="tow-team-card">
+            <p id="tow-join-team-b-name" class="tow-team-name"></p>
+            <div id="tow-join-team-b-list" class="tow-team-player-list"></div>
+          </div>
+        </div>
+      </div>
+      <button id="btn-tow-confirm-join" type="button" class="btn btn-giant btn-primary horse-start-btn">Join match</button>
+      <button id="btn-tow-view-joined" type="button" class="btn btn-giant btn-secondary horse-start-btn hidden">View match</button>
+    </section>
+
+    <!-- ============ SCREEN: TUG OF WAR MATCH (the rope) ============ -->
+    <section id="screen-tow-match" class="screen">
+      <div id="tow-match-confetti" class="confetti" aria-hidden="true"></div>
+      <div class="horse-header-row">
+        <button id="btn-tow-match-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 class="screen-title">Tug of war</h1>
+        <span id="tow-round-pill" class="tow-round-pill"></span>
+      </div>
+      <div class="tow-scoreboard">
+        <div class="tow-scoreboard-side tow-side-a">
+          <p id="tow-match-team-a-name" class="tow-team-name"></p>
+          <p id="tow-match-team-a-score" class="tow-scoreboard-score"></p>
+        </div>
+        <div class="tow-scoreboard-target">
+          <p class="tow-scoreboard-target-label">TARGET</p>
+          <p id="tow-match-target-value" class="tow-scoreboard-target-value"></p>
+        </div>
+        <div class="tow-scoreboard-side tow-side-b">
+          <p id="tow-match-team-b-name" class="tow-team-name"></p>
+          <p id="tow-match-team-b-score" class="tow-scoreboard-score"></p>
+        </div>
+      </div>
+      <div class="tow-rope-wrap">
+        <div class="tow-rope-track">
+          <div id="tow-rope-fill" class="tow-rope-fill"></div>
+          <div id="tow-rope-chevron" class="tow-rope-chevron">➤</div>
+        </div>
+        <div class="tow-rope-labels">
+          <span id="tow-remaining-a" class="tow-remaining-label"></span>
+          <span id="tow-remaining-b" class="tow-remaining-label"></span>
+        </div>
+      </div>
+      <div id="tow-mini-tiles" class="tow-mini-tiles"></div>
+      <p id="tow-match-status" class="screen-sub tow-match-status"></p>
+      <button id="btn-tow-take-burst" type="button" class="btn btn-giant btn-primary horse-start-btn">It's your burst — go</button>
+    </section>
+
+    <!-- ============ SCREEN: TUG OF WAR LIVE HANDOFF ============ -->
+    <section id="screen-tow-handoff" class="screen tow-handoff-screen">
+      <p id="tow-handoff-round" class="tow-handoff-round"></p>
+      <span id="tow-handoff-avatar" class="avatar-circle tow-handoff-avatar"></span>
+      <h1 id="tow-handoff-heading" class="screen-title"></h1>
+      <p id="tow-handoff-sub" class="screen-sub"></p>
+      <button id="btn-tow-handoff-ready" type="button" class="btn btn-giant btn-primary horse-start-btn"></button>
+    </section>
+
+    <!-- ============ SCREEN: TUG OF WAR BURST COMPLETE ============ -->
+    <section id="screen-tow-burst-complete" class="screen tow-burst-complete-screen">
+      <div id="tow-burst-confetti" class="confetti" aria-hidden="true"></div>
+      <p class="tow-burst-kicker">NICE WORK</p>
+      <h1 id="tow-burst-added" class="tow-burst-added"></h1>
+      <p id="tow-burst-team-line" class="screen-sub"></p>
+      <div class="tow-rope-wrap">
+        <div class="tow-rope-track">
+          <div id="tow-burst-rope-fill" class="tow-rope-fill"></div>
+          <div id="tow-burst-rope-chevron" class="tow-rope-chevron">➤</div>
+        </div>
+      </div>
+      <p id="tow-burst-status" class="screen-sub"></p>
+      <button id="btn-tow-burst-continue" type="button" class="btn btn-giant btn-primary horse-start-btn">Continue</button>
+    </section>
+
+    <!-- ============ SCREEN: TUG OF WAR SUMMARY ============ -->
+    <section id="screen-tow-summary" class="screen">
+      <div id="tow-summary-confetti" class="confetti" aria-hidden="true"></div>
+      <h1 class="screen-title" style="text-align:center">MATCH OVER</h1>
+      <p id="tow-summary-winner" class="horse-crown-pill"></p>
+      <div class="tow-rope-wrap">
+        <div class="tow-rope-track">
+          <div id="tow-summary-rope-fill" class="tow-rope-fill"></div>
+          <div id="tow-summary-rope-chevron" class="tow-rope-chevron">➤</div>
+        </div>
+      </div>
+      <div id="tow-summary-teams" class="tow-summary-teams"></div>
+      <div class="horse-summary-actions">
+        <button id="btn-tow-share" type="button" class="btn btn-giant btn-secondary btn-with-icon">Share <span class="icon-share" aria-hidden="true"></span></button>
+        <button id="btn-tow-rematch" type="button" class="btn btn-giant btn-primary btn-with-icon">New game <span class="icon-arrow-right" aria-hidden="true"></span></button>
       </div>
     </section>
 
@@ -1258,6 +1430,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=218"></script>
+<script type="module" src="app.js?v=219"></script>
 </body>
 </html>

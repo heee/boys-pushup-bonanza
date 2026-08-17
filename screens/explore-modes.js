@@ -18,6 +18,7 @@ export const EXPLORE_MODES = [
   { id: "pyramid", icon: "🔺", title: "Pyramid", tagline: "Descend the base, conquer the apex", live: true },
   { id: "zen", icon: "🧘", title: "Zen Mode", tagline: "No counters, no noise — just push", live: true },
   { id: "horse", icon: "🐴", title: "Horse", tagline: "Beat the set before you, or take a letter", live: true },
+  { id: "tow", icon: "🪢", title: "Tug of war", tagline: "Two teams race to the target, together", live: true },
 ];
 
 function usageByMode(sessions) {

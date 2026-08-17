@@ -4,7 +4,7 @@ import { createJsonStorage, normalizeSharedData } from "../storage.js";
 
 test("shared data normalization preserves fields and repairs collections", () => {
   assert.deepEqual(normalizeSharedData({ sessions: null, extra: 1 }), {
-    sessions: [], avatars: {}, challengeParticipants: {}, customChallenges: [], horseGames: [], extra: 1,
+    sessions: [], avatars: {}, challengeParticipants: {}, customChallenges: [], horseGames: [], towGames: [], extra: 1,
   });
 });
 

@@ -16,6 +16,12 @@ export function workoutHeroModel(mode, count, state = {}) {
       spokenPrefix: remaining > 0 ? "" : "plus ",
     };
   }
+  if (mode === "tow") {
+    // Tug of War bursts are open-ended, just like Classic — the only
+    // difference is the label, since "reps" here are being contributed to a
+    // team total rather than a personal one.
+    return { kind: "hero", display: String(count), label: "REPS COUNTED", over: false, spokenValue: count, spokenPrefix: "" };
+  }
   const targets = {
     cards: [state.cardTarget, state.cardRepsDone],
     poker: [state.pokerCardTarget, state.pokerCardRepsDone],
@@ -44,6 +50,7 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   const sharpshooter = mode === "sharpshooter";
   const pyramid = mode === "pyramid";
   const horse = mode === "horse";
+  const tow = mode === "tow";
   const fortuneHidesCounter = fortune && !!fortuneChallenge?.hideCounter;
   const fortuneMinimalFeedback = fortune && !!fortuneChallenge?.minimalFeedback;
   return {
@@ -58,9 +65,10 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
     sharpshooter,
     pyramid,
     horse,
+    tow,
     hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || horse || fortuneHidesCounter || zen,
-    hideHighscore: dice || wheel || sharpshooter || pyramid || horse || fortuneMinimalFeedback || chase || zen,
-    hideThermometer: zen || horse || !highScore,
+    hideHighscore: dice || wheel || sharpshooter || pyramid || horse || tow || fortuneMinimalFeedback || chase || zen,
+    hideThermometer: zen || horse || tow || !highScore,
   };
 }
 

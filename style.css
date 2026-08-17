@@ -2120,6 +2120,146 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-summary-actions { display: flex; gap: 0.7rem; margin-top: 1.4rem; }
 .horse-summary-actions .btn { flex: 1; width: auto; max-width: none; margin-top: 0; }
 
+/* ---------------- Tug of War mode ---------------- */
+
+.tow-target-rounds-row { display: flex; gap: 0.7rem; margin-bottom: 0.4rem; }
+.tow-stat-tile {
+  flex: 1;
+  background: var(--bg-elevated-2);
+  border-radius: 14px;
+  padding: 0.7rem 0.8rem;
+  text-align: center;
+}
+.tow-stat-tile-label { margin: 0 0 0.3rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); }
+.tow-stepper-row { display: flex; align-items: center; justify-content: center; gap: 0.7rem; }
+.tow-stepper-value { min-width: 2.6rem; font-size: 1.4rem; font-weight: 900; }
+
+.tow-name-note { margin-top: -0.2rem; }
+.tow-name-note em { font-style: normal; color: var(--text-tertiary); }
+
+.tow-teams-row { display: flex; gap: 0.7rem; margin-top: 0.6rem; }
+.tow-team-card {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-elevated-2);
+  border-radius: 14px;
+  padding: 0.7rem 0.6rem;
+  position: relative;
+}
+/* Same inset-border ring treatment as Horse's active-row highlight (see
+   .tier1-row.horse-row-active) — marks whichever team card is "your team". */
+.tow-team-card.tow-team-card-mine::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1.5px solid var(--primary);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.tow-team-count { margin: 0 0 0.2rem; font-size: 0.72rem; font-weight: 700; color: var(--text-tertiary); text-align: right; }
+.tow-team-name { margin: 0 0 0.5rem; font-weight: 800; color: var(--text); text-align: center; }
+.tow-team-name.tow-team-name-mine { color: var(--primary); }
+.tow-team-player-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.tow-player-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.2rem; }
+.tow-player-row .avatar-circle { width: 1.8rem; height: 1.8rem; font-size: 1rem; flex-shrink: 0; }
+.tow-player-name { flex: 1; min-width: 0; font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tow-player-reps { font-weight: 700; color: var(--text-dim); }
+.tow-swap-icon { color: var(--text-tertiary); font-size: 0.85rem; }
+.tow-row-self .tow-player-name { color: var(--primary); }
+.tow-waiting-row { border: 1.5px dashed var(--border); border-radius: 10px; color: var(--text-tertiary); }
+.tow-waiting-icon { width: 1.8rem; text-align: center; font-size: 1.1rem; flex-shrink: 0; }
+.tow-waiting-label { font-weight: 600; }
+.tow-team-actions { display: flex; gap: 0.6rem; margin-top: 0.7rem; }
+.tow-team-actions .horse-reshuffle-btn { width: auto; flex: 1; justify-content: center; padding: 0.5rem 0.7rem; }
+.tow-open-hint { margin-top: 0.5rem; }
+
+.tow-round-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-elevated-2);
+  color: var(--text-dim);
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tow-workout-round-pill { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 2; }
+
+.tow-scoreboard { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 0.8rem 0 1rem; }
+.tow-scoreboard-side { flex: 1; text-align: center; }
+.tow-scoreboard-side .tow-team-name { margin: 0 0 0.2rem; font-size: 0.9rem; }
+.tow-scoreboard-score { margin: 0; font-size: 2.4rem; font-weight: 900; line-height: 1; }
+.tow-side-a .tow-team-name { color: var(--primary); }
+.tow-side-b .tow-team-name { color: var(--text); }
+.tow-scoreboard-target { text-align: center; padding: 0 0.4rem; }
+.tow-scoreboard-target-label { margin: 0; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.06em; color: var(--text-tertiary); }
+.tow-scoreboard-target-value { margin: 0; font-weight: 800; color: var(--text-dim); }
+
+.tow-rope-wrap { margin: 0.4rem 0 1rem; }
+.tow-rope-track {
+  position: relative;
+  height: 14px;
+  background: var(--bg-elevated-2);
+  border-radius: 999px;
+  overflow: visible;
+}
+.tow-rope-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--border); }
+.tow-rope-fill.tow-rope-fill-a { background: var(--primary); }
+.tow-rope-fill.tow-rope-fill-b { background: var(--text-dim); }
+.tow-rope-chevron {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.1rem;
+  color: var(--text-tertiary);
+}
+.tow-rope-chevron.tow-rope-chevron-a { color: var(--primary); }
+.tow-rope-chevron.tow-rope-chevron-b { color: var(--text); }
+.tow-rope-labels { display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.78rem; font-weight: 700; color: var(--text-tertiary); }
+
+.tow-mini-tiles { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.tow-mini-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-elevated-2);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+}
+.tow-mini-tile .avatar-circle { width: 1.6rem; height: 1.6rem; font-size: 0.9rem; }
+.tow-mini-tile-a { border: 1px solid var(--primary); }
+.tow-mini-name { font-weight: 600; font-size: 0.82rem; }
+.tow-mini-reps { font-weight: 800; font-size: 0.82rem; color: var(--text-dim); }
+.tow-match-status { text-align: center; }
+
+.tow-handoff-screen { text-align: center; align-items: center; justify-content: center; }
+.tow-handoff-round { margin: 0 0 1rem; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); }
+.tow-handoff-avatar { width: 4.5rem; height: 4.5rem; font-size: 2rem; margin-bottom: 1rem; }
+
+.tow-burst-complete-screen { text-align: center; align-items: center; justify-content: center; }
+.tow-burst-kicker { margin: 0 0 0.3rem; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); }
+.tow-burst-added { margin: 0 0 0.3rem; font-size: 3.5rem; font-weight: 900; color: var(--primary); line-height: 1.05; }
+.tow-burst-complete-screen .tow-rope-wrap { width: 100%; max-width: 22rem; }
+
+.tow-summary-teams { display: flex; flex-direction: column; gap: 0.9rem; margin-top: 0.8rem; }
+.tow-summary-team-block { background: var(--bg-elevated-2); border-radius: 14px; padding: 0.7rem 0.8rem; position: relative; }
+.tow-summary-team-winner::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1.5px solid var(--gold);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.tow-summary-team-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.tow-summary-team-name { font-weight: 800; }
+.tow-summary-team-winner .tow-summary-team-name { color: var(--gold); }
+.tow-summary-team-total { font-weight: 800; color: var(--text-dim); }
+.tow-summary-players { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.tow-bell-avatar { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
+
 /* ---------------- Pyramid mode (active workout) ---------------- */
 
 /* Tapered rows so the stack actually reads as a pyramid — base(n) widest at

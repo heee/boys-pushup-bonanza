@@ -47,6 +47,8 @@ import {
   SQUAT_RECORD_LINE,
   SQUAT_START_LINES,
   FUN_MESSAGES_SQUAT,
+  TOW_PULL_LINES,
+  TOW_WIN_LINES,
   VOICE_PRESETS,
   WHEEL_DOUBLE_PREFIX,
   WHEEL_BOSS_LINE,
@@ -55,7 +57,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=139";
+} from "./voice-lines.js?v=140";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -94,6 +96,30 @@ import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-mod
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
+import {
+  applyBurst as applyTowBurst,
+  autoBalanceTeams as towAutoBalanceTeams,
+  cancelOpenGame as cancelOpenTowGameLocal,
+  createTugOfWarGame,
+  currentTurnPlayer as towCurrentTurnPlayer,
+  currentTurnTeam as towCurrentTurnTeam,
+  declinePlayer as declineTowPlayerLocal,
+  joinOpenPlayer as joinOpenTowPlayerLocal,
+  startOpenMatch as startOpenTowMatchLocal,
+  swapPlayerSide as towSwapPlayerSide,
+  teamOfPlayer as towTeamOfPlayer,
+} from "./tug-of-war.js";
+import {
+  openTowJoinModel,
+  towBurstResultCopy,
+  towInviteUrl,
+  towPlayerRows,
+  towRemainingLabel,
+  towRopeModel,
+  towSummaryModel,
+  towTurnStatusCopy,
+} from "./screens/tug-of-war.js";
+import { randomTeamNames as randomTowTeamNames } from "./tug-of-war-words.js";
 import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
 import {
   formatTerritoryLocation,
@@ -586,6 +612,34 @@ function upsertLocalHorseGame(game) {
   const idx = cached.horseGames.findIndex((g) => g.id === game.id);
   if (idx === -1) cached.horseGames.push(game);
   else cached.horseGames[idx] = game;
+  cacheData(cached);
+}
+
+async function workerCreateTowGame(input) {
+  return workerApi.createTowGame(input);
+}
+async function workerJoinOpenTowGame(gameId, user) {
+  return workerApi.joinOpenTowGame(gameId, user);
+}
+async function workerCancelOpenTowGame(gameId, user) {
+  return workerApi.cancelOpenTowGame(gameId, user);
+}
+async function workerStartOpenTowGame(gameId, user) {
+  return workerApi.startOpenTowGame(gameId, user);
+}
+async function workerPostTowBurst(payload) {
+  return workerApi.postTowBurst(payload);
+}
+async function workerDeclineTowInvite(gameId, user) {
+  return workerApi.declineTowInvite(gameId, user);
+}
+
+// Same immediate-local-splice pattern as upsertLocalHorseGame.
+function upsertLocalTowGame(game) {
+  const cached = getCachedData();
+  const idx = cached.towGames.findIndex((g) => g.id === game.id);
+  if (idx === -1) cached.towGames.push(game);
+  else cached.towGames[idx] = game;
   cacheData(cached);
 }
 
@@ -1273,6 +1327,13 @@ const state = {
   horseTimeLimit: "48h",
   horseSetupPlayers: [],
   horseLetterEvent: null,
+  towGame: null,
+  towTarget: 300,
+  towRounds: 5,
+  towSessionType: "live",
+  towSetupTeams: { a: [], b: [] },
+  towTeamNames: { a: "", b: "" },
+  towBurstEvent: null,
 };
 let summaryReconcileTimer = null;
 
@@ -1420,6 +1481,12 @@ const TAB_FOR_SCREEN = {
   "screen-horse-turn-order": "btn-nav-home",
   "screen-horse-letter": "btn-nav-home",
   "screen-horse-summary": "btn-nav-home",
+  "screen-tow-setup": "btn-nav-home",
+  "screen-tow-join": "btn-nav-home",
+  "screen-tow-match": "btn-nav-home",
+  "screen-tow-handoff": "btn-nav-home",
+  "screen-tow-burst-complete": "btn-nav-home",
+  "screen-tow-summary": "btn-nav-home",
   "screen-modifier-picker": "btn-nav-home",
   "screen-plank-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
@@ -1675,6 +1742,10 @@ function selectUser(name, avatarId) {
   localStorage.setItem(LS.lastUser, name);
   if (horseLinkGameId()) {
     openHorseGameFromHash();
+    return;
+  }
+  if (towLinkGameId()) {
+    openTowGameFromHash();
     return;
   }
   showScreen("screen-workout");
@@ -2338,6 +2409,13 @@ $("explore-modes-list").addEventListener("click", async (e) => {
   if (modeId === "horse") {
     renderHorseSetup();
     guardLeaveWorkout(() => showScreen("screen-horse-setup"));
+    return;
+  }
+  // Tug of War needs a target/rounds/teams picked before it can start — see
+  // screen-tow-setup — same reasoning as Horse above.
+  if (modeId === "tow") {
+    renderTowSetup();
+    guardLeaveWorkout(() => showScreen("screen-tow-setup"));
     return;
   }
   if (modeId === "holland") {
@@ -3069,6 +3147,571 @@ $("btn-horse-share").addEventListener("click", async () => {
   }
 });
 
+// ------------------- Tug of War mode -------------------
+// Mirrors the Horse section above structurally: pure rules live in
+// tug-of-war.js, pure display helpers in screens/tug-of-war.js, and this
+// section wires DOM + Worker calls exactly the way Horse's does. See the
+// design doc for the full 7-screen spec.
+
+let towInviteExpanded = false;
+
+function towAllSetupPlayers() {
+  return [...state.towSetupTeams.a, ...state.towSetupTeams.b];
+}
+
+function towTeamRowHTML(name, readOnly) {
+  const isSelf = name === state.currentUser;
+  const trailing = readOnly ? "" : `
+    <span class="tow-swap-icon" aria-hidden="true">⇄</span>
+    <button type="button" class="icon-btn" data-remove-tow-player="${escapeHtml(name)}" aria-label="Remove ${escapeHtml(name)}">✕</button>`;
+  return `
+  <div class="tier1-row tow-player-row${isSelf ? " tow-row-self" : ""}" data-tow-player-row="${escapeHtml(name)}">
+    <span class="avatar-circle tow-avatar" data-avatar="${avatarForUser(name).id}"></span>
+    <span class="tow-player-name">${escapeHtml(name)}${isSelf ? " (you)" : ""}</span>
+    ${trailing}
+  </div>`;
+}
+
+function towWaitingRowsHTML(count) {
+  let html = "";
+  for (let i = 0; i < count; i += 1) {
+    html += `<div class="tier1-row tow-player-row tow-waiting-row"><span class="tow-waiting-icon" aria-hidden="true">＋</span><span class="tow-player-name tow-waiting-label">Waiting…</span></div>`;
+  }
+  return html;
+}
+
+function renderTowStatUI() {
+  $("tow-target-value").textContent = String(state.towTarget);
+  $("tow-rounds-value").textContent = String(state.towRounds);
+}
+
+function renderTowSessionUI() {
+  document.querySelectorAll("#tow-session-select .segment[data-tow-session]").forEach((s) => {
+    s.classList.toggle("active", s.dataset.towSession === state.towSessionType);
+  });
+  $("tow-session-note").textContent = state.towSessionType === "live"
+    ? "Pass one phone around the room, turn by turn."
+    : state.towSessionType === "online"
+      ? "Everyone gets a turn notification, take your burst whenever."
+      : "Share a join link, anyone taps in until both teams fill or you hit Start.";
+}
+
+// Renders the TEAMS section for both the normal setup state and the Open
+// "filling up" lobby state (screen 1b) — same screen, different data source
+// and a few toggled controls, per the spec.
+function renderTowTeamsUI() {
+  const game = state.towGame;
+  const inLobby = !!(game && game.sessionType === "open" && game.status === "lobby");
+  const isOpenSetup = state.towSessionType === "open";
+  const isHost = inLobby ? game.createdBy === state.currentUser : true;
+  const nameA = inLobby ? game.teams.a.name : state.towTeamNames.a;
+  const nameB = inLobby ? game.teams.b.name : state.towTeamNames.b;
+  const playersA = inLobby ? game.teams.a.players : state.towSetupTeams.a;
+  const playersB = inLobby ? game.teams.b.players : state.towSetupTeams.b;
+  const readOnly = inLobby;
+
+  $("tow-team-a-name").textContent = nameA;
+  $("tow-team-b-name").textContent = nameB;
+  const mineA = playersA.includes(state.currentUser);
+  const mineB = playersB.includes(state.currentUser);
+  $("tow-team-a-name").classList.toggle("tow-team-name-mine", mineA);
+  $("tow-team-b-name").classList.toggle("tow-team-name-mine", mineB);
+  $("tow-team-a-card").classList.toggle("tow-team-card-mine", mineA);
+  $("tow-team-b-card").classList.toggle("tow-team-card-mine", mineB);
+
+  const perSide = inLobby ? Math.ceil(game.rosterSize / 2) : 0;
+  $("tow-team-a-count").classList.toggle("hidden", !inLobby);
+  $("tow-team-b-count").classList.toggle("hidden", !inLobby);
+  if (inLobby) {
+    $("tow-team-a-count").textContent = `${playersA.length}/${perSide}`;
+    $("tow-team-b-count").textContent = `${playersB.length}/${perSide}`;
+  }
+
+  $("tow-team-a-list").innerHTML = playersA.map((n) => towTeamRowHTML(n, readOnly)).join("")
+    + (inLobby ? towWaitingRowsHTML(Math.max(0, perSide - playersA.length)) : "");
+  $("tow-team-b-list").innerHTML = playersB.map((n) => towTeamRowHTML(n, readOnly)).join("")
+    + (inLobby ? towWaitingRowsHTML(Math.max(0, perSide - playersB.length)) : "");
+  $("tow-team-a-list").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  $("tow-team-b-list").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+
+  $("btn-tow-setup-share").classList.toggle("hidden", !(inLobby && isHost));
+  $("tow-session-type-section").classList.toggle("hidden", inLobby);
+  $("tow-name-note").classList.toggle("hidden", inLobby);
+  $("btn-tow-invite-more").classList.toggle("hidden", inLobby || isOpenSetup);
+  $("tow-invite-candidates").classList.add("hidden");
+  $("tow-team-actions").classList.toggle("hidden", inLobby || isOpenSetup);
+  $("tow-shuffle-hint").classList.toggle("hidden", inLobby || isOpenSetup);
+  $("tow-open-hint").classList.toggle("hidden", !(isOpenSetup || inLobby));
+  if (isOpenSetup || inLobby) {
+    $("tow-open-hint").textContent = !inLobby || isHost
+      ? "Joiners tap a link and land in whichever team has room"
+      : `Waiting on ${game.createdBy} to start the match…`;
+  }
+
+  const startBtn = $("btn-tow-start");
+  if (inLobby) {
+    const total = playersA.length + playersB.length;
+    startBtn.classList.toggle("hidden", !isHost);
+    startBtn.textContent = `Start now (${total}/${game.rosterSize})`;
+    startBtn.disabled = playersA.length < 1 || playersB.length < 1;
+  } else {
+    startBtn.classList.remove("hidden");
+    startBtn.textContent = "Start match";
+    startBtn.disabled = !isOpenSetup && (playersA.length < 1 || playersB.length < 1);
+  }
+}
+
+// mode: "reset" (fresh setup, e.g. from the Explore card), "rematch" (seed
+// from the just-finished game's settings/rosters), or "keep" (re-render only
+// — used right after creating an Open lobby, so the fresh game stays put).
+function renderTowSetup(mode = "reset") {
+  if (mode === "reset") {
+    state.towGame = null;
+    state.towTarget = 300;
+    state.towRounds = 5;
+    state.towSessionType = "live";
+    state.towSetupTeams = towAutoBalanceTeams([state.currentUser]);
+    state.towTeamNames = randomTowTeamNames();
+  } else if (mode === "rematch") {
+    const finished = state.towGame;
+    if (finished) {
+      state.towTarget = finished.target;
+      state.towRounds = finished.rounds;
+      state.towSessionType = finished.sessionType === "open" ? "live" : finished.sessionType;
+      state.towSetupTeams = { a: [...finished.teams.a.players], b: [...finished.teams.b.players] };
+      state.towTeamNames = { a: finished.teams.a.name, b: finished.teams.b.name };
+    }
+    state.towGame = null;
+  }
+  towInviteExpanded = false;
+  renderTowStatUI();
+  renderTowSessionUI();
+  renderTowTeamsUI();
+}
+
+$("btn-tow-setup-back").addEventListener("click", () => {
+  guardLeaveWorkout(() => showScreen("screen-explore-modes"));
+});
+
+function towStepper(key, delta, min, max) {
+  state[key] = Math.min(max, Math.max(min, state[key] + delta));
+  renderTowStatUI();
+}
+$("btn-tow-target-dec").addEventListener("click", () => towStepper("towTarget", -10, 10, 5000));
+$("btn-tow-target-inc").addEventListener("click", () => towStepper("towTarget", 10, 10, 5000));
+$("btn-tow-rounds-dec").addEventListener("click", () => towStepper("towRounds", -1, 1, 30));
+$("btn-tow-rounds-inc").addEventListener("click", () => towStepper("towRounds", 1, 1, 30));
+
+$("tow-session-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment[data-tow-session]");
+  if (!btn) return;
+  state.towSessionType = btn.dataset.towSession;
+  renderTowSessionUI();
+  renderTowTeamsUI();
+});
+
+$("btn-tow-invite-more").addEventListener("click", () => {
+  towInviteExpanded = !towInviteExpanded;
+  const candidates = $("tow-invite-candidates");
+  const known = orderedUserNames(getAllSessionsForDisplay(), state.currentUser)
+    .filter((name) => !towAllSetupPlayers().includes(name));
+  candidates.classList.toggle("hidden", !towInviteExpanded);
+  if (towInviteExpanded) {
+    candidates.innerHTML = known.length
+      ? known.map((name) => `
+        <button type="button" class="tier1-row tow-player-row tow-candidate-row" data-add-tow-player="${escapeHtml(name)}">
+          <span class="avatar-circle tow-avatar" data-avatar="${avatarForUser(name).id}"></span>
+          <span class="tow-player-name">${escapeHtml(name)}</span>
+        </button>`).join("")
+      : `<p class="screen-sub">Nobody else has flexed yet.</p>`;
+    candidates.querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  }
+});
+
+$("tow-invite-candidates").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-add-tow-player]");
+  if (!btn) return;
+  const name = btn.dataset.addTowPlayer;
+  if (!towAllSetupPlayers().includes(name)) {
+    const side = state.towSetupTeams.a.length <= state.towSetupTeams.b.length ? "a" : "b";
+    state.towSetupTeams = { ...state.towSetupTeams, [side]: [...state.towSetupTeams[side], name] };
+  }
+  towInviteExpanded = false;
+  $("tow-invite-candidates").classList.add("hidden");
+  renderTowTeamsUI();
+});
+
+function towTeamListClick(e) {
+  if (state.towGame && state.towGame.status === "lobby") return; // read-only once real joins are live
+  const removeBtn = e.target.closest("[data-remove-tow-player]");
+  if (removeBtn) {
+    const name = removeBtn.dataset.removeTowPlayer;
+    state.towSetupTeams = { a: state.towSetupTeams.a.filter((n) => n !== name), b: state.towSetupTeams.b.filter((n) => n !== name) };
+    renderTowTeamsUI();
+    return;
+  }
+  const row = e.target.closest("[data-tow-player-row]");
+  if (row) {
+    state.towSetupTeams = towSwapPlayerSide(state.towSetupTeams, row.dataset.towPlayerRow);
+    renderTowTeamsUI();
+  }
+}
+$("tow-team-a-list").addEventListener("click", towTeamListClick);
+$("tow-team-b-list").addEventListener("click", towTeamListClick);
+
+$("btn-tow-reroll-names").addEventListener("click", () => {
+  state.towTeamNames = randomTowTeamNames();
+  renderTowTeamsUI();
+});
+$("btn-tow-shuffle-teams").addEventListener("click", () => {
+  state.towSetupTeams = towAutoBalanceTeams(towAllSetupPlayers());
+  renderTowTeamsUI();
+});
+
+async function shareTowInvite() {
+  const game = state.towGame;
+  if (!game) return;
+  const url = towInviteUrl(game.id);
+  const text = `Join ${game.createdBy}'s Tug of War.`;
+  if (navigator.share) {
+    try { await navigator.share({ title: "Tug of War", text, url }); } catch (e) { /* cancelled */ }
+  } else if (navigator.clipboard) {
+    await navigator.clipboard.writeText(`${text} ${url}`);
+    toast("Invite link copied", 2500);
+  }
+}
+$("btn-tow-setup-share").addEventListener("click", shareTowInvite);
+
+$("btn-tow-start").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  const game = state.towGame;
+
+  // Already-created Open lobby — this tap means "Start now".
+  if (game && game.sessionType === "open" && game.status === "lobby") {
+    btn.disabled = true;
+    try {
+      const res = await workerStartOpenTowGame(game.id, state.currentUser);
+      state.towGame = res.game;
+      upsertLocalTowGame(res.game);
+      await openTowMatch({ skipRefresh: true });
+    } catch (err) {
+      toast(err.message || "Couldn't start the match — check your connection.", 4000);
+    } finally {
+      btn.disabled = false;
+    }
+    return;
+  }
+
+  if (state.towSessionType === "open") {
+    btn.disabled = true;
+    try {
+      const res = await workerCreateTowGame({ target: state.towTarget, rounds: state.towRounds, sessionType: "open", createdBy: state.currentUser });
+      state.towGame = res.game;
+      upsertLocalTowGame(res.game);
+      renderTowSetup("keep");
+    } catch (err) {
+      toast(err.message || "Couldn't create the game — check your connection and try again.", 4000);
+    } finally {
+      btn.disabled = false;
+    }
+    return;
+  }
+
+  if (state.towSetupTeams.a.length < 1 || state.towSetupTeams.b.length < 1) return;
+  const input = {
+    target: state.towTarget,
+    rounds: state.towRounds,
+    sessionType: state.towSessionType,
+    createdBy: state.currentUser,
+    teams: {
+      a: { name: state.towTeamNames.a, players: state.towSetupTeams.a },
+      b: { name: state.towTeamNames.b, players: state.towSetupTeams.b },
+    },
+  };
+
+  if (state.towSessionType === "online") {
+    btn.disabled = true;
+    try {
+      const res = await workerCreateTowGame(input);
+      state.towGame = res.game;
+      upsertLocalTowGame(res.game);
+      await openTowMatch({ skipRefresh: true });
+    } catch (err) {
+      toast(err.message || "Couldn't create the game — check your connection and try again.", 4000);
+    } finally {
+      btn.disabled = false;
+    }
+    return;
+  }
+
+  state.towGame = createTugOfWarGame(input);
+  showTowHandoff();
+});
+
+// ---- Join screen (a new player tapping the #tow= invite link) ----
+
+function towLinkGameId() {
+  return location.hash.match(/^#tow=([a-z0-9-]{1,64})$/)?.[1] || null;
+}
+
+function renderTowJoin(game) {
+  const model = openTowJoinModel(game, state.currentUser);
+  $("tow-join-title").textContent = model.title;
+  $("tow-join-sub").textContent = model.state === "ready"
+    ? `${model.slotsLeft} slot${model.slotsLeft === 1 ? "" : "s"} left`
+    : model.state === "joined" ? "You're already in."
+      : model.state === "full" ? "Both teams are full."
+        : model.state === "started" ? "This match has already started."
+          : model.state === "cancelled" ? "The host cancelled this game."
+            : "";
+  if (game && game.teams) {
+    $("tow-join-team-a-name").textContent = game.teams.a.name;
+    $("tow-join-team-b-name").textContent = game.teams.b.name;
+    $("tow-join-team-a-list").innerHTML = game.teams.a.players.map((n) => towTeamRowHTML(n, true)).join("");
+    $("tow-join-team-b-list").innerHTML = game.teams.b.players.map((n) => towTeamRowHTML(n, true)).join("");
+    $("tow-join-team-a-list").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+    $("tow-join-team-b-list").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  } else {
+    $("tow-join-team-a-list").innerHTML = "";
+    $("tow-join-team-b-list").innerHTML = "";
+  }
+  $("btn-tow-confirm-join").classList.toggle("hidden", !model.canJoin);
+  $("btn-tow-view-joined").classList.toggle("hidden", model.state !== "joined");
+}
+
+async function openTowGameFromHash() {
+  const gameId = towLinkGameId();
+  if (!gameId || !state.currentUser) return false;
+  let game = getCachedData().towGames.find((item) => item.id === gameId);
+  if (!game && workerConfigured()) {
+    try {
+      await refreshFromRemote();
+      game = getCachedData().towGames.find((item) => item.id === gameId);
+    } catch (e) { /* offline or Worker unreachable; show what we have */ }
+  }
+  state.towGame = game || null;
+  renderTowJoin(game);
+  showScreen("screen-tow-join");
+  return true;
+}
+
+$("btn-tow-confirm-join").addEventListener("click", async (e) => {
+  const game = state.towGame;
+  if (!game) return;
+  const button = e.currentTarget;
+  button.disabled = true;
+  try {
+    const res = await workerJoinOpenTowGame(game.id, state.currentUser);
+    state.towGame = res.game;
+    upsertLocalTowGame(res.game);
+    renderTowSetup("keep");
+    showScreen("screen-tow-setup");
+  } catch (err) {
+    toast(err.message || "Couldn't join — check your connection.", 4000);
+    const fresh = getCachedData().towGames.find((item) => item.id === game.id);
+    state.towGame = fresh || game;
+    renderTowJoin(fresh);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("btn-tow-view-joined").addEventListener("click", async () => {
+  await openTowMatch();
+});
+
+$("btn-tow-join-back").addEventListener("click", () => {
+  guardLeaveWorkout(() => showScreen("screen-explore-modes"));
+});
+
+// ---- Match view (the rope) ----
+
+function renderTowRopeInto(fillId, chevronId, game) {
+  const rope = towRopeModel(game);
+  const pct = rope.position * 100;
+  const fill = $(fillId);
+  const chevron = $(chevronId);
+  fill.style.left = pct >= 50 ? "50%" : `${pct}%`;
+  fill.style.width = `${Math.abs(pct - 50)}%`;
+  fill.classList.toggle("tow-rope-fill-a", rope.leadingSide === "a");
+  fill.classList.toggle("tow-rope-fill-b", rope.leadingSide === "b");
+  chevron.style.left = `${pct}%`;
+  chevron.textContent = rope.leadingSide === "a" ? "◀" : rope.leadingSide === "b" ? "▶" : "•";
+  chevron.classList.toggle("tow-rope-chevron-a", rope.leadingSide === "a");
+  chevron.classList.toggle("tow-rope-chevron-b", rope.leadingSide === "b");
+}
+
+function renderTowMatch() {
+  const game = state.towGame;
+  if (!game) return;
+  $("tow-round-pill").textContent = game.sudden ? `Sudden death · Round ${game.round}` : `Round ${game.round}/${game.rounds}`;
+  $("tow-match-team-a-name").textContent = game.teams.a.name;
+  $("tow-match-team-b-name").textContent = game.teams.b.name;
+  $("tow-match-team-a-score").textContent = String(game.scores.a);
+  $("tow-match-team-b-score").textContent = String(game.scores.b);
+  $("tow-match-target-value").textContent = String(game.target);
+  renderTowRopeInto("tow-rope-fill", "tow-rope-chevron", game);
+  $("tow-remaining-a").textContent = towRemainingLabel(game, "a");
+  $("tow-remaining-b").textContent = towRemainingLabel(game, "b");
+
+  const rows = towPlayerRows(game);
+  $("tow-mini-tiles").innerHTML = rows.map((r) => `
+    <div class="tow-mini-tile tow-mini-tile-${r.team}">
+      <span class="avatar-circle tow-avatar" data-avatar="${avatarForUser(r.name).id}"></span>
+      <span class="tow-mini-name">${escapeHtml(r.name)}</span>
+      <span class="tow-mini-reps">${r.reps}</span>
+    </div>`).join("");
+  $("tow-mini-tiles").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+
+  const status = towTurnStatusCopy(game, state.currentUser);
+  $("btn-tow-take-burst").classList.toggle("hidden", !status.cta);
+  if (status.cta) $("btn-tow-take-burst").textContent = status.cta;
+  $("tow-match-status").textContent = status.waiting || "";
+  $("tow-match-status").classList.toggle("hidden", !status.waiting);
+}
+
+// Central re-render + navigation after any Tug of War state change — same
+// role as Horse's openHorseTurnOrder.
+async function openTowMatch({ skipRefresh = false } = {}) {
+  const game = state.towGame;
+  if (!game) return;
+  if (!skipRefresh && game.sessionType !== "live") {
+    const fresh = getCachedData().towGames.find((g) => g.id === game.id);
+    if (fresh) state.towGame = fresh;
+  }
+  if (state.towGame.status === "complete" || state.towGame.status === "voided") {
+    renderTowSummary();
+    showScreen("screen-tow-summary");
+    return;
+  }
+  if (state.towGame.status === "lobby") {
+    renderTowSetup("keep");
+    showScreen("screen-tow-setup");
+    return;
+  }
+  renderTowMatch();
+  showScreen("screen-tow-match");
+}
+
+$("btn-tow-match-back").addEventListener("click", () => {
+  guardLeaveWorkout(() => showScreen("screen-explore-modes"));
+});
+
+$("btn-tow-take-burst").addEventListener("click", () => {
+  const game = state.towGame;
+  if (!game) return;
+  if (game.sessionType === "live") {
+    showTowHandoff();
+  } else {
+    beginTowBurst(state.currentUser);
+  }
+});
+
+// ---- Live handoff (pass-the-phone) ----
+
+function showTowHandoff() {
+  const game = state.towGame;
+  const name = towCurrentTurnPlayer(game);
+  const team = towCurrentTurnTeam(game);
+  $("tow-handoff-round").textContent = game.sudden ? `SUDDEN DEATH · ROUND ${game.round}` : `ROUND ${game.round} OF ${game.rounds}`;
+  setAvatarEl($("tow-handoff-avatar"), avatarForUser(name).id, "4.5rem");
+  $("tow-handoff-heading").textContent = `Pass to ${name}`;
+  $("tow-handoff-sub").textContent = `${game.teams[team].name} · up next`;
+  $("btn-tow-handoff-ready").textContent = `Ready, ${name}`;
+  showScreen("screen-tow-handoff");
+}
+
+$("btn-tow-handoff-ready").addEventListener("click", () => {
+  beginTowBurst(towCurrentTurnPlayer(state.towGame));
+});
+
+// Jumps screen-workout to a specific player's turn — same pass-the-phone
+// relabeling trick as Horse's beginHorseTurn.
+function beginTowBurst(name) {
+  state.pushupMode = "tow";
+  preserveNextModeSelection = true;
+  guardLeaveWorkout(() => showScreen("screen-workout"));
+  $("workout-username").textContent = name;
+  setAvatarEl($("workout-avatar"), avatarForUser(name).id, "2rem");
+  startWorkout();
+}
+
+// ---- Burst complete (the rope payoff) ----
+
+function renderTowBurstComplete() {
+  const game = state.towGame;
+  const evt = state.towBurstEvent;
+  if (!game || !evt) return;
+  $("tow-burst-added").textContent = `+${evt.delta}`;
+  $("tow-burst-team-line").textContent = `added to ${game.teams[evt.team].name}`;
+  renderTowRopeInto("tow-burst-rope-fill", "tow-burst-rope-chevron", game);
+  $("tow-burst-status").textContent = towBurstResultCopy(game, evt.team);
+}
+
+$("btn-tow-burst-continue").addEventListener("click", async () => {
+  const game = state.towGame;
+  if (!game) {
+    showScreen("screen-explore-modes");
+    return;
+  }
+  if (game.status === "complete" || game.status === "voided") {
+    renderTowSummary();
+    showScreen("screen-tow-summary");
+    return;
+  }
+  if (game.sessionType === "live") {
+    showTowHandoff();
+  } else {
+    await openTowMatch();
+  }
+});
+
+// ---- Match summary ----
+
+function renderTowSummary() {
+  const game = state.towGame;
+  if (!game) return;
+  const model = towSummaryModel(game);
+  $("tow-summary-winner").innerHTML = model.winnerName ? `${escapeHtml(model.winnerName)} wins 🎉` : "Match voided — not enough players";
+  renderTowRopeInto("tow-summary-rope-fill", "tow-summary-rope-chevron", game);
+  $("tow-summary-teams").innerHTML = model.teams.map((t) => `
+    <div class="tow-summary-team-block${t.isWinner ? " tow-summary-team-winner" : ""}">
+      <div class="tow-summary-team-header">
+        <span class="tow-summary-team-name">${escapeHtml(t.name)}</span>
+        <span class="tow-summary-team-total">${t.total}</span>
+      </div>
+      <div class="tow-summary-players">
+        ${t.players.map((p) => `
+        <div class="tier1-row tow-player-row">
+          <span class="avatar-circle tow-avatar" data-avatar="${avatarForUser(p.name).id}"></span>
+          <span class="tow-player-name">${escapeHtml(p.name)}</span>
+          <span class="tow-player-reps">${p.reps}</span>
+        </div>`).join("")}
+      </div>
+    </div>`).join("");
+  $("tow-summary-teams").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  if (game.winner) launchConfetti("tow-summary-confetti");
+}
+
+$("btn-tow-rematch").addEventListener("click", () => {
+  renderTowSetup("rematch");
+  guardLeaveWorkout(() => showScreen("screen-tow-setup"));
+});
+
+$("btn-tow-share").addEventListener("click", async () => {
+  const game = state.towGame;
+  if (!game) return;
+  const model = towSummaryModel(game);
+  const text = `🪢 TUG OF WAR IS OVER. ${model.winnerName ? `${model.winnerName} wins` : "No winner"} — ${model.teams.map((t) => `${t.name} ${t.total}`).join(" vs. ")}.\n`
+    + model.teams.map((t) => `${t.isWinner ? "🎉" : "❌"} ${t.name} (${t.total}): ${t.players.map((p) => `${p.name} ${p.reps}`).join(", ")}`).join("\n");
+  if (navigator.share) {
+    try { await navigator.share({ text }); } catch (e) { /* user cancelled the share sheet */ }
+  } else if (navigator.clipboard) {
+    await navigator.clipboard.writeText(text);
+    toast("Copied results to clipboard", 2500);
+  }
+});
+
 // ------------------- Horse mode: Home bell (async invite notifications) -------------------
 // Only invite/async games ever need a bell entry — Live pass-the-phone games
 // are entirely resolved within the single active session they're started in.
@@ -3114,15 +3757,63 @@ function pendingHorseItems() {
   return items;
 }
 
-function renderHorseBellDropdown() {
-  const items = pendingHorseItems();
-  $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
-  // "turn"/"choosing" (your move right now) get the full urgent treatment —
-  // opaque + wiggling. "invite"/"waiting" still light the dot, but stay calm.
-  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn" || item.kind === "choosing"));
-  $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => item.kind !== "waiting"));
-  const list = $("horse-bell-list");
-  list.innerHTML = items.length ? items.map((item) => {
+// Tug of War's async (Online/Open, post-start) equivalent of pendingHorseItems
+// above — Live pass-the-phone games never need a bell entry, same reasoning.
+function otherTowPlayers(game, user) {
+  return [...game.teams.a.players, ...game.teams.b.players].filter((n) => n !== user).join(", ");
+}
+
+function pendingTowItems() {
+  const user = state.currentUser;
+  if (!user) return [];
+  const games = getCachedData().towGames || [];
+  const items = [];
+  for (const game of games) {
+    if (game.sessionType === "live" || game.status !== "active" || !game.teams) continue;
+    const inGame = game.teams.a.players.includes(user) || game.teams.b.players.includes(user);
+    if (!inGame) continue;
+    const opponents = otherTowPlayers(game, user);
+    const side = towTeamOfPlayer(game, user);
+    const teamName = game.teams[side]?.name || "Your team";
+    if (towCurrentTurnPlayer(game) === user) {
+      const other = side === "a" ? "b" : "a";
+      const trailBy = game.scores[other] - game.scores[side];
+      const trailLabel = trailBy > 0 ? `${teamName} trails by ${trailBy}` : trailBy < 0 ? `${teamName} leads by ${-trailBy}` : `${teamName} is tied`;
+      items.push({ mode: "tow", kind: "turn", gameId: game.id, creator: game.createdBy, round: game.round, rounds: game.rounds, trailLabel, opponents });
+    } else if (!game.bursts.some((b) => b.user === user) && user !== game.createdBy) {
+      items.push({ mode: "tow", kind: "invite", gameId: game.id, creator: game.createdBy, from: game.createdBy, teamName, target: game.target, opponents });
+    } else {
+      items.push({ mode: "tow", kind: "waiting", gameId: game.id, creator: game.createdBy, upNow: towCurrentTurnPlayer(game), opponents });
+    }
+  }
+  return items;
+}
+
+function towBellRowHTML(item) {
+  const avatar = avatarForUser(item.creator).id;
+  if (item.kind === "turn") {
+    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-tow-turn="${item.gameId}">
+        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
+        <span class="horse-player-name">Your turn · Tug of war · Round ${item.round} of ${item.rounds} · ${escapeHtml(item.trailLabel)}</span>
+      </button>`;
+  }
+  if (item.kind === "invite") {
+    return `
+      <div class="tier1-row horse-player-row">
+        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
+        <span class="horse-player-name">${escapeHtml(item.from)} invited you to Tug of war · ${escapeHtml(item.teamName)} · target ${item.target}</span>
+        <button type="button" class="icon-btn" data-bell-tow-view="${item.gameId}" aria-label="View">→</button>
+        <button type="button" class="icon-btn" data-bell-tow-decline="${item.gameId}" aria-label="Decline">✕</button>
+      </div>`;
+  }
+  return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-tow-view="${item.gameId}">
+        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
+        <span class="horse-player-name horse-player-status-waiting">Waiting on ${escapeHtml(item.upNow)} in Tug of war</span>
+      </button>`;
+}
+
+function horseBellRowHTML(item) {
+  {
     if (item.kind === "turn") {
       return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-turn="${item.gameId}">
         <span aria-hidden="true">🐴</span>
@@ -3164,7 +3855,25 @@ function renderHorseBellDropdown() {
         <span aria-hidden="true">🐴</span>
         <span class="horse-player-name horse-player-status-waiting">Waiting on ${escapeHtml(item.upNow)}${otherWaiting ? ` (vs. ${escapeHtml(otherWaiting)})` : ""} in Horse</span>
       </button>`;
-  }).join("") : `<p class="screen-sub horse-bell-empty">Nothing pending.</p>`;
+  }
+}
+
+// Both Horse and Tug of War render into this same dropdown/list, per the
+// spec ("reuse the same list/dropdown component Horse already renders
+// into"). Individual unread dots already exist on rows, so there's no
+// "mark all read" control here.
+function renderHorseBellDropdown() {
+  const items = [...pendingHorseItems(), ...pendingTowItems()];
+  $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
+  // "turn"/"choosing" (your move right now) get the full urgent treatment —
+  // opaque + wiggling. "invite"/"waiting" still light the dot, but stay calm.
+  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn" || item.kind === "choosing"));
+  $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => item.kind !== "waiting"));
+  const list = $("horse-bell-list");
+  list.innerHTML = items.length
+    ? items.map((item) => (item.mode === "tow" ? towBellRowHTML(item) : horseBellRowHTML(item))).join("")
+    : `<p class="screen-sub horse-bell-empty">Nothing pending.</p>`;
+  list.querySelectorAll(".tow-bell-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
 }
 
 $("btn-horse-bell").addEventListener("click", async () => {
@@ -3224,6 +3933,39 @@ $("horse-bell-list").addEventListener("click", async (e) => {
     } catch (err) {
       toast("Couldn't decline — check your connection.", 3500);
       declineBtn.disabled = false;
+    }
+    return;
+  }
+  const towTurnBtn = e.target.closest("[data-bell-tow-turn]");
+  if (towTurnBtn) {
+    const game = getCachedData().towGames.find((g) => g.id === towTurnBtn.dataset.bellTowTurn);
+    if (game) {
+      state.towGame = game;
+      $("horse-bell-dropdown").classList.add("hidden");
+      beginTowBurst(state.currentUser);
+    }
+    return;
+  }
+  const towViewBtn = e.target.closest("[data-bell-tow-view]");
+  if (towViewBtn) {
+    const game = getCachedData().towGames.find((g) => g.id === towViewBtn.dataset.bellTowView);
+    if (game) {
+      state.towGame = game;
+      $("horse-bell-dropdown").classList.add("hidden");
+      await openTowMatch();
+    }
+    return;
+  }
+  const towDeclineBtn = e.target.closest("[data-bell-tow-decline]");
+  if (towDeclineBtn) {
+    towDeclineBtn.disabled = true;
+    try {
+      const res = await workerDeclineTowInvite(towDeclineBtn.dataset.bellTowDecline, state.currentUser);
+      upsertLocalTowGame(res.game);
+      renderHorseBellDropdown();
+    } catch (err) {
+      toast("Couldn't decline — check your connection.", 3500);
+      towDeclineBtn.disabled = false;
     }
   }
 });
@@ -7055,6 +7797,16 @@ async function setupWorkoutModeState() {
   if (isHorse) $("horse-session-total").textContent = "Live count: 0";
   if (isHorse) updateHorseMeter(0); else $("horse-meter").classList.add("hidden");
 
+  // Tug of War's burst screen is otherwise the plain Active Session shell —
+  // the only addition is a "Round N/5" pill in the header, see the spec.
+  const isTow = state.pushupMode === "tow";
+  $("tow-workout-round-pill").classList.toggle("hidden", !isTow);
+  if (isTow && state.towGame) {
+    $("tow-workout-round-pill").textContent = state.towGame.sudden
+      ? `Sudden death · Round ${state.towGame.round}`
+      : `Round ${state.towGame.round}/${state.towGame.rounds}`;
+  }
+
   // Fortune Cookie is the odd one out: it reuses Classic's own giant hero
   // number and rep counting unchanged (the challenge was already picked and
   // shown during the idle-screen reveal, not here) — except No Looking and
@@ -7251,10 +8003,74 @@ async function completeHorseTurn(rawCount) {
   }
 }
 
+// Tug of War's completion flow branches off completeWorkout entirely, same
+// reasoning as Horse's completeHorseTurn just above: it saves a real session
+// (mode: "tow", counts toward stats/streaks like every other mode) but then
+// routes into the game's own burst-complete/handoff/summary screens instead
+// of the shared screen-summary.
+async function completeTowBurst(rawCount) {
+  clearTimeout(state.sharpshooterAnimationTimer);
+  state.sharpshooterAnimationTimer = null;
+  stopCameraAndDetection();
+  await releaseWakeLock();
+  state.workoutActive = false;
+  $("workout-active").classList.add("hidden");
+  $("workout-idle").classList.remove("hidden");
+
+  const game = state.towGame;
+  const user = towCurrentTurnPlayer(game);
+  const team = towCurrentTurnTeam(game);
+
+  const session = {
+    id: uuid(),
+    user,
+    timestamp: new Date().toISOString(),
+    count: rawCount,
+    avatar: avatarForUser(user).id,
+    startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    mode: "tow",
+    towGameId: game.id,
+    ...(state.sessionLocation ? { location: state.sessionLocation } : {}),
+  };
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+  try { await commitSession(session); } catch (e) { enqueueSession(session); }
+
+  let updated;
+  if (game.sessionType !== "live") {
+    try {
+      const res = await workerPostTowBurst({ gameId: game.id, user, reps: rawCount });
+      updated = res.game;
+    } catch (e) {
+      // Best-effort local fallback so this device's UI still progresses —
+      // the server stays the source of truth and the next successful
+      // refresh (see openTowMatch) reconciles it.
+      toast("Couldn't sync your burst — check your connection. Your view may be out of date until it reconnects.", 5000);
+      updated = applyTowBurst(game, { user, reps: rawCount, now: Date.now() });
+    }
+  } else {
+    updated = applyTowBurst(game, { user, reps: rawCount, now: Date.now() });
+  }
+  state.towGame = updated;
+  upsertLocalTowGame(updated);
+
+  speak(pickFrom(updated.status === "complete" && updated.winner === team ? TOW_WIN_LINES : TOW_PULL_LINES));
+
+  state.towBurstEvent = { team, delta: rawCount };
+  renderTowBurstComplete();
+  showScreen("screen-tow-burst-complete");
+  if (updated.status === "complete" && updated.winner === team) launchConfetti("tow-burst-confetti");
+}
+
 async function completeWorkout() {
   const rawCount = repState.count;
   if (state.pushupMode === "horse") {
     await completeHorseTurn(rawCount);
+    return;
+  }
+  if (state.pushupMode === "tow") {
+    await completeTowBurst(rawCount);
     return;
   }
   const isZen = state.pushupMode === "zen";
@@ -9428,6 +10244,7 @@ async function init() {
   // Open Horse links use the remembered app profile. New devices stay on the
   // normal profile picker; selecting or creating a profile resumes this link.
   if (state.currentUser) await openHorseGameFromHash();
+  if (state.currentUser) await openTowGameFromHash();
 
   // A shared challenge link (#challenge=id) jumps straight to that challenge's
   // detail screen — but only if this device already has a remembered name;

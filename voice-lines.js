@@ -337,6 +337,25 @@ export const HORSE_WIN_LINES = [
   "Champion of Horse! A title that sounds worse than it is. You earned it though.",
 ];
 
+// Tug of War — spoken from completeTowBurst in app.js after each burst.
+// TOW_PULL_LINES cover the normal case (rope shifted, match continues);
+// TOW_WIN_LINES cover the instant-win moment when a team hits the target.
+export const TOW_PULL_LINES = [
+  "Reps banked! The rope just felt that.",
+  "That's added to the team total! Somebody's arms are about to know about it.",
+  "Burst complete! The rope does not care about your excuses.",
+  "Logged! Pull harder next time, or don't — the other team's watching.",
+  "That's in the bank! The rope is a fickle, fickle thing.",
+  "Reps counted! Somewhere, the other team just felt a small chill.",
+];
+
+export const TOW_WIN_LINES = [
+  "Tug of War is over! That rope isn't coming back.",
+  "Target reached! The other team can let go of the rope now.",
+  "That's the match! Pull's over, and it wasn't close at the end.",
+  "Game over — target smashed! Go tell the other team gently.",
+];
+
 export const FUN_MESSAGES = [
   (n) => `${n} pushups down. Somewhere, a gym bro just shed a single tear.`,
   (n) => `That's ${n} reps of pure bonanza energy.`,
@@ -574,6 +593,8 @@ export function buildCorpus() {
   for (const line of HORSE_LETTER_LINES) add(line, "hype");
   for (const line of HORSE_ELIMINATED_LINES) add(line, "hype");
   for (const line of HORSE_WIN_LINES) add(line, "hype");
+  for (const line of TOW_PULL_LINES) add(line, "hype");
+  for (const line of TOW_WIN_LINES) add(line, "hype");
   add(WHEEL_DOUBLE_PREFIX, "hype");
   for (const label of WHEEL_GRIP_LABELS) add(label, "hype");
   for (const fn of [WHEEL_BOSS_LINE, WHEEL_FREEBIE_LINE, WHEEL_BUST_LINE, WHEEL_TEMPO_LINE]) {
