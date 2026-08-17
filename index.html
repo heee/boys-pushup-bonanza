@@ -415,7 +415,10 @@
         <button id="btn-tow-setup-share" type="button" class="horse-remind-btn hidden" aria-label="Share invite link"><span class="icon-share" aria-hidden="true"></span></button>
       </div>
 
-      <p class="pyramid-setup-section-label horse-section-label">TARGET &amp; ROUNDS</p>
+      <p class="pyramid-setup-section-label horse-section-label">
+        <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        Target &amp; max rounds
+      </p>
       <div class="tow-target-rounds-row">
         <div class="tow-stat-tile">
           <p class="tow-stat-tile-label">Target reps</p>
@@ -426,7 +429,7 @@
           </div>
         </div>
         <div class="tow-stat-tile">
-          <p class="tow-stat-tile-label">Rounds</p>
+          <p class="tow-stat-tile-label">Max rounds</p>
           <div class="tow-stepper-row">
             <button type="button" id="btn-tow-rounds-dec" class="horse-choice-stepper" aria-label="Decrease rounds">−</button>
             <div id="tow-rounds-value" class="tow-stepper-value">5</div>
@@ -435,9 +438,12 @@
         </div>
       </div>
 
-      <p class="pyramid-setup-section-label horse-section-label">TEAMS</p>
+      <p class="pyramid-setup-section-label horse-section-label">
+        <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
+        Teams
+      </p>
       <p id="tow-shuffle-hint" class="screen-sub">Shuffle teams · tap a name to switch sides</p>
-      <p id="tow-name-note" class="screen-sub tow-name-note"><em>Team names are auto-generated from the app's own vocabulary — reroll for two new ones before you start.</em></p>
+      <p id="tow-name-note" class="screen-sub tow-name-note">Team names are auto-generated from the app's own vocabulary — reroll for two new ones before you start.</p>
       <button id="btn-tow-invite-more" type="button" class="horse-dashed-invite">+ Add player</button>
       <div id="tow-invite-candidates" class="tier1-list hidden"></div>
 
@@ -460,7 +466,10 @@
       <p id="tow-open-hint" class="screen-sub hidden">Joiners tap a link and land in whichever team has room</p>
 
       <div id="tow-session-type-section">
-        <p class="pyramid-setup-section-label horse-section-label">SESSION TYPE</p>
+        <p class="pyramid-setup-section-label horse-section-label">
+          <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Session type
+        </p>
         <div id="tow-session-select" class="segmented" role="tablist">
           <button type="button" class="segment active" data-tow-session="live">Live</button>
           <button type="button" class="segment" data-tow-session="online">Online</button>
