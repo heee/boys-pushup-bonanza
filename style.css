@@ -1861,7 +1861,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .horse-remind-btn .icon-share { color: var(--text-dim); }
 
-.horse-timer-line { margin-top: -0.3rem; }
+.horse-timer-line { margin-top: -0.3rem; font-style: italic; }
 .horse-timer-line-urgent { color: var(--danger); font-weight: 700; }
 
 /* Collected-letter chip pairing — muted red-brown, distinct from the
@@ -1996,7 +1996,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-open-share-btn { width: auto; min-height: 42px; padding: 0.55rem 0.85rem; white-space: nowrap; }
 .horse-open-link { margin: 0.8rem 0 0; color: var(--text-tertiary); font-size: 0.72rem; overflow-wrap: anywhere; }
 .horse-open-exit-btn { display: block; border: 0; background: none; color: var(--danger); font: inherit; font-size: 0.82rem; font-weight: 700; margin: 0.8rem auto 0; padding: 0.3rem; cursor: pointer; }
-.horse-open-slot { border-style: dashed; color: var(--text-tertiary); }
+.tier1-row.horse-open-slot {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  margin: 6px 0;
+  color: var(--text-tertiary);
+}
 .horse-open-slot-icon { width: 2rem; text-align: center; font-size: 1.25rem; }
 
 /* Active-workout HUD: static target hero (does not tick per rep, unlike
