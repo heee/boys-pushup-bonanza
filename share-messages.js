@@ -654,6 +654,33 @@ export function pickHorseReminderMessage(ctx) {
   return template(ctx);
 }
 
+// Invite copy for the Open Horse setup screen's "Share invite" button —
+// recruits strangers into c.createdBy's game. c.createdBy is the host's name.
+const SHARE_MESSAGES_HORSE_OPEN_INVITE = [
+  (c) => `🐴 ${c.createdBy} has opened a Horse game to the public like it's a public health emergency. Come lose with dignity.`,
+  (c) => `${c.createdBy} is recruiting victims for Open Horse. No experience necessary. No dignity survives.`,
+  (c) => `BREAKING: ${c.createdBy} started a Horse game and anyone can join, which is either brave or a cry for help. Get in here.`,
+  (c) => `${c.createdBy}'s Horse game just went public. The bar is low. So is your chance of winning. Join anyway.`,
+  (c) => `Open casting call: ${c.createdBy} needs opponents for Horse. Pay is zero, humiliation is guaranteed. Sign up.`,
+  (c) => `${c.createdBy} opened the gates on a Horse game and is now legally required to accept whoever shows up. That's you.`,
+  (c) => `🚨 ${c.createdBy} is letting strangers into a Horse game. This is either a great idea or a cult. Only one way to find out.`,
+  (c) => `${c.createdBy} started Open Horse. First rule of Open Horse: everyone talks about Open Horse. Join before the slots fill.`,
+  (c) => `Public notice: ${c.createdBy} has weaponized pushups into a game and is inviting the general public. Tag yourself in.`,
+  (c) => `${c.createdBy} opened a Horse session to anyone with thumbs and a death wish. Come get spelled out.`,
+  (c) => `Free entry, no refunds: ${c.createdBy}'s Open Horse game is live and taking applicants. Apply by joining.`,
+  (c) => `${c.createdBy} just made Horse a public spectacle. Grab a spot before the letters start flying.`,
+];
+
+let lastHorseOpenInviteTemplate = null;
+export function pickHorseOpenInviteMessage(ctx) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(SHARE_MESSAGES_HORSE_OPEN_INVITE); guard++; }
+  while (template === lastHorseOpenInviteTemplate && SHARE_MESSAGES_HORSE_OPEN_INVITE.length > 1 && guard < 10);
+  lastHorseOpenInviteTemplate = template;
+  return template(ctx);
+}
+
 // Share copy for the "you picked up a letter" screen — owns the miss, then
 // shoves the ball into the next player's court. c.name is whoever just
 // missed, c.letter the letter they picked up, c.nextName who's up next

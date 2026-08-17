@@ -2773,15 +2773,16 @@ $("btn-horse-remind").addEventListener("click", shareHorseReminder);
 async function shareOpenHorseInvite() {
   const game = state.horseGame;
   if (!game) return;
+  const { pickHorseOpenInviteMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
   const url = horseInviteUrl(game.id);
-  const text = `Join ${game.createdBy}'s Open Horse push-up game.`;
+  const text = pickHorseOpenInviteMessage({ createdBy: game.createdBy });
   if (navigator.share) {
     try { await navigator.share({ title: "Open Horse", text, url }); } catch (e) { /* cancelled */ }
     return;
   }
   try {
-    await navigator.clipboard.writeText(url);
-    toast("Invite link copied", 2500);
+    await navigator.clipboard.writeText(`${text} ${url}`);
+    toast("Invite copied", 2500);
   } catch (e) {
     toast("Couldn't copy the link automatically.", 3500);
   }
@@ -8507,7 +8508,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=139").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=140").then((module) => {
       workoutShareMessages = module;
       return module;
     });
