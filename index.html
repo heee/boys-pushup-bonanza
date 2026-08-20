@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=219">
+<link rel="stylesheet" href="style.css?v=220">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1097,6 +1097,7 @@
             <button type="button" class="leaderboard-mode-option selected" role="option" data-roadtrip-period="week"><span>Week</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="month"><span>Month</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="year"><span>Year</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="all"><span>All-time</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
           </div>
         </div>
       </div>
@@ -1436,10 +1437,30 @@
   </section>
 </div>
 
+<div id="recap-backdrop" class="recap-backdrop hidden">
+  <section id="recap-card" class="recap-card" role="dialog" aria-modal="true" aria-labelledby="recap-eyebrow">
+    <button id="btn-recap-close" type="button" class="recap-close" aria-label="Close recap">&#x2715;</button>
+    <div id="recap-tabs" class="recap-tabs"></div>
+    <div id="recap-body" class="recap-body">
+      <p id="recap-eyebrow" class="recap-eyebrow"></p>
+      <div id="recap-hero" class="recap-hero"></div>
+      <p id="recap-hero-label" class="recap-hero-label"></p>
+      <div id="recap-delta" class="recap-delta"></div>
+      <div id="recap-strip" class="recap-strip"></div>
+      <div id="recap-tiles" class="recap-tiles"></div>
+      <div id="recap-highlights" class="recap-highlights"></div>
+    </div>
+    <div class="recap-actions">
+      <button id="btn-recap-share" type="button" class="recap-share">Share your week</button>
+      <button id="btn-recap-dismiss" type="button" class="recap-dismiss">Dismiss</button>
+    </div>
+  </section>
+</div>
+
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=219"></script>
+<script type="module" src="app.js?v=220"></script>
 </body>
 </html>

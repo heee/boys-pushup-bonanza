@@ -134,6 +134,7 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
+import { buildRecapTier, checkAndQueueRecaps, exportRecapImage, RECAP_TIER_META } from "./recap.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
 import {
@@ -1306,10 +1307,13 @@ const state = {
   chaseMultiplier: 1,
   summaryChaseResult: null,
   summaryRoadtripConquests: [],
-  roadtripPeriod: ["day", "week", "month", "year"].includes(localStorage.getItem(LS.roadtripPeriod)) ? localStorage.getItem(LS.roadtripPeriod) : "week",
+  roadtripPeriod: ["day", "week", "month", "year", "all"].includes(localStorage.getItem(LS.roadtripPeriod)) ? localStorage.getItem(LS.roadtripPeriod) : "week",
   roadtripTier: ["neighborhood", "city", "country"].includes(localStorage.getItem(LS.roadtripTier)) ? localStorage.getItem(LS.roadtripTier) : "city",
   roadtripTerritories: [],
   roadtripDetailId: null,
+  recapQueue: [],
+  recapTabs: [],
+  recapTabIndex: 0,
   compareUser: "",
   // null means "A side is whoever's device this is" (the normal tap-to-compare
   // path). A shared #compare=A|B link that names someone other than the
@@ -4326,7 +4330,7 @@ $("chk-sound-enabled").addEventListener("change", (e) => {
 
 // ------------------- Roadtrip -------------------
 
-const ROADTRIP_PERIOD_LABELS = { day: "Day", week: "Week", month: "Month", year: "Year" };
+const ROADTRIP_PERIOD_LABELS = { day: "Day", week: "Week", month: "Month", year: "Year", all: "All-time" };
 const ROADTRIP_TIER_LABELS = { neighborhood: "Neighborhood", city: "City", country: "Country" };
 
 // Words swapped into the roadtrip share templates below so the same joke
@@ -10275,6 +10279,173 @@ $("btn-situp-start").addEventListener("click", startSitup);
 $("btn-situp-cancel").addEventListener("click", stopSitupHard);
 $("btn-situp-stop").addEventListener("click", completeSitup);
 
+// ------------------- Recap -------------------
+
+const RECAP_PALETTE_CLASSES = ["recap-week", "recap-month", "recap-quarter", "recap-year"];
+
+const recapStorage = {
+  getItem: (key) => localStorage.getItem(`bpb-${key}`),
+  setItem: (key, value) => localStorage.setItem(`bpb-${key}`, value),
+};
+
+function recapValueDisplay(value, unit) {
+  return unit === "seconds" ? formatDuration(value * 1000) : formatNumber(value);
+}
+
+function openNextRecap() {
+  if (!state.recapQueue.length) return;
+  const tier = state.recapQueue[0];
+  const tabs = buildRecapTier(getAllSessionsForDisplay(), state.currentUser, tier, new Date());
+  if (!tabs.length) {
+    state.recapQueue.shift();
+    openNextRecap();
+    return;
+  }
+  state.recapTier = tier;
+  state.recapTabs = tabs;
+  state.recapTabIndex = 0;
+  renderRecapModal();
+  $("recap-backdrop").classList.remove("hidden");
+}
+
+function advanceRecapQueue() {
+  state.recapQueue.shift();
+  if (state.recapQueue.length) openNextRecap();
+  else $("recap-backdrop").classList.add("hidden");
+}
+
+function dismissAllRecaps() {
+  state.recapQueue = [];
+  $("recap-backdrop").classList.add("hidden");
+}
+
+function renderRecapModal() {
+  const tier = state.recapTier;
+  const tab = state.recapTabs[state.recapTabIndex];
+  if (!tab) return;
+  const meta = RECAP_TIER_META[tier];
+
+  const card = $("recap-card");
+  card.classList.remove(...RECAP_PALETTE_CLASSES);
+  card.classList.add(meta.palette);
+
+  const tabsEl = $("recap-tabs");
+  tabsEl.innerHTML = "";
+  if (state.recapTabs.length > 1) {
+    state.recapTabs.forEach((t, index) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `recap-tab${index === state.recapTabIndex ? " active" : ""}`;
+      btn.textContent = t.label;
+      btn.addEventListener("click", () => { state.recapTabIndex = index; renderRecapModal(); });
+      tabsEl.appendChild(btn);
+    });
+  }
+
+  $("recap-eyebrow").textContent = tier === "year" ? `${tab.start.getFullYear()} in review` : meta.label;
+  $("recap-hero").textContent = recapValueDisplay(tab.total, tab.unit);
+  $("recap-hero-label").textContent = tab.label.toUpperCase();
+
+  const deltaEl = $("recap-delta");
+  if (tab.deltaPct != null) {
+    deltaEl.classList.remove("hidden");
+    deltaEl.textContent = `${tab.deltaPct >= 0 ? "+" : ""}${tab.deltaPct}% vs last ${tier}`;
+  } else {
+    deltaEl.classList.add("hidden");
+  }
+
+  const stripEl = $("recap-strip");
+  stripEl.innerHTML = "";
+  if (tab.strip.type === "dots") {
+    const row = document.createElement("div");
+    row.className = "recap-strip-dots";
+    tab.strip.days.forEach((active) => {
+      const dot = document.createElement("span");
+      dot.className = `recap-strip-dot${active ? " active" : ""}`;
+      dot.textContent = "🔥";
+      row.appendChild(dot);
+    });
+    stripEl.appendChild(row);
+  } else {
+    const row = document.createElement("div");
+    row.className = "recap-strip-bars";
+    const max = Math.max(1, ...tab.strip.buckets);
+    tab.strip.buckets.forEach((value, index) => {
+      const bar = document.createElement("div");
+      bar.className = `recap-strip-bar${index === tab.strip.currentIndex ? " current" : ""}`;
+      bar.style.height = `${Math.max(8, Math.round((value / max) * 100))}%`;
+      row.appendChild(bar);
+    });
+    stripEl.appendChild(row);
+  }
+
+  const tilesEl = $("recap-tiles");
+  const rankLabel = tab.prevRank && tab.prevRank !== tab.rank ? `rank, was #${tab.prevRank}` : "rank";
+  const tiles = [
+    { value: formatNumber(tab.sessionsCount), label: "sessions" },
+    { value: recapValueDisplay(tab.periodBest, tab.unit), label: "best (PB)" },
+    { value: tab.rank ? `#${tab.rank}` : "—", label: rankLabel },
+  ];
+  tilesEl.innerHTML = tiles.map((tile) =>
+    `<div class="recap-tile"><span class="recap-tile-value">${escapeHtml(tile.value)}</span><span class="recap-tile-label">${escapeHtml(tile.label)}</span></div>`
+  ).join("");
+
+  const highlightsEl = $("recap-highlights");
+  highlightsEl.innerHTML = tab.highlights.map((h) =>
+    `<div class="recap-highlight"><span class="recap-highlight-icon">${h.icon}</span><span>${escapeHtml(h.text)}</span></div>`
+  ).join("");
+
+  $("btn-recap-share").textContent = `Share your ${tier}`;
+}
+
+function switchRecapTab(direction) {
+  const count = state.recapTabs.length;
+  if (count < 2) return;
+  state.recapTabIndex = (state.recapTabIndex + direction + count) % count;
+  renderRecapModal();
+}
+
+async function shareRecapCard() {
+  const tab = state.recapTabs[state.recapTabIndex];
+  if (!tab) return;
+  try {
+    const blob = await exportRecapImage(state.recapTier, tab, state.currentUser);
+    const file = new File([blob], `recap-${state.recapTier}.png`, { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Boys Pushup Bonanza" });
+    } else if (navigator.share) {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: `${recapValueDisplay(tab.total, tab.unit)} ${tab.label.toLowerCase()} this ${state.recapTier} 💪` });
+    } else {
+      toast("Sharing isn't supported on this browser.", 3000);
+    }
+  } catch (e) {
+    // user cancelled the share sheet, or the browser blocked it — no toast needed
+  }
+  advanceRecapQueue();
+}
+
+$("btn-recap-close").addEventListener("click", dismissAllRecaps);
+$("btn-recap-dismiss").addEventListener("click", advanceRecapQueue);
+$("btn-recap-share").addEventListener("click", shareRecapCard);
+$("recap-backdrop").addEventListener("click", (event) => {
+  if (event.target === $("recap-backdrop")) dismissAllRecaps();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("recap-backdrop").classList.contains("hidden")) dismissAllRecaps();
+});
+
+let recapTouchStartX = null;
+$("recap-body").addEventListener("touchstart", (event) => {
+  recapTouchStartX = event.touches[0].clientX;
+}, { passive: true });
+$("recap-body").addEventListener("touchend", (event) => {
+  if (recapTouchStartX == null) return;
+  const deltaX = event.changedTouches[0].clientX - recapTouchStartX;
+  recapTouchStartX = null;
+  if (Math.abs(deltaX) < 40) return;
+  switchRecapTab(deltaX < 0 ? 1 : -1);
+});
+
 // ------------------- init -------------------
 
 // Best-effort native lock — only honored by browsers/contexts that support
@@ -10317,6 +10488,13 @@ async function init() {
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }
+  }
+
+  // Runs off whatever's cached locally, so it still fires offline/unreachable
+  // — not gated on the live fetch above succeeding.
+  if (state.currentUser) {
+    state.recapQueue = checkAndQueueRecaps(getAllSessionsForDisplay(), state.currentUser, new Date(), recapStorage);
+    if (state.recapQueue.length) openNextRecap();
   }
 
   // Open Horse links use the remembered app profile. New devices stay on the

@@ -57,7 +57,7 @@ test("detects first claims and groups every period and tier", () => {
   const fresh = session("new", "Ada", 10, 10);
   const wins = detectRoadtripConquests([fresh], "new", { now });
   assert.equal(wins.length, 3);
-  assert.ok(wins.every((win) => win.kind === "claimed" && win.periods.length === 4));
+  assert.ok(wins.every((win) => win.kind === "claimed" && win.periods.length === 5));
 });
 
 test("detects overtakes, names the incumbent, and rejects a tie", () => {

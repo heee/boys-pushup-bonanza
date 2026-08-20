@@ -2,7 +2,7 @@ import { periodStart } from "./stats.js";
 import { normalizeTerritoryLocation } from "./territory-location.js";
 
 export const ROADTRIP_TIERS = ["neighborhood", "city", "country"];
-export const ROADTRIP_PERIODS = ["day", "week", "month", "year"];
+export const ROADTRIP_PERIODS = ["day", "week", "month", "year", "all"];
 
 const flagEmoji = (code = "") => /^[A-Z]{2}$/.test(code)
   ? [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("")
@@ -33,7 +33,7 @@ function locationMeta(location, tier) {
 }
 
 export function eligibleRoadtripSessions(sessions, period = "week", now = new Date()) {
-  const start = periodStart(period, now).getTime();
+  const start = period === "all" ? -Infinity : periodStart(period, now).getTime();
   return (sessions || []).filter((session) =>
     session?.type !== "plank" &&
     Number(session?.count) > 0 &&
