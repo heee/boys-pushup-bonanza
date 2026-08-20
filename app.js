@@ -1255,6 +1255,7 @@ const state = {
   wakeLock: null,
   lastSessionResult: null,
   dashboardPeriod: "day",
+  dashboardBucketOffset: null,
   historyView: "recent",
   highScore: 0,
   bonanzaMode: "mine",
@@ -4860,6 +4861,7 @@ $("bonanza-mode-select").addEventListener("click", (e) => {
   document.querySelectorAll("#bonanza-mode-select .segment").forEach((s) => s.classList.remove("active"));
   btn.classList.add("active");
   state.bonanzaMode = btn.dataset.mode;
+  state.dashboardBucketOffset = null;
   $("boys-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "boys");
   $("my-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "mine");
   paintActiveBonanzaView();
@@ -4887,6 +4889,7 @@ function selectLeaderboardMode(mode) {
   if (!LEADERBOARD_MODE_IDS.has(mode)) return;
   state.leaderboardMode = mode;
   state.activityType = leaderboardActivity(mode);
+  state.dashboardBucketOffset = null;
   localStorage.setItem(LS.leaderboardMode, mode);
   syncLeaderboardModeControl();
   setLeaderboardModeMenuOpen(false);
@@ -5016,7 +5019,8 @@ const CHART_BUCKET_LABEL_FORMAT = {
   year: { year: "numeric" },
 };
 
-function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false, period = "day", headerElId = null) {
+function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false, period = "day", headerElId = null, options = {}) {
+  const { selectedOffset = null, onBucketSelect = null } = options;
   const metricOf = (session) => (isHolland ? Number(session.hollandCycles) || 0 : Number(session.count) || 0);
   const config = CHART_PERIOD_BUCKETS[period] || CHART_PERIOD_BUCKETS.day;
   const bucketCount = 7;
@@ -5045,19 +5049,31 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
 
   $(chartElId).innerHTML = buckets.map((bucket, i) => {
     const isCurrent = i === bucketCount - 1;
+    const offset = i - (bucketCount - 1);
+    const isSelected = selectedOffset === offset;
     const label = isCurrent
       ? (period === "day" ? "Today" : "This")
       : bucket.start.toLocaleDateString(undefined, CHART_BUCKET_LABEL_FORMAT[period] || CHART_BUCKET_LABEL_FORMAT.day);
     const heightPct = bucket.total > 0 ? Math.max(6, Math.round((bucket.total / maxTotal) * 100)) : 3;
     const valueDisplay = bucket.total > 0 ? (isPlank ? formatDuration(bucket.total * 1000) : isHolland ? bucket.total.toFixed(1) : formatNumber(bucket.total)) : "";
+    const classes = ["week-bar-col"];
+    if (isCurrent) classes.push("week-bar-col-today");
+    if (onBucketSelect) classes.push("week-bar-col-clickable");
+    if (isSelected) classes.push("week-bar-col-selected");
     return `
-      <div class="week-bar-col${isCurrent ? " week-bar-col-today" : ""}">
+      <div class="${classes.join(" ")}" data-bucket-offset="${offset}">
         <div class="week-bar-value">${valueDisplay}</div>
         <div class="week-bar" style="height:${heightPct}%"></div>
         <div class="week-bar-label">${label}</div>
       </div>
     `;
   }).join("");
+
+  if (onBucketSelect) {
+    $(chartElId).querySelectorAll(".week-bar-col").forEach((col) => {
+      col.addEventListener("click", () => onBucketSelect(Number(col.dataset.bucketOffset)));
+    });
+  }
 
   // Trend vs the same-length window immediately before this one — "are we improving".
   const windowTotal = buckets.reduce((sum, b) => sum + b.total, 0);
@@ -5072,7 +5088,19 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     trendEl.classList.add("hidden");
   }
 
-  if (headerElId) $(headerElId).textContent = config.headerLabel;
+  if (headerElId) {
+    if (selectedOffset !== null) {
+      const selectedBucket = buckets[bucketCount - 1 + selectedOffset];
+      const isCurrent = selectedOffset === 0;
+      $(headerElId).textContent = isCurrent
+        ? (period === "day" ? "Today" : `This ${period}`)
+        : selectedBucket.start.toLocaleDateString(undefined, { weekday: period === "day" ? "long" : undefined, month: "short", day: period === "day" || period === "week" ? "numeric" : undefined, year: period === "year" ? "numeric" : undefined });
+    } else {
+      $(headerElId).textContent = config.headerLabel;
+    }
+  }
+
+  return buckets;
 }
 
 // ------------------- head-to-head comparison -------------------
@@ -5533,11 +5561,27 @@ function paintDashboard(sessions) {
   const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
   const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
 
-  renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank, isHolland, state.dashboardPeriod, "boys-week-header");
+  const buckets = renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank, isHolland, state.dashboardPeriod, "boys-week-header", {
+    selectedOffset: state.dashboardBucketOffset,
+    onBucketSelect: (offset) => {
+      state.dashboardBucketOffset = state.dashboardBucketOffset === offset ? null : offset;
+      paintDashboard(sessions);
+    },
+  });
 
-  const start = periodStart(state.dashboardPeriod);
-  const startTime = start.getTime();
-  const filtered = sessions.filter((s) => sessionTimestamp(s) >= startTime);
+  let startTime, endTime;
+  if (state.dashboardBucketOffset !== null) {
+    const bucket = buckets[buckets.length - 1 + state.dashboardBucketOffset];
+    startTime = bucket.start.getTime();
+    endTime = bucket.end.getTime();
+  } else {
+    startTime = periodStart(state.dashboardPeriod).getTime();
+    endTime = Infinity;
+  }
+  const filtered = sessions.filter((s) => {
+    const t = sessionTimestamp(s);
+    return t >= startTime && t < endTime;
+  });
 
   const totals = new Map();
   for (const s of filtered) {
@@ -5660,6 +5704,7 @@ $("period-select").addEventListener("click", (e) => {
   document.querySelectorAll("#period-select .segment").forEach((s) => s.classList.remove("active"));
   btn.classList.add("active");
   state.dashboardPeriod = btn.dataset.period;
+  state.dashboardBucketOffset = null;
   paintActiveBonanzaView();
 });
 

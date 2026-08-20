@@ -2881,6 +2881,31 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   height: 100%;
   gap: 0.3rem;
 }
+.week-bar-col-clickable {
+  cursor: pointer;
+}
+.week-bar-col-clickable .week-bar-label {
+  transition: color 0.15s ease;
+}
+.week-bar-col-selected .week-bar {
+  background: linear-gradient(180deg, var(--primary-dim), var(--primary-deep));
+  box-shadow: 0 0 0 2px var(--primary) inset;
+}
+.week-bar-col-selected .week-bar-label {
+  font-weight: 700;
+  color: var(--primary);
+}
+.week-chart-clear {
+  display: block;
+  margin: 0.35rem auto 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+}
 .week-bar-value {
   font-size: 0.75rem;
   font-weight: 500;
