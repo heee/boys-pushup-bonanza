@@ -44,6 +44,9 @@ export function createHorseGame({ id, word, sessionType, createdBy, players, tim
     timeLimit: timeLimit == null ? null : timeLimit,
     timerStartedAt: null,
     pendingChoice: null,
+    // Open sessions only: null while the host's lobby is still filling up —
+    // see startOpenGame. Other session types never touch this field.
+    startedAt: null,
   };
 }
 
@@ -66,26 +69,41 @@ export function joinOpenPlayer(game, { user, now = Date.now() }) {
   const name = String(user || "").trim();
   if (!name) throw new Error("Player name is required");
   if (game.turnOrder.includes(name)) return game;
+  if (game.startedAt != null) throw new Error("This session has already started");
   if (game.turnOrder.length >= 8) throw new Error("Open game is full");
 
   const turnOrder = [...game.turnOrder, name];
   const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };
-  // If the host already set the opening bar while alone, the first arrival is
-  // immediately up. Otherwise they wait behind the host in normal join order.
-  const hostSetBarWhileAlone = game.turnOrder.length === 1 && game.target != null;
-  return {
-    ...game,
-    turnOrder,
-    players,
-    ...(hostSetBarWhileAlone ? { turnIndex: 1, turnStartedAt: now } : {}),
-  };
+  // Joining never hands over the turn by itself — the host stays "up" (and
+  // nobody else can act) until they explicitly start the match; see
+  // startOpenGame and finalizeTarget's pre-start branch below.
+  return { ...game, turnOrder, players };
 }
 
 export function cancelOpenGame(game, { user, now = Date.now() }) {
   if (game.status !== "active" || game.sessionType !== "open") throw new Error("Open game is not active");
   if (game.createdBy !== user) throw new Error("Only the host can cancel this game");
-  if (game.turnOrder.length > 1) throw new Error("The game already has challengers");
+  if (game.startedAt != null) throw new Error("The game has already started");
   return { ...game, status: "cancelled", cancelledAt: now, turnStartedAt: null };
+}
+
+// Host explicitly kicks off the match once enough people have joined the
+// lobby — locks the roster (joinOpenPlayer rejects joins once startedAt is
+// set) and, if the host already took their opening set while waiting, hands
+// the turn to the first challenger so they're the one who has to beat it.
+// If the host hasn't set the bar yet, the turn stays with them (unchanged)
+// and the normal post-start flow takes over on their next set.
+export function startOpenGame(game, { user, now = Date.now() }) {
+  if (game.status !== "active" || game.sessionType !== "open") throw new Error("Open game is not active");
+  if (game.createdBy !== user) throw new Error("Only the host can start this game");
+  if (game.startedAt != null) throw new Error("The game has already started");
+  if (game.turnOrder.length < 2) throw new Error("Need at least one challenger to start");
+  const hostHasSetBar = game.target != null;
+  return {
+    ...game,
+    startedAt: now,
+    ...(hostHasSetBar ? { turnIndex: 1, turnStartedAt: now } : {}),
+  };
 }
 
 function advanceTurn(game, now) {
@@ -136,6 +154,13 @@ function computeTimerStart(game) {
 function finalizeTarget(game, { target, targetSetBy, targetModifier, now }) {
   const next = { ...game, target, targetSetBy, targetModifier, pendingChoice: null };
   next.timerStartedAt = computeTimerStart(next);
+
+  // Open lobby, not started yet: only the host can ever be up (see
+  // joinOpenPlayer), so their set just loops back to themselves — no winner
+  // check, no handoff — until startOpenGame explicitly begins the match.
+  if (next.sessionType === "open" && next.startedAt == null) {
+    return { ...next, turnIndex: 0, round: next.round + 1, turnStartedAt: now };
+  }
 
   const winner = checkWinner(next);
   if (winner) return { ...next, status: "complete", winner: [winner], turnStartedAt: null };

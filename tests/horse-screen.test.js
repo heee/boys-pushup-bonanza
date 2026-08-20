@@ -130,10 +130,11 @@ test("Open Horse share links preserve the app path and identify the game", () =>
   assert.equal(horseInviteUrl("hg-123", { origin: "https://example.com", pathname: "/bonanza/" }), "https://example.com/bonanza/#horse=hg-123");
 });
 
-test("Open Horse join model handles ready, joined, full, and inactive links", () => {
-  const game = { sessionType: "open", status: "active", createdBy: "You", turnOrder: ["You"], players: { You: {} } };
+test("Open Horse join model handles ready, joined, full, started, and inactive links", () => {
+  const game = { sessionType: "open", status: "active", createdBy: "You", turnOrder: ["You"], players: { You: {} }, startedAt: null };
   assert.deepEqual(openHorseJoinModel(game, "Mia"), { state: "ready", title: "Join You's Horse game?", canJoin: true, slotsLeft: 7 });
   assert.equal(openHorseJoinModel(game, "You").state, "joined");
   assert.equal(openHorseJoinModel({ ...game, turnOrder: ["You", "A", "B", "C", "D", "E", "F", "G"] }, "Mia").state, "full");
+  assert.equal(openHorseJoinModel({ ...game, startedAt: 5 }, "Mia").state, "started");
   assert.equal(openHorseJoinModel({ ...game, status: "cancelled" }, "Mia").state, "cancelled");
 });

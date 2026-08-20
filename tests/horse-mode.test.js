@@ -12,6 +12,7 @@ import {
   horseTargetLabel,
   isTimeUp,
   joinOpenPlayer,
+  startOpenGame,
   tallyGame,
 } from "../horse.js";
 import { HORSE_WORDS, randomHorseWord } from "../horse-words.js";
@@ -64,13 +65,38 @@ test("Open Horse starts with the host alone and does not crown a solo winner", (
   assert.equal(g.target, 24);
 });
 
-test("first Open challenger is immediately up when the host already set the bar", () => {
+test("joining never hands off the turn by itself — the host stays up until they explicitly start", () => {
   let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
   g = applyTurn(g, { user: "You", reps: 24, now: 2 });
   g = joinOpenPlayer(g, { user: "Mia", now: 3 });
   assert.deepEqual(g.turnOrder, ["You", "Mia"]);
-  assert.equal(currentTurnPlayer(g), "Mia");
+  assert.equal(currentTurnPlayer(g), "You");
   assert.equal(g.players.Mia.joinedAt, 3);
+  // Even a second solo set from the host (re-setting the bar while still
+  // waiting) loops back to the host rather than jumping to Mia.
+  g = applyTurn(g, { user: "You", reps: 30, now: 4 });
+  g = chooseHorseTarget(g, { user: "You", mode: "match", now: 4 });
+  assert.equal(currentTurnPlayer(g), "You");
+  assert.equal(g.target, 30);
+});
+
+test("startOpenGame requires the host, a challenger, and hands off if the bar's already set", () => {
+  let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
+  assert.throws(() => startOpenGame(g, { user: "You", now: 2 }), /challenger/);
+  g = joinOpenPlayer(g, { user: "Mia", now: 2 });
+  assert.throws(() => startOpenGame(g, { user: "Mia", now: 3 }), /host/);
+  // Host hasn't set the bar yet — starting leaves the turn with them.
+  let notStartedYet = startOpenGame(g, { user: "You", now: 3 });
+  assert.equal(notStartedYet.startedAt, 3);
+  assert.equal(currentTurnPlayer(notStartedYet), "You");
+  assert.throws(() => joinOpenPlayer(notStartedYet, { user: "Dev", now: 4 }), /started/);
+  assert.throws(() => startOpenGame(notStartedYet, { user: "You", now: 4 }), /started/);
+
+  // Host set the bar before starting — starting hands off to the challenger.
+  g = applyTurn(g, { user: "You", reps: 24, now: 3 });
+  const started = startOpenGame(g, { user: "You", now: 4 });
+  assert.equal(started.startedAt, 4);
+  assert.equal(currentTurnPlayer(started), "Mia");
 });
 
 test("Open challengers joining before the first set queue behind the host in arrival order", () => {
@@ -98,12 +124,14 @@ test("an Open player can leave before playing and frees the slot without voiding
   assert.throws(() => declinePlayer(g, { user: "You" }), /cancel/);
 });
 
-test("only a solo Open host can cancel", () => {
+test("the host can cancel any time before starting, even with challengers already in the lobby", () => {
   const solo = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
   assert.equal(cancelOpenGame(solo, { user: "You", now: 2 }).status, "cancelled");
   const joined = joinOpenPlayer(solo, { user: "Mia", now: 3 });
-  assert.throws(() => cancelOpenGame(joined, { user: "You" }), /challengers/);
+  assert.equal(cancelOpenGame(joined, { user: "You", now: 4 }).status, "cancelled");
   assert.throws(() => cancelOpenGame(solo, { user: "Mia" }), /host/);
+  const started = startOpenGame(joined, { user: "You", now: 5 });
+  assert.throws(() => cancelOpenGame(started, { user: "You" }), /started/);
 });
 
 test("opening set has no target and always sets the bar without a letter", () => {

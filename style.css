@@ -1995,6 +1995,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-open-slots { margin: 0; font-weight: 800; }
 .horse-open-share-btn { width: auto; min-height: 42px; padding: 0.55rem 0.85rem; white-space: nowrap; }
 .horse-open-link { margin: 0.8rem 0 0; color: var(--text-tertiary); font-size: 0.72rem; overflow-wrap: anywhere; }
+.horse-open-startgame-btn { width: 100%; min-height: 44px; margin-top: 0.9rem; }
 .horse-open-exit-btn { display: block; border: 0; background: none; color: var(--danger); font: inherit; font-size: 0.82rem; font-weight: 700; margin: 0.8rem auto 0; padding: 0.3rem; cursor: pointer; }
 .tier1-row.horse-open-slot {
   border: 1px dashed var(--border);

@@ -95,8 +95,12 @@ ever take a turn completes THEIR first set.
   offline queue; the turn POST itself requires connectivity like join-challenge).
 - **New Worker endpoints** (`worker/index.js` — manual dashboard redeploy):
   - `POST /horse-create` — validate + append game.
-  - `POST /horse-join` — join an active Open game, capped at four players.
-  - `POST /horse-cancel` — host cancels before a challenger joins.
+  - `POST /horse-join` — join an Open game's lobby, capped at eight players.
+  - `POST /horse-start` — host starts an Open game once 1+ challenger has
+    joined; locks the roster (horse-join rejects after this). If the host
+    already set the bar while waiting, the turn hands to the first
+    challenger; otherwise it stays with the host.
+  - `POST /horse-cancel` — host cancels an Open game any time before starting it.
   - `POST /horse-turn` — apply set, run rules, advance turn.
   - `POST /horse-tally` — once the match timer has expired, ends the game and
     crowns whoever has the fewest letters (ties share the win).
@@ -106,7 +110,7 @@ ever take a turn completes THEIR first set.
     Worker (it has no module imports today); keep both against `tests/`.
 - **Client API** (`api.js`): `createHorseGame`, `postHorseTurn`,
   `tallyHorseGame`, `declineHorseInvite`, `joinOpenHorseGame`,
-  `cancelOpenHorseGame`.
+  `startOpenHorseGame`, `cancelOpenHorseGame`.
 
 ## Screens (new `screens/horse.js` + markup in `index.html`)
 

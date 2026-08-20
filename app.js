@@ -588,6 +588,9 @@ async function workerCreateHorseGame(input) {
 async function workerJoinOpenHorseGame(gameId, user) {
   return workerApi.joinOpenHorseGame(gameId, user);
 }
+async function workerStartOpenHorseGame(gameId, user) {
+  return workerApi.startOpenHorseGame(gameId, user);
+}
 async function workerCancelOpenHorseGame(gameId, user) {
   return workerApi.cancelOpenHorseGame(gameId, user);
 }
@@ -2661,8 +2664,11 @@ function renderHorseTurnOrder() {
   const rows = horsePlayerRows(game);
   const isRemote = game.sessionType === "invite" || game.sessionType === "open";
   const timeUp = isRemote && isTimeUp(game, Date.now());
-  const waitingForOpenChallenger = game.sessionType === "open" && game.turnOrder.length === 1 && game.target != null;
-  $("horse-order-title").textContent = game.sessionType === "open" && game.turnOrder.length === 1
+  // Open, host already set the bar, but hasn't pressed Start yet — nobody
+  // (including the host) is really "up" until then, whether they're alone
+  // or several challengers deep in the lobby. See horse.js's finalizeTarget.
+  const notYetStarted = game.sessionType === "open" && game.startedAt == null && game.target != null;
+  $("horse-order-title").textContent = game.sessionType === "open" && game.startedAt == null
     ? "Horse · Open lobby"
     : `Horse · Round ${game.round}`;
   const target = horseTargetLabel(game);
@@ -2670,8 +2676,8 @@ function renderHorseTurnOrder() {
   const forcedReps = horseTargetWasLowered(game);
   const wentLowerNote = forcedReps ? ` · ${game.targetSetBy} could've forced ${forcedReps}` : "";
   $("horse-order-target-line").textContent = target
-    ? waitingForOpenChallenger
-      ? `${game.targetSetBy} set ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} · waiting for a challenger`
+    ? notYetStarted
+      ? `${game.targetSetBy} set ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} · waiting to start`
       : `Beat ${target}${targetModifierMeta ? ` (${targetModifierMeta.cueLabel})` : ""} to stay clean${wentLowerNote}`
     : `${escapeHtml(game.turnOrder[0])} sets the bar`;
 
@@ -2694,7 +2700,7 @@ function renderHorseTurnOrder() {
   }
 
   const playerRowsHTML = rows.map((row) => {
-    const displayedUp = row.status === "up" && !waitingForOpenChallenger;
+    const displayedUp = row.status === "up" && !notYetStarted;
     const statusHTML = row.status === "out"
       ? '<span class="horse-player-status-out">OUT</span>'
       : displayedUp
@@ -2719,7 +2725,7 @@ function renderHorseTurnOrder() {
   $("horse-turn-order-list").innerHTML = playerRowsHTML + openSlotsHTML;
   $("horse-turn-order-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
   const upNow = currentTurnPlayer(game);
-  const canTakeTurn = !timeUp && !waitingForOpenChallenger && (game.sessionType === "live" || upNow === state.currentUser);
+  const canTakeTurn = !timeUp && !notYetStarted && (game.sessionType === "live" || upNow === state.currentUser);
   $("btn-horse-take-turn").classList.toggle("hidden", !canTakeTurn);
   $("btn-horse-take-turn").textContent = upNow === state.currentUser ? "Do your set" : `Pass the phone to ${upNow} — do your set`;
   // Reminding only makes sense for async games where someone else is
@@ -2733,14 +2739,24 @@ function renderHorseTurnOrder() {
   const isOpen = game.sessionType === "open";
   openControls.classList.toggle("hidden", !isOpen);
   if (isOpen) {
+    const started = game.startedAt != null;
     const slotsLeft = 8 - game.turnOrder.length;
-    $("horse-open-slots").textContent = `${game.turnOrder.length}/8 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
+    $("horse-open-slots").textContent = started
+      ? `${game.turnOrder.length} player${game.turnOrder.length === 1 ? "" : "s"} · started`
+      : `${game.turnOrder.length}/8 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
     $("horse-open-link").textContent = horseInviteUrl(game.id);
-    $("btn-horse-open-share").classList.toggle("hidden", slotsLeft === 0);
-    $("horse-open-link").classList.toggle("hidden", slotsLeft === 0);
+    $("btn-horse-open-share").classList.toggle("hidden", started || slotsLeft === 0);
+    $("horse-open-link").classList.toggle("hidden", started || slotsLeft === 0);
+    const isHost = state.currentUser === game.createdBy;
+    const startBtn = $("btn-horse-open-startgame");
+    startBtn.classList.toggle("hidden", started || !isHost);
+    startBtn.disabled = game.turnOrder.length < 2;
+    startBtn.textContent = game.turnOrder.length < 2
+      ? "Waiting for a challenger to join…"
+      : `Start game · ${game.turnOrder.length} joined`;
     const exit = $("btn-horse-open-exit");
-    const canCancel = state.currentUser === game.createdBy && game.turnOrder.length === 1;
-    const canLeave = state.currentUser !== game.createdBy && !game.sets.some((set) => set.user === state.currentUser);
+    const canCancel = isHost && !started;
+    const canLeave = !isHost && !game.sets.some((set) => set.user === state.currentUser);
     exit.classList.toggle("hidden", !canCancel && !canLeave);
     exit.textContent = canCancel ? "Cancel session" : "Leave before my first turn";
     exit.dataset.action = canCancel ? "cancel" : "leave";
@@ -2791,6 +2807,23 @@ async function shareOpenHorseInvite() {
 
 $("btn-horse-open-share").addEventListener("click", shareOpenHorseInvite);
 
+$("btn-horse-open-startgame").addEventListener("click", async (e) => {
+  const game = state.horseGame;
+  if (!game) return;
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  try {
+    const res = await workerStartOpenHorseGame(game.id, state.currentUser);
+    state.horseGame = res.game;
+    upsertLocalHorseGame(res.game);
+    renderHorseTurnOrder();
+  } catch (err) {
+    toast(err.message || "Couldn't start the game — check your connection.", 4000);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 $("btn-horse-open-exit").addEventListener("click", async (e) => {
   const game = state.horseGame;
   if (!game) return;
@@ -2821,7 +2854,9 @@ function renderOpenHorseJoin(game) {
   $("horse-join-title").textContent = model.title;
   $("horse-join-sub").textContent = model.state === "ready"
     ? `Joining as ${state.currentUser}. ${model.slotsLeft} player slot${model.slotsLeft === 1 ? "" : "s"} remaining.`
-    : model.state === "joined" ? `You're joining as ${state.currentUser}.` : "Ask the host for a current Open session link.";
+    : model.state === "joined" ? `You're joining as ${state.currentUser}.`
+      : model.state === "started" ? "The host already started this match."
+        : "Ask the host for a current Open session link.";
   const names = game?.turnOrder || [];
   const playerRows = names.map((name) => `
     <div class="tier1-row horse-player-row">
@@ -3737,7 +3772,14 @@ function pendingHorseItems() {
     if (game.status !== "active" || !["invite", "open"].includes(game.sessionType)) continue;
     if (!game.turnOrder.includes(user)) continue;
     const opponents = otherHorsePlayers(game, user);
-    if (game.sessionType === "open" && game.turnOrder.length === 1 && game.target != null) continue;
+    // Open host, bar already set, Start not pressed yet — currentTurnPlayer
+    // still resolves to the host (see horse.js's finalizeTarget pre-start
+    // branch), but there's nothing to "beat" yet. Alone, that's just noise;
+    // with challengers waiting, it's "come review the lobby and start" —
+    // not "take another set" — so it gets its own "joined" item below.
+    const hostWaitingToStart = game.sessionType === "open" && user === game.createdBy
+      && game.startedAt == null && game.target != null;
+    if (hostWaitingToStart && game.turnOrder.length === 1) continue;
     if (isTimeUp(game)) {
       items.push({ kind: "expired", gameId: game.id, opponents });
     } else if (game.pendingChoice && game.pendingChoice.user === user) {
@@ -3745,13 +3787,13 @@ function pendingHorseItems() {
       // is pending — call it out separately from "turn" so the bell doesn't
       // say "do your set" when it's actually "pick the next target".
       items.push({ kind: "choosing", gameId: game.id, opponents });
+    } else if (hostWaitingToStart) {
+      const newest = game.turnOrder.slice(1).sort((a, b) => (game.players[b]?.joinedAt || 0) - (game.players[a]?.joinedAt || 0))[0];
+      items.push({ kind: "joined", gameId: game.id, name: newest, opponents });
     } else if (currentTurnPlayer(game) === user) {
       items.push({ kind: "turn", gameId: game.id, targetLabel: horseTargetLabel(game), opponents });
     } else if (game.sessionType === "invite" && user !== game.createdBy && !game.sets.some((s) => s.user === user)) {
       items.push({ kind: "invite", gameId: game.id, from: game.createdBy, opponents });
-    } else if (game.sessionType === "open" && user === game.createdBy && game.turnOrder.length > 1) {
-      const newest = game.turnOrder.slice(1).sort((a, b) => (game.players[b]?.joinedAt || 0) - (game.players[a]?.joinedAt || 0))[0];
-      items.push({ kind: "joined", gameId: game.id, name: newest, opponents });
     } else {
       items.push({ kind: "waiting", gameId: game.id, upNow: currentTurnPlayer(game), opponents });
     }
@@ -3817,7 +3859,7 @@ function towBellRowHTML(item) {
 function horseBellRowHTML(item) {
   {
     if (item.kind === "turn") {
-      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-turn="${item.gameId}">
+      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
         <span aria-hidden="true">🐴</span>
         <span class="horse-player-name">Your turn in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : " · set the opening bar"}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
       </button>`;
@@ -3895,16 +3937,6 @@ document.addEventListener("click", (e) => {
 });
 
 $("horse-bell-list").addEventListener("click", async (e) => {
-  const turnBtn = e.target.closest("[data-bell-turn]");
-  if (turnBtn) {
-    const game = getCachedData().horseGames.find((g) => g.id === turnBtn.dataset.bellTurn);
-    if (game) {
-      state.horseGame = game;
-      $("horse-bell-dropdown").classList.add("hidden");
-      beginHorseTurn(state.currentUser);
-    }
-    return;
-  }
   const joinBtn = e.target.closest("[data-bell-join]");
   if (joinBtn) {
     const game = getCachedData().horseGames.find((g) => g.id === joinBtn.dataset.bellJoin);

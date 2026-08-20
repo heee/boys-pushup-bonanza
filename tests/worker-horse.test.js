@@ -14,6 +14,7 @@ import {
   HORSE_TIME_LIMITS,
   isTimeUp,
   joinOpenPlayer,
+  startOpenGame,
   tallyGame,
   validateHorseCreate,
 } from "../worker/index.js";
@@ -146,17 +147,30 @@ test("validateHorseCreate enforces a 5-letter word, 2-8 players, and creator mem
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You", "Mia"], sessionType: "invite" }).sessionType, "invite");
 });
 
-test("Worker Open rules allow one host, queue up to three joins, and support cancellation", () => {
+test("Worker Open rules: joining waits for an explicit start, and declining/cancelling still work", () => {
   const input = validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You"], sessionType: "open" });
   assert.equal(input.sessionType, "open");
   let g = createHorseGame({ ...input, now: 1 });
   g = applyTurn(g, { user: "You", reps: 20, now: 2 });
   assert.equal(g.status, "active");
   g = joinOpenPlayer(g, { user: "Mia", now: 3 });
-  assert.equal(currentTurnPlayer(g), "Mia");
+  assert.equal(currentTurnPlayer(g), "You");
   g = declinePlayer(g, { user: "Mia", now: 4 });
   assert.equal(g.status, "active");
   assert.equal(cancelOpenGame(g, { user: "You", now: 5 }).status, "cancelled");
+});
+
+test("Worker startOpenGame mirrors horse.js: hands off if the bar's already set, locks the roster", () => {
+  const input = validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You"], sessionType: "open" });
+  let g = createHorseGame({ ...input, now: 1 });
+  g = joinOpenPlayer(g, { user: "Mia", now: 2 });
+  assert.throws(() => startOpenGame(g, { user: "Mia", now: 3 }), /host/);
+  g = applyTurn(g, { user: "You", reps: 20, now: 3 });
+  const started = startOpenGame(g, { user: "You", now: 4 });
+  assert.equal(started.startedAt, 4);
+  assert.equal(currentTurnPlayer(started), "Mia");
+  assert.throws(() => joinOpenPlayer(started, { user: "Dev", now: 5 }), /started/);
+  assert.throws(() => cancelOpenGame(started, { user: "You", now: 5 }), /started/);
 });
 
 test("validateHorseCreate caps Open sessions at eight players", () => {
