@@ -43,7 +43,7 @@
 //   POST /horse-create -> { id?, word, sessionType, createdBy, players, timeLimitKey? } -> creates
 //                          a Horse game; timeLimitKey is one of "24h"/"48h"/"72h"/"unlimited"
 //                          (defaults to "unlimited" if omitted/unrecognized)
-//   POST /horse-join   -> { gameId, user } -> joins an active Open game (max 4)
+//   POST /horse-join   -> { gameId, user } -> joins an active Open game (max 8)
 //   POST /horse-cancel -> { gameId, user } -> host cancels an Open game before a challenger joins
 //   POST /horse-turn   -> { gameId, user, reps, modifier? } -> applies the current player's
 //                          completed set; modifier is recorded as the new target's
@@ -1107,7 +1107,7 @@ export function validateHorseCreate(body) {
     ? [...new Set(body.players.map((p) => (typeof p === "string" ? p.trim().slice(0, 40) : "")).filter(Boolean))]
     : [];
   const minimumPlayers = sessionType === "open" ? 1 : 2;
-  const maximumPlayers = sessionType === "open" ? 4 : 8;
+  const maximumPlayers = 8;
   if (players.length < minimumPlayers || players.length > maximumPlayers || !players.includes(createdBy)) return null;
   const id = typeof body.id === "string" && /^[a-z0-9-]{1,64}$/.test(body.id)
     ? body.id
@@ -1131,7 +1131,7 @@ export const HORSE_TIME_LIMITS = {
 export function createHorseGame({ id, word, sessionType, createdBy, players, timeLimit = null, now = Date.now() }) {
   const minimumPlayers = sessionType === "open" ? 1 : 2;
   if (!Array.isArray(players) || players.length < minimumPlayers) throw new Error(`Horse needs at least ${minimumPlayers} player${minimumPlayers === 1 ? "" : "s"}`);
-  if (sessionType === "open" && players.length > 4) throw new Error("Open Horse is limited to 4 players");
+  if (sessionType === "open" && players.length > 8) throw new Error("Open Horse is limited to 8 players");
   if (!players.includes(createdBy)) throw new Error("Creator must be in the player list");
   const turnOrder = [...players];
   const playersState = {};
@@ -1189,7 +1189,7 @@ export function joinOpenPlayer(game, { user, now = Date.now() }) {
   const name = String(user || "").trim();
   if (!name) throw new Error("Player name is required");
   if (game.turnOrder.includes(name)) return game;
-  if (game.turnOrder.length >= 4) throw new Error("Open game is full");
+  if (game.turnOrder.length >= 8) throw new Error("Open game is full");
   const turnOrder = [...game.turnOrder, name];
   const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };
   const hostSetBarWhileAlone = game.turnOrder.length === 1 && game.target != null;

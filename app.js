@@ -2709,7 +2709,7 @@ function renderHorseTurnOrder() {
     </div>`;
   }).join("");
   const openSlotsHTML = game.sessionType === "open"
-    ? Array.from({ length: Math.max(0, 4 - rows.length) }, () => `
+    ? Array.from({ length: Math.max(0, 8 - rows.length) }, () => `
       <div class="tier1-row horse-player-row horse-open-slot">
         <span class="horse-open-slot-icon">＋</span>
         <span class="horse-player-name">Open player slot</span>
@@ -2733,8 +2733,8 @@ function renderHorseTurnOrder() {
   const isOpen = game.sessionType === "open";
   openControls.classList.toggle("hidden", !isOpen);
   if (isOpen) {
-    const slotsLeft = 4 - game.turnOrder.length;
-    $("horse-open-slots").textContent = `${game.turnOrder.length}/4 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
+    const slotsLeft = 8 - game.turnOrder.length;
+    $("horse-open-slots").textContent = `${game.turnOrder.length}/8 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
     $("horse-open-link").textContent = horseInviteUrl(game.id);
     $("btn-horse-open-share").classList.toggle("hidden", slotsLeft === 0);
     $("horse-open-link").classList.toggle("hidden", slotsLeft === 0);
@@ -2830,7 +2830,7 @@ function renderOpenHorseJoin(game) {
       <span class="horse-player-tag">${name === game.createdBy ? "Host" : "Joined"}</span>
     </div>`).join("");
   const slots = game?.sessionType === "open"
-    ? Array.from({ length: Math.max(0, 4 - names.length) }, () => `
+    ? Array.from({ length: Math.max(0, 8 - names.length) }, () => `
       <div class="tier1-row horse-player-row horse-open-slot">
         <span class="horse-open-slot-icon">＋</span><span class="horse-player-name">Open slot</span>
       </div>`).join("")

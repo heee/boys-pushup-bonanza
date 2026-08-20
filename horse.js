@@ -14,7 +14,7 @@ export const HORSE_TIME_LIMITS = {
 export function createHorseGame({ id, word, sessionType, createdBy, players, timeLimit = null, now = Date.now() }) {
   const minimumPlayers = sessionType === "open" ? 1 : 2;
   if (!Array.isArray(players) || players.length < minimumPlayers) throw new Error(`Horse needs at least ${minimumPlayers} player${minimumPlayers === 1 ? "" : "s"}`);
-  if (sessionType === "open" && players.length > 4) throw new Error("Open Horse is limited to 4 players");
+  if (sessionType === "open" && players.length > 8) throw new Error("Open Horse is limited to 8 players");
   if (!players.includes(createdBy)) throw new Error("Creator must be in the player list");
   const turnOrder = [...players];
   const playersState = {};
@@ -66,7 +66,7 @@ export function joinOpenPlayer(game, { user, now = Date.now() }) {
   const name = String(user || "").trim();
   if (!name) throw new Error("Player name is required");
   if (game.turnOrder.includes(name)) return game;
-  if (game.turnOrder.length >= 4) throw new Error("Open game is full");
+  if (game.turnOrder.length >= 8) throw new Error("Open game is full");
 
   const turnOrder = [...game.turnOrder, name];
   const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };

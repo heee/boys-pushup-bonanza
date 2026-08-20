@@ -90,11 +90,11 @@ export function openHorseJoinModel(game, user) {
   if (game.status === "cancelled") return { state: "cancelled", title: "Session cancelled", canJoin: false };
   if (game.status !== "active") return { state: "finished", title: "This Horse game has ended", canJoin: false };
   if (game.turnOrder.includes(user)) return { state: "joined", title: "You're already in", canJoin: false };
-  if (game.turnOrder.length >= 4) return { state: "full", title: "This session is full", canJoin: false };
+  if (game.turnOrder.length >= 8) return { state: "full", title: "This session is full", canJoin: false };
   return {
     state: "ready",
     title: `Join ${game.createdBy}'s Horse game?`,
     canJoin: true,
-    slotsLeft: 4 - game.turnOrder.length,
+    slotsLeft: 8 - game.turnOrder.length,
   };
 }

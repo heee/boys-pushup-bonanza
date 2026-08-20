@@ -82,9 +82,9 @@ test("Open challengers joining before the first set queue behind the host in arr
   assert.equal(g.players.Dev.letters, 0);
 });
 
-test("Open Horse caps at four and treats repeat joins as idempotent", () => {
+test("Open Horse caps at eight and treats repeat joins as idempotent", () => {
   let g = createHorseGame({ id: "open-1", word: "horse", sessionType: "open", createdBy: "You", players: ["You"], now: 1 });
-  for (const name of ["Mia", "Dev", "Lee"]) g = joinOpenPlayer(g, { user: name });
+  for (const name of ["Mia", "Dev", "Lee", "Ann", "Bo", "Cy", "Di"]) g = joinOpenPlayer(g, { user: name });
   assert.equal(joinOpenPlayer(g, { user: "Mia" }), g);
   assert.throws(() => joinOpenPlayer(g, { user: "Sam" }), /full/);
 });

@@ -159,7 +159,7 @@ test("Worker Open rules allow one host, queue up to three joins, and support can
   assert.equal(cancelOpenGame(g, { user: "You", now: 5 }).status, "cancelled");
 });
 
-test("validateHorseCreate caps Open sessions at four players", () => {
+test("validateHorseCreate caps Open sessions at eight players", () => {
   assert.ok(validateHorseCreate({ word: "HORSE", createdBy: "A", players: ["A"], sessionType: "open" }));
-  assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "A", players: ["A", "B", "C", "D", "E"], sessionType: "open" }), null);
+  assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "A", players: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], sessionType: "open" }), null);
 });
