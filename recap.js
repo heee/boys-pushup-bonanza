@@ -50,27 +50,40 @@ function inRange(session, start, end) {
   return t >= start.getTime() && t < end.getTime();
 }
 
+// The recap's week runs Sunday-Saturday — deliberately independent of
+// stats.js's Monday-start periodStart("week", ...), which the rest of the
+// app (dashboard, leaderboards, Roadtrip) keeps using unchanged.
+function sundayWeekStart(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+function recapPeriodStart(tier, date) {
+  return tier === "week" ? sundayWeekStart(date) : periodStart(tier, date);
+}
+
 function nextPeriodStart(tier, date) {
   const d = new Date(date);
-  if (tier === "week") { d.setDate(d.getDate() + 7); return periodStart("week", d); }
+  if (tier === "week") { d.setDate(d.getDate() + 7); return sundayWeekStart(d); }
   if (tier === "month") return new Date(d.getFullYear(), d.getMonth() + 1, 1);
   if (tier === "quarter") return new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 1);
   return new Date(d.getFullYear() + 1, 0, 1);
 }
 
 // The period that just finished as of `now` (the one a recap should cover) —
-// e.g. if a new week started today, this is last week's [Mon, Mon) range.
+// e.g. if a new week started today, this is last week's [Sun, Sun) range.
 export function completedPeriodRange(tier, now = new Date()) {
-  const currentStart = periodStart(tier, now);
+  const currentStart = recapPeriodStart(tier, now);
   const justBefore = new Date(currentStart.getTime() - 1);
-  return { start: periodStart(tier, justBefore), end: currentStart };
+  return { start: recapPeriodStart(tier, justBefore), end: currentStart };
 }
 
 // The period before the completed one, for "vs last {period}" comparisons.
 export function previousPeriodRange(tier, now = new Date()) {
   const completed = completedPeriodRange(tier, now);
   const justBefore = new Date(completed.start.getTime() - 1);
-  return { start: periodStart(tier, justBefore), end: completed.start };
+  return { start: recapPeriodStart(tier, justBefore), end: completed.start };
 }
 
 function totalFor(pool, user, start, end) {
@@ -109,7 +122,7 @@ function bestPriorPeriodTotal(pool, user, tier, beforeEnd) {
   const own = pool.filter((s) => s.user === user);
   if (!own.length) return 0;
   const earliest = Math.min(...own.map(sessionTime));
-  let cursorStart = periodStart(tier, new Date(earliest));
+  let cursorStart = recapPeriodStart(tier, new Date(earliest));
   let best = 0;
   let guard = 0;
   while (cursorStart.getTime() < beforeEnd.getTime() && guard < 600) {
@@ -150,7 +163,7 @@ function stripForRange(pool, user, tier, start, end) {
 // "Held #1 for N straight weeks" monthly highlight.
 function weeksWithin(monthStart, monthEnd) {
   const weeks = [];
-  let cursor = periodStart("week", monthStart);
+  let cursor = sundayWeekStart(monthStart);
   while (cursor.getTime() < monthEnd.getTime()) {
     weeks.push(cursor);
     const next = new Date(cursor); next.setDate(next.getDate() + 7);
