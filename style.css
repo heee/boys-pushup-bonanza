@@ -2128,22 +2128,75 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Tug of War mode ---------------- */
 
-.tow-target-rounds-row { display: flex; gap: 0.7rem; margin-bottom: 0.4rem; }
-.tow-stat-tile {
+/* Session-type icon tabs — 3 stacked icon+label tabs instead of a plain
+   text .segmented control, borrowing the flat-grouped-list tier's visual
+   weight so setup reads as a settings pass rather than a stack of cards. */
+.tow-icon-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.4rem; }
+.tow-icon-tab {
   flex: 1;
-  background: var(--bg-elevated-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.65rem 0.4rem;
   border-radius: 14px;
-  padding: 0.7rem 0.8rem;
-  text-align: center;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
 }
-.tow-stat-tile-label { margin: 0 0 0.3rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); }
-.tow-stepper-row { display: flex; align-items: center; justify-content: center; gap: 0.7rem; }
-.tow-stepper-value { min-width: 2.6rem; font-size: 1.4rem; font-weight: 900; }
+.tow-icon-tab svg { width: 1.3rem; height: 1.3rem; }
+.tow-icon-tab.active { background: var(--primary); border-color: var(--primary); color: var(--text-on-accent); font-weight: 800; }
+.tow-icon-tab:active { transform: scale(0.97); }
+
+.tow-stat-list { margin-bottom: 0.4rem; }
+.tow-stepper-row { display: flex; align-items: center; gap: 0.6rem; }
+.tow-stepper-sm {
+  flex-shrink: 0;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tow-stepper-sm:active { transform: scale(0.92); }
+.tow-stepper-value-sm { min-width: 2.3rem; text-align: center; font-size: 1.05rem; font-weight: 900; }
 
 .tow-name-note { margin-top: -0.2rem; }
 #tow-shuffle-hint, #tow-name-note, #tow-session-note, #tow-open-hint { font-style: italic; }
-#tow-session-select .segment:not(.active) { font-weight: 400; }
 
+.tow-teams-label-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.tow-teams-label-row .horse-section-label { margin-bottom: 0; }
+.tow-team-actions { display: flex; gap: 0.4rem; }
+.tow-icon-btn-sm {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: var(--bg-elevated-2);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tow-icon-btn-sm svg { width: 1rem; height: 1rem; }
+.tow-icon-btn-sm:active { transform: scale(0.9); }
+
+/* Still used by the Join-via-link screen (screen-tow-join), which keeps the
+   original two-card layout — only the host setup screen above got the
+   grouped-list redesign. */
 .tow-teams-row { display: flex; gap: 0.7rem; margin-top: 0.6rem; }
 .tow-team-card {
   flex: 1;
@@ -2153,20 +2206,41 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   padding: 0.7rem 0.6rem;
   position: relative;
 }
-/* Same inset-border ring treatment as Horse's active-row highlight (see
-   .tier1-row.horse-row-active) — marks whichever team card is "your team". */
-.tow-team-card.tow-team-card-mine::after {
-  content: "";
-  position: absolute;
-  inset: 2px;
-  border: 1.5px solid var(--primary);
-  border-radius: 12px;
-  pointer-events: none;
+
+.tow-teams-list { margin-top: 0.6rem; }
+.tow-team-summary-row { cursor: pointer; }
+.tow-team-summary-row:active { background: var(--bg-elevated-2); }
+/* Left accent bar marks "your team" — more compact than Horse's full
+   inset-ring card treatment, matching the Session-detail row pattern. */
+.tow-team-summary-row.tow-team-summary-mine { border-left: 3px solid var(--primary); }
+.tow-avatar-pair { display: flex; align-items: center; flex-shrink: 0; }
+.tow-avatar-pair .avatar-circle { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; border: 2px solid var(--bg-elevated); }
+.tow-avatar-pair .avatar-circle + .avatar-circle { margin-left: -0.55rem; }
+.tow-avatar-extra {
+  margin-left: -0.4rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: var(--bg-elevated-2);
+  border: 2px solid var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
 }
+.tow-avatar-pair-empty { width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 1.5px dashed var(--border); flex-shrink: 0; }
+.tow-team-summary-row .tow-team-name { flex: 1; min-width: 0; margin: 0; text-align: left; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tow-team-summary-row .tow-team-count { margin: 0; }
+.tow-team-chevron { display: block; width: 1.1rem; height: 1.1rem; flex-shrink: 0; color: var(--text-tertiary); transition: transform 0.18s ease; }
+.tow-team-summary-row.tow-team-summary-expanded .tow-team-chevron { transform: rotate(180deg); }
+
 .tow-team-count { margin: 0 0 0.2rem; font-size: 0.72rem; font-weight: 700; color: var(--text-tertiary); text-align: right; }
 .tow-team-name { margin: 0 0 0.5rem; font-weight: 800; color: var(--text); text-align: center; }
 .tow-team-name.tow-team-name-mine { color: var(--primary); }
-.tow-team-player-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.tow-team-player-list { display: flex; flex-direction: column; gap: 0.4rem; padding: 0 16px 10px; background: var(--bg-elevated); }
 .tow-player-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.2rem; }
 .tow-player-row .avatar-circle { width: 1.8rem; height: 1.8rem; font-size: 1rem; flex-shrink: 0; }
 .tow-player-name { flex: 1; min-width: 0; font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2176,8 +2250,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-waiting-row { border: 1.5px dashed var(--border); border-radius: 10px; color: var(--text-tertiary); }
 .tow-waiting-icon { width: 1.8rem; text-align: center; font-size: 1.1rem; flex-shrink: 0; }
 .tow-waiting-label { font-weight: 600; }
-.tow-team-actions { display: flex; gap: 0.6rem; margin-top: 0.7rem; }
-.tow-team-actions .horse-reshuffle-btn { width: auto; flex: 1; justify-content: center; padding: 0.5rem 0.7rem; }
 .tow-open-hint { margin-top: 0.5rem; }
 
 .tow-round-pill {
