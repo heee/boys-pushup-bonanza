@@ -6172,6 +6172,34 @@ const CHALLENGE_INVITE_MESSAGES = [
   (ctx) => ctx.hasRemaining
     ? `⛰️ ${ctx.remainingText} left ${ctx.urgencyPhrase} on ${ctx.titleWithEmoji}${ctx.hasLeader ? ` — ${ctx.leaderName}'s wearing the crown for now` : ""}. Let's close it out, boys!`
     : `${ctx.titleWithEmoji}: ${ctx.goalAmountText} by ${ctx.deadlineText}. Join the bonanza before it's too late 👀`,
+  (ctx) => `Boys, ${ctx.titleWithEmoji} is live and it needs bodies 🎯 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `. ${ctx.leaderName}'s already out front with ${ctx.leaderScoreText} (${ctx.leaderPct}%)` : ""}. Get in here.`,
+  (ctx) => ctx.exceeded
+    ? `Boys, ${ctx.leaderName} already torched the goal on ${ctx.titleWithEmoji} (${ctx.leaderScoreText}, ${ctx.leaderPct}%) 🔥 Somebody go dethrone them.`
+    : `${ctx.titleWithEmoji} just went live, boys 🚨 ${ctx.goalAmountText} by ${ctx.deadlineText}. Don't make me do this alone.`,
+  (ctx) => ctx.hasRemaining
+    ? `${ctx.remainingText} left on ${ctx.titleWithEmoji} ${ctx.urgencyPhrase} 😤${ctx.hasLeader ? ` ${ctx.leaderName}'s currently the one to beat.` : ""} Tap in.`
+    : `${ctx.titleWithEmoji} is open for business 💪 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} setting the pace at ${ctx.leaderPct}%` : ""}.`,
+  (ctx) => `Group chat, ${ctx.titleWithEmoji} is happening whether you show up or not 🚀 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? ` — ${ctx.leaderName}'s leading at ${ctx.leaderPct}%` : ""}.`,
+  (ctx) => ctx.exceeded
+    ? `The ${ctx.titleWithEmoji} goal is dead, ${ctx.leaderName} killed it (${ctx.leaderScoreText}, ${ctx.leaderPct}%) 💀 Come avenge it.`
+    : `${ctx.titleWithEmoji}: still time to get in before ${ctx.deadlineText} 👀 ${ctx.goalAmountText} on the line.`,
+  (ctx) => ctx.hasRemaining
+    ? `Boys, ${ctx.remainingText} left on ${ctx.titleWithEmoji} ${ctx.urgencyPhrase} 🏁${ctx.hasLeader ? ` ${ctx.leaderName} is not sharing that lead willingly.` : ""}`
+    : `${ctx.titleWithEmoji} kicks off now 🏁 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} already ${ctx.leaderPct}% in` : ""}.`,
+  (ctx) => `${ctx.titleWithEmoji} needs one more body 🎯 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `. ${ctx.leaderName}'s at ${ctx.leaderScoreText} (${ctx.leaderPct}%) and getting comfortable` : ""}. Fix that.`,
+  (ctx) => ctx.exceeded
+    ? `${ctx.leaderName} blew past the ${ctx.titleWithEmoji} goal already (${ctx.leaderScoreText}, ${ctx.leaderPct}%) 🚀 The rest of us look bad, come fix it.`
+    : `Boys, ${ctx.titleWithEmoji} is live 💪 ${ctx.goalAmountText} due ${ctx.deadlineText}. Zero excuses.`,
+  (ctx) => ctx.hasRemaining
+    ? `${ctx.remainingText} standing between ${ctx.titleWithEmoji} and completion ${ctx.urgencyPhrase} 🔥${ctx.hasLeader ? ` ${ctx.leaderName}'s out front for now.` : ""}`
+    : `${ctx.titleWithEmoji} is officially a thing now 🔥 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} leading at ${ctx.leaderPct}%` : ""}.`,
+  (ctx) => `Yo, ${ctx.titleWithEmoji} is happening and you're not in it yet 👀 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? ` — ${ctx.leaderName}'s currently winning` : ""}. Fix that.`,
+  (ctx) => ctx.exceeded
+    ? `Boys, ${ctx.leaderName} finished ${ctx.titleWithEmoji} early (${ctx.leaderScoreText}, ${ctx.leaderPct}%) 🏆 Somebody needs to make this competitive again.`
+    : `${ctx.titleWithEmoji}: the clock's running 🕐 ${ctx.goalAmountText} by ${ctx.deadlineText}. Get in before it's too late.`,
+  (ctx) => ctx.hasRemaining
+    ? `Boys, ${ctx.remainingText} left on ${ctx.titleWithEmoji} ${ctx.urgencyPhrase} 🎯${ctx.hasLeader ? ` ${ctx.leaderName}'s wearing the crown, temporarily.` : ""}`
+    : `${ctx.titleWithEmoji} just opened, boys 🎯 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} already moving at ${ctx.leaderPct}%` : ""}.`,
 ];
 
 async function shareChallengeInvite() {
@@ -6311,6 +6339,40 @@ const SHARE_MESSAGES_BOYS_GENERIC = [
   (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} 🎯 ${ctx.scoreText} ${ctx.activityWord}. I've started doing reps out of spite.`,
   (ctx) => `${ctx.scoreText} ${ctx.periodLabel}, ${ctx.rankOrdinal} on the board 👀 Taking names. Mostly the ones above mine.`,
   (ctx) => `${ctx.rankOrdinal} place 🦖 ${ctx.scoreText} ${ctx.activityWord} and an unreasonable amount of rage.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🏆 Whoever's above me should be nervous.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 📊 The comeback arc starts now.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 😤 Not settling for this spot much longer.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🧗 Climbing this board one rep at a time.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🎯 Taking names, mostly the ones ranked higher.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🔥 This is temporary, I promise.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel}, ${ctx.scoreText} ${ctx.activityWord} banked 🏆 Whoever's above me should be nervous.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel}, ${ctx.scoreText} ${ctx.activityWord} banked 📊 The comeback arc starts now.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel}, ${ctx.scoreText} ${ctx.activityWord} banked 😤 Not settling for this spot much longer.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel}, ${ctx.scoreText} ${ctx.activityWord} banked 🧗 Climbing this board one rep at a time.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel}, ${ctx.scoreText} ${ctx.activityWord} banked 🎯 Taking names, mostly the ones ranked higher.`,
+  (ctx) => `${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel}, ${ctx.scoreText} ${ctx.activityWord} banked 🔥 This is temporary, I promise.`,
+  (ctx) => `Sitting at ${ctx.rankOrdinal} ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} so far 🏆 Whoever's above me should be nervous.`,
+  (ctx) => `Sitting at ${ctx.rankOrdinal} ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} so far 📊 The comeback arc starts now.`,
+  (ctx) => `Sitting at ${ctx.rankOrdinal} ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} so far 😤 Not settling for this spot much longer.`,
+  (ctx) => `Sitting at ${ctx.rankOrdinal} ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} so far 🧗 Climbing this board one rep at a time.`,
+  (ctx) => `Sitting at ${ctx.rankOrdinal} ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} so far 🎯 Taking names, mostly the ones ranked higher.`,
+  (ctx) => `Sitting at ${ctx.rankOrdinal} ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} so far 🔥 This is temporary, I promise.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel}, currently ${ctx.rankOrdinal} 🏆 Whoever's above me should be nervous.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel}, currently ${ctx.rankOrdinal} 📊 The comeback arc starts now.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel}, currently ${ctx.rankOrdinal} 😤 Not settling for this spot much longer.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel}, currently ${ctx.rankOrdinal} 🧗 Climbing this board one rep at a time.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel}, currently ${ctx.rankOrdinal} 🎯 Taking names, mostly the ones ranked higher.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel}, currently ${ctx.rankOrdinal} 🔥 This is temporary, I promise.`,
+  (ctx) => `Holding ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} 🏆 Whoever's above me should be nervous.`,
+  (ctx) => `Holding ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} 📊 The comeback arc starts now.`,
+  (ctx) => `Holding ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} 😤 Not settling for this spot much longer.`,
+  (ctx) => `Holding ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} 🧗 Climbing this board one rep at a time.`,
+  (ctx) => `Holding ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} 🎯 Taking names, mostly the ones ranked higher.`,
+  (ctx) => `Holding ${ctx.rankOrdinal} place ${ctx.periodLabel} with ${ctx.scoreText} 🔥 This is temporary, I promise.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel} with ${ctx.scoreText} 🦖 unreasonable amount of rage included.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel} with ${ctx.scoreText} 🐍 slowly slithering up the rankings.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel} with ${ctx.scoreText} 🫠 someone above me is about to have a bad week.`,
+  (ctx) => `Boys, ${ctx.rankOrdinal} of ${ctx.participants} ${ctx.periodLabel} with ${ctx.scoreText} 🥲 not mad, just plotting.`,
 ];
 
 const SHARE_MESSAGES_BOYS_LEADING = [
@@ -6325,6 +6387,45 @@ const SHARE_MESSAGES_BOYS_LEADING = [
   (ctx) => `Number one ${ctx.periodLabel} 🦅 ${ctx.scoreText} ${ctx.activityWord}. Freedom. Power. Slightly sore wrists.`,
   (ctx) => `${ctx.scoreText} ${ctx.activityWord}, first place, zero humility 😌 ${ctx.periodLabel} belongs to me.`,
   (ctx) => `Top of the leaderboard ${ctx.periodLabel} 🏔️ ${ctx.scoreText} ${ctx.activityWord}. The air is thin up here and smells like victory.`,
+  (ctx) => `Boys, #1 ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 👑 The rest of you are playing for second.`,
+  (ctx) => `Boys, #1 ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🥇 Come take it from me, I'll wait.`,
+  (ctx) => `Boys, #1 ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🔥 Undisputed, and I plan on staying that way.`,
+  (ctx) => `Boys, #1 ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🗿 Bow, genuinely, bow.`,
+  (ctx) => `Boys, #1 ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🍾 The floor deserves a thank-you speech at this point.`,
+  (ctx) => `Boys, #1 ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🦅 Freedom, power, slightly sore everything.`,
+  (ctx) => `Top of the board ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} 👑 The rest of you are playing for second.`,
+  (ctx) => `Top of the board ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} 🥇 Come take it from me, I'll wait.`,
+  (ctx) => `Top of the board ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} 🔥 Undisputed, and I plan on staying that way.`,
+  (ctx) => `Top of the board ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} 🗿 Bow, genuinely, bow.`,
+  (ctx) => `Top of the board ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} 🍾 The floor deserves a thank-you speech at this point.`,
+  (ctx) => `Top of the board ${ctx.periodLabel} — ${ctx.scoreText} ${ctx.activityWord} 🦅 Freedom, power, slightly sore everything.`,
+  (ctx) => `Leading ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 👑 The rest of you are playing for second.`,
+  (ctx) => `Leading ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🥇 Come take it from me, I'll wait.`,
+  (ctx) => `Leading ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🔥 Undisputed, and I plan on staying that way.`,
+  (ctx) => `Leading ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🗿 Bow, genuinely, bow.`,
+  (ctx) => `Leading ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🍾 The floor deserves a thank-you speech at this point.`,
+  (ctx) => `Leading ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🦅 Freedom, power, slightly sore everything.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} and first place ${ctx.periodLabel} 👑 The rest of you are playing for second.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} and first place ${ctx.periodLabel} 🥇 Come take it from me, I'll wait.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} and first place ${ctx.periodLabel} 🔥 Undisputed, and I plan on staying that way.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} and first place ${ctx.periodLabel} 🗿 Bow, genuinely, bow.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} and first place ${ctx.periodLabel} 🍾 The floor deserves a thank-you speech at this point.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} and first place ${ctx.periodLabel} 🦅 Freedom, power, slightly sore everything.`,
+  (ctx) => `Sitting on the throne ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 👑 The rest of you are playing for second.`,
+  (ctx) => `Sitting on the throne ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🥇 Come take it from me, I'll wait.`,
+  (ctx) => `Sitting on the throne ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🔥 Undisputed, and I plan on staying that way.`,
+  (ctx) => `Sitting on the throne ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🗿 Bow, genuinely, bow.`,
+  (ctx) => `Sitting on the throne ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🍾 The floor deserves a thank-you speech at this point.`,
+  (ctx) => `Sitting on the throne ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🦅 Freedom, power, slightly sore everything.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 👑 and I don't plan on giving it back.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🥇 the rest of you can fight for second.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🔥 top spot, zero humility.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🍾 thanking the floor for its cooperation.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🗿 bow, I mean it.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🦅 the air up here smells like victory.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 😌 first place and completely insufferable about it.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 🏔️ the view from up here is incredible.`,
+  (ctx) => `Boys, first place ${ctx.periodLabel} with ${ctx.scoreText} ${ctx.activityWord} 👑 catch me if you somehow can.`,
 ];
 
 const SHARE_MESSAGES_BOYS_NO_RANK = [
@@ -6333,6 +6434,51 @@ const SHARE_MESSAGES_BOYS_NO_RANK = [
   (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🫥 Not on the board yet. Sleeping giant behavior.`,
   (ctx) => `${ctx.scoreText} ${ctx.periodLabel} 🌱 Every empire starts somewhere. This is the somewhere.`,
   (ctx) => `${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🐌 Slow start, terrifying finish. You'll see.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 💪 Not on the board yet, but the board should be worried.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🌱 Every empire starts somewhere, this is the somewhere.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🐌 Slow start, terrifying finish, you'll see.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🚀 The bonanza continues regardless of rank.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🫥 Invisible on the leaderboard, loud in the group chat.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 😤 Building a case for myself, one rep at a time.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🔧 Under construction, please excuse the current numbers.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🕳️ Currently a rumor on this leaderboard. Not for long.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🎬 This is the origin story, not the whole movie.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🧊 Cold start, hot finish, watch this space.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🐣 Early days. The board hasn't met me yet.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 💪 Not on the board yet, but the board should be worried.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🌱 Every empire starts somewhere, this is the somewhere.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🐌 Slow start, terrifying finish, you'll see.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🚀 The bonanza continues regardless of rank.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🫥 Invisible on the leaderboard, loud in the group chat.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 😤 Building a case for myself, one rep at a time.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🔧 Under construction, please excuse the current numbers.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🕳️ Currently a rumor on this leaderboard. Not for long.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🎬 This is the origin story, not the whole movie.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🧊 Cold start, hot finish, watch this space.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} logged ${ctx.periodLabel} 🐣 Early days. The board hasn't met me yet.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 💪 Not on the board yet, but the board should be worried.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🌱 Every empire starts somewhere, this is the somewhere.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🐌 Slow start, terrifying finish, you'll see.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🚀 The bonanza continues regardless of rank.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🫥 Invisible on the leaderboard, loud in the group chat.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 😤 Building a case for myself, one rep at a time.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🔧 Under construction, please excuse the current numbers.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🕳️ Currently a rumor on this leaderboard. Not for long.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🎬 This is the origin story, not the whole movie.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🧊 Cold start, hot finish, watch this space.`,
+  (ctx) => `Put up ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🐣 Early days. The board hasn't met me yet.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 💪 Not on the board yet, but the board should be worried.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🌱 Every empire starts somewhere, this is the somewhere.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🐌 Slow start, terrifying finish, you'll see.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🚀 The bonanza continues regardless of rank.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🫥 Invisible on the leaderboard, loud in the group chat.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 😤 Building a case for myself, one rep at a time.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🔧 Under construction, please excuse the current numbers.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🕳️ Currently a rumor on this leaderboard. Not for long.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🎬 This is the origin story, not the whole movie.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🧊 Cold start, hot finish, watch this space.`,
+  (ctx) => `${ctx.scoreText} ${ctx.activityWord} banked ${ctx.periodLabel} 🐣 Early days. The board hasn't met me yet.`,
+  (ctx) => `Boys, ${ctx.scoreText} ${ctx.activityWord} ${ctx.periodLabel} 🐣 early days, the board hasn't met me yet.`,
 ];
 
 // Leaderboard shares previously used a bare pickFrom(), so the same line could
