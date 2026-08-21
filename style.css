@@ -2961,12 +2961,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   transition: color 0.15s ease;
 }
 .week-bar-col-selected .week-bar {
-  background: linear-gradient(180deg, var(--primary-dim), var(--primary-deep));
-  box-shadow: 0 0 0 2px var(--primary) inset;
+  background: linear-gradient(180deg, var(--gold), var(--accent));
+  box-shadow: 0 0 0 2px var(--gold) inset;
 }
 .week-bar-col-selected .week-bar-label {
   font-weight: 700;
-  color: var(--primary);
+  color: var(--gold);
 }
 .week-chart-clear {
   display: block;
