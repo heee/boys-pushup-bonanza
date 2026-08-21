@@ -413,26 +413,26 @@ const SHARE_MESSAGES_LADDER_HIGH = [
 ];
 
 const SHARE_MESSAGES_LADDER_UNHINGED = [
-  (n, c) => `Reached rung ${c.maxRung}. Base camp reports ${n} reps and one climber speaking exclusively in wheezes.`,
-  (n, c) => `Rung ${c.maxRung}: where my arms became folklore. ${n} pushups entered the legend.`,
-  (n, c) => `I climbed to ${c.maxRung}, looked gravity in the eyes, and immediately cashed out. ${n} reps.`,
-  (n, c) => `${c.maxRung} rungs conquered. ${n} pushups. The ladder is now under federal protection.`,
-  (n, c) => `Rung ${c.maxRung} achieved through confidence and no adult supervision. ${n} reps.`,
-  (n, c) => `Climbed to ${c.maxRung}. Sherpas refused the assignment. ${n} pushups later, I understand why.`,
-  (n, c) => `${n} reps carried me to rung ${c.maxRung}. My shoulders are demanding hazard pay.`,
-  (n, c) => `Rung ${c.maxRung} has fallen. Ring the bells. Hide the ibuprofen. ${n} reps.`,
-  (n, c) => `The ladder escalated. I escalated back. Final incident count: rung ${c.maxRung}, ${n} pushups.`,
-  (n, c) => `Made rung ${c.maxRung} and descended via emotional collapse. ${n} reps, technically victorious.`,
-  (n, c) => `Rung ${c.maxRung}. ${n} pushups. This expedition was funded entirely by bad judgment.`,
-  (n, c) => `Climbed until rung ${c.maxRung} started asking personal questions. ${n} reps and no comment.`,
-  (n, c) => `${c.maxRung} rungs, ${n} reps, and one demolished relationship with gravity.`,
-  (n, c) => `I came. I saw. I made it weird at rung ${c.maxRung}. ${n} pushups.`,
-  (n, c) => `Rung ${c.maxRung} unlocked. Arms downgraded to decorative accessories. ${n} reps.`,
-  (n, c) => `Authorities found me at rung ${c.maxRung} surrounded by ${n} pushups. No motive yet.`,
-  (n, c) => `The ladder requested ${n} reps. I paid, reached rung ${c.maxRung}, and disputed the charge.`,
-  (n, c) => `Rung ${c.maxRung}: population me, briefly. ${n} pushups got me evicted.`,
-  (n, c) => `Scaled ${c.maxRung} rungs like a raccoon escaping consequences. ${n} reps.`,
-  (n, c) => `${n} pushups to rung ${c.maxRung}. The summit photo is just me lying face-down.`,
+  (n, c) => `Reached rung ${c.maxRung}. Base camp reports ${n} reps and one climber speaking exclusively in wheezes. 🪜`,
+  (n, c) => `Rung ${c.maxRung}: where my arms became folklore. ${n} pushups entered the legend. 🪜📜`,
+  (n, c) => `I climbed to ${c.maxRung}, looked gravity in the eyes, and immediately cashed out. ${n} reps. 🪜😅`,
+  (n, c) => `${c.maxRung} rungs conquered. ${n} pushups. The ladder is now under federal protection. 🪜🚨`,
+  (n, c) => `Rung ${c.maxRung} achieved through confidence and no adult supervision. ${n} reps. 🪜🙃`,
+  (n, c) => `Climbed to ${c.maxRung}. Sherpas refused the assignment. ${n} pushups later, I understand why. 🏔️🪜`,
+  (n, c) => `${n} reps carried me to rung ${c.maxRung}. My shoulders are demanding hazard pay. 🪜💰`,
+  (n, c) => `Rung ${c.maxRung} has fallen. Ring the bells. Hide the ibuprofen. ${n} reps. 🪜🔔`,
+  (n, c) => `The ladder escalated. I escalated back. Final incident count: rung ${c.maxRung}, ${n} pushups. 🪜💥`,
+  (n, c) => `Made rung ${c.maxRung} and descended via emotional collapse. ${n} reps, technically victorious. 🪜😵`,
+  (n, c) => `Rung ${c.maxRung}. ${n} pushups. This expedition was funded entirely by bad judgment. 🪜🎒`,
+  (n, c) => `Climbed until rung ${c.maxRung} started asking personal questions. ${n} reps and no comment. 🪜🤐`,
+  (n, c) => `${c.maxRung} rungs, ${n} reps, and one demolished relationship with gravity. 🪜💔`,
+  (n, c) => `I came. I saw. I made it weird at rung ${c.maxRung}. ${n} pushups. 🪜😤`,
+  (n, c) => `Rung ${c.maxRung} unlocked. Arms downgraded to decorative accessories. ${n} reps. 🪜🎗️`,
+  (n, c) => `Authorities found me at rung ${c.maxRung} surrounded by ${n} pushups. No motive yet. 🪜🚔`,
+  (n, c) => `The ladder requested ${n} reps. I paid, reached rung ${c.maxRung}, and disputed the charge. 🪜🧾`,
+  (n, c) => `Rung ${c.maxRung}: population me, briefly. ${n} pushups got me evicted. 🪜📦`,
+  (n, c) => `Scaled ${c.maxRung} rungs like a raccoon escaping consequences. ${n} reps. 🪜🦝`,
+  (n, c) => `${n} pushups to rung ${c.maxRung}. The summit photo is just me lying face-down. 🪜📸`,
 ];
 
 const SHARE_MESSAGES_PYRAMID_EMPTY = [
@@ -522,25 +522,25 @@ const SHARE_MESSAGES_CHASE_PROGRESS = [
 ];
 
 const SHARE_MODIFIERS_WEIGHTED = [
-  (c) => `Did it wearing +${c.weightLbs} lbs because regular gravity wasn't being enough of an asshole.`,
-  (c) => `Raw damage: ${c.rawCount} reps with +${c.weightLbs} lbs strapped on like a terrible financial decision.`,
-  (c) => `Added-weight clause: +${c.weightLbs} lbs, ${c.rawCount} actual reps, and absolutely no concern from management.`,
-  (c) => `This disaster was weighted: +${c.weightLbs} lbs and ${c.rawCount} raw reps. My spine has requested arbitration.`,
+  (c) => `🏋️ Did it wearing +${c.weightLbs} lbs because regular gravity wasn't being enough of an asshole.`,
+  (c) => `🏋️ Raw damage: ${c.rawCount} reps with +${c.weightLbs} lbs strapped on like a terrible financial decision.`,
+  (c) => `🏋️ Added-weight clause: +${c.weightLbs} lbs, ${c.rawCount} actual reps, and absolutely no concern from management.`,
+  (c) => `🏋️ This disaster was weighted: +${c.weightLbs} lbs and ${c.rawCount} raw reps. My spine has requested arbitration.`,
 ];
 
 const SHARE_MODIFIERS_PR = [
-  (c) => `Also detonated ${c.title}: ${c.oldBest} → ${c.newCount}. The old record can eat shit.`,
-  (c) => `${c.title} collateral damage: ${c.oldBest} → ${c.newCount}. Previous me has been escorted out.`,
-  (c) => `And because restraint is dead: new ${c.title}, ${c.oldBest} → ${c.newCount}.`,
-  (c) => `Bonus crime: ${c.title} erased from ${c.oldBest} to ${c.newCount}.`,
+  (c) => `🏆 Also detonated ${c.title}: ${c.oldBest} → ${c.newCount}. The old record can eat shit.`,
+  (c) => `🏆 ${c.title} collateral damage: ${c.oldBest} → ${c.newCount}. Previous me has been escorted out.`,
+  (c) => `🏆 And because restraint is dead: new ${c.title}, ${c.oldBest} → ${c.newCount}.`,
+  (c) => `🏆 Bonus crime: ${c.title} erased from ${c.oldBest} to ${c.newCount}.`,
 ];
 
 const SHARE_MODIFIERS_LADDER_NEW_BEST = [
-  (c) => `New personal best at rung ${c.maxRung}; previous me has been demoted to civilian.`,
-  (c) => `New personal best at rung ${c.maxRung}; old me just got laid off, effective immediately.`,
-  (c) => `New personal best at rung ${c.maxRung}; my previous record has been stripped of rank and title.`,
-  (c) => `New personal best at rung ${c.maxRung}; former me has been reassigned to spectator duty, permanently.`,
-  (c) => `New personal best at rung ${c.maxRung}; the old record didn't even get a retirement party.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; previous me has been demoted to civilian.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; old me just got laid off, effective immediately.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; my previous record has been stripped of rank and title.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; former me has been reassigned to spectator duty, permanently.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; the old record didn't even get a retirement party.`,
 ];
 
 export function compactVictimNames(names) {
@@ -554,18 +554,18 @@ function decorateShareMessage(message, ctx) {
   const extras = [];
   if (ctx.weightedCtx?.weightLbs > 0) extras.push(pickFrom(SHARE_MODIFIERS_WEIGHTED)(ctx.weightedCtx));
   if (ctx.ladderCtx?.passedRivals?.length) {
-    extras.push(`Passed ${compactVictimNames(ctx.ladderCtx.passedRivals)}. Their Ladder PRs are now decorative little participation trophies.`);
+    extras.push(`🏁 Passed ${compactVictimNames(ctx.ladderCtx.passedRivals)}. Their Ladder PRs are now decorative little participation trophies.`);
   }
   if (ctx.ladderCtx?.isNewBest) {
     extras.push(pickFrom(SHARE_MODIFIERS_LADDER_NEW_BEST)(ctx.ladderCtx));
   }
   if (ctx.fortuneCtx?.target != null) {
     extras.push(ctx.fortuneCtx.beatTarget
-      ? `Target ${ctx.fortuneCtx.target} cleared. The prophecy has been violently fulfilled.`
-      : `Target ${ctx.fortuneCtx.target} survived by ${ctx.fortuneCtx.remaining}. That smug little paper bastard gets one night.`);
+      ? `🥠 Target ${ctx.fortuneCtx.target} cleared. The prophecy has been violently fulfilled.`
+      : `🥠 Target ${ctx.fortuneCtx.target} survived by ${ctx.fortuneCtx.remaining}. That smug little paper bastard gets one night.`);
   }
   if (ctx.prCtx) extras.push(pickFrom(SHARE_MODIFIERS_PR)(ctx.prCtx));
-  return [message, ...extras].join(" ");
+  return [message, ...extras].join("\n\n");
 }
 
 let lastChaseShareTemplate = null;
