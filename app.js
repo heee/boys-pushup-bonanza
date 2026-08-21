@@ -7268,15 +7268,18 @@ function renderPyramidWindow() {
   const maxBase = state.pyramidSize;
   const structureKey = `${state.pyramidSize}|${state.pyramidDirection}|${state.pyramidRow}|${state.pyramidPhase}`;
   const structureChanged = container.dataset.renderKey !== structureKey;
+  // Ascending (the "down" climb back to base, Up & Down only) reverses the
+  // reveal direction: on the way up stones/rows start dim and light up as
+  // they clear; on the way down everything starts lit and dims as it clears.
+  container.classList.toggle("phase-ascending", state.pyramidPhase === "ascending");
+  container.classList.toggle("phase-descending", state.pyramidPhase === "descending");
   if (structureChanged) {
     let html = "";
     for (const row of rows) {
-      const isActive = row.status === "active";
-      const phaseClass = isActive ? ` phase-${state.pyramidPhase}` : "";
       const widthPct = 30 + (row.row / maxBase) * 70;
       let stones = "";
       for (let i = 0; i < row.row; i += 1) stones += '<span class="pyramid-stone"></span>';
-      html += `<div class="pyramid-row ${row.status}${phaseClass}" style="width:${widthPct}%">${stones}</div>`;
+      html += `<div class="pyramid-row ${row.status}" style="width:${widthPct}%">${stones}</div>`;
     }
     container.innerHTML = html;
     container.dataset.renderKey = structureKey;
@@ -7982,6 +7985,13 @@ async function startWorkout() {
   $("workout-active").classList.remove("hidden");
   setChromeMinimized(true);
 
+  // Pyramid's initial stack + counter badge position depend on layout
+  // (getBoundingClientRect), so this can't render until #workout-active is
+  // actually visible — doing it inside setupWorkoutModeState (still hidden
+  // at that point) measured a zero-sized rect and left the badge pinned to
+  // the HUD's top-left corner for the whole first row.
+  if (state.pushupMode === "pyramid") renderPyramidWindow();
+
   if (state.pushupMode === "ladder") {
     const openingRivalCallout = ladderRivalCallout(1);
     if (openingRivalCallout) speak(openingRivalCallout);
@@ -8104,7 +8114,6 @@ async function setupWorkoutModeState() {
     state.pyramidCompleted = false;
     state.pyramidTotalReps = pyramidMode.pyramidTotalReps(state.pyramidSize, state.pyramidDirection);
     delete $("pyramid-window").dataset.renderKey;
-    renderPyramidWindow();
   }
   $("pyramid-hud").classList.toggle("hidden", !isPyramid);
   $("pyramid-session-total").classList.toggle("hidden", !isPyramid);
