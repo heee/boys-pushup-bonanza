@@ -1276,6 +1276,7 @@ const state = {
   lastSessionType: "pushup",
   plankActive: false,
   plankBest: 0,
+  plankLast: 0,
   plankStartedAt: null,
   squatActive: false,
   squatBest: 0,
@@ -1366,6 +1367,10 @@ const plankState = {
   lastCheerAtSecond: 0,
   intervalId: null,
   recordBroken: false,
+  // Ghost mode: races the last session before switching to the best-record
+  // race (see updatePlankThermometer / updatePlankHighscoreMessage).
+  ghostActive: false,
+  ghostPassed: false,
 };
 
 // Sampling window used for each of the 2-tap calibration steps.
@@ -7157,6 +7162,16 @@ function getPlankBest(name) {
   return bestFor(indexedSessionsForUser(name, "planks"), name, () => true);
 }
 
+// Most recent plank session's duration, regardless of how it compares to
+// the best — the "ghost" the active session races before switching to
+// racing the best (see startPlank).
+function getPlankLast(name) {
+  const sessions = indexedSessionsForUser(name, "planks").filter((s) => s.user === name);
+  if (!sessions.length) return 0;
+  const latest = sessions.reduce((a, b) => (sessionTimestamp(b) > sessionTimestamp(a) ? b : a));
+  return latest.count || 0;
+}
+
 function getSquatBest(name) {
   return bestFor(indexedSessionsForUser(name, "squats"), name, () => true);
 }
@@ -9054,26 +9069,42 @@ $("mascot-badge").addEventListener("click", () => {
   setTimeout(() => showScreen("screen-plank-workout"), 2800);
 });
 
+function plankInGhostPhase() {
+  return plankState.ghostActive && !plankState.ghostPassed;
+}
+
 function updatePlankThermometer(seconds) {
   const wrap = $("plank-thermometer-wrap");
-  if (!state.plankBest) {
+  const inGhostPhase = plankInGhostPhase();
+  const target = inGhostPhase ? state.plankLast : state.plankBest;
+  if (!target) {
     wrap.classList.add("hidden");
     return;
   }
   wrap.classList.remove("hidden");
   const fill = $("plank-thermometer-fill");
-  const pct = Math.min(100, Math.round((seconds / state.plankBest) * 100));
+  const pct = Math.min(100, Math.round((seconds / target) * 100));
   fill.style.width = `${pct}%`;
-  fill.classList.toggle("thermometer-win", seconds > state.plankBest);
+  fill.classList.toggle("thermometer-ghost", inGhostPhase);
+  fill.classList.toggle("thermometer-win", !inGhostPhase && seconds > target);
 }
 
 function updatePlankHighscoreMessage(seconds) {
   const el = $("plank-highscore-message");
-  if (!state.plankBest) {
+  const inGhostPhase = plankInGhostPhase();
+  el.classList.toggle("ghost-message", inGhostPhase);
+  const target = inGhostPhase ? state.plankLast : state.plankBest;
+  if (!target) {
     el.textContent = "";
     return;
   }
-  const remaining = state.plankBest - seconds;
+  const remaining = target - seconds;
+  if (inGhostPhase) {
+    el.textContent = remaining > 0
+      ? `${remaining} second${remaining === 1 ? "" : "s"} behind your ghost 👻`
+      : "Tied your ghost — don't let it catch up! 👻";
+    return;
+  }
   if (remaining > 0) {
     el.textContent = `${remaining} second${remaining === 1 ? "" : "s"} away from your best plank!`;
   } else if (remaining === 0) {
@@ -9081,6 +9112,14 @@ function updatePlankHighscoreMessage(seconds) {
   } else {
     el.textContent = "New plank record! 🔥";
   }
+}
+
+function playPlankGhostTransition() {
+  const el = $("plank-ghost-transition");
+  el.classList.remove("playing");
+  void el.offsetWidth;
+  el.classList.add("playing");
+  setTimeout(() => el.classList.remove("playing"), 1150);
 }
 
 function stopPlankInterval() {
@@ -9106,9 +9145,13 @@ async function startPlank() {
   if (soundIsEnabled()) unlockVoice();
   state.plankSessionLocation = currentSessionLocationSnapshot();
   state.plankBest = getPlankBest(state.currentUser);
+  state.plankLast = getPlankLast(state.currentUser);
   plankState.seconds = 0;
   plankState.lastCheerAtSecond = 0;
   plankState.recordBroken = false;
+  plankState.ghostActive = !!state.plankLast;
+  plankState.ghostPassed = false;
+  $("plank-ghost-transition").classList.remove("playing");
   $("plank-timer").textContent = "0:00";
   updatePlankThermometer(0);
   updatePlankHighscoreMessage(0);
@@ -9126,6 +9169,10 @@ async function startPlank() {
   plankState.intervalId = setInterval(() => {
     plankState.seconds += 1;
     $("plank-timer").textContent = formatDuration(plankState.seconds * 1000);
+    if (plankState.ghostActive && !plankState.ghostPassed && plankState.seconds > state.plankLast) {
+      plankState.ghostPassed = true;
+      playPlankGhostTransition();
+    }
     updatePlankThermometer(plankState.seconds);
     updatePlankHighscoreMessage(plankState.seconds);
     if (state.plankBest && plankState.seconds === state.plankBest + 1 && !plankState.recordBroken) {

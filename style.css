@@ -21,6 +21,8 @@
   --flame-deep: #c94a26;       /* darker end of the flame gradient */
   --success: #7fbf6a;
   --danger: #e05a4f;
+  --ghost: #eef1fa;            /* plank ghost-mode: pale, otherworldly white */
+  --ghost-dim: #b9bfd6;
 
   --shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
   --gold: #e9b949;
@@ -46,6 +48,8 @@
   --flame-deep: #a83f1f;
   --success: #4f7a34;
   --danger: #a83f26;
+  --ghost: #6b7280;
+  --ghost-dim: #9aa0ae;
 
   --shadow: 0 8px 20px rgba(80, 60, 20, 0.14);
   --gold: #b8862a;
@@ -1262,6 +1266,41 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   transition: width 0.3s ease, background 0.3s ease;
 }
 .thermometer-fill.thermometer-win { background: var(--success); }
+.thermometer-fill.thermometer-ghost { background: linear-gradient(90deg, var(--ghost-dim), var(--ghost)); }
+
+/* Plank's ghost-mode message reads secondary during the race-your-last-session
+   phase, so unlike the shared .highscore-message it stays unbold. */
+#plank-highscore-message { font-weight: 500; }
+#plank-highscore-message.ghost-message { color: var(--ghost); }
+
+#plank-active { position: relative; }
+.plank-ghost-transition {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+}
+.plank-ghost-transition.playing {
+  animation: plank-ghost-transition 1.1s ease;
+}
+@keyframes plank-ghost-transition {
+  0% { opacity: 0; transform: scale(0.4); }
+  15% { opacity: 1; transform: scale(1); }
+  35% { transform: scale(1.15) rotate(-8deg); }
+  50% { transform: scale(1.3) rotate(8deg); }
+  65% { transform: scale(1.15) rotate(-6deg); }
+  85% { opacity: 1; transform: scale(1.35) rotate(4deg); }
+  100% { opacity: 0; transform: scale(1.6) rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plank-ghost-transition.playing { animation: none; }
+}
 
 /* ---------------- Cards mode HUD ---------------- */
 
