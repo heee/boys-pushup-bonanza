@@ -134,7 +134,7 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
-import { buildRecapTier, checkAndQueueRecaps, exportRecapImage, RECAP_TIER_META } from "./recap.js";
+import { buildRecapTier, checkAndQueueRecaps, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
 import {
@@ -5349,6 +5349,136 @@ const COMPARE_SHARE_TIED = [
   (ctx) => `${ctx.leader} and ${ctx.trailer}, tied at ${ctx.leaderWins} each 🤝 Somebody needs to do a set right now and end this.`,
 ];
 
+// Renders the current head-to-head comparison to a story-format (1080x1920)
+// PNG for sharing, hand-drawn the same way exportRecapImage is (no build
+// step in this app, so no html2canvas — the card is redrawn from the model
+// rather than captured from the live DOM).
+function exportCompareImage(model, selfUser, otherUser, modeLabel, tallyText) {
+  const W = 1080, H = 1920;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, H);
+  gradient.addColorStop(0, "#241a0f");
+  gradient.addColorStop(0.6, "#170f08");
+  gradient.addColorStop(1, "#0b0704");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#e9b949";
+  ctx.globalAlpha = 0.85;
+  ctx.font = "600 34px system-ui, sans-serif";
+  ctx.fillText("HEAD-TO-HEAD", W / 2, 150);
+  ctx.font = "500 30px system-ui, sans-serif";
+  ctx.globalAlpha = 0.6;
+  ctx.fillText(modeLabel.toUpperCase(), W / 2, 195);
+  ctx.globalAlpha = 1;
+
+  const avatarA = avatarForUser(selfUser);
+  const avatarB = avatarForUser(otherUser);
+  const r = 110;
+  const drawAvatar = (x, avatar) => {
+    ctx.beginPath();
+    ctx.arc(x, 380, r, 0, Math.PI * 2);
+    ctx.fillStyle = avatar.bg;
+    ctx.fill();
+    ctx.textBaseline = "middle";
+    ctx.font = "118px system-ui, sans-serif";
+    ctx.fillStyle = "#000000";
+    ctx.fillText(avatar.emoji, x, 388);
+    ctx.textBaseline = "alphabetic";
+  };
+  drawAvatar(300, avatarA);
+  drawAvatar(780, avatarB);
+
+  ctx.fillStyle = "#8a7c68";
+  ctx.font = "800 44px system-ui, sans-serif";
+  ctx.fillText("VS", W / 2, 395);
+
+  ctx.fillStyle = "#f4ead8";
+  ctx.font = "700 46px system-ui, sans-serif";
+  ctx.fillText(truncateForCanvas(ctx, selfUser, 320), 300, 545);
+  ctx.fillText(truncateForCanvas(ctx, otherUser, 320), 780, 545);
+
+  ctx.fillStyle = "#e9b949";
+  ctx.font = "700 42px system-ui, sans-serif";
+  wrapCenteredText(ctx, tallyText, W / 2, 660, W - 160, 52);
+
+  const rowsY = 760;
+  const rowH = Math.min(150, (H - 260 - rowsY) / Math.max(1, model.rows.length));
+  model.rows.forEach((row, i) => {
+    const y = rowsY + i * rowH;
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#8a7c68";
+    ctx.font = "600 30px system-ui, sans-serif";
+    ctx.fillText(row.label.toUpperCase(), 60, y + 26);
+
+    ctx.textAlign = "right";
+    ctx.font = "700 40px system-ui, sans-serif";
+    ctx.fillStyle = row.aWinner ? "#e2933f" : "#f4ead8";
+    ctx.fillText(formatModeMetric({ format: row.format }, row.aValue), W / 2 - 40, y + 78);
+    ctx.textAlign = "left";
+    ctx.fillStyle = row.bWinner ? "#e2933f" : "#f4ead8";
+    ctx.fillText(formatModeMetric({ format: row.format }, row.bValue), W / 2 + 40, y + 78);
+
+    const barY = y + 96, barH = 14, barHalf = W / 2 - 60;
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    roundRect(ctx, 60, barY, barHalf, barH, 7);
+    ctx.fill();
+    roundRect(ctx, W - 60 - barHalf, barY, barHalf, barH, 7);
+    ctx.fill();
+    if (row.comparable) {
+      ctx.fillStyle = row.aWinner || row.tied ? "#e9b949" : "#e2933f66";
+      const aw = Math.max(6, (row.aPercent / 100) * barHalf);
+      roundRect(ctx, 60 + barHalf - aw, barY, aw, barH, 7);
+      ctx.fill();
+      ctx.fillStyle = row.bWinner || row.tied ? "#e9b949" : "#e2933f66";
+      const bw = Math.max(6, (row.bPercent / 100) * barHalf);
+      roundRect(ctx, W - 60 - barHalf, barY, bw, barH, 7);
+      ctx.fill();
+    }
+  });
+
+  ctx.textAlign = "center";
+  ctx.globalAlpha = 0.6;
+  ctx.fillStyle = "#f4ead8";
+  ctx.font = "500 30px system-ui, sans-serif";
+  ctx.fillText("Boys Pushup Bonanza", W / 2, H - 70);
+  ctx.globalAlpha = 1;
+
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+function truncateForCanvas(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let truncated = text;
+  while (truncated.length > 1 && ctx.measureText(`${truncated}…`).width > maxWidth) {
+    truncated = truncated.slice(0, -1);
+  }
+  return `${truncated}…`;
+}
+
+function wrapCenteredText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  const startY = y - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((l, i) => ctx.fillText(l, x, startY + i * lineHeight));
+}
+
 async function shareUserCompare() {
   const otherUser = state.compareUser;
   const selfUser = state.compareUserA || state.currentUser;
@@ -5375,6 +5505,23 @@ async function shareUserCompare() {
     });
   }
   const url = `${location.origin}${location.pathname}#compare=${encodeURIComponent(selfUser)}|${encodeURIComponent(otherUser)}`;
+  const tallyText = model.aWins === model.bWins
+    ? `Tied ${model.aWins}-${model.aWins}`
+    : `${model.aWins > model.bWins ? selfUser : otherUser} leads ${Math.max(model.aWins, model.bWins)}-${Math.min(model.aWins, model.bWins)}`;
+  const modeLabel = (LEADERBOARD_MODE_OPTIONS.find((option) => option.id === state.compareMode) || LEADERBOARD_MODE_OPTIONS[0]).label;
+
+  if (!model.empty) {
+    try {
+      const blob = await exportCompareImage(model, selfUser, otherUser, modeLabel, tallyText);
+      const file = new File([blob], "head-to-head.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Boys Pushup Bonanza", text: message, url });
+        return;
+      }
+    } catch (e) {
+      // image export or file-share unsupported — fall through to text share below
+    }
+  }
   if (navigator.share) {
     try {
       await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });

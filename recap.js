@@ -343,7 +343,7 @@ function formatShareValue(value, unit) {
   return unit === "seconds" ? formatShareDuration(value) : formatShareNumber(value);
 }
 
-function roundRect(ctx, x, y, w, h, r) {
+export function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
