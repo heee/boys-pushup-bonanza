@@ -433,6 +433,46 @@ const SHARE_MESSAGES_LADDER_UNHINGED = [
   (n, c) => `Rung ${c.maxRung}: population me, briefly. ${n} pushups got me evicted. 🪜📦`,
   (n, c) => `Scaled ${c.maxRung} rungs like a raccoon escaping consequences. ${n} reps. 🪜🦝`,
   (n, c) => `${n} pushups to rung ${c.maxRung}. The summit photo is just me lying face-down. 🪜📸`,
+  (n, c) => `Bros, rung ${c.maxRung}. ${n} reps. My arms just left the group chat. 🪜📱`,
+  (n, c) => `Told the boys I'd hit rung ${c.maxRung}. Did it in ${n} reps. Somebody buy me a Gatorade. 🪜💪`,
+  (n, c) => `Rung ${c.maxRung} in the bag, ${n} reps deep. Who's next, cowards? 🪜😤`,
+  (n, c) => `${n} reps up to rung ${c.maxRung}. The chat's gonna be unbearable now. 🪜🔥`,
+  (n, c) => `Rung ${c.maxRung} down like a bad decision at 2am. ${n} pushups. Screenshot this. 🪜👀`,
+  (n, c) => `Boys, we have a rung ${c.maxRung} situation. ${n} reps. Send condolences to my delts. 🪜🏆`,
+  (n, c) => `${n} reps to rung ${c.maxRung}. Somebody tell the group chat before I brag myself. 🪜😈`,
+  (n, c) => `Rung ${c.maxRung} conquered like it owed me lunch money. ${n} reps. 🪜🚨`,
+  (n, c) => `Just went full degenerate: rung ${c.maxRung}, ${n} reps. The boys are not ready. 🪜💀`,
+  (n, c) => `${n} pushups to rung ${c.maxRung}. My shoulders filed a group chat complaint of their own. 🪜🎤`,
+  (n, c) => `Rung ${c.maxRung} obliterated. ${n} reps. Somebody wake the group chat up, this is important. 🪜📸`,
+  (n, c) => `Bros thought I'd tap out at rung 5. Made it to ${c.maxRung}. ${n} reps of pure disrespect. 🪜👊`,
+  (n, c) => `${n} reps deep, rung ${c.maxRung} claimed. My guy code says I get bragging rights until Tuesday. 🪜🍺`,
+  (n, c) => `Rung ${c.maxRung} in ${n} reps. This is going straight in the group chat with zero context. 🪜💦`,
+  (n, c) => `Somebody screenshot this: rung ${c.maxRung}, ${n} reps, and I did not text anybody for help. 🪜🧢`,
+  (n, c) => `${n} reps to rung ${c.maxRung}. Told the boys I'd be quick. I lied, but I made it. 🪜👑`,
+  (n, c) => `Rung ${c.maxRung} down. ${n} reps. The energy drink industry owes me a sponsorship. 🪜📢`,
+  (n, c) => `Boys are gonna see rung ${c.maxRung} and immediately start lying about their own numbers. ${n} reps. 🪜🥵`,
+  (n, c) => `${n} pushups, rung ${c.maxRung}, zero chill. Somebody get this man a protein shake and a nap. 🪜🫡`,
+  (n, c) => `Rung ${c.maxRung} just got disrespected on purpose. ${n} reps. Tell the group chat I said what I said. 🪜🐐`,
+  (n, c) => `${n} reps up a ladder that did nothing to deserve it. Rung ${c.maxRung}. Send help or send memes. 🪜🎉`,
+  (n, c) => `Rung ${c.maxRung}, ${n} reps, and a group chat about to blow up with fake congratulations. 🪜🙌`,
+  (n, c) => `Boys said I couldn't. I could. Rung ${c.maxRung}, ${n} reps. Rent free in their heads now. 🪜📞`,
+  (n, c) => `${n} reps to rung ${c.maxRung}. My arms are drafting a strongly worded resignation letter. 🪜🎯`,
+  (n, c) => `Rung ${c.maxRung} handled like unfinished business. ${n} reps. Group chat's about to feel real inadequate. 🪜🥇`,
+  (n, c) => `${n} pushups later, rung ${c.maxRung} is mine and so is the bragging rights trophy nobody made. 🪜🏅`,
+  (n, c) => `Told the boys "watch this," hit rung ${c.maxRung} in ${n} reps, and nobody was actually watching. Still counts. 🪜⚡`,
+  (n, c) => `Rung ${c.maxRung} smoked. ${n} reps. This text is going out with zero apologies attached. 🪜🚀`,
+  (n, c) => `${n} reps of pure chaos got me to rung ${c.maxRung}. Somebody tell my mom I'm doing great. 🪜🥶`,
+  (n, c) => `Rung ${c.maxRung} in ${n} reps, no spotter, no shame, several witnesses via Instagram. 🪜😂`,
+  (n, c) => `The ladder tapped out before I did. Rung ${c.maxRung}, ${n} reps. Boys owe me a round. 🪜🔔`,
+  (n, c) => `${n} reps to rung ${c.maxRung}. My shoulders are typing an angry letter but my ego is thriving. 🪜🫠`,
+  (n, c) => `Rung ${c.maxRung} smashed like the group chat expects too much of me. ${n} reps. Correctly, apparently. 🪜🥊`,
+  (n, c) => `${n} pushups, rung ${c.maxRung}, and a swagger that will not survive the next flight of stairs. 🪜🎬`,
+  (n, c) => `Rung ${c.maxRung} was not ready for this energy. ${n} reps. Somebody hydrate me, I peaked emotionally. 🪜🍻`,
+  (n, c) => `${n} reps up to rung ${c.maxRung}. The boys will hear about this whether they ask or not. 🪜👋`,
+  (n, c) => `Rung ${c.maxRung} conquered on main. ${n} reps. Group chat's about to get a novel-length recap. 🪜🧨`,
+  (n, c) => `${n} pushups later I'm at rung ${c.maxRung} and mentally composing my hall of fame speech. 🪜🔊`,
+  (n, c) => `Rung ${c.maxRung}, ${n} reps, and an ego that now requires its own zip code. 🪜💬`,
+  (n, c) => `Climbed to rung ${c.maxRung} purely to have something to talk about at dinner. ${n} reps. Worked. 🪜🏋️`,
 ];
 
 const SHARE_MESSAGES_PYRAMID_EMPTY = [
@@ -526,6 +566,14 @@ const SHARE_MODIFIERS_WEIGHTED = [
   (c) => `🏋️ Raw damage: ${c.rawCount} reps with +${c.weightLbs} lbs strapped on like a terrible financial decision.`,
   (c) => `🏋️ Added-weight clause: +${c.weightLbs} lbs, ${c.rawCount} actual reps, and absolutely no concern from management.`,
   (c) => `🏋️ This disaster was weighted: +${c.weightLbs} lbs and ${c.rawCount} raw reps. My spine has requested arbitration.`,
+  (c) => `🏋️ Strapped on +${c.weightLbs} lbs and did ${c.rawCount} reps because normal pushups stopped being a personality trait.`,
+  (c) => `🏋️ +${c.weightLbs} lbs added, ${c.rawCount} reps paid, and the boys are calling it showing off. They're right.`,
+  (c) => `🏋️ Weighted run: +${c.weightLbs} lbs, ${c.rawCount} reps. My back has requested a lawyer and a raise.`,
+  (c) => `🏋️ ${c.rawCount} reps with +${c.weightLbs} lbs strapped on. Somebody tell the group chat I'm built different now.`,
+  (c) => `🏋️ +${c.weightLbs} lbs of pure spite, ${c.rawCount} reps to prove a point nobody asked me to make.`,
+  (c) => `🏋️ Added +${c.weightLbs} lbs like a menace. ${c.rawCount} reps later, my spine wants a union rep.`,
+  (c) => `🏋️ ${c.rawCount} reps under +${c.weightLbs} lbs. The boys said I wouldn't. I did. Cash app is open.`,
+  (c) => `🏋️ +${c.weightLbs} lbs strapped on for maximum flex potential. ${c.rawCount} reps, zero regrets, several tomorrow.`,
 ];
 
 const SHARE_MODIFIERS_PR = [
@@ -533,6 +581,14 @@ const SHARE_MODIFIERS_PR = [
   (c) => `🏆 ${c.title} collateral damage: ${c.oldBest} → ${c.newCount}. Previous me has been escorted out.`,
   (c) => `🏆 And because restraint is dead: new ${c.title}, ${c.oldBest} → ${c.newCount}.`,
   (c) => `🏆 Bonus crime: ${c.title} erased from ${c.oldBest} to ${c.newCount}.`,
+  (c) => `🏆 Also snapped ${c.title}: ${c.oldBest} → ${c.newCount}. The boys are gonna act surprised anyway.`,
+  (c) => `🏆 Bonus PR because apparently one wasn't enough: ${c.title}, ${c.oldBest} → ${c.newCount}.`,
+  (c) => `🏆 Also ran up ${c.title}: ${c.oldBest} to ${c.newCount}. Somebody screenshot this before I lie about it later.`,
+  (c) => `🏆 Extra crime committed: ${c.title} went from ${c.oldBest} to ${c.newCount}. No lawyer, no regrets.`,
+  (c) => `🏆 Side quest completed: ${c.title} PR, ${c.oldBest} → ${c.newCount}. Wasn't even trying, allegedly.`,
+  (c) => `🏆 Also demolished ${c.title}: ${c.oldBest} → ${c.newCount}. The group chat owes me applause.`,
+  (c) => `🏆 Threw in a free PR: ${c.title}, ${c.oldBest} → ${c.newCount}. You're welcome, nobody asked.`,
+  (c) => `🏆 Extra credit: ${c.title} record pushed from ${c.oldBest} to ${c.newCount}. Overachiever behavior, no apologies.`,
 ];
 
 const SHARE_MODIFIERS_LADDER_NEW_BEST = [
@@ -541,6 +597,34 @@ const SHARE_MODIFIERS_LADDER_NEW_BEST = [
   (c) => `🏆 New personal best at rung ${c.maxRung}; my previous record has been stripped of rank and title.`,
   (c) => `🏆 New personal best at rung ${c.maxRung}; former me has been reassigned to spectator duty, permanently.`,
   (c) => `🏆 New personal best at rung ${c.maxRung}; the old record didn't even get a retirement party.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; the boys are already lying about seeing it happen live.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; old me is somewhere crying into a participation trophy.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; previous me just got benched, permanently.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; my old record is currently filing for unemployment.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; the group chat owes me an apology and a trophy.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; old me just got voted off the island.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; previous me has officially been replaced, no severance.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; my old number just got dragged in front of everyone.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; the record books needed an update and I am the update.`,
+  (c) => `🏆 New personal best at rung ${c.maxRung}; old me has been quietly erased from the group chat highlights.`,
+];
+
+const SHARE_MODIFIERS_LADDER_PASSED = [
+  (names) => `🏁 Passed ${names}. Their Ladder PRs are now decorative little participation trophies.`,
+  (names) => `🏁 Ran straight through ${names} on the way up. The group chat is going to need a moment.`,
+  (names) => `🏁 ${names} got lapped on the ladder. Somebody go check on their egos.`,
+];
+
+const SHARE_MODIFIERS_FORTUNE_BEAT = [
+  (c) => `🥠 Target ${c.target} cleared. The prophecy has been violently fulfilled.`,
+  (c) => `🥠 Target ${c.target} smashed. The cookie called it and I delivered, unhinged as promised.`,
+  (c) => `🥠 Beat the ${c.target} target. Somewhere a fortune cookie factory is taking credit.`,
+];
+
+const SHARE_MODIFIERS_FORTUNE_MISS = [
+  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. That smug little paper bastard gets one night.`,
+  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. The cookie is currently gloating.`,
+  (c) => `🥠 ${c.remaining} short of ${c.target}. The prophecy walked away undefeated, for now.`,
 ];
 
 export function compactVictimNames(names) {
@@ -554,15 +638,14 @@ function decorateShareMessage(message, ctx) {
   const extras = [];
   if (ctx.weightedCtx?.weightLbs > 0) extras.push(pickFrom(SHARE_MODIFIERS_WEIGHTED)(ctx.weightedCtx));
   if (ctx.ladderCtx?.passedRivals?.length) {
-    extras.push(`🏁 Passed ${compactVictimNames(ctx.ladderCtx.passedRivals)}. Their Ladder PRs are now decorative little participation trophies.`);
+    extras.push(pickFrom(SHARE_MODIFIERS_LADDER_PASSED)(compactVictimNames(ctx.ladderCtx.passedRivals)));
   }
   if (ctx.ladderCtx?.isNewBest) {
     extras.push(pickFrom(SHARE_MODIFIERS_LADDER_NEW_BEST)(ctx.ladderCtx));
   }
   if (ctx.fortuneCtx?.target != null) {
-    extras.push(ctx.fortuneCtx.beatTarget
-      ? `🥠 Target ${ctx.fortuneCtx.target} cleared. The prophecy has been violently fulfilled.`
-      : `🥠 Target ${ctx.fortuneCtx.target} survived by ${ctx.fortuneCtx.remaining}. That smug little paper bastard gets one night.`);
+    const pool = ctx.fortuneCtx.beatTarget ? SHARE_MODIFIERS_FORTUNE_BEAT : SHARE_MODIFIERS_FORTUNE_MISS;
+    extras.push(pickFrom(pool)(ctx.fortuneCtx));
   }
   if (ctx.prCtx) extras.push(pickFrom(SHARE_MODIFIERS_PR)(ctx.prCtx));
   return [message, ...extras].join("\n\n");
