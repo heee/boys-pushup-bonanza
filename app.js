@@ -8793,6 +8793,7 @@ function buildShareContext(adjustedCount) {
     isSitup,
     isZen: isPushup && state.pushupMode === "zen",
     streak: computeStreak(mine),
+    todayRaw: adjustedCount,
     weekTotalRaw,
     weekTotalDisplay: isPlank ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
     cardsCtx: (isPushup && state.pushupMode === "cards") ? buildCardsShareContext() : null,

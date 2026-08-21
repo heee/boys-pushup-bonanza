@@ -28,42 +28,6 @@ const SHARE_MESSAGES = [
   (n) => `${n} pushups today. Bonanza never blinks 👁️`,
 ];
 
-const SHARE_MESSAGES_ZEN = [
-  (n) => `${n} mindful pushups. Big chest, quiet mind. 🧘💪`,
-  (n) => `${n} reps in silence. The gains still heard me. 🪷`,
-  (n) => `Found my center. It was ${n} pushups deep. 🧘`,
-  (n) => `${n} calm reps deposited in the gains account. 🍃💪`,
-  (n) => `Breathed in peace, pushed out ${n} reps. 🪷`,
-  (n) => `${n} pushups. No noise, just steady work. 🧘‍♂️`,
-  (n) => `Inner peace secured. Outer pecs pending. ${n} reps. 🍃`,
-  (n) => `${n} reps with the ego on airplane mode. 🪷💪`,
-  (n) => `Quiet session, loud progress: ${n} pushups. 🧘`,
-  (n) => `${n} pushups closer to enlightenment—and a respectable pump. 🪷`,
-  (n) => `The floor and I reached an understanding: ${n} reps. 🍃`,
-  (n) => `${n} controlled reps. Strong body, unbothered spirit. 🧘💪`,
-  (n) => `Today’s mantra: breathe, push, repeat. ${n} times. 🪷`,
-  (n) => `${n} reps, zero drama, excellent vibes. 🍃💪`,
-  (n) => `A peaceful ${n} pushups. Your move, whenever the spirit calls. 🧘`,
-  (n) => `${n} quiet reps. May your form be clean and your shoulders forgiving. 🪷`,
-  (n) => `Moved with intention. Also moved ${n} pushups. 🍃`,
-  (n) => `${n} reps completed in pursuit of balance and bigger sleeves. 🧘💪`,
-  (n) => `Serenity now. Soreness later. ${n} pushups. 🪷`,
-  (n) => `${n} pushups without disturbing the peace. Mostly. 🍃`,
-  (n) => `The mind was still. The chest was working. ${n} reps. 🧘`,
-  (n) => `${n} reps offered respectfully to the gains. 🪷💪`,
-  (n) => `Calm breath, steady form, ${n} pushups in the books. 🍃`,
-  (n) => `${n} reps. Competing only with yesterday, respectfully. 🧘`,
-  (n) => `Zen achieved. Pump acquired. ${n} pushups. 🪷💪`,
-  (n) => `Raw-dogging ${n} pushups—no counter, no hype, just vibes. 🧘`,
-  (n) => `${n} pushups with no emotional support counter. Character building. 🍃💪`,
-  (n) => `No music. No yelling. Just me, the floor, and ${n} questionable decisions. 🪷`,
-  (n) => `${n} reps completed on do-not-disturb mode. The pecs still got the memo. 🧘💪`,
-  (n) => `Raw reps, peaceful thoughts, mildly cooked arms. ${n} total. 🍃`,
-  (n) => `${n} pushups counted by a camera that respectfully kept its mouth shut. 🪷`,
-  (n) => `Meditated directly into ${n} pushups. Side effects may include sleeves getting tighter. 🧘`,
-  (n) => `${n} silent reps. My inner monologue was unfortunately still available. 🍃💪`,
-];
-
 const SHARE_MESSAGES_CLASSIC_UNHINGED = [
   (n) => `CLASSIC MODE: ${n} pushups, no gimmicks, no witnesses, one deeply suspicious pump. The floor is pressing charges.`,
   (n) => `${n} classic pushups. Just a grown man repeatedly lowering himself toward a phone like it owes him money. Normal shit.`,
@@ -753,21 +717,6 @@ const SHARE_MESSAGES_ZEN_UNHINGED = [
   (n) => `Boys, ${n} zen reps just happened and nobody heard a thing. My inner peace has abs now. 🪷`,
 ];
 
-const SHARE_MESSAGES_PLANK = [
-  (t) => `Held a ${t} plank! 🪵 Beat that 💪`,
-  (t) => `${t} plank in the books 🧱 Your move, boys 👀`,
-  (t) => `Just planked for ${t} 😤 Who's next?`,
-  (t) => `${t} of pure core chaos 🔥 Come get some`,
-  (t) => `${t} plank logged ✅ The bonanza continues 🚀`,
-  (t) => `${t} on the clock, core screaming 😤 Worth it.`,
-  (t) => `${t} plank. Floor's still warm 🔥 Your turn.`,
-  (t) => `${t} held, zero regrets 💪 (some regrets)`,
-  (t) => `${t} plank tax paid 💸 What's your rate?`,
-  (t) => `${t} of stillness, tons of shaking 🫨 Beat it.`,
-  (t) => `${t} plank. Somebody had to suffer 🤷`,
-  (t) => `${t} down on the timer ⏱️ Bonanza never blinks 👁️`,
-];
-
 const SHARE_MESSAGES_PLANK_UNHINGED = [
   (t) => `${t} pretending to be a coffee table while my organs negotiated surrender.`,
   (t) => `Held ${t}. The floor and I are now legally considered coworkers.`,
@@ -991,37 +940,6 @@ const SHARE_MESSAGES_PLANK_WEEK = [
   (t, ctx) => `Weekly plank tally: ${ctx.weekTotalDisplay} ⏱️ ${t} of it fresh.`,
 ];
 
-const BREAD_EMOJI = ["🍞", "🥖", "🥯", "🫓", "🥨"];
-const SHARE_MESSAGES_BREAD = [
-  (n) => `${n} pushups. Time to get the bread ${pickFrom(BREAD_EMOJI)}`,
-  (n) => `Getting that bread ${pickFrom(BREAD_EMOJI)} — ${n} pushups deep.`,
-  (n) => `${n} reps, ${pickFrom(BREAD_EMOJI)} secured. Who's hungry?`,
-  (n) => `${n} pushups earned the ${pickFrom(BREAD_EMOJI)} today. Come get some.`,
-  (n) => `Bread's baked ${pickFrom(BREAD_EMOJI)} — ${n} pushups did it.`,
-  (n) => `${n} reps deep, ${pickFrom(BREAD_EMOJI)} in hand. Your loaf's still in the oven.`,
-  (n) => `${n} pushups later, ${pickFrom(BREAD_EMOJI)} unlocked. Get to work.`,
-  (n) => `Earned my ${pickFrom(BREAD_EMOJI)} — ${n} pushups on the receipt.`,
-];
-
-const SHARE_MESSAGES_PLANK_BREAD = [
-  (t) => `${t} plank. Time to get the bread ${pickFrom(BREAD_EMOJI)}`,
-  (t) => `Getting that bread ${pickFrom(BREAD_EMOJI)} — ${t} plank held.`,
-  (t) => `${t} plank, ${pickFrom(BREAD_EMOJI)} secured. Who's hungry?`,
-  (t) => `${t} held, ${pickFrom(BREAD_EMOJI)} earned. Come get some.`,
-  (t) => `Bread's baked ${pickFrom(BREAD_EMOJI)} — ${t} plank did it.`,
-  (t) => `${t} plank later, ${pickFrom(BREAD_EMOJI)} unlocked. Get to work.`,
-];
-
-const SHARE_MESSAGES_CARDS = [
-  (n, c) => `${c.cardsText} cleared, ${n} pushups 🃏 The deck lost.`,
-  (n, c) => `Ran ${c.cardsText} off the deck for ${n} reps 🎴 House always loses.`,
-  (n, c) => `${n} pushups across ${c.cardsText} 🃏 Dealer's ruined.`,
-  (n, c) => `Played ${c.cardsText}, paid ${n} reps 💀 Worth it.`,
-  (n, c) => `${c.cardsText} down, ${n} pushups deep 🎴 Shuffle 'em again.`,
-  (n, c) => `The deck dealt ${c.cardsText}. I paid every one. ${n} reps 😤`,
-  (n, c) => `${n} reps, ${c.cardsText} — I don't gamble, I just do pushups 🃏`,
-];
-
 const SHARE_MESSAGES_POKER = [
   (n, c) => `${n} pushups across ${c.handsText}. Best hand: ${c.bestHand}. The deck has retained counsel. ♠️`,
   (n, c) => `Cleared ${c.handsText} and ${n} reps. Pulled ${c.bestHand}. I am no longer welcome near felt surfaces. 🃏`,
@@ -1130,21 +1048,6 @@ const SHARE_MESSAGES_CARDS_SUIT = [
   (n, c) => `The deck has a ${c.topSuitEmoji} problem. ${c.topSuitCount} this session. ${n} pushups.`,
 ];
 
-const SHARE_MESSAGES_DICE = [
-  (n, c) => `${c.rollsText} rolled, ${n} pushups paid 🎲 The table's on fire and so are my shoulders.`,
-  (n, c) => `Rolled ${c.rollsText}, paid every single one in reps 🎲 The house always wins except today.`,
-  (n, c) => `${c.rollsText} of chaos, ${n} pushups of consequence 🎲🔥 No refunds.`,
-  (n, c) => `Vegas has nothing on this floor. ${c.rollsText}, ${n} reps, zero regrets (lying).`,
-  (n, c) => `Every roll was a new sentence and every sentence was pushups. ${c.rollsText}, ${n} reps. 🎲`,
-  (n, c) => `${n} pushups later and the dice are STILL hot 🎲🔥 ${c.rollsText} down.`,
-  (n, c) => `Craps table energy, cardio consequences 🎲 ${c.rollsText}, ${n} reps.`,
-  (n, c) => `I don't gamble with money, I gamble with my shoulders 🎲 ${c.rollsText}, ${n} reps.`,
-  (n, c) => `The dice decided my fate ${c.rollsText} 🎲 My fate was pushups. ${n} total.`,
-  (n, c) => `Rolled like the dice owed me money 🎲 ${c.rollsText}, ${n} pushups collected.`,
-  (n, c) => `Two cubes of chaos, ${c.rollsText}, ${n} reps of pure consequence 🎲😵`,
-  (n, c) => `The dice gods demanded tribute. ${c.rollsText} worth. Paid in full: ${n} reps. 🎲`,
-];
-
 const SHARE_MESSAGES_DICE_DOUBLES = [
   (n, c) => `${c.plural(c.doubles, "double")} rolled 🎲🎲 The dice matched, my arms didn't get a vote. ${n} reps.`,
   (n, c) => `Rolled doubles ${c.doubles} time${c.doubles === 1 ? "" : "s"} — the universe was just being cruel. ${n} pushups, ${c.rollsText}.`,
@@ -1164,35 +1067,6 @@ const SHARE_MESSAGES_DICE_BOXCARS = [
 const SHARE_MESSAGES_DICE_SEVENS = [
   (n, c) => `Sevened out ${c.sevens} times 🎰 Lucky number, unlucky shoulders. ${n} reps, ${c.rollsText}.`,
   (n, c) => `The dice kept landing on 7 like it was rigged 🎲 ${c.sevens} times. ${n} pushups.`,
-];
-
-const SHARE_MESSAGES_LADDER = [
-  (n, c) => `Climbed to rung ${c.maxRung} before gravity called my lawyer. ${n} reps. 🪜⚖️`,
-  (n, c) => `Rung ${c.maxRung} and my shoulders filed a missing person report. ${n} pushups. 🪜🚨`,
-  (n, c) => `Made it to rung ${c.maxRung} then cashed out like a coward. ${n} reps, zero regrets. 🪜💸`,
-  (n, c) => `Rung ${c.maxRung} deep and still breathing (barely). ${n} pushups total. 🪜🫁`,
-  (n, c) => `Climbed ${c.maxRung} rungs of pure bad decisions. ${n} reps. 🪜🙃`,
-  (n, c) => `The ladder said stop at rung ${c.maxRung}. I said one more. ${n} reps. 🪜😈`,
-  (n, c) => `Rung ${c.maxRung}, no rope, no regrets, no cartilage left. ${n} pushups. 🪜💀`,
-  (n, c) => `Sent it to rung ${c.maxRung} and cashed out before my arms unionized. ${n} reps. 🪜✊`,
-  (n, c) => `Rung ${c.maxRung} — the air up there is thin and so is my patience. ${n} pushups. 🪜🌬️`,
-  (n, c) => `Climbed ${c.maxRung} rungs like the floor owed me money. ${n} reps. 🪜💰`,
-  (n, c) => `Rung ${c.maxRung} deep, cashed out, walked away like a legend (crawled). ${n} pushups. 🪜🐢`,
-  (n, c) => `${c.maxRung} rungs of chaos, ${n} pushups of consequence 🪜🔥 The ladder wins next time.`,
-  (n, c) => `Rung ${c.maxRung} — one more step and I'd have needed a priest. ${n} reps. 🪜🙏`,
-  (n, c) => `Climbed ${c.maxRung} rungs on a floor that did nothing to deserve this. ${n} pushups. 🪜😤`,
-];
-
-const SHARE_MESSAGES_LADDER_NEW_BEST = [
-  (n, c) => `NEW PERSONAL BEST — rung ${c.maxRung} 🏆🪜 Previous me could never. ${n} reps.`,
-  (n, c) => `Rung ${c.maxRung} — a new record and a new lower-back problem. ${n} pushups. 🏆🪜💀`,
-  (n, c) => `Personal best: rung ${c.maxRung}. Personal worst: everything below the neck. ${n} reps. 🏆😵`,
-];
-
-const SHARE_MESSAGES_LADDER_HIGH = [
-  (n, c) => `Rung ${c.maxRung} — officially higher than my will to live. ${n} reps. 🪜🚀`,
-  (n, c) => `Double digits on the ladder (${c.maxRung}) and single digits left in my soul. ${n} pushups. 🪜👻`,
-  (n, c) => `Rung ${c.maxRung} — someone call air traffic control. ${n} reps. 🪜✈️`,
 ];
 
 const SHARE_MESSAGES_LADDER_UNHINGED = [
@@ -1795,7 +1669,7 @@ export function compactVictimNames(names) {
   return `${unique[0]}, ${unique[1]}, and ${unique.length - 2} other victim${unique.length === 3 ? "" : "s"}`;
 }
 
-function decorateShareMessage(message, ctx) {
+function decorateShareMessage(message, ctx, displayCount) {
   const extras = [];
   if (ctx.weightedCtx?.weightLbs > 0) extras.push(pickFrom(SHARE_MODIFIERS_WEIGHTED)(ctx.weightedCtx));
   if (ctx.ladderCtx?.passedRivals?.length) {
@@ -1809,6 +1683,31 @@ function decorateShareMessage(message, ctx) {
     extras.push(pickFrom(pool)(ctx.fortuneCtx));
   }
   if (ctx.prCtx) extras.push(pickFrom(SHARE_MODIFIERS_PR)(ctx.prCtx));
+
+  // Card/dice trivia — brag about the specific cards/rolls cleared, not just the rep total.
+  // Rarest stat wins so the bonus line doesn't turn into a wall of trivia.
+  const cc = ctx.cardsCtx;
+  if (cc?.aces >= 2) extras.push(pickFrom(SHARE_MESSAGES_CARDS_ACES)(displayCount, cc));
+  else if (cc?.kings >= 2) extras.push(pickFrom(SHARE_MESSAGES_CARDS_KINGS)(displayCount, cc));
+  else if (cc?.faces >= 4) extras.push(pickFrom(SHARE_MESSAGES_CARDS_FACES)(displayCount, cc));
+  else if (cc?.topSuitCount >= 4) extras.push(pickFrom(SHARE_MESSAGES_CARDS_SUIT)(displayCount, cc));
+
+  const dc = ctx.diceCtx;
+  if (dc?.snakeEyes >= 1) extras.push(pickFrom(SHARE_MESSAGES_DICE_SNAKE_EYES)(displayCount, dc));
+  else if (dc?.boxcars >= 1) extras.push(pickFrom(SHARE_MESSAGES_DICE_BOXCARS)(displayCount, dc));
+  else if (dc?.doubles >= 2) extras.push(pickFrom(SHARE_MESSAGES_DICE_DOUBLES)(displayCount, dc));
+  else if (dc?.sevens >= 3) extras.push(pickFrom(SHARE_MESSAGES_DICE_SEVENS)(displayCount, dc));
+
+  // Streak/week trivia — only when it's actually notable, and only one of the
+  // two (a long streak is the more impressive brag when both are true).
+  if (ctx.streak >= 3) {
+    const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK : SHARE_MESSAGES_STREAK;
+    extras.push(pickFrom(pool)(displayCount, ctx));
+  } else if (ctx.weekTotalRaw > 0 && ctx.todayRaw != null && ctx.weekTotalRaw > ctx.todayRaw) {
+    const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_WEEK : SHARE_MESSAGES_WEEK;
+    extras.push(pickFrom(pool)(displayCount, ctx));
+  }
+
   return [message, ...extras].join("\n\n");
 }
 
@@ -1826,7 +1725,7 @@ export function pickChaseShareMessage(count, chase, shareCtx = {}) {
   do { template = pickFrom(pool); guard++; }
   while (template === lastChaseShareTemplate && pool.length > 1 && guard < 10);
   lastChaseShareTemplate = template;
-  return decorateShareMessage(template(count, ctx), shareCtx);
+  return decorateShareMessage(template(count, ctx), shareCtx, count);
 }
 
 const SHARE_MESSAGES_PR_ACHIEVED = [
@@ -1933,7 +1832,7 @@ export function pickShareMessage(count, ctx) {
     guard++;
   } while (template === lastShareTemplate && pool.length > 1 && guard < 10);
   lastShareTemplate = template;
-  return decorateShareMessage(template(count, modeCtx || {}), ctx);
+  return decorateShareMessage(template(count, modeCtx || {}), ctx, count);
 }
 
 // Nag messages for the Horse turn-order screen's "Remind" button — calls out
