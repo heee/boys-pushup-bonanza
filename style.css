@@ -3364,7 +3364,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .my-session-row { display: grid; grid-template-columns: 1fr 7rem 4.5rem 1.6rem; font-size: 0.88rem; }
 .my-session-date { color: var(--text-dim); }
 .my-session-mode-badge { justify-self: start; font-size: 0.66rem; padding: 0.25rem 0.55rem; }
-.my-session-details-btn { justify-self: end; font-size: 1.1rem; padding: 0.2rem 0.3rem; }
+.my-session-details-btn { justify-self: end; font-size: 1.1rem; padding: 0.2rem 0.3rem; width: auto; height: auto; background: none; }
+
+/* #app normally has no fixed height (min-height: 100vh, grows with content),
+   so the page itself scrolls and #app-main's own overflow-y:auto never
+   engages — the infinite-scroll listener on #app-main would never fire.
+   Same fix as the challenges screen below: cap #app to the viewport here so
+   #app-main becomes the real scroll container. */
+body:has(#screen-settings-mysessions.active) #app {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
 
 /* ---------------- Explore modes ---------------- */
 
