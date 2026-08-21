@@ -453,6 +453,30 @@ const SHARE_MESSAGES_PYRAMID_UNHINGED = [
   (n, c) => `Pyramid scheme complete: ${c.pyramidSizeLabel}, ${c.pyramidDirectionLabel}, ${n} reps. Everyone at the base row got recruited into my suffering.`,
   (n, c) => `Climbed a ${c.pyramidSizeLabel} pyramid ${c.pyramidDirectionLabel === "Up & down" ? "and climbed right back down" : "straight to the apex"}. ${n} reps. My knees have filed for asylum.`,
   (n, c) => `${c.pyramidSizeLabel} pyramid demolished, ${n} reps deep. Ancient Egypt has entered the chat and it is not impressed.`,
+  (n, c) => `Excavated a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}. ${n} reps. Local historians are drafting a strongly worded letter.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid: apex reached, dignity buried with the pharaoh. ${n} reps.`,
+  (n, c) => `Climbed ${n} reps up a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}. The Sphinx has seen enough.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid cleared in ${n} reps. My hieroglyph would just say "ow."`,
+  (n, c) => `Looted a ${c.pyramidSizeLabel} tomb for ${n} pushups, ${c.pyramidDirectionLabel}. Anubis wants his cut.`,
+  (n, c) => `${n} pushups later, the ${c.pyramidSizeLabel} pyramid has new graffiti: I was here, briefly, in agony.`,
+  (n, c) => `Scaled a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}, for ${n} reps. Camels are unionizing in solidarity.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid conquered. ${n} reps. The base row remembers everything.`,
+  (n, c) => `Went full pharaoh on a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}: ${n} reps and a premature mummification.`,
+  (n, c) => `${n} reps up a ${c.pyramidSizeLabel} pyramid. Sand got everywhere, including my will to live.`,
+  (n, c) => `Completed a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}, in ${n} reps. Tourism board has revoked my visa.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid demolished in ${n} reps. Somewhere a museum is missing an exhibit: me.`,
+  (n, c) => `${n} pushups carved a ${c.pyramidSizeLabel} pyramid out of pure spite, ${c.pyramidDirectionLabel}.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid: summited, looted, regretted. ${n} reps.`,
+  (n, c) => `Built ${n} reps of suffering into a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}. The pyramid billed me for labor.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid finished. ${n} reps. Egypt has requested I stop representing them.`,
+  (n, c) => `${n} reps up a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}, and one very confused cat watched the whole thing.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid cleared. ${n} reps. My cardiologist has joined the group chat, uninvited.`,
+  (n, c) => `Climbed and descended a ${c.pyramidSizeLabel} pyramid (${c.pyramidDirectionLabel}) for ${n} reps. The elevator would've been faster and I have no regrets about not using it.`,
+  (n, c) => `${n} pushups built a ${c.pyramidSizeLabel} pyramid from scratch, ${c.pyramidDirectionLabel}, and then I immediately wanted a refund.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid: apex touched, several ancient curses activated. ${n} reps.`,
+  (n, c) => `${n} reps deep into a ${c.pyramidSizeLabel} pyramid, ${c.pyramidDirectionLabel}. The base row filed a group grievance.`,
+  (n, c) => `${c.pyramidSizeLabel} pyramid finished in ${n} reps. My knees have started speaking in hieroglyphics.`,
+  (n, c) => `Went pyramid hunting and came back with ${n} reps and a ${c.pyramidSizeLabel} pyramid's worth of regret, ${c.pyramidDirectionLabel}.`,
 ];
 
 const SHARE_MESSAGES_CHASE_WIN = [
@@ -511,6 +535,14 @@ const SHARE_MODIFIERS_PR = [
   (c) => `Bonus crime: ${c.title} erased from ${c.oldBest} to ${c.newCount}.`,
 ];
 
+const SHARE_MODIFIERS_LADDER_NEW_BEST = [
+  (c) => `New personal best at rung ${c.maxRung}; previous me has been demoted to civilian.`,
+  (c) => `New personal best at rung ${c.maxRung}; old me just got laid off, effective immediately.`,
+  (c) => `New personal best at rung ${c.maxRung}; my previous record has been stripped of rank and title.`,
+  (c) => `New personal best at rung ${c.maxRung}; former me has been reassigned to spectator duty, permanently.`,
+  (c) => `New personal best at rung ${c.maxRung}; the old record didn't even get a retirement party.`,
+];
+
 export function compactVictimNames(names) {
   const unique = [...new Set((names || []).filter(Boolean))];
   if (unique.length <= 1) return unique[0] || "";
@@ -525,7 +557,7 @@ function decorateShareMessage(message, ctx) {
     extras.push(`Passed ${compactVictimNames(ctx.ladderCtx.passedRivals)}. Their Ladder PRs are now decorative little participation trophies.`);
   }
   if (ctx.ladderCtx?.isNewBest) {
-    extras.push(`New personal best at rung ${ctx.ladderCtx.maxRung}; previous me has been demoted to civilian.`);
+    extras.push(pickFrom(SHARE_MODIFIERS_LADDER_NEW_BEST)(ctx.ladderCtx));
   }
   if (ctx.fortuneCtx?.target != null) {
     extras.push(ctx.fortuneCtx.beatTarget
@@ -567,6 +599,32 @@ const SHARE_MESSAGES_PR_ACHIEVED = [
   (n, c) => `Personal record demolished 🧨 ${c.oldBest} → ${c.newCount} in ${c.title}. The rebuild begins tomorrow.`,
   (n, c) => `${c.newCount} in one set. My previous best of ${c.oldBest} just watched it happen from the cheap seats. 🎟️ ${c.title} PR.`,
   (n, c) => `Somewhere, my old best of ${c.oldBest} is filing a complaint. ${c.newCount} now. ${c.title} 🏆 New PR, no notes.`,
+  (n, c) => `${c.title} PR: ${c.oldBest} is now a rumor. ${c.newCount} is the truth. 🔥`,
+  (n, c) => `Retired the old ${c.title} number (${c.oldBest}) effective immediately. ${c.newCount} is in charge now.`,
+  (n, c) => `${c.newCount} in ${c.title}. ${c.oldBest} has been quietly removed from the record books. 🧾`,
+  (n, c) => `New ${c.title} high: ${c.newCount}. Old one (${c.oldBest}) didn't even get a going-away party.`,
+  (n, c) => `${c.title}: ${c.oldBest} → ${c.newCount}. The upgrade nobody asked for but everybody's getting.`,
+  (n, c) => `Blew past ${c.oldBest} in ${c.title} — landed at ${c.newCount} and did not look back. 💨`,
+  (n, c) => `${c.title} PR unlocked: ${c.newCount}. ${c.oldBest} has been reclassified as a warm-up.`,
+  (n, c) => `Old ${c.title} best: ${c.oldBest}. Current mood: ${c.newCount} and feeling dangerous.`,
+  (n, c) => `${c.newCount} reps just made ${c.oldBest} obsolete in ${c.title}. RIP to a real one.`,
+  (n, c) => `${c.title} record replaced: ${c.oldBest} out, ${c.newCount} in. No severance offered.`,
+  (n, c) => `Hit ${c.newCount} in ${c.title}. ${c.oldBest} is now a cautionary tale I tell at parties.`,
+  (n, c) => `${c.title}: previous ceiling was ${c.oldBest}. New floor is ${c.newCount}. 🏗️`,
+  (n, c) => `${c.oldBest} used to be impressive in ${c.title}. Then ${c.newCount} happened.`,
+  (n, c) => `${c.title} PR alert: ${c.newCount}, up from ${c.oldBest}. The old number didn't see it coming.`,
+  (n, c) => `Buried the ${c.oldBest} ${c.title} record under ${c.newCount} fresh reps. RIP.`,
+  (n, c) => `${c.title}: ${c.newCount} today. ${c.oldBest} yesterday. The gap is where my old excuses used to live.`,
+  (n, c) => `Set a new ${c.title} bar at ${c.newCount}. ${c.oldBest} is filed under "cute attempts."`,
+  (n, c) => `${c.newCount} reps, new ${c.title} PR, ${c.oldBest} sent to the archives. 📦`,
+  (n, c) => `${c.title} update: ${c.oldBest} has been formally deprecated. ${c.newCount} is the new stable release.`,
+  (n, c) => `Snapped the old ${c.title} number like a twig — ${c.oldBest} to ${c.newCount}. 🪵`,
+  (n, c) => `${c.title}: ${c.newCount} reps just outran ${c.oldBest} and never looked back.`,
+  (n, c) => `Old ${c.title} PR (${c.oldBest}) has been peacefully retired. ${c.newCount} takes the crown.`,
+  (n, c) => `${c.newCount} in ${c.title}. Somewhere, ${c.oldBest} is having a very bad day.`,
+  (n, c) => `${c.title} record upgraded from ${c.oldBest} to ${c.newCount}. No refunds on the old number.`,
+  (n, c) => `Left ${c.oldBest} in the dust with ${c.newCount} in ${c.title}. Dust has feelings too, apparently.`,
+  (n, c) => `${c.title}: ${c.newCount} is the new personal best. ${c.oldBest} has been asked to leave the group chat.`,
 ];
 
 let lastShareTemplate = null;
