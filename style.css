@@ -446,9 +446,9 @@ button, input {
   letter-spacing: -0.02em;
   margin: 0.2rem 0 0.3rem;
 }
+.screen-title.screen-title-with-icon { display: flex; align-items: center; }
 .screen-title-icon {
   display: inline-flex;
-  vertical-align: -0.16em;
   margin-right: 0.45rem;
 }
 .screen-title-icon svg { width: 1.3rem; height: 1.3rem; display: block; }
