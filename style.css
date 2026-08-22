@@ -2827,6 +2827,11 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   color: var(--text);
 }
 .leaderboard-mode-option.selected { background: var(--primary); color: #fff; }
+/* Only the Leaderboard screen's own mode dropdown — the other reuses of
+   this shared component (Roadtrip period, compare mode, my-sessions mode)
+   keep every option at the same weight. */
+#leaderboard-mode-menu .leaderboard-mode-option { font-weight: 500; }
+#leaderboard-mode-menu .leaderboard-mode-option.selected { font-weight: 650; }
 .leaderboard-mode-check { visibility: hidden; }
 .leaderboard-mode-option.selected .leaderboard-mode-check { visibility: visible; }
 
@@ -3009,9 +3014,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-bottom: 0.8rem;
 }
 /* Card-flip mechanics — same technique as Cards mode's .card-flip (see
-   above), except both faces are height:auto and JS pins the scene's own
-   height to whichever face is front-facing (syncChartFlipHeight in app.js),
-   since unlike a playing card this content isn't a fixed aspect ratio. */
+   above). JS pins the scene's height to the FRONT face only, always
+   (syncChartFlipHeight in app.js) — unlike a playing card this content
+   isn't a fixed aspect ratio, and the back (Boys Bonanza's member legend
+   especially) can run longer than the front ever does; pinning to front
+   only, and clipping the back to that same height (see .chart-face-back),
+   keeps the flip from ever visibly growing the card. */
 .chart-flip-scene {
   position: relative;
   perspective: 90rem;
@@ -3036,7 +3044,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-.chart-face-back { transform: rotateY(180deg); }
+.chart-face-back {
+  /* Constrained (bottom:0, unlike the front) to the scene's pinned height
+     and clipped — the front measures its own natural height for the whole
+     card to match, so the back must never be allowed to push past it. */
+  bottom: 0;
+  overflow: hidden;
+  transform: rotateY(180deg);
+}
 @media (prefers-reduced-motion: reduce) {
   .chart-flip, .chart-flip-scene { transition: none; }
 }
@@ -3207,8 +3222,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   flex-wrap: wrap;
   gap: 0.15rem 0.7rem;
   margin-top: 0.7rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--border);
 }
 .chart-day-legend-item {
   display: flex;

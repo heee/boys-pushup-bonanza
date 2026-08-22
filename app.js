@@ -273,6 +273,21 @@ function activityLabel(activity, singular = false) {
   return words[activity] || words.pushups;
 }
 
+// Same icons as the mode selector (screens/explore-modes.js EXPLORE_MODES) —
+// pushups uses Classic's icon since "pushups" is the umbrella activity, not
+// a single mode there.
+function activityEmoji(activity) {
+  const icons = {
+    pushups: "💪",
+    pullups: "💪",
+    squats: "🦵",
+    situps: "🙇",
+    planks: "🪵",
+    holland: "🇳🇱",
+  };
+  return icons[activity] || icons.pushups;
+}
+
 function savedLeaderboardMode() {
   const saved = localStorage.getItem(LS.leaderboardMode) || "all";
   return LEADERBOARD_MODE_IDS.has(saved) ? saved : "all";
@@ -5356,13 +5371,17 @@ function renderChartBackFace(scope, sessions, isPlank, isHolland) {
   if (nextArrow) nextArrow.disabled = dayOffset >= 0;
 }
 
-// Pins the flip-scene's own height to whichever face is front-facing, since
-// both faces are position:absolute (needed so they can overlap mid-flip)
-// and the content is dynamic, not a fixed aspect ratio like Cards mode.
+// Pins the flip-scene's height to the FRONT face only, always — never the
+// back's, even while flipped — so flipping to a longer member legend (Boys
+// Bonanza can have far more rows than the front ever does) never grows the
+// card. The back face's own overflow:hidden (see .chart-face-back) crops
+// anything that doesn't fit rather than pushing the card taller. Both faces
+// are position:absolute (needed so they can overlap mid-flip), so the
+// scene's own height has to be pinned by JS regardless.
 function syncChartFlipHeight(scope) {
   const flipEl = $(`${scope}-chart-flip`);
   if (!flipEl) return;
-  const face = flipEl.querySelector(flipEl.classList.contains("flipped") ? ".chart-face-back" : ".chart-face-front");
+  const face = flipEl.querySelector(".chart-face-front");
   if (face) flipEl.closest(".chart-flip-scene").style.height = `${face.scrollHeight}px`;
 }
 
@@ -5869,7 +5888,7 @@ function paintMyBonanza(sessions) {
   const statsEl = $("personal-stats");
   if (!mine.length) {
     tilesEl.innerHTML = "";
-    statsEl.innerHTML = `<p class="leaderboard-empty">No sessions yet — go do some ${activityWord}! 💪</p>`;
+    statsEl.innerHTML = `<p class="leaderboard-empty">No sessions yet — go do some ${activityWord}! ${activityEmoji(state.activityType)}</p>`;
     return;
   }
   const streak = computeStreak(mine);
@@ -6045,7 +6064,7 @@ function paintDashboard(sessions) {
   const lbList = $("leaderboard-list");
   lbList.innerHTML = "";
   if (!ranked.length) {
-    lbList.innerHTML = `<p class="leaderboard-empty">No ${activityWord} logged for this period yet. Get moving! 💪</p>`;
+    lbList.innerHTML = `<p class="leaderboard-empty">No ${activityWord} logged for this period yet. Get moving! ${activityEmoji(state.activityType)}</p>`;
   } else {
     ranked.forEach(([user, total], i) => {
       const row = document.createElement("div");
@@ -6113,7 +6132,7 @@ function renderRecentList(sessions) {
   const recent = [...sessions].sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a)).slice(0, 10);
   recentList.innerHTML = "";
   if (!recent.length) {
-    recentList.innerHTML = `<p class="history-empty">No ${currentActivity} logged yet. Get moving! 💪</p>`;
+    recentList.innerHTML = `<p class="history-empty">No ${currentActivity} logged yet. Get moving! ${activityEmoji(state.activityType)}</p>`;
     return;
   }
   for (const s of recent) {
