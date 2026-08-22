@@ -7581,7 +7581,7 @@ function renderHeroForCount(count) {
     // for this mode). Both counts live together in one subordinate line.
     const remaining = model.remaining;
     $("cards-session-total").textContent = `${remaining} left on this card · ${formatNumber(count)} total`;
-    updateModeCounterBadge("card-counter-badge", remaining);
+    updateModeCounterBadge("card-counter-badge", remaining, pulseIntensityFromCardValue(state.cardTarget, remaining));
   } else if (model.kind === "poker") {
     const remaining = model.remaining;
     const hands = state.pokerHandsCompleted.length;
@@ -7589,7 +7589,7 @@ function renderHeroForCount(count) {
     $("poker-session-total").innerHTML = state.pokerResolving
       ? `${handText} completed · <strong>${formatNumber(count)} total</strong>`
       : `${remaining} left on ${state.pokerHand[state.pokerCardIndex]?.label || "card"} · ${handText} · <strong>${formatNumber(count)} total</strong>`;
-    if (!state.pokerResolving) updateModeCounterBadge("poker-counter-badge", remaining);
+    if (!state.pokerResolving) updateModeCounterBadge("poker-counter-badge", remaining, pulseIntensityFromCardValue(state.pokerCardTarget, remaining));
   } else if (model.kind === "dice") {
     // Same subordinate-line pattern as Cards — the dice pair is the focal
     // point (see setupWorkoutModeState), not a giant number.
@@ -7610,14 +7610,14 @@ function renderHeroForCount(count) {
     // shows as a pop badge on the active row instead.
     const remaining = model.remaining;
     renderLadderRungWindow();
-    updateModeCounterBadge("ladder-counter-badge", remaining);
+    updateModeCounterBadge("ladder-counter-badge", remaining, pulseIntensityNearZero(remaining));
     $("ladder-session-total").textContent = `${formatNumber(count)} total · Best rung ${getLadderBestRung(state.currentUser)}`;
   } else if (model.kind === "pyramid") {
     // Same focal-visual pattern as Ladder — the pyramid stack is the focal
     // point, reps-remaining-on-this-row shows as a pop badge over the active row.
     const remaining = model.remaining;
     renderPyramidWindow();
-    updateModeCounterBadge("pyramid-counter-badge", remaining);
+    updateModeCounterBadge("pyramid-counter-badge", remaining, pulseIntensityNearZero(remaining));
     $("pyramid-session-total").textContent = `${formatNumber(count)} / ${formatNumber(state.pyramidTotalReps)} total`;
   } else if (model.kind === "sharpshooter") {
     const remaining = model.remaining;
@@ -7652,13 +7652,33 @@ function heroSpokenNumber(count) {
 // in between — the same restart pattern playCardFlip uses for the flip
 // transition — so back-to-back reps each get their own full grow-then-fade
 // cycle. Shared by Cards (#card-counter-badge) and Dice (#dice-counter-badge).
-function updateModeCounterBadge(elId, remaining) {
+// `intensity` (0-1, default 0) feeds --pulse-intensity in CSS for the
+// bigger-pulse-as-you-approach-the-peak effect — see pulseIntensityFromCardValue
+// and pulseIntensityNearZero for how each mode computes it.
+function updateModeCounterBadge(elId, remaining, intensity = 0) {
   const badge = $(elId);
   if (!badge) return;
   badge.textContent = String(remaining);
+  badge.style.setProperty("--pulse-intensity", String(Math.max(0, Math.min(1, intensity))));
   badge.classList.remove("pop");
   void badge.offsetWidth;
   badge.classList.add("pop");
+}
+
+// Cards/Poker: how deep into a high-value card you are. A King (13, the
+// deck's max) ramps close to full intensity by its last rep; a low card like
+// a 2 stays subtle throughout since it can never rack up many reps-done.
+function pulseIntensityFromCardValue(value, remaining) {
+  if (!value) return 0;
+  return Math.max(0, Math.min(1, (value - remaining) / 13));
+}
+
+// Ladder/Pyramid: reversed vs. Cards/Poker — these targets have no fixed
+// ceiling (rungs climb indefinitely; row size is session-configured), so
+// instead of scaling off the total, intensity ramps up during the last 10
+// reps of any row/rung as it counts down toward 0.
+function pulseIntensityNearZero(remaining, window = 10) {
+  return Math.max(0, Math.min(1, (window - remaining) / window));
 }
 
 // A real ladder, not a scrolling window: rungs are grouped into fixed pages

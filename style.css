@@ -1328,6 +1328,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    updateModeCounterBadge in app.js). Shared between Cards and Dice — same
    overlay pattern, just anchored to a different scene. */
 .mode-counter-badge {
+  /* Set inline per-update by updateModeCounterBadge (app.js) — 0 (calm) to 1
+     (max anticipation). Cards/Poker derive it from how deep into a high-value
+     card you are; Ladder/Pyramid derive it from being within the last 10 reps
+     of the row/rung. Drives the bigger peak scale + glow below; 0 reproduces
+     the original fixed-size pop exactly. */
+  --pulse-intensity: 0;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1342,7 +1348,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0.5rem 1.1rem rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0.5rem 1.1rem rgba(0, 0, 0, 0.4), 0 0 calc(1.8rem * var(--pulse-intensity)) rgba(255, 190, 60, var(--pulse-intensity));
   opacity: 0;
   pointer-events: none;
   z-index: 5;
@@ -1353,7 +1359,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 @keyframes card-counter-pop {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.18); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(calc(1.18 + 0.32 * var(--pulse-intensity))); }
   32% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
 }
