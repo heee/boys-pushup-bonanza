@@ -5075,6 +5075,7 @@ $("bonanza-mode-select").addEventListener("click", (e) => {
   state.dashboardBucketOffset = null;
   $("boys-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "boys");
   $("my-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "mine");
+  updateLeaderboardModeMenuVisibility();
   paintActiveBonanzaView();
 });
 
@@ -5085,6 +5086,25 @@ function syncLeaderboardModeControl() {
     const isSelected = option.dataset.leaderboardMode === selected.id;
     option.classList.toggle("selected", isSelected);
     option.setAttribute("aria-selected", String(isSelected));
+  });
+  updateLeaderboardModeMenuVisibility();
+}
+
+// Trims the mode dropdown down to whichever modes actually have a session
+// within the selected time horizon, scoped to the same user pool the
+// leaderboard/dashboard itself draws from — fewer irrelevant options for
+// the user to wade through. The currently selected mode always stays
+// visible even if it no longer qualifies, so the trigger label never
+// points at an option missing from its own menu.
+function updateLeaderboardModeMenuVisibility() {
+  const periodStartTime = periodStart(state.dashboardPeriod).getTime();
+  const pool = state.bonanzaMode === "mine"
+    ? (state.lastSessions || []).filter((s) => s.user === state.currentUser)
+    : (state.lastSessions || []);
+  document.querySelectorAll("#leaderboard-mode-menu .leaderboard-mode-option").forEach((option) => {
+    const mode = option.dataset.leaderboardMode;
+    const hasSessions = filterByMode(pool, mode).some((s) => sessionTimestamp(s) >= periodStartTime);
+    option.classList.toggle("hidden", !hasSessions && mode !== state.leaderboardMode);
   });
 }
 
@@ -6288,6 +6308,7 @@ $("period-select").addEventListener("click", (e) => {
   btn.classList.add("active");
   state.dashboardPeriod = btn.dataset.period;
   state.dashboardBucketOffset = null;
+  updateLeaderboardModeMenuVisibility();
   paintActiveBonanzaView();
 });
 
