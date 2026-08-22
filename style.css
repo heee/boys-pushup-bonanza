@@ -1361,8 +1361,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   /* Set inline per-update by updateModeCounterBadge (app.js) — 0 (calm) to 1
      (max anticipation). Cards/Poker derive it from how deep into a high-value
      card you are; Ladder/Pyramid derive it from being within the last 10 reps
-     of the row/rung. Drives the bigger peak scale + glow below; 0 reproduces
-     the original fixed-size pop exactly. */
+     of the row/rung. Drives the bigger peak scale, settled size, and glow
+     below; 0 reproduces the original fixed-size pop exactly. */
   --pulse-intensity: 0;
   position: absolute;
   top: 50%;
@@ -1390,14 +1390,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 @keyframes card-counter-pop {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
   15% { opacity: 1; transform: translate(-50%, -50%) scale(calc(1.18 + 0.32 * var(--pulse-intensity))); }
-  32% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  32% { opacity: 1; transform: translate(-50%, -50%) scale(calc(1 + 0.14 * var(--pulse-intensity))); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(calc(1 + 0.14 * var(--pulse-intensity))); }
 }
 @media (prefers-reduced-motion: reduce) {
   .mode-counter-badge.pop {
     animation: none;
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(calc(1 + 0.14 * var(--pulse-intensity)));
   }
 }
 .card-flip {
