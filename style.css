@@ -3343,6 +3343,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .leaderboard-name { flex: 1; font-weight: 400; font-size: 1.05rem; }
 .leaderboard-total { font-weight: 800; font-size: 1.1rem; color: var(--text); }
+/* "pr" rows: current best-this-window is plain until it beats the prior
+   record, then goes bold gold to match the achiever check + rank-1 color
+   language; the prior record stays small/dim as reference context. */
+.leaderboard-pr-score { font-weight: 400; font-size: 1.1rem; color: var(--text); }
+.leaderboard-pr-score.is-achieved { font-weight: 800; color: var(--gold); }
+.leaderboard-pr-prior { font-weight: 400; font-size: 0.8rem; color: var(--text-dim); margin-left: 0.25rem; }
 .leaderboard-empty, .history-empty {
   color: var(--text-dim);
   text-align: center;

@@ -7207,7 +7207,14 @@ function paintChallengeLeaderboard(c) {
     return;
   }
   challengeLeaderboardRows(board, c.goalType).forEach((row) => {
-    const scoreText = c.goalType === "streak" ? `${formatNumber(row.score)} day${row.score === 1 ? "" : "s"}` : c.goalType === "plankGauntlet" ? formatDuration(row.score * 1000) : formatNumber(row.score);
+    // "pr" rows spell out best-this-window vs. the record it's chasing
+    // (or beat) instead of a bare total, so the number carries context on
+    // its own without needing the detail card underneath.
+    const scoreText = c.goalType === "pr" ? "" : c.goalType === "streak" ? `${formatNumber(row.score)} day${row.score === 1 ? "" : "s"}` : c.goalType === "plankGauntlet" ? formatDuration(row.score * 1000) : formatNumber(row.score);
+    const priorHtml = row.baseline > 0 ? `<span class="leaderboard-pr-prior">(${formatNumber(row.baseline)})</span>` : `<span class="leaderboard-pr-prior">(new)</span>`;
+    const totalHtml = c.goalType === "pr"
+      ? `<span class="leaderboard-pr-score${row.achieved ? " is-achieved" : ""}">${formatNumber(row.bestThisWeek)}</span>${priorHtml}`
+      : scoreText;
     const rowEl = document.createElement("div");
     rowEl.className = "leaderboard-row" + (row.topRank ? ` rank-${row.topRank}` : "");
     // "pr" rows show a green check for achievers instead of a numeric rank;
@@ -7218,7 +7225,7 @@ function paintChallengeLeaderboard(c) {
       ${rankHtml}
       ${avatarCircleHTML(avatarForUser(row.name), "1.8rem")}
       <div class="leaderboard-name">${escapeHtml(row.name)}</div>
-      <div class="leaderboard-total">${scoreText}</div>
+      <div class="leaderboard-total">${totalHtml}</div>
     `;
     makeNameCompareClickable(rowEl.querySelector(".leaderboard-name"), row.name);
     el.appendChild(rowEl);
