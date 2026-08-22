@@ -7158,7 +7158,7 @@ function renderChallengeDetail() {
       } else {
         html += `
           <div class="challenge-progress-card">
-            <div class="challenge-progress-label">Your best: ${formatNumber(standing.baseline)} · This week's best set: ${formatNumber(standing.bestThisWeek)} · ${daysLeftLabel}</div>
+            <div class="challenge-progress-label">${daysLeftLabel}</div>
             ${buildProgressThermometer(standing.bestThisWeek, standing.baseline || 1)}
           </div>
         `;
