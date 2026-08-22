@@ -9301,12 +9301,20 @@ function buildSharpshooterShareContext() {
 
 function buildPyramidShareContext() {
   const sizeLabel = (pyramidMode.PYRAMID_SIZES.find((tier) => tier.base === state.pyramidSize) || {}).label || "";
+  const totalRows = state.pyramidSize;
+  const currentRow = state.pyramidRow || totalRows;
+  const depth = Math.min(totalRows, Math.max(1, totalRows - currentRow + 1));
   return {
     pyramidSize: state.pyramidSize,
     pyramidSizeLabel: sizeLabel,
     pyramidDirectionLabel: state.pyramidDirection === "updown" ? "Up & down" : "Up only",
     completed: state.pyramidCompleted,
     peakReached: state.pyramidPeakReached,
+    totalRows,
+    currentRow,
+    depth,
+    rowsCleared: depth - 1,
+    rowsRemaining: Math.max(0, currentRow - 1),
   };
 }
 
