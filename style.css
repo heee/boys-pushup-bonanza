@@ -2038,8 +2038,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-open-share-row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
 .horse-open-eyebrow { margin: 0 0 0.15rem; color: var(--primary); font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; }
 .horse-open-slots { margin: 0; font-weight: 800; }
-.horse-open-share-btn { width: auto; min-height: 42px; padding: 0.55rem 0.85rem; white-space: nowrap; }
-.horse-open-link { margin: 0.8rem 0 0; color: var(--text-tertiary); font-size: 0.72rem; overflow-wrap: anywhere; }
 .horse-open-startgame-btn { width: 100%; min-height: 44px; margin-top: 0.9rem; }
 .horse-open-exit-btn { display: block; border: 0; background: none; color: var(--danger); font: inherit; font-size: 0.82rem; font-weight: 700; margin: 0.8rem auto 0; padding: 0.3rem; cursor: pointer; }
 .tier1-row.horse-open-slot {
@@ -2049,6 +2047,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   color: var(--text-tertiary);
 }
 .horse-open-slot-icon { width: 2rem; text-align: center; font-size: 1.25rem; }
+.horse-open-slot-name { font-weight: 500; }
+.horse-open-slot-invite-btn { flex: none; width: 2rem; height: 2rem; }
+.horse-open-slot-invite-btn .icon-share { width: 14px; height: 14px; color: var(--text-tertiary); }
 
 /* Active-workout HUD: static target hero (does not tick per rep, unlike
    Classic's #rep-count) plus the player's own letter-progress pill. */

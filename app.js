@@ -2727,8 +2727,8 @@ function renderHorseTurnOrder() {
     ? Array.from({ length: Math.max(0, 8 - rows.length) }, () => `
       <div class="tier1-row horse-player-row horse-open-slot">
         <span class="horse-open-slot-icon">＋</span>
-        <span class="horse-player-name">Open player slot</span>
-        <span class="horse-player-status-waiting">Invite link</span>
+        <span class="horse-player-name horse-open-slot-name">Open player slot</span>
+        <button type="button" class="icon-btn horse-open-slot-invite-btn" aria-label="Share invite link"><span class="icon-share" aria-hidden="true"></span></button>
       </div>`).join("")
     : "";
   $("horse-turn-order-list").innerHTML = playerRowsHTML + openSlotsHTML;
@@ -2753,9 +2753,7 @@ function renderHorseTurnOrder() {
     $("horse-open-slots").textContent = started
       ? `${game.turnOrder.length} player${game.turnOrder.length === 1 ? "" : "s"} · started`
       : `${game.turnOrder.length}/8 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
-    $("horse-open-link").textContent = horseInviteUrl(game.id);
     $("btn-horse-open-share").classList.toggle("hidden", started || slotsLeft === 0);
-    $("horse-open-link").classList.toggle("hidden", started || slotsLeft === 0);
     const isHost = state.currentUser === game.createdBy;
     const startBtn = $("btn-horse-open-startgame");
     startBtn.classList.toggle("hidden", started || !isHost);
@@ -2815,6 +2813,9 @@ async function shareOpenHorseInvite() {
 }
 
 $("btn-horse-open-share").addEventListener("click", shareOpenHorseInvite);
+$("horse-turn-order-list").addEventListener("click", (e) => {
+  if (e.target.closest(".horse-open-slot-invite-btn")) shareOpenHorseInvite();
+});
 
 $("btn-horse-open-startgame").addEventListener("click", async (e) => {
   const game = state.horseGame;
