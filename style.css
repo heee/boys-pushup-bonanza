@@ -3549,7 +3549,19 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .manage-user-row:last-child, .my-session-row:last-child { border-bottom: none; }
 .manage-user-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.manage-avatar-select { width: 2.2rem; height: 2.2rem; font-size: 1.05rem; }
+.manage-avatar-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
 .btn-delete-user {
   background: none;
   border: none;
@@ -4057,13 +4069,16 @@ body:has(#screen-challenges.active) #app {
 }
 .edit-profile-hint { color: var(--text-tertiary); font-size: 0.8rem; margin-top: 0.6rem; }
 
-.edit-profile-swatch-grid {
+/* Shared by the Edit Profile screen's inline grid and the avatar-sheet
+   popover (Settings > Profile & users' per-user picker) — same component,
+   two places it's mounted. */
+.avatar-swatch-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0.6rem;
   margin: 0 0 1.4rem;
 }
-.edit-profile-swatch {
+.avatar-swatch {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 50%;
@@ -4074,7 +4089,7 @@ body:has(#screen-challenges.active) #app {
   align-items: center;
   justify-content: center;
 }
-.edit-profile-swatch.selected { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--primary); }
+.avatar-swatch.selected { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--primary); }
 
 /* ---------------- Head-to-head comparison ---------------- */
 

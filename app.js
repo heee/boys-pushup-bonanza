@@ -327,6 +327,56 @@ const AVATARS = [
   { id: "beers", emoji: "🍻", bg: "#d4a83a" },
   { id: "cheers", emoji: "🥂", bg: "#d9b66a" },
   { id: "eggplant", emoji: "🍆", bg: "#5e3d7a" },
+  { id: "lion", emoji: "🦁", bg: "#b8862e" },
+  { id: "tiger", emoji: "🐯", bg: "#c97a2e" },
+  { id: "bear", emoji: "🐻", bg: "#6b4a2e" },
+  { id: "wolf", emoji: "🐺", bg: "#5c5c5c" },
+  { id: "eagle", emoji: "🦅", bg: "#8a6a3a" },
+  { id: "shark", emoji: "🦈", bg: "#3a5a6b" },
+  { id: "bull", emoji: "🐂", bg: "#5a3a2e" },
+  { id: "ram", emoji: "🐏", bg: "#8a7a6a" },
+  { id: "rhino", emoji: "🦏", bg: "#6b6b5a" },
+  { id: "elephant", emoji: "🐘", bg: "#7a7a7a" },
+  { id: "snake", emoji: "🐍", bg: "#4a6b3a" },
+  { id: "dragon", emoji: "🐉", bg: "#2e6b4a" },
+  { id: "unicorn", emoji: "🦄", bg: "#8a5a9c" },
+  { id: "owl", emoji: "🦉", bg: "#6b5a3a" },
+  { id: "fox", emoji: "🦊", bg: "#c9682e" },
+  { id: "panda", emoji: "🐼", bg: "#4a4a4a" },
+  { id: "koala", emoji: "🐨", bg: "#8a8a8a" },
+  { id: "penguin", emoji: "🐧", bg: "#3a4a5a" },
+  { id: "frog", emoji: "🐸", bg: "#4a8a3a" },
+  { id: "monkey", emoji: "🐵", bg: "#8a5a3a" },
+  { id: "cat", emoji: "🐱", bg: "#c9982e" },
+  { id: "horse", emoji: "🐴", bg: "#7a5a3a" },
+  { id: "crab", emoji: "🦀", bg: "#b8462e" },
+  { id: "octopus", emoji: "🐙", bg: "#7a3a6b" },
+  { id: "scorpion", emoji: "🦂", bg: "#4a3a3a" },
+  { id: "wrestling", emoji: "🤼", bg: "#7a4a3a" },
+  { id: "running", emoji: "🏃", bg: "#3a6b8a" },
+  { id: "cycling", emoji: "🚴", bg: "#3a8a6b" },
+  { id: "swimming", emoji: "🏊", bg: "#2e6b8a" },
+  { id: "climbing", emoji: "🧗", bg: "#8a6b3a" },
+  { id: "karate", emoji: "🥋", bg: "#4a4a4a" },
+  { id: "medal", emoji: "🥇", bg: "#c9a02e" },
+  { id: "dart", emoji: "🎯", bg: "#b83a3a" },
+  { id: "pizza", emoji: "🍕", bg: "#c9862e" },
+  { id: "taco", emoji: "🌮", bg: "#c9982e" },
+  { id: "chili", emoji: "🌶️", bg: "#a83232" },
+  { id: "whiskey", emoji: "🥃", bg: "#8a5a2e" },
+  { id: "coffee", emoji: "☕", bg: "#5a3a2e" },
+  { id: "donut", emoji: "🍩", bg: "#c98a6a" },
+  { id: "popcorn", emoji: "🍿", bg: "#c9a83a" },
+  { id: "watermelon", emoji: "🍉", bg: "#3a8a4a" },
+  { id: "skull", emoji: "💀", bg: "#5a5a5a" },
+  { id: "ghost", emoji: "👻", bg: "#6b6b8a" },
+  { id: "alien", emoji: "👽", bg: "#3a8a5a" },
+  { id: "robot", emoji: "🤖", bg: "#5a6b7a" },
+  { id: "ninja", emoji: "🥷", bg: "#3a3a3a" },
+  { id: "wizard", emoji: "🧙", bg: "#4a6b8a" },
+  { id: "superhero", emoji: "🦸", bg: "#3a5a8a" },
+  { id: "cowboy", emoji: "🤠", bg: "#8a6a2e" },
+  { id: "party", emoji: "🥳", bg: "#c9682e" },
 ];
 
 // Prepopulated challenge calendar — static, curated via git, never mutated
@@ -4109,20 +4159,20 @@ function renderManageUsers() {
     const row = document.createElement("div");
     row.className = "manage-user-row";
     row.innerHTML = `
-      <select class="avatar-select manage-avatar-select" aria-label="Change ${escapeHtml(name)}'s avatar"></select>
+      <button type="button" class="manage-avatar-btn" aria-label="Change ${escapeHtml(name)}'s avatar" style="background:${avatar.bg}">${avatar.emoji}</button>
       <span class="manage-user-name">${escapeHtml(name)}</span>
       ${isYou ? '<span class="you-badge">You</span>' : ""}
       ${isYou
         ? '<button type="button" class="btn-edit-profile">Edit <span class="chev">›</span></button>'
         : `<button type="button" class="btn-delete-user" aria-label="Delete ${escapeHtml(name)}">🗑️</button>`}
     `;
-    const avatarSelect = row.querySelector(".manage-avatar-select");
-    avatarSelect.innerHTML = AVATARS.map((a) => `<option value="${a.id}">${a.emoji}</option>`).join("");
-    avatarSelect.value = avatar.id;
-    avatarSelect.style.background = avatar.bg;
-    avatarSelect.addEventListener("change", () => {
-      avatarSelect.style.background = getAvatar(avatarSelect.value).bg;
-      changeUserAvatar(name, avatarSelect.value);
+    const avatarBtn = row.querySelector(".manage-avatar-btn");
+    avatarBtn.addEventListener("click", () => {
+      openAvatarSheet(avatar.id, (id) => {
+        avatarBtn.style.background = getAvatar(id).bg;
+        avatarBtn.textContent = getAvatar(id).emoji;
+        changeUserAvatar(name, id);
+      });
     });
     if (isYou) {
       row.querySelector(".btn-edit-profile").addEventListener("click", () => openEditProfile());
@@ -4184,6 +4234,19 @@ async function confirmDeleteUser(name) {
 
 // ------------------- edit profile -------------------
 
+// Shared by the Edit Profile screen's inline grid and the avatar-sheet
+// popover (see openAvatarSheet) — fills a .avatar-swatch-grid with every
+// AVATARS option and wires tap-to-pick.
+function renderAvatarSwatchGrid(grid, selectedId, onPick) {
+  grid.innerHTML = AVATARS.map((a) => `<button type="button" class="avatar-swatch${a.id === selectedId ? " selected" : ""}" data-avatar="${a.id}" style="background:${a.bg}" aria-label="${a.emoji}">${a.emoji}</button>`).join("");
+  grid.querySelectorAll(".avatar-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      grid.querySelectorAll(".avatar-swatch").forEach((b) => b.classList.toggle("selected", b === btn));
+      onPick(btn.dataset.avatar);
+    });
+  });
+}
+
 let editProfileSelectedAvatar = null;
 
 function openEditProfile() {
@@ -4194,20 +4257,37 @@ function openEditProfile() {
   $("edit-profile-name").value = state.currentUser;
   $("edit-profile-error").classList.add("hidden");
 
-  const grid = $("edit-profile-swatch-grid");
-  grid.innerHTML = AVATARS.map((a) => `<button type="button" class="edit-profile-swatch${a.id === avatar.id ? " selected" : ""}" data-avatar="${a.id}" style="background:${a.bg}" aria-label="${a.emoji}">${a.emoji}</button>`).join("");
-  grid.querySelectorAll(".edit-profile-swatch").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      editProfileSelectedAvatar = btn.dataset.avatar;
-      grid.querySelectorAll(".edit-profile-swatch").forEach((b) => b.classList.toggle("selected", b === btn));
-      const picked = getAvatar(editProfileSelectedAvatar);
-      $("edit-profile-avatar").textContent = picked.emoji;
-      $("edit-profile-avatar").style.background = picked.bg;
-    });
+  renderAvatarSwatchGrid($("edit-profile-swatch-grid"), avatar.id, (id) => {
+    editProfileSelectedAvatar = id;
+    const picked = getAvatar(id);
+    $("edit-profile-avatar").textContent = picked.emoji;
+    $("edit-profile-avatar").style.background = picked.bg;
   });
 
   showScreen("screen-edit-profile");
 }
+
+// Popover grid used by Settings > Profile & users to change a user's
+// avatar in place — replaces what used to be a native <select> of 75
+// emoji, which is exactly the wall-of-text list a native picker is worst
+// at; a grid lets you see every option at a glance and tap the one you want.
+let avatarSheetOnPick = null;
+function openAvatarSheet(selectedId, onPick) {
+  avatarSheetOnPick = onPick;
+  renderAvatarSwatchGrid($("avatar-sheet-grid"), selectedId, (id) => {
+    avatarSheetOnPick?.(id);
+    closeAvatarSheet();
+  });
+  $("avatar-sheet-backdrop").classList.remove("hidden");
+}
+function closeAvatarSheet() {
+  $("avatar-sheet-backdrop").classList.add("hidden");
+  avatarSheetOnPick = null;
+}
+$("btn-avatar-sheet-close").addEventListener("click", closeAvatarSheet);
+$("avatar-sheet-backdrop").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeAvatarSheet();
+});
 
 async function saveEditProfile() {
   const oldName = state.currentUser;

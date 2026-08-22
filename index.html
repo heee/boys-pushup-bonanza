@@ -1453,7 +1453,7 @@
         <p class="edit-profile-hint">Tap to change icon</p>
       </div>
 
-      <div id="edit-profile-swatch-grid" class="edit-profile-swatch-grid"></div>
+      <div id="edit-profile-swatch-grid" class="avatar-swatch-grid"></div>
 
       <div class="tier1-eyebrow">Display name</div>
       <input id="edit-profile-name" class="text-input" type="text" maxlength="40" placeholder="Your name">
@@ -1496,6 +1496,17 @@
       <p id="location-search-status" class="location-search-status" role="status" aria-live="polite"></p>
       <div id="location-search-results" class="location-search-results"></div>
     </form>
+  </section>
+</div>
+
+<div id="avatar-sheet-backdrop" class="location-sheet-backdrop hidden">
+  <section id="avatar-sheet" class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="avatar-sheet-title">
+    <div class="location-sheet-handle" aria-hidden="true"></div>
+    <div class="location-sheet-header">
+      <h2 id="avatar-sheet-title">Choose an avatar</h2>
+      <button id="btn-avatar-sheet-close" type="button" class="location-close" aria-label="Close avatar picker">&#x2715;</button>
+    </div>
+    <div id="avatar-sheet-grid" class="avatar-swatch-grid"></div>
   </section>
 </div>
 
