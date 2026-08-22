@@ -5281,15 +5281,11 @@ function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, 
   const buckets = [];
   for (let h = DAY_HOUR_START; h <= DAY_HOUR_END; h += 1) buckets.push({ hour: h, total: 0, byUser: new Map() });
 
-  let dayTotal = 0;
-  let sessionCount = 0;
   const dayTotalsByUser = new Map();
   for (const session of sessions) {
     const ts = sessionTimestamp(session);
     if (ts < start || ts >= end) continue;
     const value = metricOf(session);
-    dayTotal += value;
-    sessionCount += 1;
     if (stacked) dayTotalsByUser.set(session.user, (dayTotalsByUser.get(session.user) || 0) + value);
     const hour = new Date(ts).getHours();
     if (hour < DAY_HOUR_START || hour > DAY_HOUR_END) continue;
@@ -5329,7 +5325,7 @@ function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, 
     return `<div class="week-bar-col">${barHTML}<div class="week-bar-label">${label}</div></div>`;
   }).join("");
 
-  return { dayTotal, sessionCount, peakHour: peak && peak.total > 0 ? peak.hour : null, userOrder };
+  return { peakHour: peak && peak.total > 0 ? peak.hour : null, userOrder };
 }
 
 // Renders one card's back face and returns nothing — called every paint
@@ -5340,15 +5336,13 @@ function renderChartBackFace(scope, sessions, isPlank, isHolland) {
   const prefix = scope === "boys" ? "boys-week-day" : "week-day";
   const dayOffset = scope === "boys" ? state.boysChartDayOffset : state.myChartDayOffset;
   const stacked = scope === "boys";
-  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
 
-  const { dayTotal, sessionCount, peakHour, userOrder } = renderDayHourChart(sessions, `${prefix}-chart`, dayOffset, isPlank, isHolland, stacked);
+  const { peakHour, userOrder } = renderDayHourChart(sessions, `${prefix}-chart`, dayOffset, isPlank, isHolland, stacked);
 
   $(`${prefix}-header`).textContent = formatDayHeaderLabel(dayOffset);
-  $(`${prefix}-total`).textContent = fmtCount(dayTotal);
-  $(`${prefix}-unit`).textContent = activityLabel(state.activityType);
-  $(`${prefix}-sessions`).textContent = `${sessionCount} session${sessionCount === 1 ? "" : "s"}`;
-  $(`${prefix}-peak`).textContent = peakHour === null ? "" : `Peak ${formatHourRangeLabel(peakHour)}`;
+  const peakEl = $(`${prefix}-peak`);
+  peakEl.classList.toggle("hidden", peakHour === null);
+  if (peakHour !== null) peakEl.textContent = `Peak ${formatHourRangeLabel(peakHour)}`;
 
   const legendEl = document.getElementById(`${prefix}-legend`);
   if (legendEl) {
