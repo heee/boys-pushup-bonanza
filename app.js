@@ -4372,6 +4372,17 @@ function renderMySessions() {
     row.addEventListener("click", open);
     list.appendChild(row);
   }
+  // The scroll listener below only grows the page once #app-main actually
+  // overflows. A short first page (e.g. 10 brief rows) often doesn't fill
+  // the screen, so no scroll event ever fires and the list looks stuck even
+  // though more sessions exist. Keep paging until it overflows or runs out.
+  if (mySessionsHasMore) {
+    const main = $("app-main");
+    if (main.scrollHeight <= main.clientHeight) {
+      state.mySessionsShown += 10;
+      renderMySessions();
+    }
+  }
 }
 
 function syncMySessionsModeControl() {
