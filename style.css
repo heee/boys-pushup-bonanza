@@ -3643,6 +3643,36 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    depending on the row above it. Fixed grid columns line every count and
    every Details button up on the same vertical regardless of label length. */
 .my-session-row { display: grid; grid-template-columns: 1fr 7rem 4.5rem 1.6rem; font-size: 0.88rem; }
+.my-sessions-header {
+  display: grid;
+  grid-template-columns: 1fr 7rem 4.5rem 1.6rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.my-sessions-header.hidden { display: none; }
+.my-sessions-sort {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+.my-sessions-sort-length { text-align: right; }
+.my-sessions-sort.active { color: var(--primary); }
+.my-sessions-sort-arrow::after { content: "↕"; }
+.my-sessions-sort[aria-sort="ascending"] .my-sessions-sort-arrow::after { content: "↑"; }
+.my-sessions-sort[aria-sort="descending"] .my-sessions-sort-arrow::after { content: "↓"; }
 .my-session-date { color: var(--text-dim); }
 .my-session-mode-badge { justify-self: start; font-size: 0.66rem; padding: 0.25rem 0.55rem; }
 .my-session-details-btn { justify-self: end; font-size: 1.1rem; padding: 0.2rem 0.3rem; width: auto; height: auto; background: none; }

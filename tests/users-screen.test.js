@@ -16,6 +16,19 @@ test("session history is newest-first and paginated", () => {
   assert.deepEqual(visibleUserSessions(sessions, "A", 1), { sessions: [sessions[2]], hasMore: true, total: 2 });
 });
 
+test("session history sorts by date or length in either direction", () => {
+  const sortable = [
+    { id: "old-short", user: "A", timestamp: "2026-08-01T10:00:00Z", count: 10 },
+    { id: "new-long", user: "A", timestamp: "2026-08-03T10:00:00Z", count: 30 },
+    { id: "new-short", user: "A", timestamp: "2026-08-02T10:00:00Z", count: 5 },
+  ];
+  const ids = (options) => visibleUserSessions(sortable, "A", 10, options).sessions.map((session) => session.id);
+
+  assert.deepEqual(ids({ sortBy: "date", direction: "asc" }), ["old-short", "new-short", "new-long"]);
+  assert.deepEqual(ids({ sortBy: "length", direction: "desc" }), ["new-long", "old-short", "new-short"]);
+  assert.deepEqual(ids({ sortBy: "length", direction: "asc" }), ["new-short", "old-short", "new-long"]);
+});
+
 test("cached rename updates sessions, avatar, and challenge enrollment", () => {
   const data = { sessions: [{ user: "A" }], avatars: { A: "flex" }, challengeParticipants: { c1: ["A", "B"] } };
   assert.deepEqual(renameCachedIdentity(data, "A", "Z"), { sessions: [{ user: "Z" }], avatars: { Z: "flex" }, challengeParticipants: { c1: ["Z", "B"] } });

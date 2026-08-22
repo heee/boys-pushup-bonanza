@@ -1343,6 +1343,8 @@ const state = {
   lastSessions: [],
   mySessionsShown: 10,
   mySessionsMode: "all",
+  mySessionsSortBy: "date",
+  mySessionsSortDirection: "desc",
   sessionStartedAt: null,
   challengeTab: "active",
   openChallengeId: null,
@@ -4369,10 +4371,22 @@ let mySessionsHasMore = false;
 
 function renderMySessions() {
   const filtered = getAllSessionsForDisplay().filter((s) => state.mySessionsMode === "all" || sessionActivity(s) === state.mySessionsMode);
-  const model = visibleUserSessions(filtered, state.currentUser, state.mySessionsShown);
+  const model = visibleUserSessions(filtered, state.currentUser, state.mySessionsShown, {
+    sortBy: state.mySessionsSortBy,
+    direction: state.mySessionsSortDirection,
+  });
   mySessionsHasMore = model.hasMore;
   const list = $("my-sessions-list");
+  const header = $("my-sessions-header");
   list.innerHTML = "";
+  header.classList.toggle("hidden", !model.total);
+  header.querySelectorAll("[data-mysessions-sort]").forEach((button) => {
+    const active = button.dataset.mysessionsSort === state.mySessionsSortBy;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-sort", active
+      ? (state.mySessionsSortDirection === "asc" ? "ascending" : "descending")
+      : "none");
+  });
   if (!model.total) {
     list.innerHTML = '<p class="settings-hint">No sessions yet.</p>';
     return;
@@ -4406,6 +4420,20 @@ function renderMySessions() {
     }
   }
 }
+
+$("my-sessions-header").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-mysessions-sort]");
+  if (!button) return;
+  const sortBy = button.dataset.mysessionsSort;
+  if (state.mySessionsSortBy === sortBy) {
+    state.mySessionsSortDirection = state.mySessionsSortDirection === "desc" ? "asc" : "desc";
+  } else {
+    state.mySessionsSortBy = sortBy;
+    state.mySessionsSortDirection = "desc";
+  }
+  state.mySessionsShown = 10;
+  renderMySessions();
+});
 
 function syncMySessionsModeControl() {
   const selected = MY_SESSIONS_MODE_OPTIONS.find((option) => option.id === state.mySessionsMode) || MY_SESSIONS_MODE_OPTIONS[0];

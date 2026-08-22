@@ -24,10 +24,17 @@ export function userSelectionModel(names, lastUser, { expanded = false, creating
   };
 }
 
-export function visibleUserSessions(sessions, user, limit) {
+export function visibleUserSessions(sessions, user, limit, { sortBy = "date", direction = "desc" } = {}) {
+  const multiplier = direction === "asc" ? 1 : -1;
   const mine = sessions
     .filter((session) => session.user === user)
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    .sort((a, b) => {
+      const primary = sortBy === "length"
+        ? (Number(a.count) || 0) - (Number(b.count) || 0)
+        : new Date(a.timestamp) - new Date(b.timestamp);
+      if (primary) return primary * multiplier;
+      return (new Date(a.timestamp) - new Date(b.timestamp)) * multiplier;
+    });
   return { sessions: mine.slice(0, limit), hasMore: mine.length > limit, total: mine.length };
 }
 
