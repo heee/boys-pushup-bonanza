@@ -80,6 +80,7 @@ import { createJsonStorage, normalizeSharedData } from "./storage.js";
 import { createMutationQueue } from "./sync.js";
 import { createRepCounter } from "./rep-counter.js";
 import { createCameraController } from "./camera.js";
+import { playGhostSurpassEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
@@ -9564,11 +9565,7 @@ function updatePlankHighscoreMessage(seconds) {
 }
 
 function playPlankGhostTransition() {
-  const el = $("plank-ghost-transition");
-  el.classList.remove("playing");
-  void el.offsetWidth;
-  el.classList.add("playing");
-  setTimeout(() => el.classList.remove("playing"), 1150);
+  playGhostSurpassEffect($("plank-ghost-transition"), { sound: soundIsEnabled() });
 }
 
 function stopPlankInterval() {
@@ -9806,11 +9803,7 @@ function updateSquatHighscoreMessage(count) {
 }
 
 function playSquatGhostTransition() {
-  const el = $("squat-ghost-transition");
-  el.classList.remove("playing");
-  void el.offsetWidth;
-  el.classList.add("playing");
-  setTimeout(() => el.classList.remove("playing"), 1150);
+  playGhostSurpassEffect($("squat-ghost-transition"), { sound: soundIsEnabled() });
 }
 
 // Same shape as maybeEncourage/maybeEncouragePlank, but for squat reps.
@@ -10229,11 +10222,7 @@ function updatePullupHighscoreMessage(count) {
 }
 
 function playPullupGhostTransition() {
-  const el = $("pullup-ghost-transition");
-  el.classList.remove("playing");
-  void el.offsetWidth;
-  el.classList.add("playing");
-  setTimeout(() => el.classList.remove("playing"), 1150);
+  playGhostSurpassEffect($("pullup-ghost-transition"), { sound: soundIsEnabled() });
 }
 
 function maybeEncouragePullup(count) {
@@ -11018,11 +11007,7 @@ function updateSitupHighscoreMessage(count) {
 }
 
 function playSitupGhostTransition() {
-  const el = $("situp-ghost-transition");
-  el.classList.remove("playing");
-  void el.offsetWidth;
-  el.classList.add("playing");
-  setTimeout(() => el.classList.remove("playing"), 1150);
+  playGhostSurpassEffect($("situp-ghost-transition"), { sound: soundIsEnabled() });
 }
 
 // Same shape as maybeEncourageSquat, but for situp reps.
