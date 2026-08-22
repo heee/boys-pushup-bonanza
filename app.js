@@ -1799,24 +1799,28 @@ function renderUserList() {
 
 }
 
+let newUserSelectedAvatar = null;
+
 function populateAvatarSelect() {
-  const sel = $("new-user-avatar");
-  if (sel.options.length === 0) {
-    sel.innerHTML = AVATARS.map((a) => `<option value="${a.id}">${a.emoji}</option>`).join("");
-    sel.addEventListener("change", () => {
-      updateAvatarSelectSwatch();
-      localStorage.setItem(LS.lastAvatar, sel.value);
-    });
-  }
   const last = localStorage.getItem(LS.lastAvatar);
-  sel.value = AVATARS.some((a) => a.id === last) ? last : AVATARS[0].id;
+  newUserSelectedAvatar = AVATARS.some((a) => a.id === last) ? last : AVATARS[0].id;
   updateAvatarSelectSwatch();
 }
 
 function updateAvatarSelectSwatch() {
-  const sel = $("new-user-avatar");
-  sel.style.background = getAvatar(sel.value).bg;
+  const picked = getAvatar(newUserSelectedAvatar);
+  const btn = $("new-user-avatar-btn");
+  btn.textContent = picked.emoji;
+  btn.style.background = picked.bg;
 }
+
+$("new-user-avatar-btn").addEventListener("click", () => {
+  openAvatarSheet(newUserSelectedAvatar, (id) => {
+    newUserSelectedAvatar = id;
+    updateAvatarSelectSwatch();
+    localStorage.setItem(LS.lastAvatar, id);
+  });
+});
 
 function selectUser(name, avatarId) {
   state.currentUser = name;
@@ -1837,7 +1841,7 @@ $("new-user-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = $("new-user-input").value.trim();
   if (!name) return;
-  selectUser(name, $("new-user-avatar").value);
+  selectUser(name, newUserSelectedAvatar);
 });
 
 // ------------------- device-wide session location -------------------
@@ -4159,7 +4163,7 @@ function renderManageUsers() {
     const row = document.createElement("div");
     row.className = "manage-user-row";
     row.innerHTML = `
-      <button type="button" class="manage-avatar-btn" aria-label="Change ${escapeHtml(name)}'s avatar" style="background:${avatar.bg}">${avatar.emoji}</button>
+      <button type="button" class="avatar-picker-btn manage-avatar-btn" aria-label="Change ${escapeHtml(name)}'s avatar" style="background:${avatar.bg}">${avatar.emoji}</button>
       <span class="manage-user-name">${escapeHtml(name)}</span>
       ${isYou ? '<span class="you-badge">You</span>' : ""}
       ${isYou
