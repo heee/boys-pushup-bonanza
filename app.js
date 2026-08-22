@@ -5113,9 +5113,25 @@ function selectLeaderboardMode(mode) {
 // restoring whichever sub-mode was last picked; Holland isn't in the cycle
 // (dropdown-only) but still needs a sane index to step from if it's active.
 const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "squats", "pullups", "situps"];
+// Only cycle through activities that actually have a session within the
+// selected time horizon (state.dashboardPeriod), scoped to the same user
+// pool the chart card itself is drawing from — no point swiping to an
+// exercise that would just render empty.
+function activitiesWithSessionsInPeriod() {
+  const periodStartTime = periodStart(state.dashboardPeriod).getTime();
+  const pool = state.bonanzaMode === "mine"
+    ? state.lastSessions.filter((s) => s.user === state.currentUser)
+    : state.lastSessions;
+  return CHART_ACTIVITY_CYCLE.filter((activity) => {
+    const mode = activity === "pushups" ? "all" : activity;
+    return filterByMode(pool, mode).some((s) => sessionTimestamp(s) >= periodStartTime);
+  });
+}
 function cycleLeaderboardActivity(direction) {
-  const fromIndex = Math.max(0, CHART_ACTIVITY_CYCLE.indexOf(state.activityType));
-  const next = CHART_ACTIVITY_CYCLE[(fromIndex + direction + CHART_ACTIVITY_CYCLE.length) % CHART_ACTIVITY_CYCLE.length];
+  const available = activitiesWithSessionsInPeriod();
+  const cycle = available.length ? available : CHART_ACTIVITY_CYCLE;
+  const fromIndex = Math.max(0, cycle.indexOf(state.activityType));
+  const next = cycle[(fromIndex + direction + cycle.length) % cycle.length];
   selectLeaderboardMode(next === "pushups" ? "all" : next);
 }
 document.querySelectorAll(".chart-activity-arrow[data-activity-nav]").forEach((btn) => {
