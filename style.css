@@ -1220,6 +1220,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   min-height: 1.2rem;
 }
 
+/* Personal-best chase copy is supporting context during a live set. */
+.highscore-message.personal-best-chase { font-weight: 500; }
+
 .chase-hud { display: flex; flex-direction: column; width: min(100%, 29rem); min-height: min(66dvh, 35rem); margin-top: 0.25rem; padding: 0.9rem 0.9rem 1.2rem; border-radius: 24px; background: color-mix(in srgb, var(--bg-elevated) 88%, #0b0804); box-shadow: var(--shadow); }
 .chase-kicker { display: flex; justify-content: center; min-height: 1.35rem; }
 .chase-offline { padding: 0.18rem 0.38rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--accent); font-size: 0.58rem; letter-spacing: 0.05em; }
