@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createGhostSwarm } from "../ghost-effect.js";
+import { createGhostSwarm, nextGhostCueAt, randomGhostCueInterval } from "../ghost-effect.js";
 
 function sequenceRandom(values) {
   let index = 0;
@@ -28,4 +28,20 @@ test("varies ghost sizes, positions, timing, and direction within safe bounds", 
   assert.ok(ghosts.every((ghost) => ghost.durationMs >= 900 && ghost.durationMs <= 1250));
   assert.notEqual(ghosts[0].sizeRem, ghosts[1].sizeRem);
   assert.notEqual(ghosts[0].reverse, ghosts[1].reverse);
+});
+
+test("recurring rep cues use an inclusive random 15-30 rep interval", () => {
+  assert.equal(randomGhostCueInterval("reps", () => 0), 15);
+  assert.equal(randomGhostCueInterval("reps", () => 0.999), 30);
+  assert.equal(nextGhostCueAt(22, "reps", () => 0.5), 45);
+});
+
+test("recurring plank cues use an inclusive random 45-60 second interval", () => {
+  assert.equal(randomGhostCueInterval("seconds", () => 0), 45);
+  assert.equal(randomGhostCueInterval("seconds", () => 0.999), 60);
+  assert.equal(nextGhostCueAt(60, "seconds", () => 0.5), 113);
+});
+
+test("rejects an unknown recurring cue unit", () => {
+  assert.throws(() => randomGhostCueInterval("minutes"), /Unknown ghost cue unit/);
 });

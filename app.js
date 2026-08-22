@@ -80,7 +80,7 @@ import { createJsonStorage, normalizeSharedData } from "./storage.js";
 import { createMutationQueue } from "./sync.js";
 import { createRepCounter } from "./rep-counter.js";
 import { createCameraController } from "./camera.js";
-import { playGhostSurpassEffect } from "./ghost-effect.js";
+import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
@@ -1451,6 +1451,7 @@ const plankState = {
   // race (see updatePlankThermometer / updatePlankHighscoreMessage).
   ghostActive: false,
   ghostPassed: false,
+  nextGhostCueAt: 0,
 };
 
 // Sampling window used for each of the 2-tap calibration steps.
@@ -1477,6 +1478,7 @@ const squatState = {
   // race (see updateSquatThermometer / updateSquatHighscoreMessage).
   ghostActive: false,
   ghostPassed: false,
+  nextGhostCueAt: 0,
   // "idle" | "warmup" | "counting" — read by the shared camera controller's
   // onDetection to decide what to do with each frame.
   stage: "idle",
@@ -1508,6 +1510,7 @@ const pullupState = {
   // race (see updatePullupThermometer / updatePullupHighscoreMessage).
   ghostActive: false,
   ghostPassed: false,
+  nextGhostCueAt: 0,
 };
 
 // Same shape as the squat warmup constants — see docs/situp-mode-plan.md.
@@ -1527,6 +1530,7 @@ const situpState = {
   // race (see updateSitupThermometer / updateSitupHighscoreMessage).
   ghostActive: false,
   ghostPassed: false,
+  nextGhostCueAt: 0,
   // "idle" | "warmup" | "counting" — read by the shared camera controller's
   // onDetection/onNoDetection to decide what to do with each frame.
   stage: "idle",
@@ -9596,6 +9600,14 @@ function playPlankGhostTransition() {
   playGhostSurpassEffect($("plank-ghost-transition"), { sound: soundIsEnabled() });
 }
 
+function maybePlayRecurringGhostCue(modeState, progress, unit, containerId, skipEffect = false) {
+  if (!modeState.ghostActive || progress < modeState.nextGhostCueAt) return;
+  modeState.nextGhostCueAt = nextGhostCueAt(progress, unit);
+  if (!skipEffect) {
+    playSingleGhostEffect($(containerId), { sound: soundIsEnabled() });
+  }
+}
+
 function stopPlankInterval() {
   if (plankState.intervalId) {
     clearInterval(plankState.intervalId);
@@ -9625,6 +9637,7 @@ async function startPlank() {
   plankState.recordBroken = false;
   plankState.ghostActive = ghostModeEnabled() && !!state.plankLast;
   plankState.ghostPassed = false;
+  plankState.nextGhostCueAt = nextGhostCueAt(0, "seconds");
   $("plank-ghost-transition").classList.remove("playing");
   $("plank-timer").textContent = "0:00";
   updatePlankThermometer(0);
@@ -9643,10 +9656,13 @@ async function startPlank() {
   plankState.intervalId = setInterval(() => {
     plankState.seconds += 1;
     $("plank-timer").textContent = formatDuration(plankState.seconds * 1000);
+    let ghostJustPassed = false;
     if (plankState.ghostActive && !plankState.ghostPassed && plankState.seconds > state.plankLast) {
       plankState.ghostPassed = true;
+      ghostJustPassed = true;
       playPlankGhostTransition();
     }
+    maybePlayRecurringGhostCue(plankState, plankState.seconds, "seconds", "plank-ghost-transition", ghostJustPassed);
     updatePlankThermometer(plankState.seconds);
     updatePlankHighscoreMessage(plankState.seconds);
     if (state.plankBest && plankState.seconds === state.plankBest + 1 && !plankState.recordBroken) {
@@ -9847,10 +9863,13 @@ function maybeEncourageSquat(count) {
 
 function onSquatRepCounted(count) {
   $("squat-rep-count").textContent = String(count);
+  let ghostJustPassed = false;
   if (squatState.ghostActive && !squatState.ghostPassed && count > state.squatLast) {
     squatState.ghostPassed = true;
+    ghostJustPassed = true;
     playSquatGhostTransition();
   }
+  maybePlayRecurringGhostCue(squatState, count, "reps", "squat-ghost-transition", ghostJustPassed);
   updateSquatThermometer(count);
   setTimeout(() => {
     updateSquatHighscoreMessage(count);
@@ -10030,6 +10049,7 @@ function beginSquatCounting(thresholds) {
   state.squatLast = getSquatLast(state.currentUser);
   squatState.ghostActive = ghostModeEnabled() && !!state.squatLast;
   squatState.ghostPassed = squatState.ghostActive && squatState.count > state.squatLast;
+  squatState.nextGhostCueAt = nextGhostCueAt(squatState.count, "reps");
   $("squat-ghost-transition").classList.remove("playing");
   $("squat-rep-count").textContent = String(squatState.count);
   updateSquatPhaseIndicator("up");
@@ -10264,10 +10284,13 @@ function maybeEncouragePullup(count) {
 
 function onPullupRepCounted(count) {
   $("pullup-rep-count").textContent = String(count);
+  let ghostJustPassed = false;
   if (pullupState.ghostActive && !pullupState.ghostPassed && count > state.pullupLast) {
     pullupState.ghostPassed = true;
+    ghostJustPassed = true;
     playPullupGhostTransition();
   }
+  maybePlayRecurringGhostCue(pullupState, count, "reps", "pullup-ghost-transition", ghostJustPassed);
   updatePullupThermometer(count);
   updatePullupHighscoreMessage(count);
   let spoken = null;
@@ -10321,6 +10344,7 @@ function tickPullupWarmup() {
     state.pullupLast = getPullupLast(state.currentUser);
     pullupState.ghostActive = ghostModeEnabled() && !!state.pullupLast;
     pullupState.ghostPassed = pullupState.ghostActive && pullupState.count > state.pullupLast;
+    pullupState.nextGhostCueAt = nextGhostCueAt(pullupState.count, "reps");
     $("pullup-ghost-transition").classList.remove("playing");
     $("pullup-cal-error").classList.add("hidden");
     $("pullup-cal-stage").classList.add("hidden");
@@ -11051,10 +11075,13 @@ function maybeEncourageSitup(count) {
 
 function onSitupRepCounted(count) {
   $("situp-rep-count").textContent = String(count);
+  let ghostJustPassed = false;
   if (situpState.ghostActive && !situpState.ghostPassed && count > state.situpLast) {
     situpState.ghostPassed = true;
+    ghostJustPassed = true;
     playSitupGhostTransition();
   }
+  maybePlayRecurringGhostCue(situpState, count, "reps", "situp-ghost-transition", ghostJustPassed);
   updateSitupThermometer(count);
   if (localStorage.getItem(LS.showHighscore) !== "0") {
     updateSitupHighscoreMessage(count);
@@ -11198,6 +11225,7 @@ function beginSitupCounting(thresholds) {
   state.situpLast = getSitupLast(state.currentUser);
   situpState.ghostActive = ghostModeEnabled() && !!state.situpLast;
   situpState.ghostPassed = false;
+  situpState.nextGhostCueAt = nextGhostCueAt(0, "reps");
   $("situp-ghost-transition").classList.remove("playing");
   state.situpStartedAt = new Date();
   $("situp-rep-count").textContent = "0";

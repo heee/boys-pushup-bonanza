@@ -2,6 +2,10 @@ const MIN_GHOSTS = 2;
 const GHOST_VARIANTS = 3;
 const EFFECT_DURATION_MS = 1650;
 const GHOST_SOUND_URL = "./assets/sounds/boo-laugh.mp3";
+const GHOST_CUE_RANGES = Object.freeze({
+  reps: Object.freeze({ min: 15, max: 30 }),
+  seconds: Object.freeze({ min: 45, max: 60 }),
+});
 
 let ghostAudio = null;
 
@@ -22,6 +26,17 @@ export function createGhostSwarm(random = Math.random) {
   }));
 }
 
+export function randomGhostCueInterval(unit, random = Math.random) {
+  const range = GHOST_CUE_RANGES[unit];
+  if (!range) throw new Error(`Unknown ghost cue unit: ${unit}`);
+  const roll = Math.min(Math.max(random(), 0), 0.999999999);
+  return range.min + Math.floor(roll * (range.max - range.min + 1));
+}
+
+export function nextGhostCueAt(current, unit, random = Math.random) {
+  return current + randomGhostCueInterval(unit, random);
+}
+
 export function playGhostSound() {
   if (typeof Audio === "undefined") return false;
   ghostAudio ||= new Audio(GHOST_SOUND_URL);
@@ -31,8 +46,7 @@ export function playGhostSound() {
   return true;
 }
 
-export function playGhostSurpassEffect(container, { sound = true, random = Math.random } = {}) {
-  const ghosts = createGhostSwarm(random);
+function playGhostEffect(container, ghosts, sound) {
   container.classList.remove("playing");
   container.replaceChildren(...ghosts.map((ghost) => {
     const el = document.createElement("span");
@@ -53,4 +67,13 @@ export function playGhostSurpassEffect(container, { sound = true, random = Math.
     container.replaceChildren();
   }, EFFECT_DURATION_MS);
   return ghosts;
+}
+
+export function playGhostSurpassEffect(container, { sound = true, random = Math.random } = {}) {
+  return playGhostEffect(container, createGhostSwarm(random), sound);
+}
+
+export function playSingleGhostEffect(container, { sound = true, random = Math.random } = {}) {
+  const [ghost] = createGhostSwarm(random);
+  return playGhostEffect(container, [{ ...ghost, index: 0, delayMs: 0 }], sound);
 }
