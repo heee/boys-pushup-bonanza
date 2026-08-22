@@ -3191,7 +3191,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   flex-shrink: 0;
 }
 .week-day-chart { gap: 2px; }
-.week-day-chart .week-bar-label { font-size: 0.6rem; }
+/* Most columns have no tick label (only every 3rd hour is labeled) — an
+   empty label div collapses to 0 height while a labeled one doesn't, so
+   without a reserved min-height, justify-content:flex-end packs each
+   column's bar at a different baseline depending on whether it happens to
+   carry text, making bars look inconsistently offset from one another. */
+.week-day-chart .week-bar-label { font-size: 0.6rem; line-height: 1rem; height: 1rem; }
 /* Hours with zero reps render as a flat dim baseline instead of an empty
    gap, so the shape of the day (quiet morning, lunch spike, evening peak)
    stays legible even where nothing happened. */
