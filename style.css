@@ -3009,6 +3009,55 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .mybonanza-chart-card {
   margin-bottom: 0.8rem;
 }
+/* Card-flip mechanics — same technique as Cards mode's .card-flip (see
+   above), except both faces are height:auto and JS pins the scene's own
+   height to whichever face is front-facing (syncChartFlipHeight in app.js),
+   since unlike a playing card this content isn't a fixed aspect ratio. */
+.chart-flip-scene {
+  position: relative;
+  perspective: 90rem;
+  transition: height 0.35s ease;
+}
+.chart-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+.chart-flip.flipped { transform: rotateY(180deg); }
+.chart-face {
+  /* top/left/right only (no bottom) so each face's own content sets its
+     natural height — inset:0 would stretch it to the parent's height,
+     which is exactly the height JS is trying to measure from it. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.chart-face-back { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .chart-flip, .chart-flip-scene { transition: none; }
+}
+.chart-flip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.chart-flip-btn svg { width: 0.75rem; height: 0.75rem; display: block; }
+.chart-flip-btn:active { background: var(--bg-elevated); color: var(--text); }
 .chart-card-header {
   display: flex;
   align-items: center;
@@ -3037,6 +3086,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .chart-activity-arrow svg { width: 0.85rem; height: 0.85rem; display: block; }
 .chart-activity-arrow:active { background: var(--bg-elevated); color: var(--text); }
+.chart-activity-arrow:disabled { opacity: 0.3; cursor: default; }
+.chart-activity-arrow:disabled:active { background: none; color: var(--text-dim); }
 .week-trend {
   font-size: 0.75rem;
   font-weight: 700;
@@ -3112,6 +3163,79 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .week-bar-col-today .week-bar-label {
   font-weight: 700;
   color: var(--primary);
+}
+
+/* ---------------- Chart card back face: hourly day view ---------------- */
+
+.chart-day-stats {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+.chart-day-total {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+}
+.chart-day-total strong {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.chart-day-peak {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--success);
+  flex-shrink: 0;
+}
+.week-day-chart { gap: 2px; }
+.week-day-chart .week-bar-label { font-size: 0.6rem; }
+/* Hours with zero reps render as a flat dim baseline instead of an empty
+   gap, so the shape of the day (quiet morning, lunch spike, evening peak)
+   stays legible even where nothing happened. */
+.week-bar-empty {
+  height: 2px !important;
+  background: var(--bg-elevated) !important;
+  box-shadow: none !important;
+}
+.week-bar-solid {
+  background: linear-gradient(180deg, var(--primary-dim), var(--primary-deep));
+}
+.day-bar-stack {
+  width: 65%;
+  min-height: 4px;
+  border-radius: 5px 5px 3px 3px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  transition: height 0.25s ease;
+}
+.day-bar-seg:first-child { border-radius: 0 0 3px 3px; }
+.day-bar-seg:last-child { border-radius: 5px 5px 0 0; }
+.day-bar-seg:only-child { border-radius: 5px 5px 3px 3px; }
+.chart-day-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.7rem;
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.chart-day-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.chart-day-legend-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .stat-tile-grid {

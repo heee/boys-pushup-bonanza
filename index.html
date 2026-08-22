@@ -942,16 +942,39 @@
       </div>
 
       <div id="boys-bonanza-view" class="hidden">
-        <div class="mybonanza-chart-card tier2-card">
-          <div class="chart-card-header">
-            <button type="button" class="chart-activity-arrow" data-activity-nav="-1" aria-label="Previous exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-            <div class="chart-card-header-mid">
-              <span id="boys-week-header" class="tier1-eyebrow" style="margin:0">Last 7 days</span>
-              <span id="boys-week-trend" class="week-trend hidden"></span>
+        <div class="mybonanza-chart-card tier2-card" data-chart-scope="boys">
+          <div class="chart-flip-scene">
+            <div id="boys-chart-flip" class="chart-flip">
+              <div class="chart-face chart-face-front">
+                <div class="chart-card-header">
+                  <button type="button" class="chart-activity-arrow" data-activity-nav="-1" aria-label="Previous exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <div class="chart-card-header-mid">
+                    <span id="boys-week-header" class="tier1-eyebrow" style="margin:0">Last 7 days</span>
+                    <span id="boys-week-trend" class="week-trend hidden"></span>
+                    <button type="button" class="chart-flip-btn" data-chart-flip aria-label="Show hourly breakdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
+                  </div>
+                  <button type="button" class="chart-activity-arrow" data-activity-nav="1" aria-label="Next exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+                <div id="boys-week-chart" class="week-chart"></div>
+              </div>
+              <div class="chart-face chart-face-back">
+                <div class="chart-card-header">
+                  <button type="button" class="chart-activity-arrow" data-day-nav="-1" aria-label="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <div class="chart-card-header-mid">
+                    <span id="boys-week-day-header" class="tier1-eyebrow" style="margin:0">Today</span>
+                    <button type="button" class="chart-flip-btn" data-chart-flip aria-label="Back to week view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
+                  </div>
+                  <button type="button" class="chart-activity-arrow" data-day-nav="1" aria-label="Next day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+                <div class="chart-day-stats">
+                  <span class="chart-day-total"><strong id="boys-week-day-total">0</strong> <span id="boys-week-day-unit">reps</span> · <span id="boys-week-day-sessions">0 sessions</span></span>
+                  <span id="boys-week-day-peak" class="chart-day-peak"></span>
+                </div>
+                <div id="boys-week-day-chart" class="week-chart week-day-chart"></div>
+                <div id="boys-week-day-legend" class="chart-day-legend"></div>
+              </div>
             </div>
-            <button type="button" class="chart-activity-arrow" data-activity-nav="1" aria-label="Next exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
           </div>
-          <div id="boys-week-chart" class="week-chart"></div>
         </div>
 
         <div id="leaderboard-list" class="leaderboard-list"></div>
@@ -971,16 +994,38 @@
       </div>
 
       <div id="my-bonanza-view">
-        <div class="mybonanza-chart-card tier2-card">
-          <div class="chart-card-header">
-            <button type="button" class="chart-activity-arrow" data-activity-nav="-1" aria-label="Previous exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-            <div class="chart-card-header-mid">
-              <span id="week-header" class="tier1-eyebrow" style="margin:0">Last 7 days</span>
-              <span id="week-trend" class="week-trend hidden"></span>
+        <div class="mybonanza-chart-card tier2-card" data-chart-scope="mine">
+          <div class="chart-flip-scene">
+            <div id="mine-chart-flip" class="chart-flip">
+              <div class="chart-face chart-face-front">
+                <div class="chart-card-header">
+                  <button type="button" class="chart-activity-arrow" data-activity-nav="-1" aria-label="Previous exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <div class="chart-card-header-mid">
+                    <span id="week-header" class="tier1-eyebrow" style="margin:0">Last 7 days</span>
+                    <span id="week-trend" class="week-trend hidden"></span>
+                    <button type="button" class="chart-flip-btn" data-chart-flip aria-label="Show hourly breakdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
+                  </div>
+                  <button type="button" class="chart-activity-arrow" data-activity-nav="1" aria-label="Next exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+                <div id="week-chart" class="week-chart"></div>
+              </div>
+              <div class="chart-face chart-face-back">
+                <div class="chart-card-header">
+                  <button type="button" class="chart-activity-arrow" data-day-nav="-1" aria-label="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <div class="chart-card-header-mid">
+                    <span id="week-day-header" class="tier1-eyebrow" style="margin:0">Today</span>
+                    <button type="button" class="chart-flip-btn" data-chart-flip aria-label="Back to week view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
+                  </div>
+                  <button type="button" class="chart-activity-arrow" data-day-nav="1" aria-label="Next day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+                <div class="chart-day-stats">
+                  <span class="chart-day-total"><strong id="week-day-total">0</strong> <span id="week-day-unit">reps</span> · <span id="week-day-sessions">0 sessions</span></span>
+                  <span id="week-day-peak" class="chart-day-peak"></span>
+                </div>
+                <div id="week-day-chart" class="week-chart week-day-chart"></div>
+              </div>
             </div>
-            <button type="button" class="chart-activity-arrow" data-activity-nav="1" aria-label="Next exercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
           </div>
-          <div id="week-chart" class="week-chart"></div>
         </div>
         <div id="personal-stats-tiles" class="stat-tile-grid"></div>
         <div id="personal-stats" class="stats-table tier1-list"></div>

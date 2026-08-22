@@ -1260,6 +1260,10 @@ const state = {
   lastSessionResult: null,
   dashboardPeriod: "day",
   dashboardBucketOffset: null,
+  myChartFlipped: false,
+  myChartDayOffset: 0,
+  boysChartFlipped: false,
+  boysChartDayOffset: 0,
   historyView: "recent",
   highScore: 0,
   bonanzaMode: "mine",
@@ -5004,9 +5008,12 @@ function cycleLeaderboardActivity(direction) {
   const next = CHART_ACTIVITY_CYCLE[(fromIndex + direction + CHART_ACTIVITY_CYCLE.length) % CHART_ACTIVITY_CYCLE.length];
   selectLeaderboardMode(next === "pushups" ? "all" : next);
 }
-document.querySelectorAll(".chart-activity-arrow").forEach((btn) => {
+document.querySelectorAll(".chart-activity-arrow[data-activity-nav]").forEach((btn) => {
   btn.addEventListener("click", () => cycleLeaderboardActivity(Number(btn.dataset.activityNav)));
 });
+// Swipe cycles whichever face is currently showing: exercise type on the
+// front, day-by-day navigation on the flipped-to back (capped at today,
+// same as the back's own arrows — see navigateChartDay).
 let chartActivityTouchStartX = null;
 document.querySelectorAll(".mybonanza-chart-card").forEach((card) => {
   card.addEventListener("touchstart", (event) => {
@@ -5017,7 +5024,12 @@ document.querySelectorAll(".mybonanza-chart-card").forEach((card) => {
     const deltaX = event.changedTouches[0].clientX - chartActivityTouchStartX;
     chartActivityTouchStartX = null;
     if (Math.abs(deltaX) < 40) return;
-    cycleLeaderboardActivity(deltaX < 0 ? 1 : -1);
+    const direction = deltaX < 0 ? 1 : -1;
+    if (card.querySelector(".chart-flip").classList.contains("flipped")) {
+      navigateChartDay(card.dataset.chartScope, direction);
+    } else {
+      cycleLeaderboardActivity(direction);
+    }
   });
 });
 
@@ -5227,6 +5239,175 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
 
   return buckets;
 }
+
+// ------------------- chart card flip: hourly day view -------------------
+// The "Last 7 days" card can flip over (see wireChartFlip) to a single-day,
+// hour-by-hour breakdown — a different lens on the same sessions, not a
+// separate data source. Boys Bonanza stacks each hour by member color;
+// My Bonanza (no ranked list to fall back on) shows a solid accent fill of
+// just the current user's reps.
+const DAY_HOUR_START = 5;
+const DAY_HOUR_END = 23; // inclusive — 5am through 11pm
+const DAY_HOUR_TICKS = new Set([5, 8, 11, 14, 17, 20, 23]);
+
+function formatHourLabel(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  const suffix = h < 12 ? "am" : "pm";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return { h12, suffix, full: `${h12}${suffix}` };
+}
+
+function formatHourRangeLabel(hour) {
+  const a = formatHourLabel(hour);
+  const b = formatHourLabel(hour + 1);
+  return a.suffix === b.suffix ? `${a.h12}-${b.h12}${b.suffix}` : `${a.full}-${b.full}`;
+}
+
+function formatDayHeaderLabel(dayOffset) {
+  const start = periodBoundary("day", new Date(), dayOffset);
+  const dateText = start.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  if (dayOffset === 0) return `Today · ${dateText}`;
+  if (dayOffset === -1) return `Yesterday · ${dateText}`;
+  return dateText;
+}
+
+// Hours with zero reps render as a flat 2px dim baseline (.week-bar-empty)
+// instead of an empty gap, so the shape of the day (quiet morning, lunch
+// spike, evening peak) stays legible even where nothing happened.
+function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, stacked, userOrder) {
+  const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
+  const start = periodBoundary("day", new Date(), dayOffset).getTime();
+  const end = periodBoundary("day", new Date(), dayOffset + 1).getTime();
+  const buckets = [];
+  for (let h = DAY_HOUR_START; h <= DAY_HOUR_END; h += 1) buckets.push({ hour: h, total: 0, byUser: new Map() });
+
+  let dayTotal = 0;
+  let sessionCount = 0;
+  for (const session of sessions) {
+    const ts = sessionTimestamp(session);
+    if (ts < start || ts >= end) continue;
+    const value = metricOf(session);
+    dayTotal += value;
+    sessionCount += 1;
+    const hour = new Date(ts).getHours();
+    if (hour < DAY_HOUR_START || hour > DAY_HOUR_END) continue;
+    const bucket = buckets[hour - DAY_HOUR_START];
+    bucket.total += value;
+    if (stacked) bucket.byUser.set(session.user, (bucket.byUser.get(session.user) || 0) + value);
+  }
+
+  const maxTotal = Math.max(1, ...buckets.map((b) => b.total));
+  const peak = buckets.reduce((best, b) => (b.total > (best ? best.total : 0) ? b : best), null);
+
+  $(chartElId).innerHTML = buckets.map((bucket) => {
+    const label = DAY_HOUR_TICKS.has(bucket.hour) ? `${formatHourLabel(bucket.hour).h12}${formatHourLabel(bucket.hour).suffix[0]}` : "";
+    const empty = bucket.total <= 0;
+    const heightPct = empty ? 0 : Math.max(4, Math.round((bucket.total / maxTotal) * 100));
+    let barHTML;
+    if (empty) {
+      barHTML = `<div class="week-bar week-bar-empty"></div>`;
+    } else if (stacked) {
+      const segs = (userOrder || Array.from(bucket.byUser.keys()))
+        .filter((user) => bucket.byUser.has(user))
+        .map((user) => {
+          const segPct = Math.round((bucket.byUser.get(user) / bucket.total) * 100);
+          return `<span class="day-bar-seg" style="height:${segPct}%;background:${avatarForUser(user).bg}"></span>`;
+        }).join("");
+      barHTML = `<div class="day-bar-stack" style="height:${heightPct}%">${segs}</div>`;
+    } else {
+      barHTML = `<div class="week-bar week-bar-solid" style="height:${heightPct}%"></div>`;
+    }
+    return `<div class="week-bar-col">${barHTML}<div class="week-bar-label">${label}</div></div>`;
+  }).join("");
+
+  return { dayTotal, sessionCount, peakHour: peak && peak.total > 0 ? peak.hour : null };
+}
+
+// Renders one card's back face and returns nothing — called every paint
+// alongside the front face so the back stays live even while unseen, same
+// as how the front chart already renders regardless of which bonanza-mode
+// tab is showing.
+function renderChartBackFace(scope, sessions, isPlank, isHolland) {
+  const prefix = scope === "boys" ? "boys-week-day" : "week-day";
+  const dayOffset = scope === "boys" ? state.boysChartDayOffset : state.myChartDayOffset;
+  const stacked = scope === "boys";
+  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
+
+  let userOrder = null;
+  if (stacked) {
+    const totals = new Map();
+    for (const s of sessions) totals.set(s.user, (totals.get(s.user) || 0) + (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0));
+    userOrder = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]).map(([user]) => user);
+  }
+
+  const { dayTotal, sessionCount, peakHour } = renderDayHourChart(sessions, `${prefix}-chart`, dayOffset, isPlank, isHolland, stacked, userOrder);
+
+  $(`${prefix}-header`).textContent = formatDayHeaderLabel(dayOffset);
+  $(`${prefix}-total`).textContent = fmtCount(dayTotal);
+  $(`${prefix}-unit`).textContent = activityLabel(state.activityType);
+  $(`${prefix}-sessions`).textContent = `${sessionCount} session${sessionCount === 1 ? "" : "s"}`;
+  $(`${prefix}-peak`).textContent = peakHour === null ? "" : `Peak ${formatHourRangeLabel(peakHour)}`;
+
+  const legendEl = document.getElementById(`${prefix}-legend`);
+  if (legendEl) {
+    legendEl.innerHTML = (userOrder || []).map((user) => `
+      <span class="chart-day-legend-item"><span class="chart-day-legend-dot" style="background:${avatarForUser(user).bg}"></span>${escapeHtml(user)}</span>
+    `).join("");
+  }
+
+  const scopeEl = document.querySelector(`.mybonanza-chart-card[data-chart-scope="${scope}"]`);
+  const nextArrow = scopeEl?.querySelector('.chart-face-back .chart-activity-arrow[data-day-nav="1"]');
+  if (nextArrow) nextArrow.disabled = dayOffset >= 0;
+}
+
+// Pins the flip-scene's own height to whichever face is front-facing, since
+// both faces are position:absolute (needed so they can overlap mid-flip)
+// and the content is dynamic, not a fixed aspect ratio like Cards mode.
+function syncChartFlipHeight(scope) {
+  const flipEl = $(`${scope}-chart-flip`);
+  if (!flipEl) return;
+  const face = flipEl.querySelector(flipEl.classList.contains("flipped") ? ".chart-face-back" : ".chart-face-front");
+  if (face) flipEl.closest(".chart-flip-scene").style.height = `${face.scrollHeight}px`;
+}
+
+// Shared by the back face's own arrows and whole-card swipe (see the
+// touchend handler above) — capped at today, same as the front's own
+// 7-bucket window has no future side either.
+function navigateChartDay(scope, direction) {
+  const key = scope === "boys" ? "boysChartDayOffset" : "myChartDayOffset";
+  const next = state[key] + direction;
+  if (next > 0) return;
+  state[key] = next;
+  paintActiveBonanzaView();
+  syncChartFlipHeight(scope);
+}
+
+function wireChartFlip() {
+  document.querySelectorAll(".mybonanza-chart-card").forEach((card) => {
+    const scope = card.dataset.chartScope;
+    card.querySelectorAll(".chart-flip-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const flipEl = $(`${scope}-chart-flip`);
+        const key = scope === "boys" ? "boysChartFlipped" : "myChartFlipped";
+        state[key] = !state[key];
+        flipEl.classList.toggle("flipped", state[key]);
+        syncChartFlipHeight(scope);
+      });
+    });
+    card.querySelectorAll('.chart-face-back .chart-activity-arrow[data-day-nav]').forEach((btn) => {
+      btn.addEventListener("click", () => navigateChartDay(scope, Number(btn.dataset.dayNav)));
+    });
+    // Re-pin the scene height whenever either face's own content size
+    // changes — a viewport resize/orientation change reflows both faces'
+    // intrinsic height without touching the pinned inline height on the
+    // scene itself, which would otherwise go stale (clipped or leaving a gap).
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => syncChartFlipHeight(scope));
+      card.querySelectorAll(".chart-face").forEach((face) => observer.observe(face));
+    }
+  });
+}
+wireChartFlip();
 
 // ------------------- head-to-head comparison -------------------
 
@@ -5685,6 +5866,8 @@ function paintMyBonanza(sessions) {
     : sessions.filter((s) => s.user === state.currentUser);
 
   renderWeekChart(mine, "week-chart", "week-trend", isPlank, isHolland, state.dashboardPeriod, "week-header");
+  renderChartBackFace("mine", mine, isPlank, isHolland);
+  syncChartFlipHeight("mine");
 
   const tilesEl = $("personal-stats-tiles");
   const statsEl = $("personal-stats");
@@ -5840,6 +6023,8 @@ function paintDashboard(sessions) {
       paintDashboard(sessions);
     },
   });
+  renderChartBackFace("boys", sessions, isPlank, isHolland);
+  syncChartFlipHeight("boys");
 
   let startTime, endTime;
   if (state.dashboardBucketOffset !== null) {
