@@ -188,6 +188,7 @@ const LS = {
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
   showHighscore: "bpb-show-highscore",
+  ghostMode: "bpb-ghost-mode",
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
   plankUnlocked: "bpb-plank-unlocked",
@@ -506,6 +507,10 @@ function toast(msg, ms = 2600) {
 // the browser's built-in speech synth for anything not in the shipped corpus.
 function soundIsEnabled() {
   return localStorage.getItem(LS.soundEnabled) !== "0";
+}
+
+function ghostModeEnabled() {
+  return localStorage.getItem(LS.ghostMode) !== "0";
 }
 
 function speak(text) {
@@ -2020,6 +2025,7 @@ function renderSettings() {
   $("val-down").textContent = getThresholdDown().toFixed(2);
   $("val-up").textContent = getThresholdUp().toFixed(2);
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
+  $("chk-ghost-mode").checked = ghostModeEnabled();
   $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
   renderVoicePresetSelect();
   $("chk-camera-preview").checked = localStorage.getItem(LS.showCameraPreview) === "1";
@@ -4496,6 +4502,9 @@ $("range-up").addEventListener("input", (e) => {
 });
 $("chk-highscore-message").addEventListener("change", (e) => {
   localStorage.setItem(LS.showHighscore, e.target.checked ? "1" : "0");
+});
+$("chk-ghost-mode").addEventListener("change", (e) => {
+  localStorage.setItem(LS.ghostMode, e.target.checked ? "1" : "0");
 });
 $("chk-sound-enabled").addEventListener("change", (e) => {
   const enabled = e.target.checked;
@@ -9548,7 +9557,7 @@ async function startPlank() {
   plankState.seconds = 0;
   plankState.lastCheerAtSecond = 0;
   plankState.recordBroken = false;
-  plankState.ghostActive = !!state.plankLast;
+  plankState.ghostActive = ghostModeEnabled() && !!state.plankLast;
   plankState.ghostPassed = false;
   $("plank-ghost-transition").classList.remove("playing");
   $("plank-timer").textContent = "0:00";
