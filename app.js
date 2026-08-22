@@ -5274,7 +5274,7 @@ function formatDayHeaderLabel(dayOffset) {
 // Hours with zero reps render as a flat 2px dim baseline (.week-bar-empty)
 // instead of an empty gap, so the shape of the day (quiet morning, lunch
 // spike, evening peak) stays legible even where nothing happened.
-function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, stacked, userOrder) {
+function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, stacked) {
   const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
   const start = periodBoundary("day", new Date(), dayOffset).getTime();
   const end = periodBoundary("day", new Date(), dayOffset + 1).getTime();
@@ -5283,18 +5283,27 @@ function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, 
 
   let dayTotal = 0;
   let sessionCount = 0;
+  const dayTotalsByUser = new Map();
   for (const session of sessions) {
     const ts = sessionTimestamp(session);
     if (ts < start || ts >= end) continue;
     const value = metricOf(session);
     dayTotal += value;
     sessionCount += 1;
+    if (stacked) dayTotalsByUser.set(session.user, (dayTotalsByUser.get(session.user) || 0) + value);
     const hour = new Date(ts).getHours();
     if (hour < DAY_HOUR_START || hour > DAY_HOUR_END) continue;
     const bucket = buckets[hour - DAY_HOUR_START];
     bucket.total += value;
     if (stacked) bucket.byUser.set(session.user, (bucket.byUser.get(session.user) || 0) + value);
   }
+
+  // Only users who actually logged something on this specific day, not
+  // everyone who has ever logged for this leaderboard mode — the legend and
+  // stack order are scoped to the day being viewed, same as the day total.
+  const userOrder = stacked
+    ? Array.from(dayTotalsByUser.entries()).filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]).map(([user]) => user)
+    : null;
 
   const maxTotal = Math.max(1, ...buckets.map((b) => b.total));
   const peak = buckets.reduce((best, b) => (b.total > (best ? best.total : 0) ? b : best), null);
@@ -5307,7 +5316,7 @@ function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, 
     if (empty) {
       barHTML = `<div class="week-bar week-bar-empty"></div>`;
     } else if (stacked) {
-      const segs = (userOrder || Array.from(bucket.byUser.keys()))
+      const segs = userOrder
         .filter((user) => bucket.byUser.has(user))
         .map((user) => {
           const segPct = Math.round((bucket.byUser.get(user) / bucket.total) * 100);
@@ -5320,7 +5329,7 @@ function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, 
     return `<div class="week-bar-col">${barHTML}<div class="week-bar-label">${label}</div></div>`;
   }).join("");
 
-  return { dayTotal, sessionCount, peakHour: peak && peak.total > 0 ? peak.hour : null };
+  return { dayTotal, sessionCount, peakHour: peak && peak.total > 0 ? peak.hour : null, userOrder };
 }
 
 // Renders one card's back face and returns nothing — called every paint
@@ -5333,14 +5342,7 @@ function renderChartBackFace(scope, sessions, isPlank, isHolland) {
   const stacked = scope === "boys";
   const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
 
-  let userOrder = null;
-  if (stacked) {
-    const totals = new Map();
-    for (const s of sessions) totals.set(s.user, (totals.get(s.user) || 0) + (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0));
-    userOrder = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]).map(([user]) => user);
-  }
-
-  const { dayTotal, sessionCount, peakHour } = renderDayHourChart(sessions, `${prefix}-chart`, dayOffset, isPlank, isHolland, stacked, userOrder);
+  const { dayTotal, sessionCount, peakHour, userOrder } = renderDayHourChart(sessions, `${prefix}-chart`, dayOffset, isPlank, isHolland, stacked);
 
   $(`${prefix}-header`).textContent = formatDayHeaderLabel(dayOffset);
   $(`${prefix}-total`).textContent = fmtCount(dayTotal);

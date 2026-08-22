@@ -3228,7 +3228,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   align-items: center;
   gap: 0.3rem;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text-dim);
 }
 .chart-day-legend-dot {
