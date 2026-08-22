@@ -1411,11 +1411,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .poker-card.active { z-index: 6; transform: translateX(calc(-50% + var(--poker-x))) translateY(-.75rem) rotate(var(--poker-rotate)) scale(1.06); filter: drop-shadow(0 0 .42rem color-mix(in srgb, var(--gold) 75%, transparent)) drop-shadow(0 .5rem .55rem rgba(0,0,0,.55)); }
 .poker-card.completed { opacity: .48; filter: grayscale(.25) drop-shadow(0 .35rem .35rem rgba(0,0,0,.35)); }
 .poker-card-check { position: absolute; right: .45rem; bottom: .45rem; width: 1.65rem; height: 1.65rem; border-radius: 50%; display: grid; place-items: center; background: var(--success); color: white; font-size: .95rem; font-weight: 900; box-shadow: 0 .2rem .5rem rgba(0,0,0,.4); }
-/* Cards overlap left-to-right, so a right-anchored checkmark on the 1st or
-   2nd card gets covered by the next card stacked on top of it — left-align
-   those two so the checkmark stays visible once completed. */
-.poker-card:first-child .poker-card-check,
-.poker-card:nth-child(2) .poker-card-check { left: .45rem; right: auto; }
+/* Cards overlap left-to-right, so a right-anchored checkmark on any card
+   but the last gets covered by the next card stacked on top of it —
+   left-align those so the checkmark stays visible once completed. */
+.poker-card:not(:last-child) .poker-card-check { left: .45rem; right: auto; }
 .poker-card .mode-counter-badge { z-index: 7; }
 .poker-result { position: absolute; z-index: 10; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(.88); min-width: min(85vw, 22rem); padding: 1.1rem 1.4rem; border: 1px solid var(--gold); border-radius: 18px; background: color-mix(in srgb, var(--bg-elevated) 94%, #000); color: var(--gold); text-align: center; font-size: 1.65rem; font-weight: 950; letter-spacing: .05em; text-transform: uppercase; box-shadow: 0 0 2.5rem color-mix(in srgb, var(--gold) 32%, transparent); animation: poker-reveal 300ms ease forwards; }
 .poker-result small { display: block; margin-top: .35rem; color: var(--text); font-size: .7rem; letter-spacing: .1em; }
