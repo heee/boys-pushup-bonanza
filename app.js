@@ -1354,14 +1354,17 @@ const state = {
   plankStartedAt: null,
   squatActive: false,
   squatBest: 0,
+  squatLast: 0,
   squatStartedAt: null,
   squatSessionLocation: null,
   pullupActive: false,
   pullupBest: 0,
+  pullupLast: 0,
   pullupStartedAt: null,
   pullupSessionLocation: null,
   situpActive: false,
   situpBest: 0,
+  situpLast: 0,
   situpStartedAt: null,
   situpSessionLocation: null,
   hollandActive: false,
@@ -1467,6 +1470,10 @@ const squatState = {
   paused: false,
   lastCheerAtCount: 0,
   recordBroken: false,
+  // Ghost mode: races the last session before switching to the best-record
+  // race (see updateSquatThermometer / updateSquatHighscoreMessage).
+  ghostActive: false,
+  ghostPassed: false,
   // "idle" | "warmup" | "counting" — read by the shared camera controller's
   // onDetection to decide what to do with each frame.
   stage: "idle",
@@ -1494,6 +1501,10 @@ const pullupState = {
   lastRepSpokenAt: 0,
   lastCheerAtCount: 0,
   recordBroken: false,
+  // Ghost mode: races the last session before switching to the best-record
+  // race (see updatePullupThermometer / updatePullupHighscoreMessage).
+  ghostActive: false,
+  ghostPassed: false,
 };
 
 // Same shape as the squat warmup constants — see docs/situp-mode-plan.md.
@@ -1509,6 +1520,10 @@ const situpState = {
   lastRepSpokenAt: 0,
   lastCheerAtCount: 0,
   recordBroken: false,
+  // Ghost mode: races the last session before switching to the best-record
+  // race (see updateSitupThermometer / updateSitupHighscoreMessage).
+  ghostActive: false,
+  ghostPassed: false,
   // "idle" | "warmup" | "counting" — read by the shared camera controller's
   // onDetection/onNoDetection to decide what to do with each frame.
   stage: "idle",
@@ -7553,8 +7568,26 @@ function getSquatBest(name) {
   return bestFor(indexedSessionsForUser(name, "squats"), name, () => true);
 }
 
+// Most recent squat session's rep count, regardless of how it compares to
+// the best — the "ghost" the active session races before switching to
+// racing the best (see beginSquatCounting).
+function getSquatLast(name) {
+  const sessions = indexedSessionsForUser(name, "squats").filter((s) => s.user === name);
+  if (!sessions.length) return 0;
+  const latest = sessions.reduce((a, b) => (sessionTimestamp(b) > sessionTimestamp(a) ? b : a));
+  return latest.count || 0;
+}
+
 function getPullupBest(name) {
   return bestFor(indexedSessionsForUser(name, "pullups"), name, () => true);
+}
+
+// Most recent pull-up session's rep count — see getSquatLast.
+function getPullupLast(name) {
+  const sessions = indexedSessionsForUser(name, "pullups").filter((s) => s.user === name);
+  if (!sessions.length) return 0;
+  const latest = sessions.reduce((a, b) => (sessionTimestamp(b) > sessionTimestamp(a) ? b : a));
+  return latest.count || 0;
 }
 
 function getHollandBest(name) {
@@ -7563,6 +7596,14 @@ function getHollandBest(name) {
 
 function getSitupBest(name) {
   return bestFor(indexedSessionsForUser(name, "situps"), name, () => true);
+}
+
+// Most recent crunch session's rep count — see getSquatLast.
+function getSitupLast(name) {
+  const sessions = indexedSessionsForUser(name, "situps").filter((s) => s.user === name);
+  if (!sessions.length) return 0;
+  const latest = sessions.reduce((a, b) => (sessionTimestamp(b) > sessionTimestamp(a) ? b : a));
+  return latest.count || 0;
 }
 
 function updateHighscoreMessage(count) {
@@ -9719,13 +9760,42 @@ function updateSquatPhaseIndicator(phase) {
   el.classList.toggle("is-down", phase === "down");
 }
 
+function squatInGhostPhase() {
+  return squatState.ghostActive && !squatState.ghostPassed;
+}
+
+function updateSquatThermometer(count) {
+  const wrap = $("squat-thermometer-wrap");
+  const inGhostPhase = squatInGhostPhase();
+  const target = inGhostPhase ? state.squatLast : state.squatBest;
+  if (!target) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const fill = $("squat-thermometer-fill");
+  const pct = Math.min(100, Math.round((count / target) * 100));
+  fill.style.width = `${pct}%`;
+  fill.classList.toggle("thermometer-ghost", inGhostPhase);
+  fill.classList.toggle("thermometer-win", !inGhostPhase && count > target);
+}
+
 function updateSquatHighscoreMessage(count) {
   const el = $("squat-highscore-message");
-  if (!state.squatBest) {
+  const inGhostPhase = squatInGhostPhase();
+  el.classList.toggle("ghost-message", inGhostPhase);
+  const target = inGhostPhase ? state.squatLast : state.squatBest;
+  if (!target) {
     el.textContent = "";
     return;
   }
-  const remaining = state.squatBest - count;
+  const remaining = target - count;
+  if (inGhostPhase) {
+    el.textContent = remaining > 0
+      ? `${remaining} squat${remaining === 1 ? "" : "s"} behind your ghost 👻`
+      : "Tied your ghost — don't let it catch up! 👻";
+    return;
+  }
   if (remaining > 0) {
     el.textContent = `${remaining} squat${remaining === 1 ? "" : "s"} away from your best!`;
   } else if (remaining === 0) {
@@ -9733,6 +9803,14 @@ function updateSquatHighscoreMessage(count) {
   } else {
     el.textContent = "New squat record! 🔥";
   }
+}
+
+function playSquatGhostTransition() {
+  const el = $("squat-ghost-transition");
+  el.classList.remove("playing");
+  void el.offsetWidth;
+  el.classList.add("playing");
+  setTimeout(() => el.classList.remove("playing"), 1150);
 }
 
 // Same shape as maybeEncourage/maybeEncouragePlank, but for squat reps.
@@ -9748,6 +9826,11 @@ function maybeEncourageSquat(count) {
 
 function onSquatRepCounted(count) {
   $("squat-rep-count").textContent = String(count);
+  if (squatState.ghostActive && !squatState.ghostPassed && count > state.squatLast) {
+    squatState.ghostPassed = true;
+    playSquatGhostTransition();
+  }
+  updateSquatThermometer(count);
   setTimeout(() => {
     updateSquatHighscoreMessage(count);
 
@@ -9923,8 +10006,13 @@ function beginSquatCounting(thresholds) {
   squatState.recordBroken = false;
   squatState.stage = "counting";
   state.squatBest = getSquatBest(state.currentUser);
+  state.squatLast = getSquatLast(state.currentUser);
+  squatState.ghostActive = ghostModeEnabled() && !!state.squatLast;
+  squatState.ghostPassed = squatState.ghostActive && squatState.count > state.squatLast;
+  $("squat-ghost-transition").classList.remove("playing");
   $("squat-rep-count").textContent = String(squatState.count);
   updateSquatPhaseIndicator("up");
+  updateSquatThermometer(squatState.count);
   updateSquatHighscoreMessage(squatState.count);
   hideSquatStatusBanner();
   $("squat-cal-stage").classList.add("hidden");
@@ -10102,13 +10190,50 @@ function updatePullupPhaseIndicator(phase) {
   el.classList.toggle("is-down", phase === "returning");
 }
 
+function pullupInGhostPhase() {
+  return pullupState.ghostActive && !pullupState.ghostPassed;
+}
+
+function updatePullupThermometer(count) {
+  const wrap = $("pullup-thermometer-wrap");
+  const inGhostPhase = pullupInGhostPhase();
+  const target = inGhostPhase ? state.pullupLast : state.pullupBest;
+  if (!target) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const fill = $("pullup-thermometer-fill");
+  const pct = Math.min(100, Math.round((count / target) * 100));
+  fill.style.width = `${pct}%`;
+  fill.classList.toggle("thermometer-ghost", inGhostPhase);
+  fill.classList.toggle("thermometer-win", !inGhostPhase && count > target);
+}
+
 function updatePullupHighscoreMessage(count) {
   const el = $("pullup-highscore-message");
-  if (!state.pullupBest) { el.textContent = ""; return; }
-  const remaining = state.pullupBest - count;
+  const inGhostPhase = pullupInGhostPhase();
+  el.classList.toggle("ghost-message", inGhostPhase);
+  const target = inGhostPhase ? state.pullupLast : state.pullupBest;
+  if (!target) { el.textContent = ""; return; }
+  const remaining = target - count;
+  if (inGhostPhase) {
+    el.textContent = remaining > 0
+      ? `${remaining} pull-up${remaining === 1 ? "" : "s"} behind your ghost 👻`
+      : "Tied your ghost — don't let it catch up! 👻";
+    return;
+  }
   if (remaining > 0) el.textContent = `${remaining} pull-up${remaining === 1 ? "" : "s"} away from your best!`;
   else if (remaining === 0) el.textContent = "Tied your best pull-up set — one more!";
   else el.textContent = "New pull-up record! 🔥";
+}
+
+function playPullupGhostTransition() {
+  const el = $("pullup-ghost-transition");
+  el.classList.remove("playing");
+  void el.offsetWidth;
+  el.classList.add("playing");
+  setTimeout(() => el.classList.remove("playing"), 1150);
 }
 
 function maybeEncouragePullup(count) {
@@ -10122,6 +10247,11 @@ function maybeEncouragePullup(count) {
 
 function onPullupRepCounted(count) {
   $("pullup-rep-count").textContent = String(count);
+  if (pullupState.ghostActive && !pullupState.ghostPassed && count > state.pullupLast) {
+    pullupState.ghostPassed = true;
+    playPullupGhostTransition();
+  }
+  updatePullupThermometer(count);
   updatePullupHighscoreMessage(count);
   let spoken = null;
   let mustSpeak = false;
@@ -10171,6 +10301,10 @@ function tickPullupWarmup() {
     pullupState.lastSeenAt = performance.now();
     pullupState.paused = false;
     state.pullupBest = getPullupBest(state.currentUser);
+    state.pullupLast = getPullupLast(state.currentUser);
+    pullupState.ghostActive = ghostModeEnabled() && !!state.pullupLast;
+    pullupState.ghostPassed = pullupState.ghostActive && pullupState.count > state.pullupLast;
+    $("pullup-ghost-transition").classList.remove("playing");
     $("pullup-cal-error").classList.add("hidden");
     $("pullup-cal-stage").classList.add("hidden");
     $("pullup-count-stage").classList.remove("hidden");
@@ -10178,6 +10312,7 @@ function tickPullupWarmup() {
     $("btn-pullup-stop").classList.remove("hidden");
     $("pullup-rep-count").textContent = String(pullupState.count);
     updatePullupPhaseIndicator(pullupState.phase);
+    updatePullupThermometer(pullupState.count);
     updatePullupHighscoreMessage(pullupState.count);
     speak(pickFrom(PULLUP_START_LINES));
     return;
@@ -10837,13 +10972,42 @@ function updateSitupPhaseIndicator(phase) {
   el.textContent = phase === "down" ? "LYING BACK" : "CRUNCHED";
 }
 
+function situpInGhostPhase() {
+  return situpState.ghostActive && !situpState.ghostPassed;
+}
+
+function updateSitupThermometer(count) {
+  const wrap = $("situp-thermometer-wrap");
+  const inGhostPhase = situpInGhostPhase();
+  const target = inGhostPhase ? state.situpLast : state.situpBest;
+  if (!target) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const fill = $("situp-thermometer-fill");
+  const pct = Math.min(100, Math.round((count / target) * 100));
+  fill.style.width = `${pct}%`;
+  fill.classList.toggle("thermometer-ghost", inGhostPhase);
+  fill.classList.toggle("thermometer-win", !inGhostPhase && count > target);
+}
+
 function updateSitupHighscoreMessage(count) {
   const el = $("situp-highscore-message");
-  if (!state.situpBest) {
+  const inGhostPhase = situpInGhostPhase();
+  el.classList.toggle("ghost-message", inGhostPhase);
+  const target = inGhostPhase ? state.situpLast : state.situpBest;
+  if (!target) {
     el.textContent = "";
     return;
   }
-  const remaining = state.situpBest - count;
+  const remaining = target - count;
+  if (inGhostPhase) {
+    el.textContent = remaining > 0
+      ? `${remaining} crunch${remaining === 1 ? "" : "es"} behind your ghost 👻`
+      : "Tied your ghost — don't let it catch up! 👻";
+    return;
+  }
   if (remaining > 0) {
     el.textContent = `${remaining} crunch${remaining === 1 ? "" : "es"} away from your best!`;
   } else if (remaining === 0) {
@@ -10851,6 +11015,14 @@ function updateSitupHighscoreMessage(count) {
   } else {
     el.textContent = "New crunch record! 🔥";
   }
+}
+
+function playSitupGhostTransition() {
+  const el = $("situp-ghost-transition");
+  el.classList.remove("playing");
+  void el.offsetWidth;
+  el.classList.add("playing");
+  setTimeout(() => el.classList.remove("playing"), 1150);
 }
 
 // Same shape as maybeEncourageSquat, but for situp reps.
@@ -10866,6 +11038,11 @@ function maybeEncourageSitup(count) {
 
 function onSitupRepCounted(count) {
   $("situp-rep-count").textContent = String(count);
+  if (situpState.ghostActive && !situpState.ghostPassed && count > state.situpLast) {
+    situpState.ghostPassed = true;
+    playSitupGhostTransition();
+  }
+  updateSitupThermometer(count);
   if (localStorage.getItem(LS.showHighscore) !== "0") {
     updateSitupHighscoreMessage(count);
   }
@@ -11005,9 +11182,14 @@ function beginSitupCounting(thresholds) {
   situpState.recordBroken = false;
   situpState.stage = "counting";
   state.situpBest = getSitupBest(state.currentUser);
+  state.situpLast = getSitupLast(state.currentUser);
+  situpState.ghostActive = ghostModeEnabled() && !!state.situpLast;
+  situpState.ghostPassed = false;
+  $("situp-ghost-transition").classList.remove("playing");
   state.situpStartedAt = new Date();
   $("situp-rep-count").textContent = "0";
   updateSitupPhaseIndicator("up");
+  updateSitupThermometer(0);
   updateSitupHighscoreMessage(0);
   $("situp-cal-stage").classList.add("hidden");
   $("situp-count-stage").classList.remove("hidden");
