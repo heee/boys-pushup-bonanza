@@ -4993,6 +4993,34 @@ function selectLeaderboardMode(mode) {
   paintActiveBonanzaView();
 }
 
+// Arrow/swipe cycling on the "Last 7 days" chart cards — a coarser sibling
+// of the mode dropdown that only steps through whole exercises, not pushup
+// sub-modes. Landing back on pushups always resets to "All" rather than
+// restoring whichever sub-mode was last picked; Holland isn't in the cycle
+// (dropdown-only) but still needs a sane index to step from if it's active.
+const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "squats", "pullups", "situps"];
+function cycleLeaderboardActivity(direction) {
+  const fromIndex = Math.max(0, CHART_ACTIVITY_CYCLE.indexOf(state.activityType));
+  const next = CHART_ACTIVITY_CYCLE[(fromIndex + direction + CHART_ACTIVITY_CYCLE.length) % CHART_ACTIVITY_CYCLE.length];
+  selectLeaderboardMode(next === "pushups" ? "all" : next);
+}
+document.querySelectorAll(".chart-activity-arrow").forEach((btn) => {
+  btn.addEventListener("click", () => cycleLeaderboardActivity(Number(btn.dataset.activityNav)));
+});
+let chartActivityTouchStartX = null;
+document.querySelectorAll(".mybonanza-chart-card").forEach((card) => {
+  card.addEventListener("touchstart", (event) => {
+    chartActivityTouchStartX = event.touches[0].clientX;
+  }, { passive: true });
+  card.addEventListener("touchend", (event) => {
+    if (chartActivityTouchStartX == null) return;
+    const deltaX = event.changedTouches[0].clientX - chartActivityTouchStartX;
+    chartActivityTouchStartX = null;
+    if (Math.abs(deltaX) < 40) return;
+    cycleLeaderboardActivity(deltaX < 0 ? 1 : -1);
+  });
+});
+
 $("leaderboard-mode-trigger").addEventListener("click", () => {
   const open = $("leaderboard-mode-trigger").getAttribute("aria-expanded") !== "true";
   setLeaderboardModeMenuOpen(open, open);

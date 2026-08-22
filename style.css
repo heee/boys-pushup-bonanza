@@ -3011,10 +3011,31 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .chart-card-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: 0.9rem;
 }
+.chart-activity-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.chart-activity-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.chart-activity-arrow svg { width: 0.85rem; height: 0.85rem; display: block; }
+.chart-activity-arrow:active { background: var(--bg-elevated); color: var(--text); }
 .week-trend {
   font-size: 0.75rem;
   font-weight: 700;
