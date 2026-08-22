@@ -9324,6 +9324,9 @@ function buildShareContext(adjustedCount) {
       rawCount: state.summaryBaseCount + state.summaryExtra,
     } : null,
     prCtx: isPushup ? state.summaryPrAchieved : null,
+    modifierCtx: (isPushup && state.resolvedModifier && state.resolvedModifier !== "standard")
+      ? { id: state.resolvedModifier }
+      : null,
   };
 }
 
@@ -9331,7 +9334,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=140").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=141").then((module) => {
       workoutShareMessages = module;
       return module;
     });

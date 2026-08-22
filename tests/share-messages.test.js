@@ -102,6 +102,24 @@ test("Chase shares retain their mode theme while appending weighted and PR conte
   }, "chase-modifiers");
 });
 
+test("Grip modifiers append a themed bonus line, Standard grip stays silent", async () => {
+  await withFirstTemplate(({ pickShareMessage }) => {
+    const wide = pickShareMessage(20, { mode: "classic", modifierCtx: { id: "wide" } });
+    assert.match(wide, /↔️/);
+    assert.match(wide, /chest/i);
+
+    const decline = pickShareMessage(20, { mode: "classic", modifierCtx: { id: "decline" } });
+    assert.match(decline, /↘️/);
+    assert.match(decline, /feet|gravity/i);
+
+    const standard = pickShareMessage(20, { mode: "classic", modifierCtx: { id: "standard" } });
+    assert.doesNotMatch(standard, /↔️|🤏|💎|🔀|🏹|↗️|↘️/);
+
+    const none = pickShareMessage(20, { mode: "classic" });
+    assert.doesNotMatch(none, /↔️|🤏|💎|🔀|🏹|↗️|↘️/);
+  }, "modifier-bonus");
+});
+
 test("Horse reminder messages call out the pending player by name and target", async () => {
   await withFirstTemplate(({ pickHorseReminderMessage }) => {
     const message = pickHorseReminderMessage({ name: "Mia", targetLabel: "32+" });
