@@ -496,6 +496,19 @@ export const HOLLAND_TO_SQUAT_LINES = [
 export const HOLLAND_CIRCUIT_COMPLETE_LINE = "Circuit complete! One more web slung clean across the city!";
 export const HOLLAND_27_LINE = "Holland 27! Legend of the circuit — the city owes you one!";
 
+// Pulse mode — solo pacing endurance mode (see docs/pulse-mode-plan.md). Reps
+// aren't the score here, so unlike the other modes there's no cheer pack or
+// rep-number emphasis — just a start line and a record line. Tone leans into
+// control/steadiness rather than grind, since drifting either direction ends
+// the run: PULSE_START_LINES frame it as a discipline test, not a race.
+export const PULSE_START_LINES = [
+  "Lock the pace and hold the line! Too fast, too slow, both send you home!",
+  "Find your rhythm and defend it! Steady is the whole game!",
+  "Pulse is live! Hold the band like your life depends on it — well, the run does!",
+];
+
+export const PULSE_RECORD_LINE = "New Pulse record! That's the steadiest heart in the house!";
+
 export const FUN_MESSAGES_PLANK = [
   (s) => `${s} second plank! Somewhere, a yoga instructor sheds a single tear.`,
   (s) => `Held it for ${s} seconds. Absolute plank behavior.`,
@@ -517,6 +530,7 @@ export const FIXED_PHRASES = [
   PULLUP_RECORD_LINE,
   SQUAT_RECORD_LINE,
   SITUP_RECORD_LINE,
+  PULSE_RECORD_LINE,
   "New rung record!",
   "Hidden plank mode unlocked!",
   "All leaders passed. The leaderboard is now a crime scene. Keep going!",
@@ -583,6 +597,7 @@ export function buildCorpus() {
   for (const line of HOLLAND_TO_SQUAT_LINES) add(line, "hype");
   add(HOLLAND_CIRCUIT_COMPLETE_LINE, "hype");
   add(HOLLAND_27_LINE, "hype");
+  for (const line of PULSE_START_LINES) add(line, "hype");
   for (const line of LADDER_CHEER_LINES) add(line, "hype");
   for (const line of SHARPSHOOTER_HIT_LINES) add(line, "hype");
   for (const line of PYRAMID_ROW_CHEER_LINES) add(line, "hype");
