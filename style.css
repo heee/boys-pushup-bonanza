@@ -4740,7 +4740,10 @@ body:has(#screen-challenges.active) #app {
    empty (all its children individually hidden) and still eat half the
    flex space as a competing flex:1 sibling, same fix as Zen/Sharpshooter. */
 .workout-active.mode-pulse .rep-count-wrap { display: none; }
-.pulse-hud { width: 100%; display: flex; flex-direction: column; flex: 1; }
+/* Ends via the shared checkmark FAB (#btn-complete, fixed bottom-right —
+   same "bank/complete whenever" control every other free-form mode uses),
+   not a mode-specific action row, so this just centers its own content. */
+.pulse-hud { width: 100%; display: flex; flex-direction: column; justify-content: center; flex: 1; }
 .pulse-status-row { text-align: center; margin-bottom: 0.6rem; }
 .pulse-status-pill {
   display: inline-block;
@@ -4811,7 +4814,19 @@ body:has(#screen-challenges.active) #app {
 }
 .pulse-band-caption { color: var(--success); }
 
-.pulse-recovery { background: var(--bg-elevated-2); border-radius: 12px; padding: 0.65rem 0.75rem; margin-bottom: 0.9rem; }
+/* Always occupies its layout space — hidden via opacity/visibility rather
+   than display:none — so it appearing on a hot/cold breach doesn't shove
+   the pace/reps row (and everything below it) up and down the screen. */
+.pulse-recovery {
+  background: var(--bg-elevated-2);
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.9rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+}
+.pulse-recovery.pulse-recovery-active { opacity: 1; visibility: visible; }
 .pulse-recovery-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.45rem; }
 .pulse-recovery-label { font-size: 0.72rem; font-weight: 800; }
 .pulse-recovery-time { font-size: 0.85rem; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -4822,7 +4837,7 @@ body:has(#screen-challenges.active) #app {
 .pulse-recovery-fill-hot { background: var(--flame); }
 .pulse-recovery-fill-cold { background: var(--pulse-cold); }
 
-.pulse-stats-row { display: flex; align-items: center; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+.pulse-stats-row { display: flex; align-items: center; justify-content: center; gap: 1.6rem; }
 .pulse-stat { text-align: center; }
 .pulse-stat-label {
   font-size: 0.66rem;
@@ -4835,31 +4850,6 @@ body:has(#screen-challenges.active) #app {
 .pulse-stat-value { font-size: 1.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .pulse-stat-unit { font-size: 0.66rem; font-weight: 700; color: var(--text-tertiary); margin-left: 0.15rem; }
 .pulse-stat-divider { width: 1px; height: 2.1rem; background: var(--border); }
-
-.pulse-actions { display: flex; gap: 0.5rem; margin-top: auto; padding-top: 0.5rem; }
-.pulse-bank-btn {
-  flex: 1;
-  background: var(--bg-elevated);
-  color: var(--text-dim);
-  border: 0;
-  border-radius: 14px;
-  font-weight: 800;
-  font-size: 1rem;
-  padding: 0.9rem;
-}
-.pulse-pause-btn {
-  width: 3.4rem;
-  flex-shrink: 0;
-  background: var(--bg-elevated);
-  border: 0;
-  border-radius: 14px;
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.pulse-pause-btn svg { width: 1.15rem; height: 1.15rem; }
-.pulse-pause-btn.is-paused { background: var(--primary); color: var(--text-on-accent); }
 
 /* Inset frame on the screen edge — readable-without-looking-directly signal,
    paired with the status pill + haptics (see modes/pulse.js pulseTick). */

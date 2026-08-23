@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=225">
+<link rel="stylesheet" href="style.css?v=226">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -207,7 +207,10 @@
             <span id="pulse-band-caption" class="pulse-band-caption"></span>
             <span>Now</span>
           </div>
-          <div id="pulse-recovery" class="pulse-recovery hidden">
+          <!-- Always in flow (space reserved via opacity/visibility, not
+               display:none) so the hot/cold recovery meter appearing
+               doesn't shove the pace/reps row below it up and down. -->
+          <div id="pulse-recovery" class="pulse-recovery">
             <div class="pulse-recovery-row">
               <span id="pulse-recovery-label" class="pulse-recovery-label"></span>
               <span id="pulse-recovery-time" class="pulse-recovery-time"></span>
@@ -224,12 +227,6 @@
               <div class="pulse-stat-label">REPS</div>
               <div id="pulse-stat-reps" class="pulse-stat-value">0</div>
             </div>
-          </div>
-          <div class="pulse-actions">
-            <button id="btn-pulse-bank" type="button" class="btn btn-giant pulse-bank-btn">Bank run</button>
-            <button id="btn-pulse-pause" type="button" class="pulse-pause-btn" aria-label="Pause">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
-            </button>
           </div>
         </div>
 
@@ -1678,6 +1675,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=229"></script>
+<script type="module" src="app.js?v=230"></script>
 </body>
 </html>

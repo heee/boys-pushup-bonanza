@@ -1351,7 +1351,7 @@ const state = {
   pulseRepTimestamps: [],
   pulseTraceSamples: [],
   pulseFullTraceSamples: [],
-  pulsePausedAt: null,
+  pulseLastRawPhase: null,
   pulseResult: null,
   modifier: null,
   resolvedModifier: null,
@@ -7859,6 +7859,14 @@ function processRatio(ratio, inferenceMs) {
   repState.trace.push({ t: Math.round(now), raw: +ratio.toFixed(4), s: +result.smoothed.toFixed(4), p: result.phase, ms: Math.round(inferenceMs || 0) });
   if (repState.trace.length > TRACE_MAX_SAMPLES) repState.trace.shift();
 
+  // Re-anchor Pulse's metronome to the camera's own up/down signal every
+  // time it actually flips, so the tick tracks his real cadence instead of
+  // free-running from a fixed clock (see pulseResyncMetronome).
+  if (state.pushupMode === "pulse" && result.phase !== state.pulseLastRawPhase) {
+    state.pulseLastRawPhase = result.phase;
+    pulseResyncMetronome();
+  }
+
   if (result.counted) {
     repState.count = result.count;
     if (state.pushupMode === "pulse") state.pulseRepTimestamps.push(now);
@@ -8937,7 +8945,6 @@ async function setupWorkoutModeState() {
   const isPulse = state.pushupMode === "pulse";
   if (isPulse) pulseStartLiveRun(); else pulseStopLiveTimers();
   $("pulse-hud").classList.toggle("hidden", !isPulse);
-  $("btn-complete").classList.toggle("hidden", isPulse);
   $("workout-active").classList.toggle("mode-pulse", isPulse);
 
   // Fortune Cookie is the odd one out: it reuses Classic's own giant hero
@@ -9225,34 +9232,55 @@ function pulseStartLiveRun() {
   state.pulseRepTimestamps = [];
   state.pulseTraceSamples = [];
   state.pulseFullTraceSamples = [];
-  state.pulsePausedAt = null;
+  state.pulseLastRawPhase = null;
   state.pulseResult = null;
   $("pulse-band-caption").textContent = `Band ${state.pulseBandLow} – ${state.pulseBandHigh}`;
-  $("btn-pulse-pause").classList.remove("is-paused");
   $("workout-active").classList.remove("pulse-frame-hot", "pulse-frame-cold");
   renderPulseLiveHud(0);
   pulseEvalTimer = setInterval(pulseEvaluateTick, PULSE_EVAL_TICK_MS);
-  if (state.pulseMetronomeEnabled) pulseScheduleMetronome();
+  // Anchored on run start so there's a first tick even before the boy's
+  // done a rep yet; every real up/down transition re-anchors it from there
+  // (see the processRatio hook), which is what keeps it locked to his
+  // actual cadence instead of a free-running clock.
+  if (state.pulseMetronomeEnabled) pulseScheduleMetronomeTick(now);
 }
 
-// Self-rescheduling instead of setInterval so the interval can change (band
-// centre pace normally, doubled while out of band) without drift.
-function pulseScheduleMetronome() {
-  if (!state.pulseMetronomeEnabled || !state.pulseRunState || state.pulseRunState.ended) return;
-  if (state.pulsePausedAt != null) {
-    pulseMetronomeTimer = setTimeout(pulseScheduleMetronome, 200);
-    return;
-  }
-  if (soundIsEnabled()) playPulseTick();
+// One tick per phase (up, down) at the band-centre rate — so a tick lands
+// roughly when he should be flipping direction to hold pace, not just a
+// generic beat. `anchorMs` is either the run start or (usually) the
+// timestamp of the most recent real up/down crossing the camera detected
+// (see pulseResyncMetronome) — re-anchoring on every real transition is
+// what keeps this locked to his actual cadence rather than drifting away
+// from it like a plain interval timer would over a long set.
+function pulseMetronomeIntervalMs() {
   const centerRpm = (state.pulseBandLow + state.pulseBandHigh) / 2 || 30;
-  const baseIntervalMs = 60000 / centerRpm;
-  const outOfBand = state.pulseRunState.phase === "hot" || state.pulseRunState.phase === "cold";
-  const intervalMs = Math.max(120, outOfBand ? baseIntervalMs / 2 : baseIntervalMs);
-  pulseMetronomeTimer = setTimeout(pulseScheduleMetronome, intervalMs);
+  const halfPeriodMs = 30000 / centerRpm;
+  const outOfBand = state.pulseRunState && (state.pulseRunState.phase === "hot" || state.pulseRunState.phase === "cold");
+  return Math.max(90, outOfBand ? halfPeriodMs / 2 : halfPeriodMs);
+}
+
+function pulseScheduleMetronomeTick(anchorMs) {
+  if (pulseMetronomeTimer != null) clearTimeout(pulseMetronomeTimer);
+  pulseMetronomeTimer = null;
+  if (!state.pulseMetronomeEnabled || !state.pulseRunState || state.pulseRunState.ended) return;
+  const delay = Math.max(0, anchorMs + pulseMetronomeIntervalMs() - performance.now());
+  pulseMetronomeTimer = setTimeout(() => {
+    pulseMetronomeTimer = null;
+    if (!state.pulseRunState || state.pulseRunState.ended) return;
+    if (state.pulseMetronomeEnabled && soundIsEnabled()) playPulseTick();
+    pulseScheduleMetronomeTick(performance.now());
+  }, delay);
+}
+
+// Called from processRatio whenever the camera's own up/down phase
+// (the same signal that drives rep counting) actually flips.
+function pulseResyncMetronome() {
+  if (!state.pulseMetronomeEnabled || !state.pulseRunState || state.pulseRunState.ended) return;
+  pulseScheduleMetronomeTick(performance.now());
 }
 
 function pulseEvaluateTick() {
-  if (!state.pulseRunState || state.pulseRunState.ended || state.pulsePausedAt != null) return;
+  if (!state.pulseRunState || state.pulseRunState.ended) return;
   const now = performance.now();
   const rollingRpm = pulseRollingRpm(state.pulseRepTimestamps, now);
   const prevPhase = state.pulseRunState.phase;
@@ -9313,10 +9341,10 @@ function renderPulseTrace() {
 function renderPulseRecovery(label, tone) {
   const remainingMs = pulseRecoveryRemainingMs(state.pulseRunState, performance.now());
   if (remainingMs == null) {
-    $("pulse-recovery").classList.add("hidden");
+    $("pulse-recovery").classList.remove("pulse-recovery-active");
     return;
   }
-  $("pulse-recovery").classList.remove("hidden");
+  $("pulse-recovery").classList.add("pulse-recovery-active");
   $("pulse-recovery-label").textContent = label;
   $("pulse-recovery-label").className = `pulse-recovery-label pulse-recovery-${tone}`;
   $("pulse-recovery-time").textContent = `${(remainingMs / 1000).toFixed(1)}s`;
@@ -9340,12 +9368,12 @@ function renderPulseLiveHud(rollingRpm) {
     pill.textContent = "FINDING PACE…";
     pill.className = "pulse-status-pill pulse-pill-neutral";
     wrap.classList.remove("pulse-frame-hot", "pulse-frame-cold");
-    $("pulse-recovery").classList.add("hidden");
+    $("pulse-recovery").classList.remove("pulse-recovery-active");
   } else if (r.phase === "in-band") {
     pill.textContent = "IN BAND";
     pill.className = "pulse-status-pill pulse-pill-good";
     wrap.classList.remove("pulse-frame-hot", "pulse-frame-cold");
-    $("pulse-recovery").classList.add("hidden");
+    $("pulse-recovery").classList.remove("pulse-recovery-active");
   } else if (r.phase === "hot") {
     pill.textContent = "TOO HOT";
     pill.className = "pulse-status-pill pulse-pill-hot";
@@ -9488,39 +9516,6 @@ async function completePulseRun() {
   }
 }
 
-$("btn-pulse-bank").addEventListener("click", () => {
-  if (!state.pulseRunState || state.pulseRunState.ended) return;
-  state.pulseRunState = pulseBankRun(state.pulseRunState, performance.now());
-  completePulseRun();
-});
-
-// Pause freezes the run in place (camera keeps running so a rep landing
-// mid-pause isn't lost mid-detection, but the eval tick/metronome stop and
-// every deadline shifts forward by the paused duration on resume, so the
-// countdown/grace/elapsed math is exactly as if no time had passed).
-$("btn-pulse-pause").addEventListener("click", () => {
-  if (!state.pulseRunState || state.pulseRunState.ended) return;
-  const btn = $("btn-pulse-pause");
-  if (state.pulsePausedAt == null) {
-    state.pulsePausedAt = performance.now();
-    btn.classList.add("is-paused");
-    $("pulse-status-pill").textContent = "PAUSED";
-    $("pulse-status-pill").className = "pulse-status-pill pulse-pill-neutral";
-  } else {
-    const pausedMs = performance.now() - state.pulsePausedAt;
-    const r = state.pulseRunState;
-    r.runStartMs += pausedMs;
-    r.graceUntilMs += pausedMs;
-    if (r.recoveryDeadlineMs != null) r.recoveryDeadlineMs += pausedMs;
-    state.pulseTraceSamples = state.pulseTraceSamples.map((s) => ({ ...s, t: s.t + pausedMs }));
-    state.pulseFullTraceSamples = state.pulseFullTraceSamples.map((s) => ({ ...s, t: s.t + pausedMs }));
-    state.pulseRepTimestamps = state.pulseRepTimestamps.map((t) => t + pausedMs);
-    state.pulsePausedAt = null;
-    btn.classList.remove("is-paused");
-    if (state.pulseMetronomeEnabled) pulseScheduleMetronome();
-  }
-});
-
 async function completeWorkout() {
   const rawCount = repState.count;
   if (state.pushupMode === "horse") {
@@ -9529,6 +9524,15 @@ async function completeWorkout() {
   }
   if (state.pushupMode === "tow") {
     await completeTowBurst(rawCount);
+    return;
+  }
+  // Pulse reuses the shared checkmark FAB as its "Bank run" action — see
+  // completePulseRun. Its score is time held in band, not reps, so it needs
+  // its own save path rather than falling through to the generic one below.
+  if (state.pushupMode === "pulse") {
+    if (!state.pulseRunState || state.pulseRunState.ended) return;
+    state.pulseRunState = pulseBankRun(state.pulseRunState, performance.now());
+    await completePulseRun();
     return;
   }
   const isZen = state.pushupMode === "zen";
