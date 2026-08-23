@@ -9230,7 +9230,7 @@ function pulseStartLiveRun() {
   state.pulseFullTraceSamples = [];
   state.pulseResult = null;
   $("pulse-band-caption").textContent = `Band ${state.pulseBandLow} – ${state.pulseBandHigh}`;
-  $("workout-active").classList.remove("pulse-frame-hot", "pulse-frame-cold");
+  $("pulse-elapsed").classList.remove("pulse-elapsed-hot", "pulse-elapsed-cold");
   renderPulseLiveHud(0);
   pulseEvalTimer = setInterval(pulseEvaluateTick, PULSE_EVAL_TICK_MS);
   pulseMetronomeNextTickMs = now + pulseMetronomeIntervalMs();
@@ -9376,34 +9376,34 @@ function renderPulseLiveHud(rollingRpm) {
   const r = state.pulseRunState;
   if (!r) return;
   const elapsedMs = performance.now() - r.runStartMs;
-  $("pulse-elapsed").textContent = formatDuration(Math.max(0, elapsedMs));
+  const elapsedEl = $("pulse-elapsed");
+  elapsedEl.textContent = formatDuration(Math.max(0, elapsedMs));
   $("pulse-stat-pace").innerHTML = `${Math.round(rollingRpm)}<span class="pulse-stat-unit">rpm</span>`;
   $("pulse-stat-reps").textContent = String(state.pulseRepTimestamps.length);
 
   const pill = $("pulse-status-pill");
-  const wrap = $("workout-active");
   const traceWrap = $("pulse-trace-wrap");
+  // The out-of-band cue used to be a full inset frame around the whole
+  // screen — distracting. It's the elapsed-time number itself that changes
+  // color now, same readable-without-looking-directly signal, less noise.
+  elapsedEl.classList.remove("pulse-elapsed-hot", "pulse-elapsed-cold");
   if (r.phase === "grace") {
     pill.textContent = "FINDING PACE…";
     pill.className = "pulse-status-pill pulse-pill-neutral";
-    wrap.classList.remove("pulse-frame-hot", "pulse-frame-cold");
     $("pulse-recovery").classList.remove("pulse-recovery-active");
   } else if (r.phase === "in-band") {
     pill.textContent = "IN BAND";
     pill.className = "pulse-status-pill pulse-pill-good";
-    wrap.classList.remove("pulse-frame-hot", "pulse-frame-cold");
     $("pulse-recovery").classList.remove("pulse-recovery-active");
   } else if (r.phase === "hot") {
     pill.textContent = "TOO HOT";
     pill.className = "pulse-status-pill pulse-pill-hot";
-    wrap.classList.add("pulse-frame-hot");
-    wrap.classList.remove("pulse-frame-cold");
+    elapsedEl.classList.add("pulse-elapsed-hot");
     renderPulseRecovery("Above the ceiling — ease off", "hot");
   } else {
     pill.textContent = "TOO COLD";
     pill.className = "pulse-status-pill pulse-pill-cold";
-    wrap.classList.add("pulse-frame-cold");
-    wrap.classList.remove("pulse-frame-hot");
+    elapsedEl.classList.add("pulse-elapsed-cold");
     renderPulseRecovery("Below the floor — pick it up", "cold");
   }
   traceWrap.classList.toggle("pulse-trace-hot", r.phase === "hot");
@@ -9506,7 +9506,7 @@ async function completePulseRun() {
   stopCameraAndDetection();
   await releaseWakeLock();
   state.workoutActive = false;
-  $("workout-active").classList.remove("pulse-frame-hot", "pulse-frame-cold");
+  $("pulse-elapsed").classList.remove("pulse-elapsed-hot", "pulse-elapsed-cold");
   $("workout-active").classList.add("hidden");
   $("workout-idle").classList.remove("hidden");
   setChromeMinimized(false);
@@ -10080,6 +10080,15 @@ async function shareRoadtripConquest() {
 }
 
 $("btn-summary-again").addEventListener("click", () => {
+  // Pulse doesn't live on the plain screen-workout mode picker — it needs
+  // its own setup screen re-rendered (fresh band, band-width/metronome
+  // choices carried over) so "Run again" actually loops back into Pulse
+  // instead of dumping back to Classic.
+  if (state.lastSessionType === "pulse") {
+    renderPulseSetup();
+    showScreen("screen-pulse-setup");
+    return;
+  }
   const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout" };
   showScreen(screenByType[state.lastSessionType] || "screen-workout");
 });

@@ -4768,7 +4768,13 @@ body:has(#screen-challenges.active) #app {
   color: var(--text-tertiary);
   margin-bottom: 0.25rem;
 }
-.pulse-elapsed { font-size: 3rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); }
+.pulse-elapsed { font-size: 3rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); transition: color 0.15s ease; }
+/* Readable-without-looking-directly signal lives on the elapsed-time
+   number itself — paired with the status pill + haptics (see
+   modes/pulse.js pulseTick). A whole-screen inset frame did the same job
+   but read as distracting, so it's gone in favor of this. */
+.pulse-elapsed.pulse-elapsed-hot { color: var(--flame); }
+.pulse-elapsed.pulse-elapsed-cold { color: var(--pulse-cold); }
 
 .pulse-trace-wrap {
   position: relative;
@@ -4853,11 +4859,6 @@ body:has(#screen-challenges.active) #app {
 .pulse-stat-value { font-size: 1.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .pulse-stat-unit { font-size: 0.66rem; font-weight: 700; color: var(--text-tertiary); margin-left: 0.15rem; }
 .pulse-stat-divider { width: 1px; height: 2.1rem; background: var(--border); }
-
-/* Inset frame on the screen edge — readable-without-looking-directly signal,
-   paired with the status pill + haptics (see modes/pulse.js pulseTick). */
-#workout-active.pulse-frame-hot { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--flame) 55%, transparent); border-radius: 14px; }
-#workout-active.pulse-frame-cold { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--pulse-cold) 60%, transparent); border-radius: 14px; }
 
 /* --- Results screen (screen-summary) --- */
 .summary-pulse-cause {
