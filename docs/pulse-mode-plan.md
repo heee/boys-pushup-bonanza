@@ -9,7 +9,7 @@ variant C throughout, per the layout notes in that file).
 
 - **Sequencing:** Tug-of-war is already built (CLAUDE.md's roadmap line is stale).
   Pulse is the active next build.
-- **Band data source:** median rpm comes from the boy's last 10 **Classic-mode**
+- **Band data source:** median rpm comes from the boy's last 25 **Classic-mode**
   pushup sessions only (`!session.type && (session.mode === "classic" || !session.mode)`
   — verify the `!session.mode` fallback against real data, since older sessions may
   predate the `mode` field). Game modes (Poker/Wheel/Ladder/Chase/etc.) are excluded —
@@ -140,7 +140,7 @@ rep-number callouts or per-rep cheers.
 1. **Entry:** visible tile on home/explore screen (locked/progress state per the
    decision above), next to the other pushup sub-modes.
 2. **Setup** (mirrors mockup screen 1): pace-history readout (median + range bar over
-   last 10 valid Classic sessions), band-width picker (Wide/Standard/Razor, Standard
+   last 25 valid Classic sessions), band-width picker (Wide/Standard/Razor, Standard
    default), metronome toggle (on by default), best-run readout, Start.
 3. **Active run** (mockup screen 2, variant C): header with status pill, centred
    elapsed clock, live trace (fixed frame, 60s rolling scroll, zones/lines per state),

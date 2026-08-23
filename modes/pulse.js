@@ -14,7 +14,7 @@ export const PULSE_BAND_WIDTHS = [
 
 // How many of the most recent valid Classic sessions feed the median, and
 // how many are required before Pulse unlocks at all.
-export const PULSE_HISTORY_WINDOW = 10;
+export const PULSE_HISTORY_WINDOW = 25;
 export const PULSE_UNLOCK_SESSIONS = 3;
 
 // Live pace is a rolling window average, not per-rep — this is what makes
