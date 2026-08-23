@@ -18,7 +18,7 @@
     "zen": "You are a calm, quiet voice guiding someone through a slow, mindful bodyweight practice. Speak softly and warmly, unhurried, like a meditation instructor — no shouting, no intensity, no drill-sergeant energy at all. Gentle, grounded, at peace.",
     "name": "You are a drill sergeant barking a single person's name during roll call — sharp, loud, and commanding, like calling them out in front of the whole platoon. One clean, aggressive utterance of the name, no trailing off, no softening at the end."
   },
-  "generatedAt": "2026-08-23T13:12:37.769Z",
+  "generatedAt": "2026-08-23T20:30:19.655Z",
   "clips": {
     "paused": "67357d552b414d08.mp3",
     "back to it": "828056e052f9b80f.mp3",
@@ -514,6 +514,10 @@
     "tug of war is over that rope isn't coming back": "9da8534b5497d7fd.mp3",
     "target reached the other team can let go of the rope now": "f6bf75eaf93d4356.mp3",
     "that's the match pull's over and it wasn't close at the end": "5348d3bedbc15079.mp3",
-    "game over target smashed go tell the other team gently": "8a7d6bf6ddc551ab.mp3"
+    "game over target smashed go tell the other team gently": "8a7d6bf6ddc551ab.mp3",
+    "too hot ease off": "37a0a97ec80a3afa.mp3",
+    "push slower you're over the ceiling": "89afabcf6c02bda2.mp3",
+    "too cold pick it up": "bb966b995b15180a.mp3",
+    "push faster you're under the floor": "f98629e646f3242b.mp3"
   }
 }

@@ -43,13 +43,16 @@ variant C throughout, per the layout notes in that file).
   has 3 valid Classic sessions, then it unlocks in place. No hidden-tile / toast
   mechanism — there's no existing precedent for a data-driven progress-gated tile
   elsewhere in the app, so this is new UI.
-- **Audio/haptics — pace signal stays non-verbal, but Pulse gets a small voice pack:**
-  metronome tick at band-centre pace (doubles rate as an out-of-band warning),
-  fast-triple vibrate for hot, slow-double vibrate for cold, on-screen pill text
-  carries the in-run instruction ("Ease off" / "Pick it up") — **no spoken warning
-  lines**, those stay visual+haptic only per the mockup's own framing ("readable
-  without looking directly at the screen"). Reuse the existing oscillator tone helper
-  (voice.js:647-672) for ticks and `vibrate()` (app.js:533) for haptic patterns.
+- **Audio/haptics:** metronome tick at band-centre pace (one tick per full rep,
+  doubles rate as an out-of-band warning), fast-triple vibrate for hot, slow-double
+  vibrate for cold, on-screen pill text carries the in-run instruction ("Ease off" /
+  "Pick it up"). Reuse the existing oscillator tone helper (voice.js:647-672) for
+  ticks and `vibrate()` (app.js:533) for haptic patterns. **Update 2026-08-23:**
+  the original plan kept the pace signal non-verbal ("no spoken warning lines" —
+  the mockup framed it as "readable without looking directly at the screen").
+  Reversed per Henning: entering hot/cold now also speaks a line
+  (`PULSE_HOT_LINES` / `PULSE_COLD_LINES` in voice-lines.js), fired once per
+  breach entry alongside the vibrate call, not on a timer.
   Separately, Pulse **does** get a small `voice-lines.js` pack (start line(s) + a
   record/PB line, mirroring the situps pack but smaller — reps aren't the score, so no
   rep-number callouts). See **Voice lines** below.

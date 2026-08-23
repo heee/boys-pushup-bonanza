@@ -40,6 +40,8 @@ import {
   FUN_MESSAGES_PULLUP,
   PULSE_RECORD_LINE,
   PULSE_START_LINES,
+  PULSE_HOT_LINES,
+  PULSE_COLD_LINES,
   SHARPSHOOTER_HIT_LINES,
   SITUP_CHEER_LINES,
   SITUP_RECORD_LINE,
@@ -59,7 +61,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=140";
+} from "./voice-lines.js?v=141";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -9237,13 +9239,17 @@ function pulseStartLiveRun() {
   if (state.pulseMetronomeEnabled) pulseScheduleMetronomeTick();
 }
 
-// One tick per phase (up, down) at the band-centre rate — so a tick lands
-// roughly when he should be flipping direction to hold pace.
+// One tick per full rep (push + down) at the band-centre rate — so a tick
+// lands roughly when he should be starting the next rep. Was one tick per
+// *phase* (30000/centerRpm), which at real measured paces (~50-70rpm) came
+// out to a click every 400-600ms, doubling to ~200-300ms out-of-band —
+// fast enough to read as broken clicking rather than a pace cue. Full-rep
+// period halves that rate at both the base and out-of-band-warning speed.
 function pulseMetronomeIntervalMs() {
   const centerRpm = (state.pulseBandLow + state.pulseBandHigh) / 2 || 30;
-  const halfPeriodMs = 30000 / centerRpm;
+  const periodMs = 60000 / centerRpm;
   const outOfBand = state.pulseRunState && (state.pulseRunState.phase === "hot" || state.pulseRunState.phase === "cold");
-  return Math.max(90, outOfBand ? halfPeriodMs / 2 : halfPeriodMs);
+  return Math.max(150, outOfBand ? periodMs / 2 : periodMs);
 }
 
 // A metronome is the reference you play against, not an echo of what you
@@ -9285,8 +9291,13 @@ function pulseEvaluateTick() {
   renderPulseLiveHud(rollingRpm);
 
   if (state.pulseRunState.phase !== prevPhase) {
-    if (state.pulseRunState.phase === "hot") vibrate([60, 50, 60, 50, 60]);
-    else if (state.pulseRunState.phase === "cold") vibrate([150, 100, 150]);
+    if (state.pulseRunState.phase === "hot") {
+      vibrate([60, 50, 60, 50, 60]);
+      speak(pickFrom(PULSE_HOT_LINES));
+    } else if (state.pulseRunState.phase === "cold") {
+      vibrate([150, 100, 150]);
+      speak(pickFrom(PULSE_COLD_LINES));
+    }
   }
 
   if (state.pulseRunState.ended) completePulseRun();

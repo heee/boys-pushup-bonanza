@@ -509,6 +509,20 @@ export const PULSE_START_LINES = [
 
 export const PULSE_RECORD_LINE = "New Pulse record! That's the steadiest heart in the house!";
 
+// Spoken nudges on entering hot/cold — mirrors the pill text ("ease off" /
+// "pick it up") so the spoken and on-screen cues never contradict each
+// other. Fires once per breach entry (see the phase-change guard in
+// app.js's pulseEvaluateTick), not on a timer, so it can't spam mid-breach.
+export const PULSE_HOT_LINES = [
+  "Too hot! Ease off!",
+  "Push slower! You're over the ceiling!",
+];
+
+export const PULSE_COLD_LINES = [
+  "Too cold! Pick it up!",
+  "Push faster! You're under the floor!",
+];
+
 export const FUN_MESSAGES_PLANK = [
   (s) => `${s} second plank! Somewhere, a yoga instructor sheds a single tear.`,
   (s) => `Held it for ${s} seconds. Absolute plank behavior.`,
@@ -598,6 +612,8 @@ export function buildCorpus() {
   add(HOLLAND_CIRCUIT_COMPLETE_LINE, "hype");
   add(HOLLAND_27_LINE, "hype");
   for (const line of PULSE_START_LINES) add(line, "hype");
+  for (const line of PULSE_HOT_LINES) add(line, "hype");
+  for (const line of PULSE_COLD_LINES) add(line, "hype");
   for (const line of LADDER_CHEER_LINES) add(line, "hype");
   for (const line of SHARPSHOOTER_HIT_LINES) add(line, "hype");
   for (const line of PYRAMID_ROW_CHEER_LINES) add(line, "hype");
