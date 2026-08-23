@@ -4796,9 +4796,12 @@ body:has(#screen-challenges.active) #app {
 .pulse-trace-dot { fill: var(--success); }
 .pulse-trace-wrap.pulse-trace-hot .pulse-trace-dot { fill: var(--flame); }
 .pulse-trace-wrap.pulse-trace-cold .pulse-trace-dot { fill: var(--pulse-cold); }
+/* Sits at PULSE_TRACE_NOW_X (70% across, see app.js) rather than the far
+   right edge — pinning "now" at the very edge anchored the eye there and
+   left no visual room to read the approach of the line. */
 .pulse-now-marker {
   position: absolute;
-  right: 0;
+  left: 70%;
   top: 0;
   bottom: 0;
   width: 2px;
@@ -4903,7 +4906,8 @@ body:has(#screen-challenges.active) #app {
 .summary-pulse-trace-line { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .summary-pulse-trace-line.summary-pulse-trace-hot { stroke: var(--flame); }
 .summary-pulse-trace-line.summary-pulse-trace-cold { stroke: var(--pulse-cold); }
-.summary-pulse-trace-dot { fill: var(--flame); }
+.summary-pulse-trace-dot { fill: var(--primary); }
+.summary-pulse-trace-dot.summary-pulse-trace-dot-hot { fill: var(--flame); }
 .summary-pulse-trace-dot.summary-pulse-trace-dot-cold { fill: var(--pulse-cold); }
 .summary-pulse-trace-times {
   display: flex;

@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=226">
+<link rel="stylesheet" href="style.css?v=227">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -970,7 +970,11 @@
               <rect id="summary-pulse-trace-band" class="summary-pulse-trace-band" x="0" y="22" width="240" height="26"></rect>
               <line class="summary-pulse-trace-bandline" x1="0" y1="22" x2="240" y2="22"></line>
               <line class="summary-pulse-trace-bandline" x1="0" y1="48" x2="240" y2="48"></line>
-              <polyline id="summary-pulse-trace-line" class="summary-pulse-trace-line" points=""></polyline>
+              <!-- Populated with one <polyline> segment per zone crossing
+                   (see renderPulseSummaryTrace) so the parts of the run
+                   that ran hot/cold are colored red/blue in place, not just
+                   the run as a whole. -->
+              <g id="summary-pulse-trace-line"></g>
               <circle id="summary-pulse-trace-dot" class="summary-pulse-trace-dot" cx="0" cy="34" r="4"></circle>
             </svg>
             <div class="summary-pulse-trace-times"><span>0:00</span><span id="summary-pulse-trace-end">0:00</span></div>
@@ -1675,6 +1679,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=230"></script>
+<script type="module" src="app.js?v=231"></script>
 </body>
 </html>

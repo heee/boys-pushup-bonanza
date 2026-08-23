@@ -9215,6 +9215,10 @@ const PULSE_TRACE_WINDOW_MS = 60000;
 // How much of the trace is drawn "hot" (full weight/colour) vs faded into
 // history — see the live trace's design note in the mode plan.
 const PULSE_TRACE_RECENT_MS = 8000;
+// Where "now" sits across the 280-wide trace viewBox — 70%, not the far
+// edge (see renderPulseTrace/pulse-now-marker in style.css, which must
+// match this as a matching `left: 70%`).
+const PULSE_TRACE_NOW_X = 280 * 0.7;
 let pulseEvalTimer = null;
 let pulseMetronomeTimer = null;
 
@@ -9321,7 +9325,11 @@ function renderPulseTrace() {
   const now = samples[samples.length - 1].t;
   const toXY = (s) => {
     const ageMs = now - s.t;
-    const x = Math.max(0, Math.min(280, 280 - (ageMs / PULSE_TRACE_WINDOW_MS) * 280));
+    // "Now" sits at PULSE_TRACE_NOW_X (70% across), not the far edge — an
+    // edge-pinned head anchors the eye there with no room to read the
+    // approach of the line. History compresses into the space to its left;
+    // the remaining ~30% to the right stays deliberately empty.
+    const x = Math.max(0, Math.min(PULSE_TRACE_NOW_X, PULSE_TRACE_NOW_X * (1 - ageMs / PULSE_TRACE_WINDOW_MS)));
     return `${x},${pulseTraceY(s.rpm)}`;
   };
   const fadeSamples = samples.filter((s) => now - s.t > PULSE_TRACE_RECENT_MS);
@@ -9334,7 +9342,7 @@ function renderPulseTrace() {
 
   const last = samples[samples.length - 1];
   dot.classList.remove("hidden");
-  dot.setAttribute("cx", 280);
+  dot.setAttribute("cx", PULSE_TRACE_NOW_X);
   dot.setAttribute("cy", String(pulseTraceY(last.rpm)));
 }
 
@@ -9395,14 +9403,22 @@ function renderPulseLiveHud(rollingRpm) {
   renderPulseTrace();
 }
 
+// "hot"/"cold"/"in" relative to the band this run was played against —
+// shared by the results trace's per-segment coloring and its endpoint dot.
+function pulseZoneOf(rpm) {
+  if (rpm > state.pulseBandHigh) return "hot";
+  if (rpm < state.pulseBandLow) return "cold";
+  return "in";
+}
+
 function renderPulseSummaryTrace() {
   const samples = state.pulseFullTraceSamples;
   const r = state.pulseResult;
-  const line = $("summary-pulse-trace-line");
+  const lineGroup = $("summary-pulse-trace-line");
   const dot = $("summary-pulse-trace-dot");
   const svgW = 240, bandTop = 22, bandBottom = 48;
   if (!samples.length || !r) {
-    line.setAttribute("points", "");
+    lineGroup.innerHTML = "";
     dot.classList.add("hidden");
     $("summary-pulse-trace-end").textContent = formatDuration((r?.secondsHeld || 0) * 1000);
     return;
@@ -9410,23 +9426,39 @@ function renderPulseSummaryTrace() {
   const startT = samples[0].t;
   const totalMs = Math.max(1, samples[samples.length - 1].t - startT);
   const span = Math.max(1, state.pulseBandHigh - state.pulseBandLow);
-  const toXY = (s) => {
+  const points = samples.map((s) => {
     const x = Math.max(0, Math.min(svgW, ((s.t - startT) / totalMs) * svgW));
     const y = Math.max(2, Math.min(66, bandBottom - ((s.rpm - state.pulseBandLow) / span) * (bandBottom - bandTop)));
-    return `${x},${y}`;
-  };
-  line.setAttribute("points", samples.map(toXY).join(" "));
-  const hot = r.endReason === "ceiling";
-  const cold = r.endReason === "floor";
-  line.classList.toggle("summary-pulse-trace-hot", hot);
-  line.classList.toggle("summary-pulse-trace-cold", cold);
-  const last = samples[samples.length - 1];
-  const [lx, ly] = toXY(last).split(",");
+    return { x, y, zone: pulseZoneOf(s.rpm) };
+  });
+
+  // One <polyline> per contiguous same-zone run, colored for the stretches
+  // that ran above/below the band rather than a single tint for the whole
+  // trace — makes it obvious at a glance where he was fighting vs. steady.
+  const segments = [];
+  let current = null;
+  for (const p of points) {
+    if (!current || current.zone !== p.zone) {
+      const bridge = current ? current.pts[current.pts.length - 1] : null;
+      if (current) segments.push(current);
+      current = { zone: p.zone, pts: bridge ? [bridge, p] : [p] };
+    } else {
+      current.pts.push(p);
+    }
+  }
+  if (current) segments.push(current);
+  lineGroup.innerHTML = segments.map((seg) => {
+    const cls = seg.zone === "hot" ? " summary-pulse-trace-hot" : seg.zone === "cold" ? " summary-pulse-trace-cold" : "";
+    const pointsAttr = seg.pts.map((p) => `${p.x},${p.y}`).join(" ");
+    return `<polyline class="summary-pulse-trace-line${cls}" points="${pointsAttr}"></polyline>`;
+  }).join("");
+
+  const last = points[points.length - 1];
   dot.classList.remove("hidden");
-  dot.setAttribute("cx", lx);
-  dot.setAttribute("cy", ly);
-  dot.classList.toggle("summary-pulse-trace-dot-hot", hot);
-  dot.classList.toggle("summary-pulse-trace-dot-cold", cold);
+  dot.setAttribute("cx", last.x);
+  dot.setAttribute("cy", last.y);
+  dot.classList.toggle("summary-pulse-trace-dot-hot", last.zone === "hot");
+  dot.classList.toggle("summary-pulse-trace-dot-cold", last.zone === "cold");
   $("summary-pulse-trace-end").textContent = formatDuration(r.secondsHeld * 1000);
 }
 
