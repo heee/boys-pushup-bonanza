@@ -952,7 +952,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .workout-instructions { color: var(--text-dim); max-width: 30rem; margin: 0 0 1rem; }
 /* Coaching-cue state: same slot/size as the plain setup line, just recolored
    as a tip (see renderWorkoutInstructionLine in app.js). */
-.workout-instructions.is-cue { color: var(--primary); font-weight: 600; }
+.workout-instructions.is-cue { color: var(--primary); font-weight: 400; }
 .workout-instructions .cue-icon { margin-right: 0.1rem; }
 .workout-hint { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.6rem; }
 
