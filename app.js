@@ -11403,15 +11403,28 @@ function renderRecapModal() {
 
   const tabsEl = $("recap-tabs");
   tabsEl.innerHTML = "";
-  if (state.recapTabs.length > 1) {
-    state.recapTabs.forEach((t, index) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = `recap-tab${index === state.recapTabIndex ? " active" : ""}`;
-      btn.textContent = t.label;
-      btn.addEventListener("click", () => { state.recapTabIndex = index; renderRecapModal(); });
-      tabsEl.appendChild(btn);
-    });
+  const hasMultipleTabs = state.recapTabs.length > 1;
+  if (hasMultipleTabs) {
+    const prevBtn = document.createElement("button");
+    prevBtn.type = "button";
+    prevBtn.className = "recap-tab-arrow";
+    prevBtn.setAttribute("aria-label", "Previous mode");
+    prevBtn.innerHTML = `<span class="icon-arrow-left" aria-hidden="true"></span>`;
+    prevBtn.addEventListener("click", () => switchRecapTab(-1));
+    tabsEl.appendChild(prevBtn);
+  }
+  const label = document.createElement("span");
+  label.className = "recap-tab-label";
+  label.textContent = tab.label;
+  tabsEl.appendChild(label);
+  if (hasMultipleTabs) {
+    const nextBtn = document.createElement("button");
+    nextBtn.type = "button";
+    nextBtn.className = "recap-tab-arrow";
+    nextBtn.setAttribute("aria-label", "Next mode");
+    nextBtn.innerHTML = `<span class="icon-arrow-right" aria-hidden="true"></span>`;
+    nextBtn.addEventListener("click", () => switchRecapTab(1));
+    tabsEl.appendChild(nextBtn);
   }
 
   $("recap-eyebrow").textContent = tier === "year" ? `${tab.start.getFullYear()} in review` : meta.label;
@@ -11467,7 +11480,7 @@ function renderRecapModal() {
     `<div class="recap-highlight"><span class="recap-highlight-icon">${h.icon}</span><span>${escapeHtml(h.text)}</span></div>`
   ).join("");
 
-  $("btn-recap-share").textContent = `Share your ${tier}`;
+  $("recap-share-label").textContent = `Share your ${tier}`;
 }
 
 function switchRecapTab(direction) {
@@ -11496,7 +11509,6 @@ async function shareRecapCard() {
   advanceRecapQueue();
 }
 
-$("btn-recap-close").addEventListener("click", dismissAllRecaps);
 $("btn-recap-dismiss").addEventListener("click", advanceRecapQueue);
 $("btn-recap-share").addEventListener("click", shareRecapCard);
 $("recap-backdrop").addEventListener("click", (event) => {

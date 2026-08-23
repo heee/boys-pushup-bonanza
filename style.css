@@ -2768,6 +2768,15 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3Cpolyline points='12 5 19 12 12 19'/%3E%3C/svg%3E") no-repeat center / contain;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3Cpolyline points='12 5 19 12 12 19'/%3E%3C/svg%3E") no-repeat center / contain;
 }
+.icon-arrow-left {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='19' y1='12' x2='5' y2='12'/%3E%3Cpolyline points='12 5 5 12 12 19'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='19' y1='12' x2='5' y2='12'/%3E%3Cpolyline points='12 5 5 12 12 19'/%3E%3C/svg%3E") no-repeat center / contain;
+}
 
 /* Stroke-only plus glyph, same currentColor-mask technique as .icon-share —
    used on "Create" actions so they read consistently with the rest of the
@@ -4526,42 +4535,36 @@ body:has(#screen-challenges.active) #app {
   --recap-share-bg: #e2b23f; --recap-share-text: #241a04;
 }
 
-.recap-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 2.3rem;
-  height: 2.3rem;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--recap-text);
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
 .recap-tabs {
   display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
-  padding: 0 1.6rem 0.9rem;
-  margin: 0 -0.2rem;
-  scrollbar-width: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.2rem 1.6rem 0.9rem;
 }
-.recap-tabs::-webkit-scrollbar { display: none; }
-.recap-tab {
-  flex: none;
-  padding: 0.4rem 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+.recap-tab-label {
+  padding: 0.4rem 0.9rem;
   border-radius: 999px;
+  background: var(--recap-tile-bg);
+  color: var(--recap-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.recap-tab-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 0;
+  border-radius: 50%;
   background: transparent;
   color: var(--recap-text);
-  opacity: 0.72;
-  font-size: 0.78rem;
-  font-weight: 600;
+  opacity: 0.6;
   cursor: pointer;
 }
-.recap-tab.active { opacity: 1; background: var(--recap-tile-bg); border-color: transparent; }
+.recap-tab-arrow:active { opacity: 1; }
 
 .recap-eyebrow {
   margin: 0.2rem 0 0.4rem;
@@ -4634,9 +4637,6 @@ body:has(#screen-challenges.active) #app {
 
 .recap-highlights {
   margin: 1.1rem 0 0;
-  border-radius: 16px;
-  background: var(--recap-tile-bg-2);
-  overflow: hidden;
   text-align: left;
 }
 .recap-highlight {
@@ -4644,7 +4644,7 @@ body:has(#screen-challenges.active) #app {
   align-items: center;
   gap: 0.65rem;
   padding: 0.75rem 0.85rem;
-  border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
   font-size: 0.86rem;
   font-weight: 600;
 }
