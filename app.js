@@ -1351,7 +1351,6 @@ const state = {
   pulseRepTimestamps: [],
   pulseTraceSamples: [],
   pulseFullTraceSamples: [],
-  pulseLastRawPhase: null,
   pulseResult: null,
   modifier: null,
   resolvedModifier: null,
@@ -7859,14 +7858,6 @@ function processRatio(ratio, inferenceMs) {
   repState.trace.push({ t: Math.round(now), raw: +ratio.toFixed(4), s: +result.smoothed.toFixed(4), p: result.phase, ms: Math.round(inferenceMs || 0) });
   if (repState.trace.length > TRACE_MAX_SAMPLES) repState.trace.shift();
 
-  // Re-anchor Pulse's metronome to the camera's own up/down signal every
-  // time it actually flips, so the tick tracks his real cadence instead of
-  // free-running from a fixed clock (see pulseResyncMetronome).
-  if (state.pushupMode === "pulse" && result.phase !== state.pulseLastRawPhase) {
-    state.pulseLastRawPhase = result.phase;
-    pulseResyncMetronome();
-  }
-
   if (result.counted) {
     repState.count = result.count;
     if (state.pushupMode === "pulse") state.pulseRepTimestamps.push(now);
@@ -9221,6 +9212,7 @@ const PULSE_TRACE_RECENT_MS = 8000;
 const PULSE_TRACE_NOW_X = 280 * 0.7;
 let pulseEvalTimer = null;
 let pulseMetronomeTimer = null;
+let pulseMetronomeNextTickMs = null;
 
 function pulseStopLiveTimers() {
   if (pulseEvalTimer != null) clearInterval(pulseEvalTimer);
@@ -9236,26 +9228,17 @@ function pulseStartLiveRun() {
   state.pulseRepTimestamps = [];
   state.pulseTraceSamples = [];
   state.pulseFullTraceSamples = [];
-  state.pulseLastRawPhase = null;
   state.pulseResult = null;
   $("pulse-band-caption").textContent = `Band ${state.pulseBandLow} – ${state.pulseBandHigh}`;
   $("workout-active").classList.remove("pulse-frame-hot", "pulse-frame-cold");
   renderPulseLiveHud(0);
   pulseEvalTimer = setInterval(pulseEvaluateTick, PULSE_EVAL_TICK_MS);
-  // Anchored on run start so there's a first tick even before the boy's
-  // done a rep yet; every real up/down transition re-anchors it from there
-  // (see the processRatio hook), which is what keeps it locked to his
-  // actual cadence instead of a free-running clock.
-  if (state.pulseMetronomeEnabled) pulseScheduleMetronomeTick(now);
+  pulseMetronomeNextTickMs = now + pulseMetronomeIntervalMs();
+  if (state.pulseMetronomeEnabled) pulseScheduleMetronomeTick();
 }
 
 // One tick per phase (up, down) at the band-centre rate — so a tick lands
-// roughly when he should be flipping direction to hold pace, not just a
-// generic beat. `anchorMs` is either the run start or (usually) the
-// timestamp of the most recent real up/down crossing the camera detected
-// (see pulseResyncMetronome) — re-anchoring on every real transition is
-// what keeps this locked to his actual cadence rather than drifting away
-// from it like a plain interval timer would over a long set.
+// roughly when he should be flipping direction to hold pace.
 function pulseMetronomeIntervalMs() {
   const centerRpm = (state.pulseBandLow + state.pulseBandHigh) / 2 || 30;
   const halfPeriodMs = 30000 / centerRpm;
@@ -9263,24 +9246,27 @@ function pulseMetronomeIntervalMs() {
   return Math.max(90, outOfBand ? halfPeriodMs / 2 : halfPeriodMs);
 }
 
-function pulseScheduleMetronomeTick(anchorMs) {
+// A metronome is the reference you play against, not an echo of what you
+// just did — so this is a steady clock ticking at the *ideal* target rate
+// from run start (pulseMetronomeNextTickMs), and it is never resynced to
+// an actual camera-detected rep. Each tick schedules the next one by
+// advancing the ideal schedule (`+= interval`), not by measuring from
+// "now" — that's what keeps it drift-free over a long run instead of
+// compounding setTimeout slop, and it's also why one early/late real push
+// can't knock the beat off: only a genuine tempo change (entering/leaving
+// hot/cold, which changes the interval itself) moves it.
+function pulseScheduleMetronomeTick() {
   if (pulseMetronomeTimer != null) clearTimeout(pulseMetronomeTimer);
   pulseMetronomeTimer = null;
   if (!state.pulseMetronomeEnabled || !state.pulseRunState || state.pulseRunState.ended) return;
-  const delay = Math.max(0, anchorMs + pulseMetronomeIntervalMs() - performance.now());
+  const delay = Math.max(0, pulseMetronomeNextTickMs - performance.now());
   pulseMetronomeTimer = setTimeout(() => {
     pulseMetronomeTimer = null;
     if (!state.pulseRunState || state.pulseRunState.ended) return;
     if (state.pulseMetronomeEnabled && soundIsEnabled()) playPulseTick();
-    pulseScheduleMetronomeTick(performance.now());
+    pulseMetronomeNextTickMs += pulseMetronomeIntervalMs();
+    pulseScheduleMetronomeTick();
   }, delay);
-}
-
-// Called from processRatio whenever the camera's own up/down phase
-// (the same signal that drives rep counting) actually flips.
-function pulseResyncMetronome() {
-  if (!state.pulseMetronomeEnabled || !state.pulseRunState || state.pulseRunState.ended) return;
-  pulseScheduleMetronomeTick(performance.now());
 }
 
 function pulseEvaluateTick() {
@@ -9313,12 +9299,37 @@ function pulseTraceY(rpm) {
   return Math.max(4, Math.min(146, y));
 }
 
+// Catmull-Rom -> cubic Bezier, uniform parametrization (tension 1/6) — the
+// standard way to draw a smooth curve through a series of raw points
+// without a charting library. Used for every Pulse trace (live + recap)
+// since 150ms-sampled rpm is noisy enough that straight polyline segments
+// between points look visibly jagged. 1 or 2 points fall back to a dot/line
+// since there's nothing to curve.
+function pulseSmoothPathD(points) {
+  if (!points.length) return "";
+  if (points.length === 1) return `M ${points[0][0]},${points[0][1]}`;
+  if (points.length === 2) return `M ${points[0][0]},${points[0][1]} L ${points[1][0]},${points[1][1]}`;
+  let d = `M ${points[0][0]},${points[0][1]}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
+  }
+  return d;
+}
+
 function renderPulseTrace() {
   const samples = state.pulseTraceSamples;
   const dot = $("pulse-trace-dot");
   if (!samples.length) {
-    $("pulse-trace-fade").setAttribute("points", "");
-    $("pulse-trace-head").setAttribute("points", "");
+    $("pulse-trace-fade").setAttribute("d", "");
+    $("pulse-trace-head").setAttribute("d", "");
     dot.classList.add("hidden");
     return;
   }
@@ -9330,15 +9341,15 @@ function renderPulseTrace() {
     // approach of the line. History compresses into the space to its left;
     // the remaining ~30% to the right stays deliberately empty.
     const x = Math.max(0, Math.min(PULSE_TRACE_NOW_X, PULSE_TRACE_NOW_X * (1 - ageMs / PULSE_TRACE_WINDOW_MS)));
-    return `${x},${pulseTraceY(s.rpm)}`;
+    return [x, pulseTraceY(s.rpm)];
   };
   const fadeSamples = samples.filter((s) => now - s.t > PULSE_TRACE_RECENT_MS);
   const headSamples = samples.filter((s) => now - s.t <= PULSE_TRACE_RECENT_MS);
   // Carry the fade segment's last point into the head segment so the two
-  // polylines connect with no visible gap at the recent/history seam.
+  // curves connect with no visible gap at the recent/history seam.
   if (fadeSamples.length) headSamples.unshift(fadeSamples[fadeSamples.length - 1]);
-  $("pulse-trace-fade").setAttribute("points", fadeSamples.map(toXY).join(" "));
-  $("pulse-trace-head").setAttribute("points", headSamples.map(toXY).join(" "));
+  $("pulse-trace-fade").setAttribute("d", pulseSmoothPathD(fadeSamples.map(toXY)));
+  $("pulse-trace-head").setAttribute("d", pulseSmoothPathD(headSamples.map(toXY)));
 
   const last = samples[samples.length - 1];
   dot.classList.remove("hidden");
@@ -9432,9 +9443,10 @@ function renderPulseSummaryTrace() {
     return { x, y, zone: pulseZoneOf(s.rpm) };
   });
 
-  // One <polyline> per contiguous same-zone run, colored for the stretches
-  // that ran above/below the band rather than a single tint for the whole
-  // trace — makes it obvious at a glance where he was fighting vs. steady.
+  // One smooth <path> per contiguous same-zone run, colored for the
+  // stretches that ran above/below the band rather than a single tint for
+  // the whole trace — makes it obvious at a glance where he was fighting
+  // vs. steady.
   const segments = [];
   let current = null;
   for (const p of points) {
@@ -9449,8 +9461,8 @@ function renderPulseSummaryTrace() {
   if (current) segments.push(current);
   lineGroup.innerHTML = segments.map((seg) => {
     const cls = seg.zone === "hot" ? " summary-pulse-trace-hot" : seg.zone === "cold" ? " summary-pulse-trace-cold" : "";
-    const pointsAttr = seg.pts.map((p) => `${p.x},${p.y}`).join(" ");
-    return `<polyline class="summary-pulse-trace-line${cls}" points="${pointsAttr}"></polyline>`;
+    const d = pulseSmoothPathD(seg.pts.map((p) => [p.x, p.y]));
+    return `<path class="summary-pulse-trace-line${cls}" d="${d}"></path>`;
   }).join("");
 
   const last = points[points.length - 1];
