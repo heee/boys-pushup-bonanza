@@ -28,6 +28,10 @@
   --gold: #e9b949;
   --text-on-accent: #1a1006; /* dark text sat on top of orange/gold/flame fills, both themes */
   --switch-off-track: #40352a;
+  /* Pulse mode's "too cold" signal — the only cool hue in the app, used
+     solely for this (see docs/pulse-mode-plan.md). */
+  --pulse-cold: #5f8fa8;
+  --pulse-cold-text: #0f1a20;
 }
 
 :root[data-theme="light"] {
@@ -55,6 +59,8 @@
   --gold: #b8862a;
   --text-on-accent: #1a1006;
   --switch-off-track: #d9c7a0;
+  --pulse-cold: #3d6f89;
+  --pulse-cold-text: #f2f8fb;
 }
 
 :root {
@@ -4674,6 +4680,248 @@ body:has(#screen-challenges.active) #app {
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* ===========================================================
+   Pulse mode — solo pacing endurance mode (see docs/pulse-mode-plan.md).
+   Palette: --success (in-band, green), --flame (too hot, red/orange),
+   --pulse-cold (too cold — the one new cool-hued token in the app).
+   =========================================================== */
+
+/* --- Setup screen (screen-pulse-setup) --- */
+.pulse-history-card {
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.4rem;
+}
+.pulse-history-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.4rem;
+}
+.pulse-history-rpm-row { display: flex; align-items: baseline; gap: 0.4rem; margin-bottom: 0.75rem; }
+.pulse-history-rpm { font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1; font-variant-numeric: tabular-nums; }
+.pulse-history-rpm-unit { font-size: 0.78rem; font-weight: 700; color: var(--text-tertiary); }
+.pulse-range-bar {
+  position: relative;
+  height: 26px;
+  background: var(--bg-elevated-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pulse-range-band { position: absolute; top: 0; bottom: 0; background: var(--success); opacity: 0.22; }
+.pulse-range-median { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--primary); }
+.pulse-range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.pulse-range-band-label { color: var(--success); font-weight: 700; }
+
+.pulse-toggle-card { margin-bottom: 1.2rem; }
+.pulse-toggle-row { background: var(--bg-elevated); border-radius: 14px; padding: 0.85rem 0.9rem; }
+.pulse-toggle-copy { display: flex; flex-direction: column; gap: 0.15rem; }
+.pulse-toggle-title { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+.pulse-toggle-sub { font-size: 0.72rem; color: var(--text-tertiary); }
+
+.pulse-best-run { text-align: center; font-size: 0.8rem; color: var(--text-tertiary); margin: 0 0 0.9rem; }
+.pulse-best-run b { color: var(--text); }
+
+/* --- Live workout HUD (inside #workout-active) --- */
+/* Pulse has its own giant elapsed-time focal point and its own status
+   HUD — the generic hero/highscore/thermometer row would otherwise sit
+   empty (all its children individually hidden) and still eat half the
+   flex space as a competing flex:1 sibling, same fix as Zen/Sharpshooter. */
+.workout-active.mode-pulse .rep-count-wrap { display: none; }
+.pulse-hud { width: 100%; display: flex; flex-direction: column; flex: 1; }
+.pulse-status-row { text-align: center; margin-bottom: 0.6rem; }
+.pulse-status-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+}
+.pulse-pill-neutral { background: var(--bg-elevated-2); color: var(--text-tertiary); }
+.pulse-pill-good { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.pulse-pill-hot { background: var(--flame); color: #fff; }
+.pulse-pill-cold { background: var(--pulse-cold); color: var(--pulse-cold-text); }
+
+.pulse-elapsed-wrap { text-align: center; margin-bottom: 0.9rem; }
+.pulse-elapsed-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.25rem;
+}
+.pulse-elapsed { font-size: 3rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); }
+
+.pulse-trace-wrap {
+  position: relative;
+  background: var(--bg-elevated-2);
+  border-radius: 16px;
+  padding: 0.8rem 0 0.8rem;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.pulse-zone { position: absolute; left: 0; right: 0; height: 28%; pointer-events: none; }
+.pulse-zone-hot { top: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--flame) 22%, transparent), transparent); }
+.pulse-zone-cold { bottom: 0; background: linear-gradient(0deg, color-mix(in srgb, var(--pulse-cold) 22%, transparent), transparent); }
+.pulse-trace-wrap.pulse-trace-hot .pulse-zone-hot { background: linear-gradient(180deg, color-mix(in srgb, var(--flame) 45%, transparent), transparent); }
+.pulse-trace-wrap.pulse-trace-cold .pulse-zone-cold { background: linear-gradient(0deg, color-mix(in srgb, var(--pulse-cold) 50%, transparent), transparent); }
+.pulse-trace-svg { width: 100%; display: block; position: relative; height: 9rem; }
+.pulse-band-line { stroke: var(--success); stroke-width: 1; stroke-dasharray: 4 5; opacity: 0.6; fill: none; }
+.pulse-band-line.pulse-line-active { stroke-width: 1.8; opacity: 1; }
+#pulse-ceiling-line.pulse-line-active { stroke: var(--flame); }
+#pulse-floor-line.pulse-line-active { stroke: var(--pulse-cold); }
+.pulse-trace-fade { fill: none; stroke: var(--primary); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0.32; }
+.pulse-trace-head { fill: none; stroke: var(--primary); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.pulse-trace-wrap.pulse-trace-hot .pulse-trace-head { stroke: var(--flame); }
+.pulse-trace-wrap.pulse-trace-cold .pulse-trace-head { stroke: var(--pulse-cold); }
+.pulse-trace-dot { fill: var(--success); }
+.pulse-trace-wrap.pulse-trace-hot .pulse-trace-dot { fill: var(--flame); }
+.pulse-trace-wrap.pulse-trace-cold .pulse-trace-dot { fill: var(--pulse-cold); }
+.pulse-now-marker {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--text) 35%, transparent), transparent);
+}
+.pulse-trace-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin-bottom: 0.9rem;
+}
+.pulse-band-caption { color: var(--success); }
+
+.pulse-recovery { background: var(--bg-elevated-2); border-radius: 12px; padding: 0.65rem 0.75rem; margin-bottom: 0.9rem; }
+.pulse-recovery-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.45rem; }
+.pulse-recovery-label { font-size: 0.72rem; font-weight: 800; }
+.pulse-recovery-time { font-size: 0.85rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pulse-recovery-hot { color: var(--flame); }
+.pulse-recovery-cold { color: var(--pulse-cold); }
+.pulse-recovery-track { height: 4px; border-radius: 999px; background: var(--switch-off-track); overflow: hidden; }
+.pulse-recovery-fill { height: 100%; border-radius: 999px; transition: width 0.15s linear; }
+.pulse-recovery-fill-hot { background: var(--flame); }
+.pulse-recovery-fill-cold { background: var(--pulse-cold); }
+
+.pulse-stats-row { display: flex; align-items: center; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+.pulse-stat { text-align: center; }
+.pulse-stat-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.3rem;
+}
+.pulse-stat-value { font-size: 1.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.pulse-stat-unit { font-size: 0.66rem; font-weight: 700; color: var(--text-tertiary); margin-left: 0.15rem; }
+.pulse-stat-divider { width: 1px; height: 2.1rem; background: var(--border); }
+
+.pulse-actions { display: flex; gap: 0.5rem; margin-top: auto; padding-top: 0.5rem; }
+.pulse-bank-btn {
+  flex: 1;
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  border: 0;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 0.9rem;
+}
+.pulse-pause-btn {
+  width: 3.4rem;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  border: 0;
+  border-radius: 14px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pulse-pause-btn svg { width: 1.15rem; height: 1.15rem; }
+.pulse-pause-btn.is-paused { background: var(--primary); color: var(--text-on-accent); }
+
+/* Inset frame on the screen edge — readable-without-looking-directly signal,
+   paired with the status pill + haptics (see modes/pulse.js pulseTick). */
+#workout-active.pulse-frame-hot { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--flame) 55%, transparent); border-radius: 14px; }
+#workout-active.pulse-frame-cold { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--pulse-cold) 60%, transparent); border-radius: 14px; }
+
+/* --- Results screen (screen-summary) --- */
+.summary-pulse-cause {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.5rem;
+}
+.summary-pulse-cause-hot { color: var(--flame); }
+.summary-pulse-cause-cold { color: var(--pulse-cold); }
+.summary-pulse-sub { text-align: center; font-size: 0.85rem; color: var(--text-tertiary); margin-top: 0.2rem; }
+.summary-pulse-pb {
+  display: inline-flex;
+  align-self: center;
+  margin: 0.7rem auto 0;
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+}
+.summary-pulse-result { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.summary-pulse-trace-card {
+  width: 100%;
+  max-width: 21rem;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 0.9rem;
+  margin-top: 1.1rem;
+}
+.summary-pulse-trace-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.5rem;
+}
+.summary-pulse-trace-svg { width: 100%; display: block; }
+.summary-pulse-trace-band { fill: var(--success); opacity: 0.16; }
+.summary-pulse-trace-bandline { stroke: var(--success); stroke-width: 1; stroke-dasharray: 4 4; }
+.summary-pulse-trace-line { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.summary-pulse-trace-line.summary-pulse-trace-hot { stroke: var(--flame); }
+.summary-pulse-trace-line.summary-pulse-trace-cold { stroke: var(--pulse-cold); }
+.summary-pulse-trace-dot { fill: var(--flame); }
+.summary-pulse-trace-dot.summary-pulse-trace-dot-cold { fill: var(--pulse-cold); }
+.summary-pulse-trace-times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
 }
 
 .hidden { display: none !important; }

@@ -94,6 +94,14 @@ const SPECS = {
     { id: "totalReps", label: "Total crunches", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
     { id: "avgReps", label: "Avg crunches / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
   ],
+  // `count` is seconds held in band for Pulse (Plank's overload), not reps —
+  // see docs/pulse-mode-plan.md. Falling through to SPECS.all here would
+  // compute a nonsense "avg pace" treating that seconds value as a rep count.
+  pulse: [
+    { id: "runs", label: "Runs logged", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalHeld", label: "Total time in band", format: "seconds", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
+    { id: "bestHeld", label: "Best time in band", format: "seconds", qualifier: "group best", value: (s) => { const e = eligible(s, "count"); return e.length ? Math.max(...e.map((x) => Number(x.count))) : null; } },
+  ],
   holland: [
     { id: "workouts", label: "Holland workouts", format: "integer", qualifier: "total", value: (s) => s.length },
     { id: "totalCycles", label: "Total Holland cycles", format: "decimal", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.hollandCycles) || 0) : null },

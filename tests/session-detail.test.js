@@ -24,6 +24,22 @@ test("sessionModeId/Label fall back to classic and read plank type", () => {
   assert.equal(sessionModeLabel(session({ mode: "ladder" })), "Ladder");
   assert.equal(sessionModeId(session({ type: "holland" })), "holland");
   assert.equal(sessionModeLabel(session({ type: "holland" })), "Holland Mode");
+  assert.equal(sessionModeId(session({ mode: "pulse" })), "pulse");
+  assert.equal(sessionModeLabel(session({ mode: "pulse" })), "Pulse");
+});
+
+test("Pulse sessions get their own metrics (not the generic reps-based duration/pace) and a band-width badge", () => {
+  const pulseSession = session({ mode: "pulse", count: 194, pulseReps: 118, pulseBandWidth: "standard", pulseBandLow: 29, pulseBandHigh: 39, pulseEndReason: "ceiling", pulseBreakRpm: 43 });
+  const metrics = sessionKeyMetrics(pulseSession);
+  assert.equal(metrics.some((m) => m.id === "duration"), false);
+  assert.equal(metrics.some((m) => m.id === "pace"), false);
+  assert.deepEqual(metrics.find((m) => m.id === "pulseReps").value, 118);
+  assert.equal(metrics.find((m) => m.id === "pulseBand").value, "29–39 rpm");
+  assert.equal(metrics.find((m) => m.id === "pulseEndReason").value, "Broke ceiling");
+  assert.equal(metrics.find((m) => m.id === "pulseBreakRpm").value, "43 rpm");
+
+  const badges = sessionBadges(pulseSession);
+  assert.equal(badges.find((b) => b.id === "pulse-band-width").label, "Standard band");
 });
 
 test("sessionDurationMs/Pace derive from startedAt, and reject bad ranges", () => {

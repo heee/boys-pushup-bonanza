@@ -26,3 +26,13 @@ test("Explore ordering preserves Chase priority, locks, and roadmap", () => {
   const pushupIds = ready.filter((item) => item.section === "pushups").map((item) => item.mode.id);
   assert.equal(pushupIds.at(-1), "boss");
 });
+
+test("Pulse is locked with a visible progress count until enough Classic sessions are logged", () => {
+  const locked = exploreModesModel({ sessions, hasPR: true, refresh: false, chasePrepared: { eligible: true }, chaseLeaderLabel: () => "B", pulseUnlock: { unlocked: false, validCount: 2, needed: 3 } });
+  const pulse = locked.find((item) => item.mode.id === "pulse");
+  assert.equal(pulse.playable, false);
+  assert.equal(pulse.status, "2/3 Classic sessions logged");
+
+  const unlocked = exploreModesModel({ sessions, hasPR: true, refresh: false, chasePrepared: { eligible: true }, chaseLeaderLabel: () => "B", pulseUnlock: { unlocked: true, validCount: 3, needed: 3 } });
+  assert.equal(unlocked.find((item) => item.mode.id === "pulse").playable, true);
+});

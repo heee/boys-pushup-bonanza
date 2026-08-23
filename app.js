@@ -38,6 +38,8 @@ import {
   PULLUP_RECORD_LINE,
   PULLUP_START_LINES,
   FUN_MESSAGES_PULLUP,
+  PULSE_RECORD_LINE,
+  PULSE_START_LINES,
   SHARPSHOOTER_HIT_LINES,
   SITUP_CHEER_LINES,
   SITUP_RECORD_LINE,
@@ -65,13 +67,14 @@ import {
   preloadCountingRange,
   preloadVoice,
   playZenGong,
+  playPulseTick,
   playSharpshooterHit,
   setVoicePreset,
   speakCalm,
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=148";
+} from "./voice.js?v=149";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
@@ -84,16 +87,16 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel } from "./screens/mode-stats.js?v=135";
+import { modeStatsModel } from "./screens/mode-stats.js?v=136";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=142";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=143";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=6";
-import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=150";
+import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=7";
+import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=151";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -138,6 +141,18 @@ import {
 import { buildRecapTier, checkAndQueueRecaps, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
+import {
+  PULSE_BAND_WIDTHS,
+  PULSE_RECOVERY_MS,
+  pulseBandFromHistory,
+  pulseBandWidthById,
+  pulseBankRun,
+  pulseCreateRunState,
+  pulseRecoveryRemainingMs,
+  pulseRollingRpm,
+  pulseTick,
+  pulseUnlockStatus,
+} from "./modes/pulse.js";
 import {
   HOLLAND_TARGETS,
   hollandAdvanceSegment,
@@ -237,6 +252,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "chase", label: "Chase" },
   { id: "sharpshooter", label: "Sharpshooter" },
   { id: "pyramid", label: "Pyramid" },
+  { id: "pulse", label: "Pulse" },
   { id: "pullups", label: "Pull-ups" },
   { id: "squats", label: "Squats" },
   { id: "situps", label: "Crunches" },
@@ -742,7 +758,13 @@ function buildSessionIndex(sessions) {
   // My Sessions row (byUser is only populated for the real session, below).
   function indexActivityAndLeaderboard(session, activity) {
     byActivity[activity].push(session);
-    const leaderboardModes = session.type ? [activity] : ["all", session.mode || "classic"];
+    // Pulse's `count` is seconds held in band, not reps (see
+    // docs/pulse-mode-plan.md) — it can't be summed into the "All" pushups
+    // aggregate alongside every rep-counted mode without corrupting the
+    // total, so it skips "all" the same way Plank's own `type` keeps it out
+    // (Pulse stays untyped/`mode`-tagged so it's still grouped with the
+    // other pushup modes in Explore Modes and My Sessions).
+    const leaderboardModes = session.type ? [activity] : session.mode === "pulse" ? ["pulse"] : ["all", session.mode || "classic"];
     for (const mode of leaderboardModes) {
       if (!byLeaderboardMode[mode]) continue;
       byLeaderboardMode[mode].push(session);
@@ -1320,6 +1342,17 @@ const state = {
   pyramidPeakReached: false,
   pyramidCompleted: false,
   pyramidTotalReps: 0,
+  pulseBandWidth: "standard",
+  pulseMetronomeEnabled: true,
+  pulseBandLow: 0,
+  pulseBandHigh: 0,
+  pulseMedianRpm: 0,
+  pulseRunState: null,
+  pulseRepTimestamps: [],
+  pulseTraceSamples: [],
+  pulseFullTraceSamples: [],
+  pulsePausedAt: null,
+  pulseResult: null,
   modifier: null,
   resolvedModifier: null,
   ladderRivals: [],
@@ -1661,6 +1694,10 @@ function showScreen(id) {
   }
   if (id === "screen-summary" && state.lastSessionType !== "holland") {
     $("summary-holland-result")?.classList.add("hidden");
+  }
+  if (id === "screen-summary" && state.lastSessionType !== "pulse") {
+    $("summary-pulse-result")?.classList.add("hidden");
+    $("summary-count")?.classList.remove("hidden");
   }
   if (id === "screen-dashboard") renderDashboard();
   if (id === "screen-session-detail") renderSessionDetail();
@@ -2352,7 +2389,8 @@ let chaseAvailabilityRequest = 0;
 function renderExploreModesScreen(refresh = true) {
   const list = $("explore-modes-list");
   const hasPR = getHighScore(state.currentUser) >= 1;
-  const items = exploreModesModel({ sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel });
+  const pulseUnlock = pulseUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
+  const items = exploreModesModel({ sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock });
   const sectionLabels = { pushups: "Pushups", other: "Other exercises" };
   let lastSection = null;
   list.innerHTML = items.map((item) => {
@@ -2479,6 +2517,85 @@ $("btn-pyramid-start").addEventListener("click", () => {
   startWorkout();
 });
 
+// Pulse setup screen — computes the band fresh from history every render
+// (band-width change, or first render) so what's shown always matches what
+// Start will actually lock in; the band itself only gets truly fixed once
+// startWorkout() copies these state fields into the run at start (see
+// setupWorkoutModeState's Pulse branch — the band never recalculates after
+// that point, per the mode's own rule).
+function renderPulseSetup() {
+  const history = pulseHistorySessionsForUser(state.currentUser);
+  const band = pulseBandFromHistory(history, state.pulseBandWidth);
+  state.pulseBandLow = band ? Math.round(band.low) : 0;
+  state.pulseBandHigh = band ? Math.round(band.high) : 0;
+  state.pulseMedianRpm = band ? Math.round(band.medianRpm) : 0;
+
+  $("pulse-median-rpm").textContent = band ? String(state.pulseMedianRpm) : "—";
+  $("pulse-range-band-label").textContent = band ? `${state.pulseBandLow} – ${state.pulseBandHigh} band` : "Not enough data";
+
+  if (band) {
+    // Proportional padding around the median (not a fixed rpm range) so the
+    // mini range bar reads sensibly whether someone's median is 15 or 60.
+    const scaleMin = Math.max(0, Math.round(band.medianRpm * 0.59));
+    const scaleMax = Math.round(band.medianRpm * 1.62);
+    const span = Math.max(1, scaleMax - scaleMin);
+    const pct = (v) => Math.max(0, Math.min(100, ((v - scaleMin) / span) * 100));
+    $("pulse-range-band").style.left = `${pct(state.pulseBandLow)}%`;
+    $("pulse-range-band").style.width = `${Math.max(0, pct(state.pulseBandHigh) - pct(state.pulseBandLow))}%`;
+    $("pulse-range-median").style.left = `${pct(band.medianRpm)}%`;
+    $("pulse-range-median").classList.remove("hidden");
+    $("pulse-range-min").textContent = String(scaleMin);
+    $("pulse-range-max").textContent = String(scaleMax);
+  } else {
+    $("pulse-range-band").style.width = "0%";
+    $("pulse-range-median").classList.add("hidden");
+    $("pulse-range-min").textContent = "0";
+    $("pulse-range-max").textContent = "0";
+  }
+
+  document.querySelectorAll("#pulse-band-width-select .segment[data-pulse-band-width]").forEach((s) => {
+    s.classList.toggle("active", s.dataset.pulseBandWidth === state.pulseBandWidth);
+  });
+  const width = pulseBandWidthById(state.pulseBandWidth);
+  $("pulse-band-width-note").textContent = state.pulseBandWidth === "razor"
+    ? "±7% either side of your median — the tightest band."
+    : `±${Math.round(width.pct * 100)}% either side of your median. Razor is ±7%.`;
+
+  $("pulse-metronome-toggle").checked = state.pulseMetronomeEnabled;
+
+  const bestSession = getPulseBestSession(state.currentUser);
+  $("pulse-best-run").textContent = bestSession
+    ? `Best run · ${formatDuration((bestSession.count || 0) * 1000)} on ${new Date(bestSession.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+    : "No runs yet";
+
+  $("btn-pulse-start").disabled = !band;
+  $("btn-pulse-start").textContent = band ? "Start run" : "Log more Classic sessions first";
+}
+
+$("btn-pulse-setup-back").addEventListener("click", () => {
+  guardLeaveWorkout(() => showScreen("screen-explore-modes"));
+});
+
+$("pulse-band-width-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment[data-pulse-band-width]");
+  if (!btn) return;
+  state.pulseBandWidth = btn.dataset.pulseBandWidth;
+  renderPulseSetup();
+});
+
+$("pulse-metronome-toggle").addEventListener("change", (e) => {
+  state.pulseMetronomeEnabled = e.target.checked;
+  renderPulseSetup();
+});
+
+$("btn-pulse-start").addEventListener("click", () => {
+  if (!state.pulseBandHigh) return;
+  state.pushupMode = "pulse";
+  preserveNextModeSelection = true;
+  guardLeaveWorkout(() => showScreen("screen-workout"));
+  startWorkout();
+});
+
 $("explore-modes-list").addEventListener("click", async (e) => {
   const row = e.target.closest(".explore-mode-row:not(.disabled)");
   if (!row) return;
@@ -2516,6 +2633,13 @@ $("explore-modes-list").addEventListener("click", async (e) => {
     await loadPyramidMode();
     renderPyramidSetup();
     guardLeaveWorkout(() => showScreen("screen-pyramid-setup"));
+    return;
+  }
+  // Pulse needs a band width picked (and its band computed from history)
+  // before it can start — see screen-pulse-setup.
+  if (modeId === "pulse") {
+    renderPulseSetup();
+    guardLeaveWorkout(() => showScreen("screen-pulse-setup"));
     return;
   }
   // Horse needs a word/session-type/player picked before it can start — see
@@ -4401,7 +4525,7 @@ function renderMySessions() {
     row.innerHTML = `
       <span class="my-session-date">${formatSessionRowDate(s.timestamp)}</span>
       <span class="session-badge my-session-mode-badge">${sessionModeLabel(s)}</span>
-      <span class="my-session-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
+      <span class="my-session-count">${(s.type === "plank" || s.mode === "pulse") ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
       <button type="button" class="icon-btn my-session-details-btn" aria-label="Session details">›</button>
     `;
     const open = () => openSessionDetail(s, "screen-settings");
@@ -5976,13 +6100,14 @@ function renderSessionDetail() {
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
   const isHolland = session.type === "holland";
+  const isPulse = session.mode === "pulse";
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
-  $("session-detail-count").textContent = isPlank ? formatDuration(session.count * 1000)
+  $("session-detail-count").textContent = (isPlank || isPulse) ? formatDuration(session.count * 1000)
     : isHolland ? hollandFormatCycles(Number(session.hollandCycles) || 0)
     : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
 
   $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
     <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
@@ -6035,8 +6160,9 @@ async function shareSessionDetail() {
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
   const isHolland = session.type === "holland";
+  const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
   const url = location.href;
   if (navigator.share) {
@@ -6063,13 +6189,14 @@ $("btn-session-detail-delete").addEventListener("click", async () => {
 function paintMyBonanza(sessions) {
   const isPlank = state.activityType === "planks";
   const isHolland = state.activityType === "holland";
+  const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
   const mine = sessionIndex && sessions === sessionIndex.byLeaderboardMode[state.leaderboardMode]
     ? indexedSessionsForUserMode(state.currentUser)
     : sessions.filter((s) => s.user === state.currentUser);
 
-  renderWeekChart(mine, "week-chart", "week-trend", isPlank, isHolland, state.dashboardPeriod, "week-header");
-  renderChartBackFace("mine", mine, isPlank, isHolland);
+  renderWeekChart(mine, "week-chart", "week-trend", isPlank || isPulse, isHolland, state.dashboardPeriod, "week-header");
+  renderChartBackFace("mine", mine, isPlank || isPulse, isHolland);
   syncChartFlipHeight("mine");
 
   const tilesEl = $("personal-stats-tiles");
@@ -6082,7 +6209,7 @@ function paintMyBonanza(sessions) {
   const streak = computeStreak(mine);
   const metricOf = isHolland ? (s) => Number(s.hollandCycles) || 0 : (s) => s.count;
   const { allTimeTotal, personalBest, avgPerSession } = personalStatsModel(mine, streak, metricOf, !isHolland);
-  const fmt = isPlank ? (n) => formatDuration(n * 1000) : isHolland ? (n) => n.toFixed(1) : formatNumber;
+  const fmt = (isPlank || isPulse) ? (n) => formatDuration(n * 1000) : isHolland ? (n) => n.toFixed(1) : formatNumber;
 
   // The 4 key metrics always form the 2x2 tile grid, streak first as a ring.
   tilesEl.innerHTML = `
@@ -6215,18 +6342,19 @@ function renderBoysModeStats(sessions) {
 function paintDashboard(sessions) {
   const isPlank = state.activityType === "planks";
   const isHolland = state.activityType === "holland";
+  const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
   const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
-  const fmtCount = (n) => (isPlank ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
+  const fmtCount = (n) => ((isPlank || isPulse) ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
 
-  const buckets = renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank, isHolland, state.dashboardPeriod, "boys-week-header", {
+  const buckets = renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank || isPulse, isHolland, state.dashboardPeriod, "boys-week-header", {
     selectedOffset: state.dashboardBucketOffset,
     onBucketSelect: (offset) => {
       state.dashboardBucketOffset = state.dashboardBucketOffset === offset ? null : offset;
       paintDashboard(sessions);
     },
   });
-  renderChartBackFace("boys", sessions, isPlank, isHolland);
+  renderChartBackFace("boys", sessions, isPlank || isPulse, isHolland);
   syncChartFlipHeight("boys");
 
   let startTime, endTime;
@@ -6315,6 +6443,7 @@ function paintDashboard(sessions) {
 function renderRecentList(sessions) {
   const isPlank = state.activityType === "planks";
   const isHolland = state.activityType === "holland";
+  const isPulse = state.leaderboardMode === "pulse";
   const currentActivity = activityLabel(state.activityType);
   const recentList = $("recent-list");
   const recent = [...sessions].sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a)).slice(0, 10);
@@ -6329,7 +6458,7 @@ function renderRecentList(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${isPlank ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : formatNumber(s.count)}</div>
+      <div class="recent-count">${(isPlank || isPulse) ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : formatNumber(s.count)}</div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     makeNameCompareClickable(row.querySelector(".recent-name"), s.user, true);
@@ -7066,8 +7195,9 @@ function pickLeaderboardTemplate(pool) {
 
 async function shareLeaderboardStats() {
   const isPlank = state.activityType === "planks";
+  const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
-  const fmt = (n) => (isPlank ? formatDuration(n * 1000) : formatNumber(n));
+  const fmt = (n) => ((isPlank || isPulse) ? formatDuration(n * 1000) : formatNumber(n));
 
   let message;
   if (state.bonanzaMode === "mine") {
@@ -7573,7 +7703,11 @@ function updateHorseMeter(count) {
 }
 
 function getHighScore(name) {
-  return bestFor(indexedSessionsForUser(name, "pushups"), name, () => true);
+  // Pulse's `count` is seconds held in band, not reps — it has to be
+  // excluded here or a long Pulse run could masquerade as a huge Classic
+  // rep PR and corrupt the thermometer/countdown-target/record-line logic
+  // for every other pushup mode (see getPulseBest for Pulse's own record).
+  return bestFor(indexedSessionsForUser(name, "pushups"), name, (s) => s.mode !== "pulse");
 }
 
 // Ladder's own record: the highest rung ever fully cleared, across all past
@@ -7639,6 +7773,31 @@ function getSitupLast(name) {
   return latest.count || 0;
 }
 
+// Pulse's band comes from the boy's own Classic pushup history — most
+// recent first, so pulseValidHistoryRpms (modes/pulse.js) can just take the
+// first N with usable duration data. Classic sessions carry no `type` and
+// no `mode` (see pulseIsClassicSession), so this is every pushup session,
+// not a narrower "pushups" + mode filter — modes/pulse.js does that filtering.
+function pulseHistorySessionsForUser(name) {
+  return indexedSessionsForUser(name, "pushups")
+    .filter((s) => s.user === name)
+    .sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a));
+}
+
+// count is seconds held in band for Pulse (Plank's overload), so this is a
+// straight bestFor on the default "count" field, scoped to mode === "pulse".
+function getPulseBest(name) {
+  return bestFor(indexedSessionsForUser(name, "pushups"), name, (s) => s.mode === "pulse");
+}
+
+// The actual best Pulse session (not just its value), for the setup
+// screen's "Best run · 4:06 on 14 Aug" readout.
+function getPulseBestSession(name) {
+  const sessions = indexedSessionsForUser(name, "pushups").filter((s) => s.user === name && s.mode === "pulse");
+  if (!sessions.length) return null;
+  return sessions.reduce((a, b) => ((b.count || 0) > (a.count || 0) ? b : a));
+}
+
 function updateHighscoreMessage(count) {
   const el = $("highscore-message");
   const enabled = localStorage.getItem(LS.showHighscore) !== "0";
@@ -7702,6 +7861,7 @@ function processRatio(ratio, inferenceMs) {
 
   if (result.counted) {
     repState.count = result.count;
+    if (state.pushupMode === "pulse") state.pulseRepTimestamps.push(now);
     onRepCounted(result.count);
   }
 }
@@ -8379,7 +8539,10 @@ function onRepCounted(count) {
     if (sharpshooterHit) celebrateSharpshooterHit();
     else pulseSharpshooterTarget();
   }
-  if (state.pushupMode === "zen") return;
+  // Pulse has no rep-number callouts or per-rep buzz — its own haptics fire
+  // only on hot/cold phase transitions (see pulseEvaluateTick), and the pace
+  // readout is driven by the eval tick, not individual reps.
+  if (state.pushupMode === "zen" || state.pushupMode === "pulse") return;
   setTimeout(() => {
     updateHighscoreMessage(count);
     updateThermometer(count);
@@ -8768,6 +8931,15 @@ async function setupWorkoutModeState() {
       : `Round ${state.towGame.round}/${state.towGame.rounds}`;
   }
 
+  // Pulse's band was already computed and locked in on the setup screen
+  // (state.pulseBandLow/High/Width) — this just starts the live run's
+  // clock, timers, and per-run bookkeeping. See pulseStartLiveRun.
+  const isPulse = state.pushupMode === "pulse";
+  if (isPulse) pulseStartLiveRun(); else pulseStopLiveTimers();
+  $("pulse-hud").classList.toggle("hidden", !isPulse);
+  $("btn-complete").classList.toggle("hidden", isPulse);
+  $("workout-active").classList.toggle("mode-pulse", isPulse);
+
   // Fortune Cookie is the odd one out: it reuses Classic's own giant hero
   // number and rep counting unchanged (the challenge was already picked and
   // shown during the idle-screen reveal, not here) — except No Looking and
@@ -8817,6 +8989,7 @@ function stopCameraAndDetection() {
 function stopWorkoutHard() {
   clearTimeout(state.sharpshooterAnimationTimer);
   state.sharpshooterAnimationTimer = null;
+  pulseStopLiveTimers();
   stopCameraAndDetection();
   releaseWakeLock();
   state.workoutActive = false;
@@ -9023,6 +9196,330 @@ async function completeTowBurst(rawCount) {
   showScreen("screen-tow-burst-complete");
   if (updated.status === "complete" && updated.winner === team) launchConfetti("tow-burst-confetti");
 }
+
+// ------------------- Pulse mode (live run) -------------------
+// Pulse reuses the Classic camera/rep-counter pipeline unchanged (see
+// processRatio/onRepCounted) — this section is only the pacing overlay on
+// top: an evaluation tick that turns rep timestamps into a rolling rpm and
+// runs the modes/pulse.js state machine, plus the HUD/trace rendering and
+// the metronome. See docs/pulse-mode-plan.md.
+const PULSE_EVAL_TICK_MS = 150;
+const PULSE_TRACE_WINDOW_MS = 60000;
+// How much of the trace is drawn "hot" (full weight/colour) vs faded into
+// history — see the live trace's design note in the mode plan.
+const PULSE_TRACE_RECENT_MS = 8000;
+let pulseEvalTimer = null;
+let pulseMetronomeTimer = null;
+
+function pulseStopLiveTimers() {
+  if (pulseEvalTimer != null) clearInterval(pulseEvalTimer);
+  if (pulseMetronomeTimer != null) clearTimeout(pulseMetronomeTimer);
+  pulseEvalTimer = null;
+  pulseMetronomeTimer = null;
+}
+
+function pulseStartLiveRun() {
+  pulseStopLiveTimers();
+  const now = performance.now();
+  state.pulseRunState = pulseCreateRunState(now);
+  state.pulseRepTimestamps = [];
+  state.pulseTraceSamples = [];
+  state.pulseFullTraceSamples = [];
+  state.pulsePausedAt = null;
+  state.pulseResult = null;
+  $("pulse-band-caption").textContent = `Band ${state.pulseBandLow} – ${state.pulseBandHigh}`;
+  $("btn-pulse-pause").classList.remove("is-paused");
+  $("workout-active").classList.remove("pulse-frame-hot", "pulse-frame-cold");
+  renderPulseLiveHud(0);
+  pulseEvalTimer = setInterval(pulseEvaluateTick, PULSE_EVAL_TICK_MS);
+  if (state.pulseMetronomeEnabled) pulseScheduleMetronome();
+}
+
+// Self-rescheduling instead of setInterval so the interval can change (band
+// centre pace normally, doubled while out of band) without drift.
+function pulseScheduleMetronome() {
+  if (!state.pulseMetronomeEnabled || !state.pulseRunState || state.pulseRunState.ended) return;
+  if (state.pulsePausedAt != null) {
+    pulseMetronomeTimer = setTimeout(pulseScheduleMetronome, 200);
+    return;
+  }
+  if (soundIsEnabled()) playPulseTick();
+  const centerRpm = (state.pulseBandLow + state.pulseBandHigh) / 2 || 30;
+  const baseIntervalMs = 60000 / centerRpm;
+  const outOfBand = state.pulseRunState.phase === "hot" || state.pulseRunState.phase === "cold";
+  const intervalMs = Math.max(120, outOfBand ? baseIntervalMs / 2 : baseIntervalMs);
+  pulseMetronomeTimer = setTimeout(pulseScheduleMetronome, intervalMs);
+}
+
+function pulseEvaluateTick() {
+  if (!state.pulseRunState || state.pulseRunState.ended || state.pulsePausedAt != null) return;
+  const now = performance.now();
+  const rollingRpm = pulseRollingRpm(state.pulseRepTimestamps, now);
+  const prevPhase = state.pulseRunState.phase;
+  state.pulseRunState = pulseTick(state.pulseRunState, { nowMs: now, rollingRpm, bandLow: state.pulseBandLow, bandHigh: state.pulseBandHigh });
+
+  const sample = { t: now, rpm: rollingRpm };
+  state.pulseTraceSamples.push(sample);
+  const cutoff = now - PULSE_TRACE_WINDOW_MS;
+  while (state.pulseTraceSamples.length && state.pulseTraceSamples[0].t < cutoff) state.pulseTraceSamples.shift();
+  state.pulseFullTraceSamples.push(sample);
+
+  renderPulseLiveHud(rollingRpm);
+
+  if (state.pulseRunState.phase !== prevPhase) {
+    if (state.pulseRunState.phase === "hot") vibrate([60, 50, 60, 50, 60]);
+    else if (state.pulseRunState.phase === "cold") vibrate([150, 100, 150]);
+  }
+
+  if (state.pulseRunState.ended) completePulseRun();
+}
+
+function pulseTraceY(rpm) {
+  const low = state.pulseBandLow, high = state.pulseBandHigh;
+  const span = Math.max(1, high - low);
+  const y = 104 - ((rpm - low) / span) * 58;
+  return Math.max(4, Math.min(146, y));
+}
+
+function renderPulseTrace() {
+  const samples = state.pulseTraceSamples;
+  const dot = $("pulse-trace-dot");
+  if (!samples.length) {
+    $("pulse-trace-fade").setAttribute("points", "");
+    $("pulse-trace-head").setAttribute("points", "");
+    dot.classList.add("hidden");
+    return;
+  }
+  const now = samples[samples.length - 1].t;
+  const toXY = (s) => {
+    const ageMs = now - s.t;
+    const x = Math.max(0, Math.min(280, 280 - (ageMs / PULSE_TRACE_WINDOW_MS) * 280));
+    return `${x},${pulseTraceY(s.rpm)}`;
+  };
+  const fadeSamples = samples.filter((s) => now - s.t > PULSE_TRACE_RECENT_MS);
+  const headSamples = samples.filter((s) => now - s.t <= PULSE_TRACE_RECENT_MS);
+  // Carry the fade segment's last point into the head segment so the two
+  // polylines connect with no visible gap at the recent/history seam.
+  if (fadeSamples.length) headSamples.unshift(fadeSamples[fadeSamples.length - 1]);
+  $("pulse-trace-fade").setAttribute("points", fadeSamples.map(toXY).join(" "));
+  $("pulse-trace-head").setAttribute("points", headSamples.map(toXY).join(" "));
+
+  const last = samples[samples.length - 1];
+  dot.classList.remove("hidden");
+  dot.setAttribute("cx", 280);
+  dot.setAttribute("cy", String(pulseTraceY(last.rpm)));
+}
+
+function renderPulseRecovery(label, tone) {
+  const remainingMs = pulseRecoveryRemainingMs(state.pulseRunState, performance.now());
+  if (remainingMs == null) {
+    $("pulse-recovery").classList.add("hidden");
+    return;
+  }
+  $("pulse-recovery").classList.remove("hidden");
+  $("pulse-recovery-label").textContent = label;
+  $("pulse-recovery-label").className = `pulse-recovery-label pulse-recovery-${tone}`;
+  $("pulse-recovery-time").textContent = `${(remainingMs / 1000).toFixed(1)}s`;
+  $("pulse-recovery-time").className = `pulse-recovery-time pulse-recovery-${tone}`;
+  $("pulse-recovery-fill").style.width = `${Math.max(0, Math.min(100, (remainingMs / PULSE_RECOVERY_MS) * 100))}%`;
+  $("pulse-recovery-fill").className = `pulse-recovery-fill pulse-recovery-fill-${tone}`;
+}
+
+function renderPulseLiveHud(rollingRpm) {
+  const r = state.pulseRunState;
+  if (!r) return;
+  const elapsedMs = performance.now() - r.runStartMs;
+  $("pulse-elapsed").textContent = formatDuration(Math.max(0, elapsedMs));
+  $("pulse-stat-pace").innerHTML = `${Math.round(rollingRpm)}<span class="pulse-stat-unit">rpm</span>`;
+  $("pulse-stat-reps").textContent = String(state.pulseRepTimestamps.length);
+
+  const pill = $("pulse-status-pill");
+  const wrap = $("workout-active");
+  const traceWrap = $("pulse-trace-wrap");
+  if (r.phase === "grace") {
+    pill.textContent = "FINDING PACE…";
+    pill.className = "pulse-status-pill pulse-pill-neutral";
+    wrap.classList.remove("pulse-frame-hot", "pulse-frame-cold");
+    $("pulse-recovery").classList.add("hidden");
+  } else if (r.phase === "in-band") {
+    pill.textContent = "IN BAND";
+    pill.className = "pulse-status-pill pulse-pill-good";
+    wrap.classList.remove("pulse-frame-hot", "pulse-frame-cold");
+    $("pulse-recovery").classList.add("hidden");
+  } else if (r.phase === "hot") {
+    pill.textContent = "TOO HOT";
+    pill.className = "pulse-status-pill pulse-pill-hot";
+    wrap.classList.add("pulse-frame-hot");
+    wrap.classList.remove("pulse-frame-cold");
+    renderPulseRecovery("Above the ceiling — ease off", "hot");
+  } else {
+    pill.textContent = "TOO COLD";
+    pill.className = "pulse-status-pill pulse-pill-cold";
+    wrap.classList.add("pulse-frame-cold");
+    wrap.classList.remove("pulse-frame-hot");
+    renderPulseRecovery("Below the floor — pick it up", "cold");
+  }
+  traceWrap.classList.toggle("pulse-trace-hot", r.phase === "hot");
+  traceWrap.classList.toggle("pulse-trace-cold", r.phase === "cold");
+  $("pulse-ceiling-line").classList.toggle("pulse-line-active", r.phase === "hot");
+  $("pulse-floor-line").classList.toggle("pulse-line-active", r.phase === "cold");
+
+  renderPulseTrace();
+}
+
+function renderPulseSummaryTrace() {
+  const samples = state.pulseFullTraceSamples;
+  const r = state.pulseResult;
+  const line = $("summary-pulse-trace-line");
+  const dot = $("summary-pulse-trace-dot");
+  const svgW = 240, bandTop = 22, bandBottom = 48;
+  if (!samples.length || !r) {
+    line.setAttribute("points", "");
+    dot.classList.add("hidden");
+    $("summary-pulse-trace-end").textContent = formatDuration((r?.secondsHeld || 0) * 1000);
+    return;
+  }
+  const startT = samples[0].t;
+  const totalMs = Math.max(1, samples[samples.length - 1].t - startT);
+  const span = Math.max(1, state.pulseBandHigh - state.pulseBandLow);
+  const toXY = (s) => {
+    const x = Math.max(0, Math.min(svgW, ((s.t - startT) / totalMs) * svgW));
+    const y = Math.max(2, Math.min(66, bandBottom - ((s.rpm - state.pulseBandLow) / span) * (bandBottom - bandTop)));
+    return `${x},${y}`;
+  };
+  line.setAttribute("points", samples.map(toXY).join(" "));
+  const hot = r.endReason === "ceiling";
+  const cold = r.endReason === "floor";
+  line.classList.toggle("summary-pulse-trace-hot", hot);
+  line.classList.toggle("summary-pulse-trace-cold", cold);
+  const last = samples[samples.length - 1];
+  const [lx, ly] = toXY(last).split(",");
+  dot.classList.remove("hidden");
+  dot.setAttribute("cx", lx);
+  dot.setAttribute("cy", ly);
+  dot.classList.toggle("summary-pulse-trace-dot-hot", hot);
+  dot.classList.toggle("summary-pulse-trace-dot-cold", cold);
+  $("summary-pulse-trace-end").textContent = formatDuration(r.secondsHeld * 1000);
+}
+
+function renderPulseSummary() {
+  const r = state.pulseResult;
+  if (!r) return;
+  const breakRpm = r.endedAtRpm != null ? Math.round(r.endedAtRpm) : null;
+  const causeText = r.endReason === "banked" ? "Run banked"
+    : r.endReason === "ceiling" ? `Broke the ceiling at ${breakRpm} rpm`
+    : `Dropped below the floor at ${breakRpm} rpm`;
+  $("summary-pulse-cause").textContent = causeText;
+  $("summary-pulse-cause").className = "summary-pulse-cause"
+    + (r.endReason === "ceiling" ? " summary-pulse-cause-hot" : r.endReason === "floor" ? " summary-pulse-cause-cold" : "");
+  $("summary-pulse-time").textContent = formatDuration(r.secondsHeld * 1000);
+  $("summary-pulse-sub").textContent = `held in band · ${r.reps} rep${r.reps === 1 ? "" : "s"}`;
+  if (r.isNewBest) {
+    const delta = Math.max(0, r.secondsHeld - r.previousBest);
+    $("summary-pulse-pb").textContent = `New personal best${r.previousBest ? ` · +${formatDuration(delta * 1000)}` : ""}`;
+    $("summary-pulse-pb").classList.remove("hidden");
+  } else {
+    $("summary-pulse-pb").classList.add("hidden");
+  }
+  renderPulseSummaryTrace();
+  $("summary-count").classList.add("hidden");
+  $("summary-pulse-result").classList.remove("hidden");
+}
+
+async function completePulseRun() {
+  pulseStopLiveTimers();
+  const result = state.pulseRunState;
+  const secondsHeld = Math.max(0, Math.round((result.endedAtElapsedMs ?? 0) / 1000));
+  const reps = state.pulseRepTimestamps.length;
+  stopCameraAndDetection();
+  await releaseWakeLock();
+  state.workoutActive = false;
+  $("workout-active").classList.remove("pulse-frame-hot", "pulse-frame-cold");
+  $("workout-active").classList.add("hidden");
+  $("workout-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+
+  const previousBest = getPulseBest(state.currentUser);
+  const isNewBest = secondsHeld > previousBest;
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count: secondsHeld,
+    avatar: state.currentAvatar,
+    startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    mode: "pulse",
+    pulseBandWidth: state.pulseBandWidth,
+    pulseBandLow: state.pulseBandLow,
+    pulseBandHigh: state.pulseBandHigh,
+    pulseEndReason: result.endReason,
+    pulseReps: reps,
+    ...(result.endedAtRpm != null ? { pulseBreakRpm: Math.round(result.endedAtRpm) } : {}),
+    ...(state.sessionLocation ? { location: state.sessionLocation } : {}),
+  };
+
+  // Optimistically reflect it locally right away so it shows up immediately.
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  state.lastSessionType = "pulse";
+  state.pulseResult = { ...result, secondsHeld, reps, isNewBest, previousBest };
+  state.summarySessionId = session.id;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+
+  renderPulseSummary();
+  $("missed-reps-wrap").classList.add("hidden");
+  $("summary-weighted-note").classList.add("hidden");
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  if (isNewBest) launchConfetti("confetti", CONFETTI_EMOJI, 24);
+  speak(isNewBest ? PULSE_RECORD_LINE : "Session complete.");
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-pulse-bank").addEventListener("click", () => {
+  if (!state.pulseRunState || state.pulseRunState.ended) return;
+  state.pulseRunState = pulseBankRun(state.pulseRunState, performance.now());
+  completePulseRun();
+});
+
+// Pause freezes the run in place (camera keeps running so a rep landing
+// mid-pause isn't lost mid-detection, but the eval tick/metronome stop and
+// every deadline shifts forward by the paused duration on resume, so the
+// countdown/grace/elapsed math is exactly as if no time had passed).
+$("btn-pulse-pause").addEventListener("click", () => {
+  if (!state.pulseRunState || state.pulseRunState.ended) return;
+  const btn = $("btn-pulse-pause");
+  if (state.pulsePausedAt == null) {
+    state.pulsePausedAt = performance.now();
+    btn.classList.add("is-paused");
+    $("pulse-status-pill").textContent = "PAUSED";
+    $("pulse-status-pill").className = "pulse-status-pill pulse-pill-neutral";
+  } else {
+    const pausedMs = performance.now() - state.pulsePausedAt;
+    const r = state.pulseRunState;
+    r.runStartMs += pausedMs;
+    r.graceUntilMs += pausedMs;
+    if (r.recoveryDeadlineMs != null) r.recoveryDeadlineMs += pausedMs;
+    state.pulseTraceSamples = state.pulseTraceSamples.map((s) => ({ ...s, t: s.t + pausedMs }));
+    state.pulseFullTraceSamples = state.pulseFullTraceSamples.map((s) => ({ ...s, t: s.t + pausedMs }));
+    state.pulseRepTimestamps = state.pulseRepTimestamps.map((t) => t + pausedMs);
+    state.pulsePausedAt = null;
+    btn.classList.remove("is-paused");
+    if (state.pulseMetronomeEnabled) pulseScheduleMetronome();
+  }
+});
 
 async function completeWorkout() {
   const rawCount = repState.count;
@@ -9428,8 +9925,13 @@ function buildShareContext(adjustedCount) {
   const isPullup = state.lastSessionType === "pullup";
   const isSquat = state.lastSessionType === "squat";
   const isSitup = state.lastSessionType === "situp";
+  const isPulse = state.lastSessionType === "pulse";
   const isPushup = !isPlank && !isPullup && !isSquat && !isSitup;
-  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups");
+  // Pulse's `count` is seconds, not reps — filtered out of the generic
+  // pushups aggregate the same way plank/pullup/squat/situp already live in
+  // their own activity buckets, so a week total never mixes units.
+  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups")
+    .filter((s) => isPushup ? s.mode !== "pulse" || isPulse : true);
   const weekStart = periodStart("week");
   const weekStartTime = weekStart.getTime();
   const weekTotalRaw = mine
@@ -9445,7 +9947,7 @@ function buildShareContext(adjustedCount) {
     streak: computeStreak(mine),
     todayRaw: adjustedCount,
     weekTotalRaw,
-    weekTotalDisplay: isPlank ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
+    weekTotalDisplay: (isPlank || isPulse) ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
     cardsCtx: (isPushup && state.pushupMode === "cards") ? buildCardsShareContext() : null,
     pokerCtx: (isPushup && state.pushupMode === "poker") ? buildPokerShareContext() : null,
     diceCtx: (isPushup && state.pushupMode === "dice") ? buildDiceShareContext() : null,

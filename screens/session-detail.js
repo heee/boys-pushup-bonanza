@@ -12,6 +12,7 @@ export const MODE_META = {
   dice: { label: "Dice", icon: "🎲" },
   ladder: { label: "Ladder", icon: "🪜" },
   pyramid: { label: "Pyramid", icon: "▲" },
+  pulse: { label: "Pulse", icon: "❤️‍🔥" },
   sharpshooter: { label: "Sharpshooter", icon: "🎯" },
   fortune: { label: "Fortune", icon: "🥠" },
   chase: { label: "Chase", icon: "🏃" },
@@ -56,6 +57,10 @@ export function sessionBadges(session) {
   if (modeId === "pyramid" && session.pyramidSize) {
     badges.push({ id: "pyramid-direction", icon: "↕️", label: session.pyramidDirection === "updown" ? "Up & Down" : "Ascending" });
   }
+  if (modeId === "pulse" && session.pulseBandWidth) {
+    const label = session.pulseBandWidth.charAt(0).toUpperCase() + session.pulseBandWidth.slice(1);
+    badges.push({ id: "pulse-band-width", icon: "📶", label: `${label} band` });
+  }
   if (modeId === "holland" && session.hollandDifficulty) {
     const label = session.hollandDifficulty.charAt(0).toUpperCase() + session.hollandDifficulty.slice(1);
     badges.push({ id: "holland-difficulty", icon: "🕸️", label });
@@ -79,9 +84,22 @@ export function sessionKeyMetrics(session) {
   const modeId = sessionModeId(session);
   const metrics = [];
 
-  if (modeId !== "planks") {
+  if (modeId !== "planks" && modeId !== "pulse") {
     metrics.push({ id: "duration", label: "Duration", format: "duration", value: sessionDurationMs(session) });
     if (modeId !== "holland") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
+  }
+
+  // Pulse's `count` is seconds held in band, not reps — the generic
+  // duration/pace metrics above would be nonsense (dividing a seconds
+  // value by minutes elapsed), so it gets its own metric set instead.
+  if (modeId === "pulse") {
+    if (session.pulseReps != null) metrics.push({ id: "pulseReps", label: "Reps", format: "integer", value: session.pulseReps });
+    if (session.pulseBandLow != null && session.pulseBandHigh != null) {
+      metrics.push({ id: "pulseBand", label: "Band", format: "text", value: `${session.pulseBandLow}–${session.pulseBandHigh} rpm` });
+    }
+    const endLabel = session.pulseEndReason === "banked" ? "Banked" : session.pulseEndReason === "ceiling" ? "Broke ceiling" : session.pulseEndReason === "floor" ? "Broke floor" : null;
+    if (endLabel) metrics.push({ id: "pulseEndReason", label: "Ended by", format: "text", value: endLabel });
+    if (session.pulseBreakRpm != null) metrics.push({ id: "pulseBreakRpm", label: "Pace at break", format: "text", value: `${session.pulseBreakRpm} rpm` });
   }
 
   if (modeId === "pyramid" && session.pyramidSize != null) {

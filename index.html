@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=224">
+<link rel="stylesheet" href="style.css?v=225">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -182,6 +182,57 @@
           <div id="pyramid-counter-badge" class="mode-counter-badge"></div>
         </div>
 
+        <div id="pulse-hud" class="pulse-hud hidden">
+          <div class="pulse-status-row">
+            <span id="pulse-status-pill" class="pulse-status-pill pulse-pill-neutral">FINDING PACE…</span>
+          </div>
+          <div class="pulse-elapsed-wrap">
+            <div class="pulse-elapsed-label">HOLDING FOR</div>
+            <div id="pulse-elapsed" class="pulse-elapsed">0:00</div>
+          </div>
+          <div id="pulse-trace-wrap" class="pulse-trace-wrap">
+            <div class="pulse-zone pulse-zone-hot"></div>
+            <div class="pulse-zone pulse-zone-cold"></div>
+            <svg id="pulse-trace-svg" class="pulse-trace-svg" viewBox="0 0 280 150" preserveAspectRatio="none">
+              <line id="pulse-ceiling-line" class="pulse-band-line" x1="0" y1="46" x2="280" y2="46"></line>
+              <line id="pulse-floor-line" class="pulse-band-line" x1="0" y1="104" x2="280" y2="104"></line>
+              <polyline id="pulse-trace-fade" class="pulse-trace-fade" points=""></polyline>
+              <polyline id="pulse-trace-head" class="pulse-trace-head" points=""></polyline>
+              <circle id="pulse-trace-dot" class="pulse-trace-dot" cx="0" cy="75" r="4.5"></circle>
+            </svg>
+            <div class="pulse-now-marker"></div>
+          </div>
+          <div class="pulse-trace-labels">
+            <span>−60s</span>
+            <span id="pulse-band-caption" class="pulse-band-caption"></span>
+            <span>Now</span>
+          </div>
+          <div id="pulse-recovery" class="pulse-recovery hidden">
+            <div class="pulse-recovery-row">
+              <span id="pulse-recovery-label" class="pulse-recovery-label"></span>
+              <span id="pulse-recovery-time" class="pulse-recovery-time"></span>
+            </div>
+            <div class="pulse-recovery-track"><div id="pulse-recovery-fill" class="pulse-recovery-fill"></div></div>
+          </div>
+          <div class="pulse-stats-row">
+            <div class="pulse-stat">
+              <div class="pulse-stat-label">PACE</div>
+              <div id="pulse-stat-pace" class="pulse-stat-value">0<span class="pulse-stat-unit">rpm</span></div>
+            </div>
+            <div class="pulse-stat-divider"></div>
+            <div class="pulse-stat">
+              <div class="pulse-stat-label">REPS</div>
+              <div id="pulse-stat-reps" class="pulse-stat-value">0</div>
+            </div>
+          </div>
+          <div class="pulse-actions">
+            <button id="btn-pulse-bank" type="button" class="btn btn-giant pulse-bank-btn">Bank run</button>
+            <button id="btn-pulse-pause" type="button" class="pulse-pause-btn" aria-label="Pause">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+            </button>
+          </div>
+        </div>
+
         <span id="tow-workout-round-pill" class="tow-round-pill tow-workout-round-pill hidden"></span>
 
         <div id="horse-hud" class="horse-hud hidden">
@@ -251,6 +302,52 @@
       <p class="pyramid-setup-section-label">Direction</p>
       <div id="pyramid-direction-list" class="pyramid-card-list"></div>
       <button id="btn-pyramid-start" type="button" class="btn btn-giant btn-primary pyramid-start-btn">Start pyramid</button>
+    </section>
+
+    <!-- ============ SCREEN: PULSE SETUP ============ -->
+    <section id="screen-pulse-setup" class="screen">
+      <div class="horse-header-row">
+        <button id="btn-pulse-setup-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 class="screen-title">Pulse</h1>
+      </div>
+
+      <div class="pulse-history-card">
+        <div class="pulse-history-label">Your pace, last 10 sessions</div>
+        <div class="pulse-history-rpm-row">
+          <span id="pulse-median-rpm" class="pulse-history-rpm">—</span>
+          <span class="pulse-history-rpm-unit">rpm median</span>
+        </div>
+        <div class="pulse-range-bar">
+          <div id="pulse-range-band" class="pulse-range-band"></div>
+          <div id="pulse-range-median" class="pulse-range-median"></div>
+        </div>
+        <div class="pulse-range-labels">
+          <span id="pulse-range-min">0</span>
+          <span id="pulse-range-band-label" class="pulse-range-band-label">Not enough data</span>
+          <span id="pulse-range-max">0</span>
+        </div>
+      </div>
+
+      <p class="pyramid-setup-section-label">Band width</p>
+      <div id="pulse-band-width-select" class="segmented" role="tablist">
+        <button type="button" class="segment" data-pulse-band-width="wide">Wide</button>
+        <button type="button" class="segment active" data-pulse-band-width="standard">Standard</button>
+        <button type="button" class="segment" data-pulse-band-width="razor">Razor</button>
+      </div>
+      <p id="pulse-band-width-note" class="screen-sub">±15% either side of your median. Razor is ±7%.</p>
+
+      <div class="pulse-toggle-card">
+        <label class="field-label toggle-row pulse-toggle-row" style="margin:0;flex:1">
+          <span class="pulse-toggle-copy">
+            <span class="pulse-toggle-title">Metronome</span>
+            <span class="pulse-toggle-sub">Ticks at your band centre</span>
+          </span>
+          <input id="pulse-metronome-toggle" type="checkbox" checked>
+        </label>
+      </div>
+
+      <p id="pulse-best-run" class="pulse-best-run">No runs yet</p>
+      <button id="btn-pulse-start" type="button" class="btn btn-giant btn-primary">Start run</button>
     </section>
 
     <!-- ============ SCREEN: HORSE SETUP ============ -->
@@ -865,6 +962,23 @@
       <div class="summary-body">
         <h1 class="screen-title">Session complete! 🎉</h1>
         <div class="summary-count" id="summary-count">0</div>
+        <div id="summary-pulse-result" class="summary-pulse-result hidden">
+          <div id="summary-pulse-cause" class="summary-pulse-cause"></div>
+          <div id="summary-pulse-time" class="summary-count">0:00</div>
+          <div id="summary-pulse-sub" class="summary-pulse-sub"></div>
+          <div id="summary-pulse-pb" class="summary-pulse-pb hidden"></div>
+          <div class="summary-pulse-trace-card">
+            <div class="summary-pulse-trace-label">YOUR TRACE</div>
+            <svg id="summary-pulse-trace-svg" class="summary-pulse-trace-svg" viewBox="0 0 240 68" preserveAspectRatio="none">
+              <rect id="summary-pulse-trace-band" class="summary-pulse-trace-band" x="0" y="22" width="240" height="26"></rect>
+              <line class="summary-pulse-trace-bandline" x1="0" y1="22" x2="240" y2="22"></line>
+              <line class="summary-pulse-trace-bandline" x1="0" y1="48" x2="240" y2="48"></line>
+              <polyline id="summary-pulse-trace-line" class="summary-pulse-trace-line" points=""></polyline>
+              <circle id="summary-pulse-trace-dot" class="summary-pulse-trace-dot" cx="0" cy="34" r="4"></circle>
+            </svg>
+            <div class="summary-pulse-trace-times"><span>0:00</span><span id="summary-pulse-trace-end">0:00</span></div>
+          </div>
+        </div>
         <div id="summary-holland-result" class="summary-holland-result hidden"></div>
         <div id="summary-weighted-note" class="weighted-note hidden"></div>
         <div id="summary-chase-result" class="summary-chase-result hidden"></div>
@@ -934,6 +1048,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="chase"><span>Chase</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="sharpshooter"><span>Sharpshooter</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pyramid"><span>Pyramid</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pulse"><span>Pulse</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1563,6 +1678,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=228"></script>
+<script type="module" src="app.js?v=229"></script>
 </body>
 </html>

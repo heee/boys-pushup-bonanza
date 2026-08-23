@@ -16,6 +16,7 @@ export const EXPLORE_MODES = [
   { id: "boss", icon: "⚔️", title: "Boss battle", tagline: "Take on tougher bosses", live: false },
   { id: "sharpshooter", icon: "🏹", title: "Sharpshooter", tagline: "Destroy targets, one shot at a time", live: true },
   { id: "pyramid", icon: "🔺", title: "Pyramid", tagline: "Descend the base, conquer the apex", live: true },
+  { id: "pulse", icon: "❤️‍🔥", title: "Pulse", tagline: "Hold your pace, not your reps", live: true },
   { id: "zen", icon: "🧘", title: "Zen Mode", tagline: "No counters, no noise — just push", live: true },
   { id: "horse", icon: "🐴", title: "Horse", tagline: "Beat the set before you, or take a letter", live: true },
   { id: "tow", icon: "🪢", title: "Tug of war", tagline: "Two teams race to the target, together", live: true },
@@ -45,19 +46,28 @@ function orderBucket(bucket) {
   return [...playable, ...locked, ...roadmap];
 }
 
-export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, chaseLeaderLabel }) {
+export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, chaseLeaderLabel, pulseUnlock }) {
   const usage = usageByMode(sessions);
   const decorated = EXPLORE_MODES.map((mode, index) => {
     const lockedForPR = (mode.id === "countdown" || mode.id === "wheel") && !hasPR;
     const checkingChase = mode.id === "chase" && refresh;
     const lockedForChase = mode.id === "chase" && chasePrepared && !chasePrepared.eligible;
-    const playable = mode.live && !lockedForPR && !lockedForChase && !checkingChase;
+    // Pulse needs a real pace history to draw a band from — locked (not
+    // hidden) until the boy has logged enough valid Classic sessions, shown
+    // as a visible progress count rather than a plain "coming soon" (see
+    // docs/pulse-mode-plan.md's Locked-state UI decision).
+    const lockedForPulse = mode.id === "pulse" && pulseUnlock && !pulseUnlock.unlocked;
+    const playable = mode.live && !lockedForPR && !lockedForChase && !checkingChase && !lockedForPulse;
     let tagline = mode.tagline;
     if (mode.id === "chase" && chasePrepared?.first) {
       const first = chasePrepared.first;
       tagline = `${first.pointsNeeded} point${first.pointsNeeded === 1 ? "" : "s"} to pass ${chaseLeaderLabel(first)} on ${first.label.toLowerCase()}${chasePrepared.offline ? " · offline target" : ""}`;
     }
-    const status = checkingChase ? "Checking…" : lockedForChase ? "You’re leading every board" : lockedForPR ? "Log a session first" : "Coming soon";
+    const status = checkingChase ? "Checking…"
+      : lockedForChase ? "You’re leading every board"
+      : lockedForPR ? "Log a session first"
+      : lockedForPulse ? `${pulseUnlock.validCount}/${pulseUnlock.needed} Classic sessions logged`
+      : "Coming soon";
     const section = OTHER_EXERCISE_IDS.has(mode.id) ? "other" : "pushups";
     return { mode, index, playable, tagline, status, section, usage: usage.get(mode.id) || 0 };
   });

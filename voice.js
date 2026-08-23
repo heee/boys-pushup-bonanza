@@ -643,6 +643,36 @@ export function speakCalm(text) {
   } catch (e) { /* speech synthesis is best effort */ }
 }
 
+// A short, clean metronome click for Pulse mode's band-centre tick — reuses
+// the same shared AudioContext/route as playZenGong (never a second
+// AudioContext) so it doesn't fight the careful iOS unlock/route handling
+// above. Deliberately just one plain tone: the caller (app.js) is what
+// decides whether to double the tick RATE as a warning, not the tone itself.
+export function playPulseTick() {
+  if (!ctx || !masterGain) return 0;
+  unlockVoice();
+  try {
+    const start = ctx.currentTime + 0.005;
+    const duration = 0.05;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.22, start + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    oscillator.connect(gain);
+    gain.connect(masterGain);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.02);
+    activeSources.push(oscillator);
+    scheduleRouteRelease(1500);
+    return Math.round(duration * 1000);
+  } catch (e) {
+    return 0;
+  }
+}
+
 // A short synthesized meditation-gong avoids another network/asset dependency
 // and works offline through the already-unlocked workout AudioContext.
 export function playZenGong() {

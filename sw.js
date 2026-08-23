@@ -1,6 +1,6 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v284";
+const CACHE_NAME = "bpb-shell-v285";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -12,6 +12,7 @@ const SHELL_FILES = [
   "./modes/squat.js",
   "./modes/situp.js",
   "./modes/holland.js",
+  "./modes/pulse.js",
   "./share-messages.js?v=141",
   "./api.js",
   "./storage.js",
@@ -24,16 +25,16 @@ const SHELL_FILES = [
   "./stats.js",
   "./screens/summary.js",
   "./screens/dashboard.js",
-  "./screens/mode-stats.js?v=135",
+  "./screens/mode-stats.js?v=136",
   "./screens/mode-breakdown.js?v=4",
   "./screens/comparison.js?v=132",
-  "./screens/session-detail.js?v=6",
+  "./screens/session-detail.js?v=7",
   "./screens/challenges.js",
   "./screens/settings.js",
-  "./screens/explore-modes.js?v=142",
+  "./screens/explore-modes.js?v=143",
   "./screens/modifiers.js?v=100",
   "./screens/users.js",
-  "./workout-modes.js?v=150",
+  "./workout-modes.js?v=151",
   "./horse.js",
   "./horse-words.js",
   "./screens/horse.js",
@@ -43,7 +44,7 @@ const SHELL_FILES = [
   "./poker.js",
   "./chase.js",
   "./ladder-rivals.js",
-  "./voice.js?v=148",
+  "./voice.js?v=149",
   "./voice-lines.js?v=140",
   "./manifest.json",
   "./icons/icon-192.png",
