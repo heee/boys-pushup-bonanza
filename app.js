@@ -2597,16 +2597,15 @@ $("btn-pulse-start").addEventListener("click", () => {
   startWorkout();
 });
 
-$("explore-modes-list").addEventListener("click", async (e) => {
-  const row = e.target.closest(".explore-mode-row:not(.disabled)");
-  if (!row) return;
-  const modeId = row.dataset.exploreMode;
+// Shared routing for jumping straight into a mode — used by the Explore
+// Modes tap handler below and by the #mode= share-link deep link in init().
+// `onChaseIneligible` lets the tap handler disable/re-render its row; the
+// hash-link path has no row and just no-ops instead.
+async function openExploreMode(modeId, { onChaseIneligible } = {}) {
   if (modeId === "chase") {
-    row.classList.add("disabled");
     const prepared = await refreshChaseAvailability();
     if (!prepared.eligible) {
-      renderExploreModesScreen(false);
-      toast("You’re leading every board. Disgusting behavior.", 3500);
+      onChaseIneligible?.();
       return;
     }
   }
@@ -2662,6 +2661,19 @@ $("explore-modes-list").addEventListener("click", async (e) => {
     return;
   }
   openPushupModeFromExplore(modeId);
+}
+
+$("explore-modes-list").addEventListener("click", async (e) => {
+  const row = e.target.closest(".explore-mode-row:not(.disabled)");
+  if (!row) return;
+  const modeId = row.dataset.exploreMode;
+  if (modeId === "chase") row.classList.add("disabled");
+  await openExploreMode(modeId, {
+    onChaseIneligible: () => {
+      renderExploreModesScreen(false);
+      toast("You’re leading every board. Disgusting behavior.", 3500);
+    },
+  });
 });
 
 // ------------------- Horse mode -------------------
@@ -4922,7 +4934,7 @@ async function shareRoadtripDetail() {
     }
   }
 
-  const url = location.href;
+  const url = `${location.origin}${location.pathname}#roadtrip=${encodeURIComponent(territory.id)}`;
   if (navigator.share) {
     try {
       await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
@@ -6165,7 +6177,8 @@ async function shareSessionDetail() {
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
   const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
-  const url = location.href;
+  const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isPulse ? "pulse" : (session.mode || "classic");
+  const url = modeShareUrl(modeId);
   if (navigator.share) {
     try { await navigator.share({ title: "Boys Pushup Bonanza", text: message, url }); } catch (e) { /* cancelled */ }
     return;
@@ -7217,7 +7230,13 @@ async function shareLeaderboardStats() {
     }
   }
 
-  const url = location.href;
+  // leaderboardMode uses the plural activity ids (pullups/squats/situps/
+  // planks) that LEADERBOARD_MODE_OPTIONS shows, but the #mode= link and
+  // EXPLORE_MODES use the singular exercise ids — translate; "all" has no
+  // single mode to deep-link into, so it falls back to the bare app URL.
+  const leaderboardModeToShareId = { pullups: "pullup", squats: "squat", situps: "situp", planks: "plank" };
+  const shareModeId = state.leaderboardMode === "all" ? null : (leaderboardModeToShareId[state.leaderboardMode] || state.leaderboardMode);
+  const url = modeShareUrl(shareModeId);
   if (navigator.share) {
     try {
       await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
@@ -9979,13 +9998,22 @@ function refreshSummaryRoadtripConquests() {
   renderSummaryRoadtripResult();
 }
 
+// Builds a share link that deep-links straight into a mode via the #mode=
+// hash init() reads on load (see openExploreMode), instead of the bare app
+// URL a recipient would otherwise land on with no idea what to play.
+function modeShareUrl(modeId) {
+  const base = `${location.origin}${location.pathname}`;
+  return modeId ? `${base}#mode=${encodeURIComponent(modeId)}` : base;
+}
+
 function buildShareContext(adjustedCount) {
   const isPlank = state.lastSessionType === "plank";
   const isPullup = state.lastSessionType === "pullup";
   const isSquat = state.lastSessionType === "squat";
   const isSitup = state.lastSessionType === "situp";
+  const isHolland = state.lastSessionType === "holland";
   const isPulse = state.lastSessionType === "pulse";
-  const isPushup = !isPlank && !isPullup && !isSquat && !isSitup;
+  const isPushup = !isPlank && !isPullup && !isSquat && !isSitup && !isHolland;
   // Pulse's `count` is seconds, not reps — filtered out of the generic
   // pushups aggregate the same way plank/pullup/squat/situp already live in
   // their own activity buckets, so a week total never mixes units.
@@ -9997,7 +10025,7 @@ function buildShareContext(adjustedCount) {
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : state.pushupMode,
+    mode: isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : state.pushupMode,
     isPlank,
     isPullup,
     isSquat,
@@ -10056,7 +10084,7 @@ async function shareFlex() {
   const ctx = buildShareContext(adjustedCount);
   const chase = state.summaryChaseResult;
   const message = chase ? pickChaseShareMessage(count, chase, ctx) : pickShareMessage(count, ctx);
-  const url = location.href;
+  const url = modeShareUrl(ctx.mode);
   if (navigator.share) {
     try {
       await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
@@ -10077,7 +10105,7 @@ async function shareRoadtripConquest() {
   const wins = state.summaryRoadtripConquests || [];
   if (!wins.length) return;
   const message = roadtripConquestShareMessage(state.currentUser, wins);
-  const url = location.href;
+  const url = `${location.origin}${location.pathname}#roadtrip=${encodeURIComponent(wins[0].id)}`;
   if (navigator.share) {
     try { await navigator.share({ title: "Roadtrip conquered", text: message, url }); } catch (e) { /* cancelled */ }
     return;
@@ -12060,16 +12088,22 @@ function switchRecapTab(direction) {
   renderRecapModal();
 }
 
+// Recap tabs are keyed by activity (pushup/situp/squat/pullup/plank/holland);
+// "pushup" aggregates every pushup submode, so there's no single mode it can
+// deep-link into — that one falls back to the bare app URL.
+const RECAP_TAB_SHARE_MODE_ID = { situp: "situp", squat: "squat", pullup: "pullup", plank: "plank", holland: "holland" };
+
 async function shareRecapCard() {
   const tab = state.recapTabs[state.recapTabIndex];
   if (!tab) return;
+  const url = modeShareUrl(RECAP_TAB_SHARE_MODE_ID[tab.key] || null);
   try {
     const blob = await exportRecapImage(state.recapTier, tab, state.currentUser);
     const file = new File([blob], `recap-${state.recapTier}.png`, { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: "Boys Pushup Bonanza" });
+      await navigator.share({ files: [file], title: "Boys Pushup Bonanza", url });
     } else if (navigator.share) {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: `${recapValueDisplay(tab.total, tab.unit)} ${tab.label.toLowerCase()} this ${state.recapTier} 💪` });
+      await navigator.share({ title: "Boys Pushup Bonanza", text: `${recapValueDisplay(tab.total, tab.unit)} ${tab.label.toLowerCase()} this ${state.recapTier} 💪`, url });
     } else {
       toast("Sharing isn't supported on this browser.", 3000);
     }
@@ -12172,6 +12206,27 @@ async function init() {
   const compareMatch = decodeURIComponent(location.hash).match(/^#compare=([^|]+)\|([^|]+)$/);
   if (compareMatch) {
     openUserCompareFromLink(compareMatch[1], compareMatch[2]);
+  }
+
+  // A shared workout-result link (#mode=id, from shareFlex/shareSessionDetail/
+  // etc. — see modeShareUrl) jumps straight to that mode's start screen so the
+  // recipient can play it themselves, instead of landing on the generic app
+  // shell with no idea what was shared.
+  const modeMatch = location.hash.match(/^#mode=([a-z]+)$/);
+  if (modeMatch && state.currentUser && EXPLORE_MODES.some((m) => m.id === modeMatch[1] && m.live)) {
+    await openExploreMode(modeMatch[1]);
+  }
+
+  // A shared roadtrip territory link (#roadtrip=id, or plain #roadtrip for a
+  // conquest with no single territory) opens the Roadtrip screen, drilling
+  // into that territory's detail if the id still exists.
+  const roadtripMatch = location.hash.match(/^#roadtrip(?:=([a-z0-9-]{1,64}))?$/);
+  if (roadtripMatch && state.currentUser) {
+    showScreen("screen-roadtrip");
+    if (roadtripMatch[1] && state.roadtripTerritories.some((t) => t.id === roadtripMatch[1])) {
+      state.roadtripDetailId = roadtripMatch[1];
+      showScreen("screen-roadtrip-detail");
+    }
   }
 
   if ("serviceWorker" in navigator) {
