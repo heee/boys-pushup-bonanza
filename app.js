@@ -9055,12 +9055,14 @@ function launchConfetti(targetId = "confetti", emojiSet = CONFETTI_EMOJI, pieceC
 // exceedingly rare edge case if multiple "pr" windows overlap).
 function detectPrAchievement(session) {
   const now = new Date();
+  // Only challenges tracking the same activity bucket as this session can be
+  // affected by it — a squat PR challenge can't be won with a pushup set.
   const activeChallenges = challengeDefs.filter(
-    (c) => c.goalType === "pr" && challengeStatus(c, now) === "active" && challengeParticipantsOf(c).includes(state.currentUser)
+    (c) => c.goalType === "pr" && challengeActivity(c) === "pushups" && challengeStatus(c, now) === "active" && challengeParticipantsOf(c).includes(state.currentUser)
   );
   for (const c of activeChallenges) {
     const { startDate } = challengeWindow(c);
-    const baseline = userPriorBestSet(state.currentUser, startDate);
+    const baseline = userPriorBestSet(state.currentUser, startDate, challengeActivity(c));
     const priorSessionsInWindow = challengeSessions(c).filter((s) => s.user === state.currentUser && s.id !== session.id);
     const alreadyAchieved = priorSessionsInWindow.some((s) => s.count > baseline);
     if (!alreadyAchieved && session.count > baseline) {
