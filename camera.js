@@ -86,8 +86,18 @@ export function createCameraController({
   }
 
   async function requestStream() {
+    // Pose mode tracks a whole body several feet back, not a close-up face —
+    // at the old 640x480 ideal, hip/knee landmarks routinely fell below the
+    // visibility confidence floor, so the detector's bbox would shrink to
+    // whatever few high-confidence points remained (jumping between a small
+    // upper-body box and a large full-body one) and reps went uncounted.
+    // More source pixels give the model enough detail to track the far-away
+    // body confidently.
+    const resolution = detectorType === "pose"
+      ? { width: { ideal: 1280 }, height: { ideal: 960 } }
+      : { width: { ideal: 640 }, height: { ideal: 480 } };
     stream = await getUserMedia({
-      video: { facingMode: { exact: "user" }, width: { ideal: 640 }, height: { ideal: 480 } },
+      video: { facingMode: { exact: "user" }, ...resolution },
       audio: false,
     });
     return stream;

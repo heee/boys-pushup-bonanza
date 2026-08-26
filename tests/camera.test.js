@@ -27,6 +27,28 @@ test("camera controller requests the existing constraints and stops every track"
   assert.equal(video.srcObject, null);
 });
 
+test("pose detector requests a higher-resolution stream than the default face detector", async () => {
+  let constraints;
+  const video = { srcObject: null };
+  const stream = { getTracks: () => [] };
+  const camera = createCameraController({
+    moduleUrl: "unused",
+    wasmUrl: "unused",
+    modelUrl: "unused",
+    detectorType: "pose",
+    getVideo: () => video,
+    getUserMedia: async (value) => { constraints = value; return stream; },
+    onDetection: () => {},
+    onNoDetection: () => {},
+  });
+
+  await camera.requestStream();
+  assert.deepEqual(constraints, {
+    video: { facingMode: { exact: "user" }, width: { ideal: 1280 }, height: { ideal: 960 } },
+    audio: false,
+  });
+});
+
 test("camera controller preserves GPU detection and frame callback behavior", async () => {
   let frameCallback;
   let detected;
