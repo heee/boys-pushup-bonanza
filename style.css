@@ -1839,6 +1839,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .ladder-rivals.distant .ladder-rival-dot + .ladder-rival-dot { margin-left: -0.48rem; }
 .ladder-rival-chip { display: inline-flex; align-items: center; gap: 0.25rem; max-width: 100%; padding: 0.18rem 0.38rem 0.18rem 0.2rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--text); font-size: 0.62rem; font-weight: 800; line-height: 1.05; }
 .ladder-rival-chip .avatar-circle { flex: 0 0 auto; }
+.ladder-rival-dot.self { border-color: var(--primary); box-shadow: 0 0 0 1.5px var(--primary), 0 1px 4px rgba(0,0,0,0.25); }
+.ladder-rival-chip.self { background: var(--primary); color: var(--text-on-accent); }
 .ladder-rung-row.cleared .ladder-rival-chip { background: color-mix(in srgb, var(--bg) 20%, transparent); color: var(--text-on-accent); }
 .ladder-rung-row.locked {
   opacity: 0.5;

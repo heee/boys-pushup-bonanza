@@ -61,3 +61,12 @@ test("ladder rows keep five-rung pages ordered top to bottom", () => {
   assert.deepEqual(rows.map(({ rung, status }) => [rung, status]), [[10, "locked"], [9, "locked"], [8, "locked"], [7, "locked"], [6, "active"]]);
   assert.equal(rows.find((row) => row.rung === 7).compactRivals, true);
 });
+
+test("the active rung folds the current player in alongside any rivals tied there", () => {
+  const self = { name: "Dev", avatar: { emoji: "🐯" } };
+  const rows = ladderRungRows(6, [{ rung: 7, names: ["Mia"], users: [{ name: "Mia" }] }], () => false, self);
+  const active = rows.find((row) => row.rung === 6);
+  assert.deepEqual(active.rival.users, [{ ...self, self: true }]);
+  const untouched = rows.find((row) => row.rung === 7);
+  assert.deepEqual(untouched.rival.users, [{ name: "Mia" }]);
+});

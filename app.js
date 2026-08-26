@@ -8033,20 +8033,21 @@ function ladderRivalCallout(enteredRung) {
 function renderLadderRungWindow() {
   const container = $("ladder-rung-window");
   const current = state.ladderRung;
+  const selfUser = { name: state.currentUser, avatar: avatarForUser(state.currentUser) };
   const renderKey = `${current}|${state.ladderRivals.map((rival) => `${rival.rung}:${rival.names.join(",")}`).join(";")}`;
   if (container.dataset.renderKey === renderKey) return;
   let rows = "";
   // slot 4 (top of the page, highest number) rendered first so it lands at
   // the top of the screen — flex-direction: column stacks first-child-on-top.
-  for (const row of ladderRungRows(current, state.ladderRivals, shouldCompactLadderRivals)) {
+  for (const row of ladderRungRows(current, state.ladderRivals, shouldCompactLadderRivals, selfUser)) {
     const n = row.rung;
     const cls = row.status;
     const rivals = row.rival;
     const compactRivals = row.compactRivals;
     const rivalMarkup = rivals ? `<div class="ladder-rivals ${compactRivals ? "distant" : "near"}" aria-label="${escapeHtml(`Best rung for ${ladderNames(rivals.names)}`)}">
-      ${rivals.users.map(({ name, avatar }) => compactRivals
-        ? `<span class="ladder-rival-dot" title="${escapeHtml(name)}" style="background:${avatar.bg}">${avatar.emoji}</span>`
-        : `<span class="ladder-rival-chip">${avatarCircleHTML(avatar, "1.25rem")}<span>${escapeHtml(name)}</span></span>`).join("")}
+      ${rivals.users.map(({ name, avatar, self }) => compactRivals
+        ? `<span class="ladder-rival-dot${self ? " self" : ""}" title="${escapeHtml(self ? "You" : name)}" style="background:${avatar.bg}">${avatar.emoji}</span>`
+        : `<span class="ladder-rival-chip${self ? " self" : ""}">${avatarCircleHTML(avatar, "1.25rem")}<span>${escapeHtml(name)}${self ? " (you)" : ""}</span></span>`).join("")}
     </div>` : '<div class="ladder-rivals"></div>';
     rows += `
       <div class="ladder-rung-row ${cls}">

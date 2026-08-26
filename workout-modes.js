@@ -76,14 +76,23 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   };
 }
 
-export function ladderRungRows(current, rivals, compactRivals) {
+// `self` (optional {name, avatar}) is folded into whichever row is active so
+// the player's own avatar shows up alongside any rivals tied on that rung —
+// unlike rivals (built from past sessions' best rungs), this always reflects
+// the live rung the player is currently climbing.
+export function ladderRungRows(current, rivals, compactRivals, self) {
   const pageStart = Math.floor((current - 1) / 5) * 5 + 1;
   return [4, 3, 2, 1, 0].map((slot) => {
     const rung = pageStart + slot;
-    const rival = rivals.find((entry) => entry.rung === rung) || null;
+    const status = rung < current ? "cleared" : rung === current ? "active" : "locked";
+    let rival = rivals.find((entry) => entry.rung === rung) || null;
+    if (status === "active" && self) {
+      const users = rival ? [...rival.users, { ...self, self: true }] : [{ ...self, self: true }];
+      rival = { rung, names: users.map((user) => user.name), users };
+    }
     return {
       rung,
-      status: rung < current ? "cleared" : rung === current ? "active" : "locked",
+      status,
       rival,
       compactRivals: rival ? compactRivals(rival.users) : false,
     };
