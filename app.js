@@ -5694,6 +5694,8 @@ function periodBoundary(period, now, offset) {
   return d;
 }
 
+const WEEKDAY_SHORT_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
 const CHART_BUCKET_LABEL_FORMAT = {
   day: { weekday: "short" },
   week: { month: "numeric", day: "numeric" },
@@ -5744,6 +5746,8 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     const isSelected = selectedOffset === offset;
     const label = isCurrent
       ? (period === "day" ? "Today" : "This")
+      : period === "day"
+      ? WEEKDAY_SHORT_LABELS[bucket.start.getDay()]
       : bucket.start.toLocaleDateString(undefined, CHART_BUCKET_LABEL_FORMAT[period] || CHART_BUCKET_LABEL_FORMAT.day);
     const heightPct = bucket.total > 0 ? Math.max(6, Math.round((bucket.total / maxTotal) * 100)) : 3;
     const valueDisplay = bucket.total > 0 ? (isPlank ? formatDuration(bucket.total * 1000) : isHolland ? bucket.total.toFixed(1) : formatNumber(bucket.total)) : "";
@@ -6540,7 +6544,7 @@ function formatModeMetric(metric, value = metric.value) {
   if (value == null || !Number.isFinite(value)) return "—";
   if (metric.format === "duration") return formatDuration(value);
   if (metric.format === "seconds") return formatDuration(value * 1000);
-  if (metric.format === "pace") return `${value.toFixed(1)}/min`;
+  if (metric.format === "pace") return `${Math.round(value)}/min`;
   if (metric.format === "percent") return `${Math.round(value * 100)}%`;
   if (metric.format === "decimal") return value.toFixed(1);
   if (metric.format === "decimalPoints") return `${value.toFixed(1)} pts`;
@@ -6615,7 +6619,7 @@ function paintDashboard(sessions) {
       row.className = "leaderboard-row" + (i < 3 ? ` rank-${i + 1}` : "");
       row.innerHTML = `
         <div class="leaderboard-rank">${i + 1}</div>
-        ${avatarCircleHTML(avatarForUser(user), "1.8rem")}
+        ${avatarCircleHTML(avatarForUser(user), "1.5rem")}
         <div class="leaderboard-name">${escapeHtml(user)}</div>
         <div class="leaderboard-total">${fmtCount(total)}</div>
       `;
