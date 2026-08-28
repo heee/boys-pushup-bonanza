@@ -1717,7 +1717,7 @@ function renderGoalProgressCard() {
   ring.classList.toggle("goal-ring-reached", reached);
   const suffix = GOAL_COUNT_SUFFIX[activeGoal.key];
   $("goal-progress-count").textContent = `${activeGoal.current} / ${activeGoal.target}${suffix ? ` ${suffix}` : ""}`;
-  $("goal-progress-label").textContent = reached ? `${activeGoal.label} — nice, overachieving! 💪` : activeGoal.label;
+  $("goal-progress-label").textContent = activeGoal.label;
 }
 
 // Which bottom tab lights up for a given screen — every screen not listed

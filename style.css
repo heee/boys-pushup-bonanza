@@ -4127,7 +4127,6 @@ body:has(#screen-challenges.active) #app {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  background: var(--bg-elevated);
   border-radius: 16px;
   padding: 0.85rem 1.1rem;
   margin: 1.1rem 0 0;
@@ -4149,12 +4148,12 @@ body:has(#screen-challenges.active) #app {
   position: absolute;
   inset: 0.5rem;
   border-radius: 50%;
-  background: var(--bg-elevated);
+  background: var(--bg);
 }
 .goal-ring.goal-ring-reached { --ring-color: var(--success); }
 .goal-progress-text { display: flex; flex-direction: column; gap: 0.15rem; text-align: left; }
 .goal-progress-count { font-size: 1.05rem; font-weight: 800; color: var(--text); margin: 0; }
-.goal-progress-label { font-size: 0.8rem; font-weight: 600; color: var(--text-dim); margin: 0; text-align: left; }
+.goal-progress-label { font-size: 0.8rem; font-weight: 400; color: var(--text-dim); margin: 0; text-align: left; }
 .goal-display-toggle { font-weight: 400; }
 
 .session-detail-metrics { margin-top: 0.25rem; }
