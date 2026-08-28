@@ -8033,7 +8033,8 @@ function ladderRivalCallout(enteredRung) {
 function renderLadderRungWindow() {
   const container = $("ladder-rung-window");
   const current = state.ladderRung;
-  const selfUser = { name: state.currentUser, avatar: avatarForUser(state.currentUser) };
+  const selfBestRung = getLadderBestRung(state.currentUser);
+  const selfUser = selfBestRung > 0 ? { name: state.currentUser, avatar: avatarForUser(state.currentUser), rung: selfBestRung } : null;
   const renderKey = `${current}|${state.ladderRivals.map((rival) => `${rival.rung}:${rival.names.join(",")}`).join(";")}`;
   if (container.dataset.renderKey === renderKey) return;
   let rows = "";
