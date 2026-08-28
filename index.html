@@ -90,13 +90,6 @@
           Ready, <span id="workout-username">Friend</span><span class="tight-q">?</span> 🔥</p>
         <p id="workout-instructions" class="workout-instructions">Phone flat on the floor, screen up. Face over the camera.</p>
 
-        <div id="goal-progress-card" class="goal-progress-card hidden">
-          <div id="goal-progress-ring" class="session-ring goal-ring">
-            <div class="session-ring-inner" id="goal-progress-ring-text"></div>
-          </div>
-          <p id="goal-progress-label" class="goal-progress-label"></p>
-        </div>
-
         <button id="btn-weighted-quick" type="button" class="weighted-quick-toggle hidden">🏋️ Weighted mode off</button>
         <div id="pushup-mode-select" class="segmented pushup-mode-select" role="tablist">
           <button type="button" class="segment active" id="pmode-current" data-pmode="classic">Classic</button>
@@ -120,6 +113,14 @@
 
         <button id="btn-start" class="btn btn-giant btn-primary">START</button>
         <p id="workout-hint" class="workout-hint">We'll ask for camera access to count your reps.</p>
+
+        <div id="goal-progress-card" class="goal-progress-card hidden">
+          <div id="goal-progress-ring" class="goal-ring"></div>
+          <div class="goal-progress-text">
+            <p id="goal-progress-count" class="goal-progress-count"></p>
+            <p id="goal-progress-label" class="goal-progress-label"></p>
+          </div>
+        </div>
       </div>
 
       <div id="workout-active" class="workout-active hidden">

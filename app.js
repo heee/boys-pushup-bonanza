@@ -1639,6 +1639,7 @@ const DEFAULT_GOALS = {
 };
 const GOAL_ORDER = ["daily", "weekly", "monthly", "streak"];
 const GOAL_LABELS = { daily: "Daily goal", weekly: "Weekly goal", monthly: "Monthly goal", streak: "Streak goal" };
+const GOAL_COUNT_SUFFIX = { daily: "today", weekly: "this week", monthly: "this month", streak: "days" };
 
 function goalsFor(user) {
   const stored = getCachedData().goals?.[user];
@@ -1714,7 +1715,8 @@ function renderGoalProgressCard() {
   const ring = $("goal-progress-ring");
   ring.style.setProperty("--ring-pct", `${pct}%`);
   ring.classList.toggle("goal-ring-reached", reached);
-  $("goal-progress-ring-text").textContent = `${activeGoal.current}/${activeGoal.target}`;
+  const suffix = GOAL_COUNT_SUFFIX[activeGoal.key];
+  $("goal-progress-count").textContent = `${activeGoal.current} / ${activeGoal.target}${suffix ? ` ${suffix}` : ""}`;
   $("goal-progress-label").textContent = reached ? `${activeGoal.label} — nice, overachieving! 💪` : activeGoal.label;
 }
 
