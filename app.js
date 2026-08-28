@@ -5513,8 +5513,10 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
   const priorWindowStart = periodBoundary(period, now, -(2 * bucketCount - 1)).getTime();
 
   let priorWindowTotal = 0;
+  let earliestTimestamp = Infinity;
   for (const session of sessions) {
     const timestamp = sessionTimestamp(session);
+    earliestTimestamp = Math.min(earliestTimestamp, timestamp);
     if (timestamp >= priorWindowStart && timestamp < windowStart) {
       priorWindowTotal += metricOf(session);
     } else if (timestamp >= windowStart && timestamp < windowEnd) {
@@ -5522,6 +5524,12 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
       if (bucket) bucket.total += metricOf(session);
     }
   }
+  // Only a fair "vs prior period" comparison if logging actually goes back
+  // that far — otherwise the prior window is just a sliver of leftover data
+  // from before the display window starts (e.g. a few days of early testing
+  // right after launch), and dividing by it produces a huge, meaningless
+  // percentage rather than a real trend.
+  const hasFullPriorWindow = earliestTimestamp <= priorWindowStart;
   const maxTotal = Math.max(1, ...buckets.map((b) => b.total));
 
   $(chartElId).innerHTML = buckets.map((bucket, i) => {
@@ -5555,9 +5563,9 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
   // Trend vs the same-length window immediately before this one — "are we improving".
   const windowTotal = buckets.reduce((sum, b) => sum + b.total, 0);
   const trendEl = $(trendElId);
-  if (priorWindowTotal > 0) {
+  if (priorWindowTotal > 0 && hasFullPriorWindow) {
     const pct = Math.round(((windowTotal - priorWindowTotal) / priorWindowTotal) * 100);
-    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct)}% vs prior period`;
+    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toLocaleString()}% vs prior period`;
     trendEl.classList.toggle("week-trend-up", pct >= 0);
     trendEl.classList.toggle("week-trend-down", pct < 0);
     trendEl.classList.remove("hidden");
