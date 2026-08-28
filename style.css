@@ -2989,6 +2989,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 #pushup-mode-select .segment:not(.active) { font-weight: 400; }
 #period-select .segment:not(.active),
 #bonanza-mode-select .segment:not(.active) { font-weight: 400; }
+#goal-scope-select .segment:not(.active) { font-weight: 400; }
 
 /* Subtle variant — for secondary toggles that shouldn't compete with the
    primary orange-accent segmented control above them (e.g. Bonanza stats'
@@ -4141,6 +4142,7 @@ body:has(#screen-challenges.active) #app {
 }
 .goal-progress-card .goal-ring.goal-ring-reached { --ring-color: var(--success); }
 .goal-progress-label { font-size: 0.85rem; font-weight: 700; color: var(--text-dim); text-align: center; margin: 0; }
+.goal-display-toggle { font-weight: 400; }
 
 .session-detail-metrics { margin-top: 0.25rem; }
 
