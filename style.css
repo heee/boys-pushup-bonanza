@@ -1008,6 +1008,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   opacity: 0.4;
   pointer-events: none;
 }
+/* Half-strength active fill so this toggle reads as secondary to the
+   giant Start button directly beneath it. */
+#pushup-mode-select .segment.active {
+  background: color-mix(in srgb, var(--primary) 50%, var(--bg-elevated));
+  color: var(--text);
+}
 .pmode-more {
   display: flex;
   align-items: center;
@@ -4129,9 +4135,8 @@ body:has(#screen-challenges.active) #app {
   gap: 0.85rem;
   border-radius: 16px;
   padding: 0.85rem 1.1rem;
-  margin: 1.1rem 0 0;
+  margin: 2.2rem 0 0;
   max-width: 22rem;
-  align-self: flex-start;
 }
 .goal-ring {
   --ring-pct: 0%;
