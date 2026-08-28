@@ -5694,8 +5694,6 @@ function periodBoundary(period, now, offset) {
   return d;
 }
 
-const WEEKDAY_SHORT_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
 const CHART_BUCKET_LABEL_FORMAT = {
   day: { weekday: "short" },
   week: { month: "numeric", day: "numeric" },
@@ -5746,8 +5744,6 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     const isSelected = selectedOffset === offset;
     const label = isCurrent
       ? (period === "day" ? "Today" : "This")
-      : period === "day"
-      ? WEEKDAY_SHORT_LABELS[bucket.start.getDay()]
       : bucket.start.toLocaleDateString(undefined, CHART_BUCKET_LABEL_FORMAT[period] || CHART_BUCKET_LABEL_FORMAT.day);
     const heightPct = bucket.total > 0 ? Math.max(6, Math.round((bucket.total / maxTotal) * 100)) : 3;
     const valueDisplay = bucket.total > 0 ? (isPlank ? formatDuration(bucket.total * 1000) : isHolland ? bucket.total.toFixed(1) : formatNumber(bucket.total)) : "";
@@ -5789,7 +5785,7 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
       const isCurrent = selectedOffset === 0;
       $(headerElId).textContent = isCurrent
         ? (period === "day" ? "Today" : `This ${period}`)
-        : selectedBucket.start.toLocaleDateString(undefined, { weekday: period === "day" ? "long" : undefined, month: "short", day: period === "day" || period === "week" ? "numeric" : undefined, year: period === "year" ? "numeric" : undefined });
+        : selectedBucket.start.toLocaleDateString(undefined, { weekday: period === "day" ? "short" : undefined, month: "short", day: period === "day" || period === "week" ? "numeric" : undefined, year: period === "year" ? "numeric" : undefined });
     } else {
       $(headerElId).textContent = config.headerLabel;
     }
