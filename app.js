@@ -648,6 +648,10 @@ async function workerSetAvatar(user, avatar) {
   return workerApi.setAvatar(user, avatar);
 }
 
+async function workerSetGoals(user, goals) {
+  return workerApi.setGoals(user, goals);
+}
+
 async function workerRenameUser(oldName, newName) {
   return workerApi.renameUser(oldName, newName);
 }
@@ -927,6 +931,7 @@ async function flushQueue() {
     const payload = operation.payload;
     if (operation.type === "session") return commitSession(payload);
     if (operation.type === "avatar") return workerSetAvatar(payload.user, payload.avatar);
+    if (operation.type === "goals") return workerSetGoals(payload.user, payload.goals);
     if (operation.type === "rename-user") return workerRenameUser(payload.oldName, payload.newName);
     if (operation.type === "join-challenge") return workerJoinChallenge(payload.user, payload.challengeId);
     if (operation.type === "create-challenge") return workerCreateChallenge(payload);
@@ -1601,14 +1606,116 @@ function renderStreakBadge() {
   yesterday.setDate(yesterday.getDate() - 1);
   const restDaySavedStreak = restDays.some((d) => d.toDateString() === yesterday.toDateString());
   el.classList.toggle("streak-badge-rest", restDaySavedStreak);
+  let html;
   if (streak > 0) {
     const restBadge = restDaySavedStreak ? `<span class="streak-rest-badge">🛌</span>` : "";
-    el.innerHTML = `🔥${restBadge}<span class="streak-num">${streak}</span>`;
+    html = `🔥${restBadge}<span class="streak-num">${streak}</span>`;
     el.title = restDaySavedStreak ? "Rest day used — streak saved!" : "";
   } else {
-    el.innerHTML = `❄️<span class="streak-num streak-zero">0</span>`;
+    html = `❄️<span class="streak-num streak-zero">0</span>`;
     el.title = "";
   }
+  const goals = goalsFor(state.currentUser);
+  if (goals.showPill) {
+    const activeGoal = activeGoalFor(state.currentUser);
+    if (activeGoal) {
+      const reached = activeGoal.current >= activeGoal.target;
+      html += `<span class="streak-badge-goal${reached ? " goal-reached" : ""}">🎯${activeGoal.current}/${activeGoal.target}</span>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+// ------------------- personal goals -------------------
+
+const DEFAULT_GOALS = {
+  scope: "pushups",
+  daily: { enabled: false, target: 50 },
+  weekly: { enabled: false, target: 300 },
+  monthly: { enabled: false, target: 1200 },
+  streak: { enabled: false, target: 30 },
+  showPill: false,
+  showRing: true,
+};
+const GOAL_ORDER = ["daily", "weekly", "monthly", "streak"];
+const GOAL_LABELS = { daily: "Daily goal", weekly: "Weekly goal", monthly: "Monthly goal", streak: "Streak goal" };
+
+function goalsFor(user) {
+  const stored = getCachedData().goals?.[user];
+  return {
+    ...DEFAULT_GOALS,
+    ...stored,
+    daily: { ...DEFAULT_GOALS.daily, ...stored?.daily },
+    weekly: { ...DEFAULT_GOALS.weekly, ...stored?.weekly },
+    monthly: { ...DEFAULT_GOALS.monthly, ...stored?.monthly },
+    streak: { ...DEFAULT_GOALS.streak, ...stored?.streak },
+  };
+}
+
+async function changeUserGoals(name, nextGoals) {
+  const cached = getCachedData();
+  const previousGoals = cached.goals[name];
+  cached.goals = { ...cached.goals, [name]: nextGoals };
+  cacheData(cached);
+  try {
+    await workerSetGoals(name, nextGoals);
+  } catch (e) {
+    if (!isRetryableError(e)) {
+      if (previousGoals) cached.goals[name] = previousGoals;
+      else delete cached.goals[name];
+      cacheData(cached);
+      toast(`Couldn't update goals.`, 4000);
+      return false;
+    }
+    enqueueMutation("goals", { user: name, goals: nextGoals }, `goals:${name}`);
+  }
+  return true;
+}
+
+function sumRepsInPeriod(user, period, scope) {
+  const activity = scope === "pushups" ? "pushups" : null;
+  const sessions = indexedSessionsForUser(user, activity);
+  const start = periodStart(period).getTime();
+  return sessions.reduce((sum, s) => (sessionTimestamp(s) >= start ? sum + s.count : sum), 0);
+}
+
+function activeGoalFor(user) {
+  const goals = goalsFor(user);
+  for (const key of GOAL_ORDER) {
+    const g = goals[key];
+    if (!g.enabled || !g.target) continue;
+    let current;
+    if (key === "streak") {
+      current = computeStreakCore(indexedSessionsForUser(user, "pushups")).streak;
+    } else {
+      const period = key === "daily" ? "day" : key === "weekly" ? "week" : "month";
+      current = sumRepsInPeriod(user, period, goals.scope);
+    }
+    return { key, label: GOAL_LABELS[key], current, target: g.target };
+  }
+  return null;
+}
+
+function renderGoalProgressCard() {
+  const card = $("goal-progress-card");
+  if (!state.currentUser) {
+    card.classList.add("hidden");
+    return;
+  }
+  const goals = goalsFor(state.currentUser);
+  const activeGoal = goals.showRing ? activeGoalFor(state.currentUser) : null;
+  if (!activeGoal) {
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  const reached = activeGoal.current >= activeGoal.target;
+  const pct = Math.min(100, Math.round((activeGoal.current / activeGoal.target) * 100));
+  const ring = $("goal-progress-ring");
+  ring.style.setProperty("--ring-pct", `${pct}%`);
+  ring.classList.toggle("goal-ring-reached", reached);
+  $("goal-progress-ring-text").textContent = `${activeGoal.current}/${activeGoal.target}`;
+  $("goal-progress-label").textContent = reached ? `${activeGoal.label} — nice, overachieving! 💪` : activeGoal.label;
 }
 
 // Which bottom tab lights up for a given screen — every screen not listed
@@ -1650,6 +1757,8 @@ const TAB_FOR_SCREEN = {
   "screen-settings-mysessions": "btn-nav-settings",
   "screen-settings-workout": "btn-nav-settings",
   "screen-settings-appearance": "btn-nav-settings",
+  "screen-settings-goals": "btn-nav-settings",
+  "screen-settings-goal-edit": "btn-nav-settings",
   "screen-edit-profile": "btn-nav-settings",
   "screen-mode-breakdown": "btn-nav-settings",
 };
@@ -1685,6 +1794,7 @@ function showScreen(id) {
   });
   syncAccessibilityState();
   renderStreakBadge();
+  renderGoalProgressCard();
   renderHorseBellDropdown();
 
   if (id === "screen-user") {
@@ -1706,13 +1816,16 @@ function showScreen(id) {
   if (id === "screen-roadtrip") renderRoadtrip();
   if (id === "screen-roadtrip-detail") renderRoadtripDetail();
   if (id === "screen-settings" || id === "screen-settings-profile" || id === "screen-settings-mysessions" ||
-    id === "screen-settings-workout" || id === "screen-settings-appearance") renderSettings();
+    id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") renderSettings();
+  if (id === "screen-settings-goals") renderGoalsSettingsScreen();
+  if (id === "screen-settings-goal-edit") renderGoalEditScreen();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
     $("workout-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("workout-avatar"), state.currentAvatar, "2rem");
     renderWeightedQuickToggle();
     renderWorkoutInstructionLine();
+    renderGoalProgressCard();
     // Fresh Home visits always reset to Classic; arriving pre-selected from
     // Explore Modes (openPushupModeFromExplore) skips this exactly once.
     if (!preserveNextModeSelection) state.pushupMode = "classic";
@@ -2110,6 +2223,8 @@ function renderSettingsCategoryValues() {
   $("settings-category-appearance-value").textContent = theme;
   const mySessionCount = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser).length;
   $("settings-category-mysessions-value").textContent = `${mySessionCount} ${mySessionCount === 1 ? "session" : "sessions"}`;
+  const activeGoalCount = GOAL_ORDER.filter((key) => goalsFor(state.currentUser)[key].enabled).length;
+  $("settings-category-goals-value").textContent = activeGoalCount ? `${activeGoalCount} active` : "Off";
 }
 
 $("settings-category-list").addEventListener("click", (e) => {
@@ -2121,6 +2236,93 @@ $("btn-settings-profile-back").addEventListener("click", () => showScreen("scree
 $("btn-settings-mysessions-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-workout-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-appearance-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-settings-goals-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-settings-goal-edit-back").addEventListener("click", () => showScreen("screen-settings-goals"));
+
+// ------------------- settings > personal goals -------------------
+
+const GOAL_STEP = { daily: 5, weekly: 25, monthly: 100, streak: 1 };
+const GOAL_MIN = { daily: 5, weekly: 25, monthly: 100, streak: 1 };
+const GOAL_UNIT_LABEL = { daily: "Target (reps)", weekly: "Target (reps)", monthly: "Target (reps)", streak: "Target (days)" };
+let goalEditKey = "daily";
+
+function goalValueText(key, g) {
+  if (!g.enabled) return "Off";
+  return key === "streak" ? `${g.target} days` : `${g.target}`;
+}
+
+function renderGoalsSettingsScreen() {
+  const goals = goalsFor(state.currentUser);
+  for (const key of GOAL_ORDER) $(`goal-value-${key}`).textContent = goalValueText(key, goals[key]);
+  $("goal-scope-select").querySelectorAll(".segment").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.goalScope === goals.scope);
+  });
+  $("chk-goal-show-pill").checked = goals.showPill;
+  $("chk-goal-show-ring").checked = goals.showRing;
+}
+
+$("goal-target-list").addEventListener("click", (e) => {
+  const row = e.target.closest(".settings-category-row");
+  if (!row || !row.dataset.goalKey) return;
+  goalEditKey = row.dataset.goalKey;
+  showScreen("screen-settings-goal-edit");
+});
+
+$("goal-scope-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  const goals = goalsFor(state.currentUser);
+  changeUserGoals(state.currentUser, { ...goals, scope: btn.dataset.goalScope });
+  renderGoalsSettingsScreen();
+  renderStreakBadge();
+  renderGoalProgressCard();
+});
+
+$("chk-goal-show-pill").addEventListener("change", (e) => {
+  const goals = goalsFor(state.currentUser);
+  changeUserGoals(state.currentUser, { ...goals, showPill: e.target.checked });
+  renderStreakBadge();
+});
+
+$("chk-goal-show-ring").addEventListener("change", (e) => {
+  const goals = goalsFor(state.currentUser);
+  changeUserGoals(state.currentUser, { ...goals, showRing: e.target.checked });
+  renderGoalProgressCard();
+});
+
+const GOAL_EDIT_TITLE = { daily: "Daily reps", weekly: "Weekly reps", monthly: "Monthly reps", streak: "Streak" };
+
+function renderGoalEditScreen() {
+  const goals = goalsFor(state.currentUser);
+  const g = goals[goalEditKey];
+  $("goal-edit-title").textContent = GOAL_EDIT_TITLE[goalEditKey];
+  $("goal-edit-target-label").textContent = GOAL_UNIT_LABEL[goalEditKey];
+  $("chk-goal-edit-enabled").checked = g.enabled;
+  $("goal-edit-amount").textContent = g.target || GOAL_MIN[goalEditKey];
+}
+
+function saveGoalEdit(patch) {
+  const goals = goalsFor(state.currentUser);
+  const nextGoal = { ...goals[goalEditKey], ...patch };
+  changeUserGoals(state.currentUser, { ...goals, [goalEditKey]: nextGoal });
+  renderGoalsSettingsScreen();
+  renderStreakBadge();
+  renderGoalProgressCard();
+}
+
+$("chk-goal-edit-enabled").addEventListener("change", (e) => saveGoalEdit({ enabled: e.target.checked }));
+$("btn-goal-edit-minus").addEventListener("click", () => {
+  const current = Number($("goal-edit-amount").textContent) || GOAL_MIN[goalEditKey];
+  const next = Math.max(GOAL_MIN[goalEditKey], current - GOAL_STEP[goalEditKey]);
+  $("goal-edit-amount").textContent = next;
+  saveGoalEdit({ target: next });
+});
+$("btn-goal-edit-plus").addEventListener("click", () => {
+  const current = Number($("goal-edit-amount").textContent) || GOAL_MIN[goalEditKey];
+  const next = current + GOAL_STEP[goalEditKey];
+  $("goal-edit-amount").textContent = next;
+  saveGoalEdit({ target: next });
+});
 
 function renderWeightedSettings() {
   const profile = getWeightedProfile(state.currentUser);
@@ -4674,6 +4876,7 @@ async function confirmDeleteSession(id) {
   toast("Session deleted.");
   renderMySessions();
   renderStreakBadge();
+  renderGoalProgressCard();
   return true;
 }
 
@@ -5244,6 +5447,7 @@ async function renderDashboard() {
   syncLeaderboardModeControl();
   paintActiveBonanzaView();
   renderStreakBadge();
+  renderGoalProgressCard();
 }
 
 // Every leaderboard surface uses the same mode slice. Sessions without a
@@ -12184,6 +12388,7 @@ async function init() {
       cacheData(data);
       renderUserList();
       renderStreakBadge();
+      renderGoalProgressCard();
       renderHorseBellDropdown();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown

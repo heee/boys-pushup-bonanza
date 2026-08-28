@@ -371,6 +371,14 @@ button, input {
 .streak-badge .streak-rest-badge { font-size: 0.6rem; margin: 0 -0.05rem; }
 .streak-badge.streak-badge-rest { background: rgba(74, 144, 217, 0.18); }
 .streak-badge.streak-badge-rest .streak-num { color: #4a90d9; }
+.streak-badge-goal {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  padding-left: 0.45rem;
+  border-left: 1px solid var(--border);
+  color: var(--gold);
+}
+.streak-badge-goal.goal-reached { color: var(--success); }
 
 /* ---------------- Tab bar ---------------- */
 
@@ -3506,6 +3514,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .settings-category-icon-workout { background: color-mix(in srgb, var(--flame) 22%, transparent); color: var(--flame); }
 .settings-category-icon-appearance { background: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--accent); }
 .settings-category-icon-bonanza { background: color-mix(in srgb, var(--success) 22%, transparent); color: var(--success); }
+.settings-category-icon-goals { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-chevron { flex-shrink: 0; color: var(--text-tertiary); font-size: 1.1rem; }
@@ -4112,6 +4121,26 @@ body:has(#screen-challenges.active) #app {
 .session-ring-item.no-data .session-ring-inner { color: var(--text-tertiary); font-size: 0.68rem; font-weight: 600; padding: 0 0.3rem; }
 .session-ring-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); text-align: center; }
 .session-ring-sub { font-size: 0.72rem; color: var(--text-dim); text-align: center; }
+
+.goal-progress-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+.goal-progress-card .goal-ring {
+  --ring-color: var(--gold);
+  width: 7rem;
+  height: 7rem;
+}
+.goal-progress-card .goal-ring .session-ring-inner {
+  width: 5.6rem;
+  height: 5.6rem;
+  font-size: 1.05rem;
+}
+.goal-progress-card .goal-ring.goal-ring-reached { --ring-color: var(--success); }
+.goal-progress-label { font-size: 0.85rem; font-weight: 700; color: var(--text-dim); text-align: center; margin: 0; }
 
 .session-detail-metrics { margin-top: 0.25rem; }
 

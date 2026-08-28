@@ -274,6 +274,28 @@ export default {
       }
     }
 
+    if (url.pathname === "/set-goals" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+      const goals = validateGoals(body?.goals);
+      if (!user || !goals) return json({ error: "invalid payload" }, 400, cors);
+
+      try {
+        await setGoals(env.DB, user, goals);
+        return json({ ok: true }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
     if (url.pathname === "/rename-user" && request.method === "POST") {
       if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
         return json({ error: "unauthorized" }, 401, cors);
@@ -1005,6 +1027,28 @@ function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
 
+function validateGoalTarget(value) {
+  if (!value || typeof value !== "object") return { enabled: false, target: 0 };
+  const target = Math.floor(Number(value.target));
+  return {
+    enabled: Boolean(value.enabled),
+    target: Number.isFinite(target) && target > 0 && target <= 1000000 ? target : 0,
+  };
+}
+
+function validateGoals(body) {
+  if (!body || typeof body !== "object") return null;
+  return {
+    scope: body.scope === "all" ? "all" : "pushups",
+    daily: validateGoalTarget(body.daily),
+    weekly: validateGoalTarget(body.weekly),
+    monthly: validateGoalTarget(body.monthly),
+    streak: validateGoalTarget(body.streak),
+    showPill: Boolean(body.showPill),
+    showRing: Boolean(body.showRing),
+  };
+}
+
 function validateChallenge(body) {
   if (!body || typeof body !== "object") return null;
   const title = String(body.title || "").trim().slice(0, 60);
@@ -1061,13 +1105,14 @@ function sessionFromRow(row) {
 
 async function fetchData(db) {
   if (!db) throw new Error("D1 database binding is not configured");
-  const [sessionRows, avatarRows, membershipRows, challengeRows, horseGameRows, towGameRows] = await db.batch([
+  const [sessionRows, avatarRows, membershipRows, challengeRows, horseGameRows, towGameRows, goalRows] = await db.batch([
     db.prepare("SELECT s.*, u.name AS user FROM sessions s JOIN users u ON u.id = s.user_id ORDER BY s.rowid"),
     db.prepare("SELECT u.name, a.avatar FROM avatars a JOIN users u ON u.id = a.user_id ORDER BY a.rowid"),
     db.prepare("SELECT m.challenge_id, u.name FROM challenge_memberships m JOIN users u ON u.id = m.user_id ORDER BY m.rowid"),
     db.prepare("SELECT * FROM custom_challenges ORDER BY rowid"),
     db.prepare("SELECT data_json FROM horse_games ORDER BY updated_at DESC LIMIT 50"),
     db.prepare("SELECT data_json FROM tow_games ORDER BY updated_at DESC LIMIT 50"),
+    db.prepare("SELECT u.name, g.data_json FROM goals g JOIN users u ON u.id = g.user_id"),
   ]);
   const avatars = {};
   for (const row of avatarRows.results) avatars[row.name] = row.avatar;
@@ -1076,7 +1121,9 @@ async function fetchData(db) {
   const customChallenges = challengeRows.results.map((row) => ({ id: row.id, title: row.title, tagline: row.tagline, emoji: row.emoji, goalType: row.goal_type, goal: row.goal, start: row.start, end: row.end, gradient: parseStoredJson(row.gradient_json, ["#4a2a5e", "#e8762e"]), createdBy: row.created_by }));
   const horseGames = horseGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
   const towGames = towGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
-  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames, towGames };
+  const goals = {};
+  for (const row of goalRows.results) goals[row.name] = parseStoredJson(row.data_json, null);
+  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames, towGames, goals };
 }
 
 async function loadHorseGame(db, id) {
@@ -1121,7 +1168,7 @@ async function insertSession(db, session) {
 async function deleteUser(db, name) {
   const user = await db.prepare("SELECT id FROM users WHERE name = ?").bind(name).first();
   if (!user) return;
-  await db.batch([db.prepare("DELETE FROM challenge_memberships WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM avatars WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM users WHERE id = ?").bind(user.id)]);
+  await db.batch([db.prepare("DELETE FROM challenge_memberships WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM avatars WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM goals WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM users WHERE id = ?").bind(user.id)]);
 }
 
 async function deleteSession(db, id) {
@@ -1135,6 +1182,11 @@ async function deleteSession(db, id) {
 async function setAvatar(db, name, avatar) {
   const userId = await ensureUser(db, name);
   await db.prepare("INSERT INTO avatars (user_id, avatar) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET avatar = excluded.avatar").bind(userId, avatar).run();
+}
+
+async function setGoals(db, name, goals) {
+  const userId = await ensureUser(db, name);
+  await db.prepare("INSERT INTO goals (user_id, data_json) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET data_json = excluded.data_json").bind(userId, JSON.stringify(goals)).run();
 }
 
 async function renameUser(db, oldName, newName) {

@@ -1,6 +1,6 @@
 import { isRetryableError } from "./api.js";
 
-const QUEUED_TYPES = new Set(["session", "avatar", "rename-user", "join-challenge", "create-challenge"]);
+const QUEUED_TYPES = new Set(["session", "avatar", "goals", "rename-user", "join-challenge", "create-challenge"]);
 
 function fallbackId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;

@@ -89,6 +89,14 @@
           <span id="workout-avatar" class="avatar-circle"></span>
           Ready, <span id="workout-username">Friend</span><span class="tight-q">?</span> 🔥</p>
         <p id="workout-instructions" class="workout-instructions">Phone flat on the floor, screen up. Face over the camera.</p>
+
+        <div id="goal-progress-card" class="goal-progress-card hidden">
+          <div id="goal-progress-ring" class="session-ring goal-ring">
+            <div class="session-ring-inner" id="goal-progress-ring-text"></div>
+          </div>
+          <p id="goal-progress-label" class="goal-progress-label"></p>
+        </div>
+
         <button id="btn-weighted-quick" type="button" class="weighted-quick-toggle hidden">🏋️ Weighted mode off</button>
         <div id="pushup-mode-select" class="segmented pushup-mode-select" role="tablist">
           <button type="button" class="segment active" id="pmode-current" data-pmode="classic">Classic</button>
@@ -1347,6 +1355,12 @@
           <span class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
+        <button type="button" class="settings-category-row" data-settings-category="goals">
+          <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+          <span class="settings-category-title">Personal goals</span>
+          <span id="settings-category-goals-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
         <button type="button" class="settings-category-row" data-settings-category="appearance">
           <span class="settings-category-icon settings-category-icon-appearance" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
           <span class="settings-category-title">Appearance</span>
@@ -1556,6 +1570,87 @@
               <button class="segment" data-theme="light">☀️ Light</button>
               <button class="segment active" data-theme="dark">🌙 Dark</button>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > PERSONAL GOALS ============ -->
+    <section id="screen-settings-goals" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-goals-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Personal goals</h1>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Targets</div>
+        <div class="settings-block settings-category-list" id="goal-target-list">
+          <button type="button" class="settings-category-row" data-goal-key="daily">
+            <span class="settings-category-title">Daily reps</span>
+            <span id="goal-value-daily" class="settings-category-value"></span>
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="settings-category-row" data-goal-key="weekly">
+            <span class="settings-category-title">Weekly reps</span>
+            <span id="goal-value-weekly" class="settings-category-value"></span>
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="settings-category-row" data-goal-key="monthly">
+            <span class="settings-category-title">Monthly reps</span>
+            <span id="goal-value-monthly" class="settings-category-value"></span>
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="settings-category-row" data-goal-key="streak">
+            <span class="settings-category-title">Streak</span>
+            <span id="goal-value-streak" class="settings-category-value"></span>
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
+        <div class="settings-block" style="margin-top:0.75rem">
+          <div class="settings-block-row">
+            <label class="field-label" style="margin:0">Count reps from</label>
+            <div id="goal-scope-select" class="segmented theme-select-compact" role="tablist">
+              <button type="button" class="segment active" data-goal-scope="pushups">Pushups only</button>
+              <button type="button" class="segment" data-goal-scope="all">All exercises</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Display</div>
+        <div class="settings-block">
+          <label class="field-label toggle-row">
+            <span>Pill in top bar<br><span class="settings-hint">Small badge next to streak</span></span>
+            <input id="chk-goal-show-pill" type="checkbox">
+          </label>
+          <label class="field-label toggle-row">
+            <span>Ring on start screen<br><span class="settings-hint">Full progress card between greeting and Start</span></span>
+            <input id="chk-goal-show-ring" type="checkbox">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > PERSONAL GOALS > EDIT TARGET ============ -->
+    <section id="screen-settings-goal-edit" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-goal-edit-back" type="button" class="challenge-detail-back">← Personal goals</button>
+      </div>
+      <h1 id="goal-edit-title" class="screen-title">Daily reps</h1>
+
+      <div class="settings-section">
+        <div class="settings-block tier2">
+          <label class="field-label toggle-row">
+            <span>Enable this goal</span>
+            <input id="chk-goal-edit-enabled" type="checkbox">
+          </label>
+          <div class="settings-divider"></div>
+          <label id="goal-edit-target-label" class="field-label">Target</label>
+          <div class="stepper-row">
+            <button id="btn-goal-edit-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <div id="goal-edit-amount" class="stepper-value">50</div>
+            <button id="btn-goal-edit-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
           </div>
         </div>
       </div>
