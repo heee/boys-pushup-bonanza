@@ -89,7 +89,7 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel } from "./screens/mode-stats.js?v=136";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat } from "./screens/mode-stats.js?v=137";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
@@ -6552,11 +6552,12 @@ function formatModeMetric(metric, value = metric.value) {
   return formatNumber(Math.round(value));
 }
 
-function renderBoysModeStats(sessions) {
+function renderBoysModeStats(sessions, allModeSessions = sessions) {
   const el = $("boys-mode-stats");
   const metrics = modeStatsModel(sessions, state.leaderboardMode);
+  metrics.push(modifiersUsedStat(sessions), modesUsedStat(allModeSessions));
   el.innerHTML = metrics.map((metric) => {
-    const icon = challengeStatIconHTML(modeStatIcon(metric.format));
+    const icon = challengeStatIconHTML(modeStatIcon(metric));
     if (!metric.available) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
     const avatars = metric.leaders.slice(0, 3).map((entry) => avatarCircleHTML(avatarForUser(entry.user), "0.95rem")).join("");
     const leaderValue = metric.leaders.length ? formatModeMetric(metric, metric.leaders[0].value) : "—";
@@ -6602,6 +6603,13 @@ function paintDashboard(sessions) {
     const t = sessionTimestamp(s);
     return t >= startTime && t < endTime;
   });
+  // Same time window, but every mode — not just the one the leaderboard is
+  // currently sliced to — so "Modes used" reflects the whole group's variety
+  // (pushups, planks, squats, ...) rather than just the selected tab.
+  const allModesInPeriod = state.lastSessions.filter((s) => {
+    const t = sessionTimestamp(s);
+    return t >= startTime && t < endTime;
+  });
 
   const totals = new Map();
   for (const s of filtered) {
@@ -6628,7 +6636,7 @@ function paintDashboard(sessions) {
     });
   }
 
-  renderBoysModeStats(filtered);
+  renderBoysModeStats(filtered, allModesInPeriod);
 
   const historyList = $("history-list");
   historyList.innerHTML = "";
@@ -6687,13 +6695,26 @@ function renderRecentList(sessions) {
   for (const s of recent) {
     const row = document.createElement("div");
     row.className = "recent-row compare-clickable";
+    const modifierMeta = s.modifier ? MODIFIERS.find((m) => m.id === s.modifier) : null;
+    const modifierIcon = modifierMeta
+      ? `<button type="button" class="recent-modifier" aria-label="${escapeHtml(modifierMeta.title)} modifier">${modifierMeta.icon}</button>`
+      : "";
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${(isPlank || isPulse) ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : formatNumber(s.count)}</div>
+      <div class="recent-count-col">
+        ${modifierIcon}
+        <span class="recent-count">${(isPlank || isPulse) ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : formatNumber(s.count)}</span>
+      </div>
       <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     makeNameCompareClickable(row.querySelector(".recent-name"), s.user, true);
+    if (modifierMeta) {
+      row.querySelector(".recent-modifier").addEventListener("click", (e) => {
+        e.stopPropagation();
+        toast(`${modifierMeta.title} — ${modifierMeta.sub}`, 3200);
+      });
+    }
     row.addEventListener("click", () => openSessionDetail(s, "screen-dashboard"));
     recentList.appendChild(row);
   }
@@ -6964,14 +6985,20 @@ function challengeStatIconHTML(icon) {
     percent: '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
     trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
     award: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    shuffle: '<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
+    layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
   };
   return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
 }
 
 // Maps a mode-stat's numeric format to the stroke icon that best represents
 // it, so every leaderboard mode (not just the default) gets a sensible glyph.
-function modeStatIcon(format) {
-  return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[format] || "total";
+// A couple of cross-mode stats (id-keyed) get their own glyph regardless of
+// their (shared, generic) "integer" format.
+function modeStatIcon(metric) {
+  const byId = { modifiersUsed: "shuffle", modesUsed: "layers" };
+  if (byId[metric.id]) return byId[metric.id];
+  return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";
 }
 
 function buildChallengeCard(c, now) {

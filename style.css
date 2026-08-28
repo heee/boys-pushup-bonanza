@@ -3368,8 +3368,30 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .recent-row:last-child { border-bottom: none; }
 .recent-name { flex: 1; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recent-count { font-weight: 900; font-size: 1.1rem; color: var(--primary); }
-.recent-time { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; }
+/* Fixed-width columns (rather than two same-line siblings whose combined
+   width varies per row) so the count and date each line up top to bottom
+   down the list, like a table. */
+.recent-count-col {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  width: 3.6rem;
+  flex: 0 0 auto;
+}
+.recent-count { font-weight: 900; font-size: 1.1rem; color: var(--primary); font-variant-numeric: tabular-nums; }
+.recent-modifier {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 0.1rem;
+  cursor: pointer;
+}
+.recent-time { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; width: 5.5rem; flex: 0 0 auto; text-align: right; }
 
 .leaderboard-row {
   display: flex;

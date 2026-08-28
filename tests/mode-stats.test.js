@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { modeStatsModel } from "../screens/mode-stats.js";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat } from "../screens/mode-stats.js";
 
 const session = (user, count, extra = {}) => ({
   user,
@@ -118,4 +118,35 @@ test("Unavailable metadata yields an empty metric and no leader", () => {
 
 test("Empty periods show unavailable stats instead of zero-value leaders", () => {
   assert.equal(metric("all", "sessions", []).available, false);
+});
+
+test("modifiersUsedStat counts tagged sessions and crowns the heaviest user", () => {
+  const sessions = [session("A", 20, { modifier: "wide" }), session("A", 10, { modifier: "diamond" }), session("B", 15, { modifier: "close" }), session("B", 5)];
+  const stat = modifiersUsedStat(sessions);
+  assert.equal(stat.available, true);
+  assert.equal(stat.value, 3);
+  assert.deepEqual(stat.leaders.map((x) => x.user), ["A"]);
+});
+
+test("modifiersUsedStat is unavailable when nobody used one", () => {
+  const stat = modifiersUsedStat([session("A", 20), session("B", 10)]);
+  assert.equal(stat.available, false);
+  assert.equal(stat.value, null);
+});
+
+test("modesUsedStat counts distinct modes across the whole group and per user", () => {
+  const sessions = [
+    session("A", 20, { mode: "classic" }),
+    session("A", 10, { type: "plank" }),
+    session("A", 5, { type: "squat" }),
+    session("B", 15, { mode: "classic" }),
+  ];
+  const stat = modesUsedStat(sessions);
+  assert.equal(stat.value, 3);
+  assert.deepEqual(stat.leaders.map((x) => x.user), ["A"]);
+  assert.equal(stat.leaders[0].value, 3);
+});
+
+test("modesUsedStat is unavailable with no sessions", () => {
+  assert.equal(modesUsedStat([]).available, false);
 });

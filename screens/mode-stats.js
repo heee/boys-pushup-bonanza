@@ -1,3 +1,5 @@
+import { sessionModeId } from "./session-detail.js";
+
 const VALID_SESSION_MAX_MS = 30 * 60 * 1000;
 
 function durationMs(session) {
@@ -126,4 +128,44 @@ export function modeStatsModel(sessions, mode) {
     const leaders = best == null ? [] : userValues.filter((entry) => Math.abs(entry.value - best) < 1e-9).sort((a, b) => a.user.localeCompare(b.user));
     return { id: spec.id, label: spec.label, format: spec.format, qualifier: spec.qualifier, value, leaders, available: value != null && Number.isFinite(value) };
   });
+}
+
+function topByCount(counts) {
+  const entries = Array.from(counts, ([user, value]) => ({ user, value }));
+  const best = entries.length ? Math.max(...entries.map((e) => e.value)) : null;
+  return best == null ? [] : entries.filter((e) => e.value === best).sort((a, b) => a.user.localeCompare(b.user));
+}
+
+// Cross-mode: how many logged sessions (within whatever mode+period slice is
+// already on screen) carry a grip/incline modifier — hidden entirely when
+// nobody's used one, same as any other spec whose value comes back null.
+export function modifiersUsedStat(sessions) {
+  const tagged = sessions.filter((s) => s?.user && s.modifier);
+  const byUser = new Map();
+  for (const s of tagged) byUser.set(s.user, (byUser.get(s.user) || 0) + 1);
+  return {
+    id: "modifiersUsed", label: "Modifiers used", format: "integer", qualifier: "total",
+    value: tagged.length || null, leaders: topByCount(byUser), available: tagged.length > 0,
+  };
+}
+
+// Cross-mode diversity: distinct exercise modes (pushup sub-modes, planks,
+// squats, pull-ups, crunches, Holland) touched by the group, independent of
+// whichever single leaderboard mode is currently selected — callers pass the
+// full period-filtered session list (not the mode-filtered one) for this.
+export function modesUsedStat(sessions) {
+  const allModes = new Set();
+  const byUser = new Map();
+  for (const s of sessions) {
+    if (!s?.user) continue;
+    const modeId = sessionModeId(s);
+    allModes.add(modeId);
+    if (!byUser.has(s.user)) byUser.set(s.user, new Set());
+    byUser.get(s.user).add(modeId);
+  }
+  const userCounts = new Map(Array.from(byUser, ([user, set]) => [user, set.size]));
+  return {
+    id: "modesUsed", label: "Modes used", format: "integer", qualifier: "group unique",
+    value: allModes.size || null, leaders: topByCount(userCounts), available: allModes.size > 0,
+  };
 }
