@@ -4320,10 +4320,24 @@ function pendingTowItems() {
   const games = getCachedData().towGames || [];
   const items = [];
   for (const game of games) {
-    if (game.sessionType === "live" || game.status !== "active" || !game.teams) continue;
+    if (game.sessionType === "live" || !game.teams || !["active", "lobby"].includes(game.status)) continue;
     const inGame = game.teams.a.players.includes(user) || game.teams.b.players.includes(user);
     if (!inGame) continue;
     const opponents = otherTowPlayers(game, user);
+    if (game.status === "lobby") {
+      // Open session sitting in its pre-start lobby — Horse's equivalent
+      // (hostWaitingToStart/"joined") names the newest joiner via
+      // players[name].joinedAt, but Tug of War tracks no per-player join
+      // time, so this just lists whoever's in via `opponents`.
+      const allPlayers = [...game.teams.a.players, ...game.teams.b.players];
+      if (user === game.createdBy) {
+        if (allPlayers.length === 1) continue; // nobody's joined yet — nothing to show
+        items.push({ mode: "tow", kind: "ready", gameId: game.id, creator: game.createdBy, opponents });
+      } else {
+        items.push({ mode: "tow", kind: "waiting", gameId: game.id, creator: game.createdBy, upNow: game.createdBy, opponents });
+      }
+      continue;
+    }
     const side = towTeamOfPlayer(game, user);
     const teamName = game.teams[side]?.name || "Your team";
     if (towCurrentTurnPlayer(game) === user) {
@@ -4356,6 +4370,12 @@ function towBellRowHTML(item) {
         <button type="button" class="icon-btn" data-bell-tow-view="${item.gameId}" aria-label="View">→</button>
         <button type="button" class="icon-btn" data-bell-tow-decline="${item.gameId}" aria-label="Decline">✕</button>
       </div>`;
+  }
+  if (item.kind === "ready") {
+    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-tow-view="${item.gameId}">
+        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
+        <span class="horse-player-name">${escapeHtml(item.opponents)} joined your Open Tug of war — start when ready</span>
+      </button>`;
   }
   return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-tow-view="${item.gameId}">
         <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
@@ -4418,7 +4438,7 @@ function renderHorseBellDropdown() {
   $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
   // "turn"/"choosing" (your move right now) get the full urgent treatment —
   // opaque + wiggling. "invite"/"waiting" still light the dot, but stay calm.
-  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn" || item.kind === "choosing"));
+  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn" || item.kind === "choosing" || item.kind === "ready"));
   $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => item.kind !== "waiting"));
   const list = $("horse-bell-list");
   list.innerHTML = items.length
