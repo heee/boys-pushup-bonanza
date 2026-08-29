@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=233">
+<link rel="stylesheet" href="style.css?v=234">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1035,6 +1035,22 @@
 
         <div id="session-detail-badges" class="session-detail-badges"></div>
 
+        <section id="session-detail-progression" class="session-progression hidden" aria-labelledby="session-progression-title">
+          <div class="session-progression-header">
+            <div>
+              <div id="session-progression-title" class="session-progression-title">Reps every 10 seconds</div>
+              <div class="session-progression-subtitle">Each bar is one 10-second interval</div>
+            </div>
+            <div id="session-progression-legend" class="session-progression-legend"></div>
+          </div>
+          <div class="session-progression-scroll">
+            <div id="session-progression-plot" class="session-progression-plot"></div>
+          </div>
+        </section>
+        <div id="session-detail-progression-unavailable" class="session-progression-unavailable hidden">
+          Progression wasn’t recorded for this session.
+        </div>
+
         <div id="session-detail-rings" class="session-detail-rings"></div>
 
         <div id="session-detail-metrics" class="stats-table tier1-list session-detail-metrics"></div>
@@ -1790,6 +1806,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=249"></script>
+<script type="module" src="app.js?v=251"></script>
 </body>
 </html>

@@ -28,6 +28,7 @@ export const VOICE_PRESETS = [
   { id: "default", label: "Default", dir: "" },
   { id: "drill-de", label: "German Drill Instructor", dir: "drill-de" },
   { id: "sultry", label: "Sexy Drill Instructor", dir: "sultry" },
+  { id: "scottish", label: "Angry Scotsman", dir: "scottish" },
 ];
 
 // Numbers 0..MAX_WHOLE_NUMBER get their own single clip so the common case

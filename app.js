@@ -61,7 +61,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=141";
+} from "./voice-lines.js?v=142";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -76,7 +76,7 @@ import {
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=149";
+} from "./voice.js?v=150";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
@@ -84,6 +84,17 @@ import { createWorkerApi, isRetryableError } from "./api.js";
 import { createJsonStorage, normalizeSharedData } from "./storage.js";
 import { createMutationQueue } from "./sync.js";
 import { createRepCounter } from "./rep-counter.js";
+import {
+  buildPlankProgression,
+  buildPulseProgression,
+  createHollandProgression,
+  createRepProgression,
+  finalizeHollandProgression,
+  finalizeRepProgression,
+  reconcileSavedRepProgression,
+  recordProgression,
+  progressionChartModel,
+} from "./session-progression.js?v=1";
 import { createCameraController } from "./camera.js";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
@@ -1386,6 +1397,7 @@ const state = {
   mySessionsSortBy: "date",
   mySessionsSortDirection: "desc",
   sessionStartedAt: null,
+  sessionProgression: null,
   challengeTab: "active",
   openChallengeId: null,
   leaderboardMode: savedLeaderboardMode(),
@@ -1399,16 +1411,19 @@ const state = {
   squatBest: 0,
   squatLast: 0,
   squatStartedAt: null,
+  squatProgression: null,
   squatSessionLocation: null,
   pullupActive: false,
   pullupBest: 0,
   pullupLast: 0,
   pullupStartedAt: null,
+  pullupProgression: null,
   pullupSessionLocation: null,
   situpActive: false,
   situpBest: 0,
   situpLast: 0,
   situpStartedAt: null,
+  situpProgression: null,
   situpSessionLocation: null,
   hollandActive: false,
   hollandBest: 0,
@@ -6425,6 +6440,7 @@ function renderSessionDetail() {
   $("session-detail-hero-mode").innerHTML = modeBadge ? badgeHTML(modeBadge) : "";
   $("session-detail-hero-modifier").innerHTML = modifierBadge ? badgeHTML(modifierBadge) : "";
   $("session-detail-badges").innerHTML = allBadges.filter((b) => b.id !== "mode" && b.id !== "modifier").map(badgeHTML).join("");
+  renderSessionProgression(session);
 
   const rings = sessionRings(session, getAllSessionsForDisplay());
   $("session-detail-rings").innerHTML = rings.map((ring) => {
@@ -8216,6 +8232,51 @@ function getHighScore(name) {
   return bestFor(indexedSessionsForUser(name, "pushups"), name, (s) => s.mode !== "pulse");
 }
 
+function renderSessionProgression(session) {
+  const model = progressionChartModel(session);
+  const chart = $("session-detail-progression");
+  const unavailable = $("session-detail-progression-unavailable");
+  if (!model.available) {
+    chart.classList.add("hidden");
+    unavailable.classList.remove("hidden");
+    return;
+  }
+  unavailable.classList.add("hidden");
+  chart.classList.remove("hidden");
+  $("session-progression-title").textContent = model.title;
+  $("session-progression-legend").innerHTML = model.series.map((series) => `
+    <span class="progression-legend-item"><span class="progression-swatch progression-${series.id}"></span>${escapeHtml(series.label)}</span>
+  `).join("");
+
+  const stride = Math.max(1, Math.ceil(model.buckets.length / 6));
+  const band = model.band && Number.isFinite(Number(model.band.low)) && Number.isFinite(Number(model.band.high))
+    ? `<div class="progression-target-band" style="--band-bottom:${(model.band.low / model.max) * 100}%;--band-height:${((model.band.high - model.band.low) / model.max) * 100}%"><span>Target band</span></div>`
+    : "";
+  const bars = model.buckets.map((bucket, index) => {
+    const detail = model.kind === "holland"
+      ? model.series.map((series, seriesIndex) => `${bucket.values[seriesIndex]} ${series.label.toLowerCase()}`).join(" · ")
+      : model.kind === "pulse" ? `${bucket.total} rpm · ${bucket.rawReps} rep${bucket.rawReps === 1 ? "" : "s"}`
+        : `${bucket.total} ${model.unit}`;
+    const label = `${bucket.startLabel}–${bucket.endLabel}: ${detail}`;
+    const stackHeight = Math.max(0, Math.min(100, bucket.total / model.max * 100));
+    const segments = bucket.values.map((value, seriesIndex) => {
+      const segmentHeight = bucket.total > 0 ? value / bucket.total * 100 : 0;
+      return `<span class="progression-segment progression-${model.series[seriesIndex].id}" style="height:${segmentHeight}%"></span>`;
+    }).join("");
+    const tick = index % stride === 0 || index === model.buckets.length - 1
+      ? `<span class="progression-time-tick">${bucket.startLabel}</span>` : "";
+    return `<div class="progression-bar-column" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
+      <div class="progression-bar-track"><div class="progression-bar-stack" style="height:${stackHeight}%">${segments}</div></div>${tick}
+    </div>`;
+  }).join("");
+  $("session-progression-plot").innerHTML = `
+    <div class="progression-y-max">${model.max} ${escapeHtml(model.unit)}</div>
+    <div class="progression-y-zero">0</div>
+    ${band}
+    <div class="progression-bars" style="--progression-columns:${model.buckets.length}">${bars}</div>
+  `;
+}
+
 // Most recent pushup result, excluding Pulse because its count is elapsed
 // seconds rather than reps. Holland's projected pushups remain eligible just
 // like they are for the standard pushup best and aggregate totals.
@@ -8391,6 +8452,7 @@ function processRatio(ratio, inferenceMs) {
 
   if (result.counted) {
     repState.count = result.count;
+    recordProgression(state.sessionProgression, Date.now() - state.sessionStartedAt.getTime());
     if (state.pushupMode === "pulse") state.pulseRepTimestamps.push(now);
     onRepCounted(result.count);
   }
@@ -9317,6 +9379,7 @@ async function startWorkout() {
   await setupWorkoutModeState();
   state.workoutActive = true;
   state.sessionStartedAt = new Date();
+  state.sessionProgression = createRepProgression();
   $("workout-idle").classList.add("hidden");
   $("workout-active").classList.remove("hidden");
   setChromeMinimized(true);
@@ -9608,14 +9671,16 @@ async function completeHorseTurn(rawCount) {
   const user = currentTurnPlayer(game);
   const lettersBefore = game.players[user].letters;
   const targetBeforeTurn = game.target;
+  const completedAt = new Date();
 
   const session = {
     id: uuid(),
     user,
-    timestamp: new Date().toISOString(),
+    timestamp: completedAt.toISOString(),
     count: rawCount,
     avatar: avatarForUser(user).id,
     startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    sessionProgression: finalizeRepProgression(state.sessionProgression, completedAt - state.sessionStartedAt, rawCount),
     mode: "horse",
     horseGameId: game.id,
     horseTarget: game.target,
@@ -9695,14 +9760,16 @@ async function completeTowBurst(rawCount) {
   const game = state.towGame;
   const user = towCurrentTurnPlayer(game);
   const team = towCurrentTurnTeam(game);
+  const completedAt = new Date();
 
   const session = {
     id: uuid(),
     user,
-    timestamp: new Date().toISOString(),
+    timestamp: completedAt.toISOString(),
     count: rawCount,
     avatar: avatarForUser(user).id,
     startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    sessionProgression: finalizeRepProgression(state.sessionProgression, completedAt - state.sessionStartedAt, rawCount),
     mode: "tow",
     towGameId: game.id,
     ...(state.sessionLocation ? { location: state.sessionLocation } : {}),
@@ -10079,6 +10146,7 @@ async function completePulseRun() {
     pulseBandHigh: state.pulseBandHigh,
     pulseEndReason: result.endReason,
     pulseReps: reps,
+    sessionProgression: buildPulseProgression(state.pulseRepTimestamps, result.runStartMs, secondsHeld),
     ...(result.endedAtRpm != null ? { pulseBreakRpm: Math.round(result.endedAtRpm) } : {}),
     ...(state.sessionLocation ? { location: state.sessionLocation } : {}),
   };
@@ -10149,13 +10217,19 @@ async function completeWorkout() {
     : null;
   const chaseTarget = chaseSessionProgress?.target || null;
 
+  const completedAt = new Date();
   const session = {
     id: uuid(),
     user: state.currentUser,
-    timestamp: new Date().toISOString(),
+    timestamp: completedAt.toISOString(),
     count,
     avatar: state.currentAvatar,
     startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    sessionProgression: finalizeRepProgression(
+      state.sessionProgression,
+      state.sessionStartedAt ? completedAt.getTime() - state.sessionStartedAt.getTime() : 0,
+      rawCount,
+    ),
     ...(weighted ? { rawCount, weightLbs: profile.addedWeightLbs || 0 } : {}),
     ...(state.pushupMode !== "classic" ? { mode: state.pushupMode } : {}),
     ...(state.pushupMode === "ladder" ? { ladderMaxRung: state.ladderMaxRungCleared } : {}),
@@ -10298,6 +10372,7 @@ function adjustMissedReps(delta) {
   const cachedSession = cached.sessions.find((s) => s.id === state.summarySessionId);
   if (cachedSession) {
     cachedSession.count = newTotal;
+    cachedSession.sessionProgression = reconcileSavedRepProgression(cachedSession.sessionProgression, rawTotal);
     if (state.summaryMultiplier !== 1) {
       cachedSession.rawCount = rawTotal;
       cachedSession.weightLbs = state.summaryWeightLbs;
@@ -10338,6 +10413,7 @@ async function reconcileSummaryCount() {
       payload: {
         ...queue[queuedIdx].payload,
         count: newTotal,
+        sessionProgression: reconcileSavedRepProgression(queue[queuedIdx].payload?.sessionProgression, rawTotal),
         ...(weighted ? { rawCount: rawTotal, weightLbs: state.summaryWeightLbs } : {}),
         ...(queue[queuedIdx].payload?.countdownTarget ? { countdownBeat: newTotal >= queue[queuedIdx].payload.countdownTarget } : {}),
         ...correctedChaseFields,
@@ -10832,6 +10908,7 @@ async function completePlank() {
     avatar: state.currentAvatar,
     startedAt: state.plankStartedAt ? state.plankStartedAt.toISOString() : undefined,
     type: "plank",
+    sessionProgression: buildPlankProgression(seconds),
     ...(state.plankSessionLocation ? { location: state.plankSessionLocation } : {}),
   };
 
@@ -10984,6 +11061,7 @@ function maybeEncourageSquat(count) {
 }
 
 function onSquatRepCounted(count) {
+  recordProgression(state.squatProgression, Date.now() - state.squatStartedAt.getTime());
   $("squat-rep-count").textContent = String(count);
   let ghostJustPassed = false;
   if (squatState.ghostActive && !squatState.ghostPassed && count > state.squatLast) {
@@ -11161,6 +11239,7 @@ function beginSquatCounting(thresholds) {
   );
   squatState.phase = "up";
   squatState.count = squatState.counter.count;
+  if (squatState.count > 0) recordProgression(state.squatProgression, Date.now() - state.squatStartedAt.getTime(), squatState.count);
   squatState.lastSeenAt = performance.now();
   squatState.lastRepSpokenAt = 0;
   squatState.paused = false;
@@ -11211,6 +11290,7 @@ async function startSquat() {
 
   state.squatActive = true;
   state.squatStartedAt = new Date();
+  state.squatProgression = createRepProgression();
   $("squat-idle").classList.add("hidden");
   $("squat-in-progress").classList.remove("hidden");
   setChromeMinimized(true);
@@ -11256,14 +11336,20 @@ async function completeSquat() {
   const multiplier = weighted ? weightedMultiplier(multiplierProfile) : 1;
   const count = weighted ? Math.round(rawCount * multiplier) : rawCount;
 
+  const completedAt = new Date();
   const session = {
     id: uuid(),
     user: state.currentUser,
-    timestamp: new Date().toISOString(),
+    timestamp: completedAt.toISOString(),
     count,
     avatar: state.currentAvatar,
     startedAt: state.squatStartedAt ? state.squatStartedAt.toISOString() : undefined,
     type: "squat",
+    sessionProgression: finalizeRepProgression(
+      state.squatProgression,
+      state.squatStartedAt ? completedAt.getTime() - state.squatStartedAt.getTime() : 0,
+      rawCount,
+    ),
     ...(weighted ? { rawCount, weightLbs: multiplierProfile.addedWeightLbs || 0 } : {}),
     ...(state.squatSessionLocation ? { location: state.squatSessionLocation } : {}),
   };
@@ -11406,6 +11492,7 @@ function maybeEncouragePullup(count) {
 }
 
 function onPullupRepCounted(count) {
+  recordProgression(state.pullupProgression, Date.now() - state.pullupStartedAt.getTime());
   $("pullup-rep-count").textContent = String(count);
   let ghostJustPassed = false;
   if (pullupState.ghostActive && !pullupState.ghostPassed && count > state.pullupLast) {
@@ -11459,6 +11546,7 @@ function tickPullupWarmup() {
     pullupState.thresholds = pullupModeModule.derivePullupThresholds(pullupState.calSamples);
     pullupState.counter = pullupModeModule.replayPullupSamples(pullupState.calSamples, pullupState.thresholds);
     pullupState.count = pullupState.counter.count;
+    if (pullupState.count > 0) recordProgression(state.pullupProgression, Date.now() - state.pullupStartedAt.getTime(), pullupState.count);
     pullupState.phase = pullupState.counter.phase;
     pullupState.stage = "counting";
     pullupState.lastSeenAt = performance.now();
@@ -11527,6 +11615,7 @@ async function startPullup() {
   await acquireWakeLock();
   state.pullupActive = true;
   state.pullupStartedAt = new Date();
+  state.pullupProgression = createRepProgression();
   pullupState.stage = "warmup";
   pullupState.calSamples = [];
   pullupState.warmupStartedAt = performance.now();
@@ -11577,11 +11666,17 @@ async function completePullup() {
   $("pullup-in-progress").classList.add("hidden");
   $("pullup-idle").classList.remove("hidden");
   setChromeMinimized(false);
+  const completedAt = new Date();
   const session = {
-    id: uuid(), user: state.currentUser, timestamp: new Date().toISOString(), count,
+    id: uuid(), user: state.currentUser, timestamp: completedAt.toISOString(), count,
     avatar: state.currentAvatar,
     startedAt: state.pullupStartedAt?.toISOString(),
     type: "pullup",
+    sessionProgression: finalizeRepProgression(
+      state.pullupProgression,
+      state.pullupStartedAt ? completedAt.getTime() - state.pullupStartedAt.getTime() : 0,
+      count,
+    ),
     ...(state.pullupSessionLocation ? { location: state.pullupSessionLocation } : {}),
   };
   const cached = getCachedData();
@@ -11673,6 +11768,7 @@ const hollandState = {
   startedAt: null,
   holland27Announced: false,
   calibratedThresholds: { pullup: null, pushup: null, squat: null },
+  progression: null,
 };
 
 let hollandCamera = null;
@@ -11827,6 +11923,12 @@ function stopHollandTimer() {
 }
 
 function onHollandRepCounted() {
+  recordProgression(
+    hollandState.progression,
+    Date.now() - hollandState.startedAt.getTime(),
+    1,
+    hollandCurrentExercise(hollandState.rules),
+  );
   const result = hollandRecordReps(hollandState.rules, 1);
   renderHollandRepDisplay();
   if (soundIsEnabled()) {
@@ -11886,6 +11988,12 @@ function beginHollandCounting(exercise, thresholds, calSamples = null) {
   $("holland-count-stage").classList.remove("hidden");
   hideHollandStatusBanner();
   if (counter.count > 0) {
+    recordProgression(
+      hollandState.progression,
+      Date.now() - hollandState.startedAt.getTime(),
+      counter.count,
+      exercise,
+    );
     const result = hollandRecordReps(hollandState.rules, counter.count);
     if (result.reachedTarget) { triggerHollandTransition(); return; }
   }
@@ -11971,6 +12079,7 @@ async function startHolland() {
   state.hollandSessionLocation = currentSessionLocationSnapshot();
   hollandState.rules = hollandCreateState(state.hollandDifficulty);
   hollandState.startedAt = new Date();
+  hollandState.progression = createHollandProgression();
   hollandState.holland27Announced = false;
   hollandState.calibratedThresholds = { pullup: null, pushup: null, squat: null };
   hollandState.paused = false;
@@ -12042,6 +12151,11 @@ async function completeHolland() {
     avatar: state.currentAvatar,
     location: state.hollandSessionLocation,
   });
+  session.sessionProgression = finalizeHollandProgression(
+    hollandState.progression,
+    new Date(session.timestamp).getTime() - hollandState.startedAt.getTime(),
+    hollandState.rules.totals,
+  );
   const cached = getCachedData();
   cached.sessions.push(session);
   cacheData(cached);
@@ -12085,7 +12199,9 @@ async function confirmFinishHolland() {
 
 function applyHollandCorrection(delta) {
   if (!hollandState.rules || hollandState.stage !== "counting") return;
+  const exercise = hollandCurrentExercise(hollandState.rules);
   hollandApplyCorrection(hollandState.rules, delta);
+  recordProgression(hollandState.progression, Date.now() - hollandState.startedAt.getTime(), delta, exercise);
   renderHollandRepDisplay();
   if (delta > 0 && hollandState.rules.segmentReps >= hollandSegmentTarget(hollandState.rules)) {
     triggerHollandTransition();
@@ -12198,6 +12314,7 @@ function maybeEncourageSitup(count) {
 }
 
 function onSitupRepCounted(count) {
+  recordProgression(state.situpProgression, Date.now() - state.situpStartedAt.getTime());
   $("situp-rep-count").textContent = String(count);
   let ghostJustPassed = false;
   if (situpState.ghostActive && !situpState.ghostPassed && count > state.situpLast) {
@@ -12352,6 +12469,7 @@ function beginSitupCounting(thresholds) {
   situpState.nextGhostCueAt = nextGhostCueAt(0, "reps");
   $("situp-ghost-transition").classList.remove("playing");
   state.situpStartedAt = new Date();
+  state.situpProgression = createRepProgression();
   $("situp-rep-count").textContent = "0";
   updateSitupPhaseIndicator("up");
   updateSitupThermometer(0);
@@ -12425,14 +12543,20 @@ async function completeSitup() {
   $("situp-idle").classList.remove("hidden");
   setChromeMinimized(false);
 
+  const completedAt = new Date();
   const session = {
     id: uuid(),
     user: state.currentUser,
-    timestamp: new Date().toISOString(),
+    timestamp: completedAt.toISOString(),
     count,
     avatar: state.currentAvatar,
     startedAt: state.situpStartedAt ? state.situpStartedAt.toISOString() : undefined,
     type: "situp",
+    sessionProgression: finalizeRepProgression(
+      state.situpProgression,
+      state.situpStartedAt ? completedAt.getTime() - state.situpStartedAt.getTime() : 0,
+      count,
+    ),
     ...(state.situpSessionLocation ? { location: state.situpSessionLocation } : {}),
   };
 

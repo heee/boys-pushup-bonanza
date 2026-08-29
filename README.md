@@ -25,10 +25,10 @@ MediaPipe's Face Detector model from a CDN at runtime. The only non-static piece
 
 ## 2. Create the D1 database
 
-Create a Cloudflare D1 database, apply `worker/migrations/0001_initial_schema.sql`,
-and bind it to the Worker using the binding name `DB`. When updating an existing
-database for Horse mode, also apply `worker/migrations/0002_horse_games.sql`
-(D1 dashboard → your database → Console, paste and run the file's contents).
+Create a Cloudflare D1 database, apply the SQL files in `worker/migrations/` in
+numeric order, and bind it to the Worker using the binding name `DB`. Existing
+databases should likewise apply each newer migration once (D1 dashboard → your
+database → Console, paste and run the file's contents).
 
 ## 3. Deploy the Cloudflare Worker (you only, one time)
 
@@ -163,6 +163,8 @@ there's enough ambient light.
 - When you complete a session, the app immediately shows it locally, then calls
   `POST /session`. The Worker stores it through prepared D1 queries, so concurrent
   workouts cannot overwrite one another.
+- New sessions include a compact, validated ten-second progression array used by
+  Session Detail graphs. Historical sessions remain valid and simply omit it.
 - If the request fails for any reason (offline, Worker down, or D1 unavailable), the
   session is queued in `localStorage` instead of being lost. The app automatically
   retries everything queued the next time it loads, or the next time you open

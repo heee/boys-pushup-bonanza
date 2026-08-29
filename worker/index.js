@@ -32,6 +32,8 @@
 //                          Pulse-mode-only — the band-width tier played ("wide"/"standard"/"razor"), the rpm
 //                          bounds locked in at start, how the run ended ("ceiling"/"floor"/"banked"), the rolling
 //                          rpm at the moment of a ceiling/floor break (null when banked), and the actual rep count;
+//                          sessionProgression: optional compact, validated ten-second buckets used by the
+//                          Session Detail interval graph (absent on historical sessions);
 //                          modifier: cross-mode, any mode except Zen — how the pushup was physically executed
 //                          ("standard", "wide", "close", "diamond", "staggered", "archer", "incline", "decline");
 //                          fortuneChallengeId/fortuneGripSide: Fortune-Cookie-mode-only — which challenge was
@@ -787,6 +789,26 @@ function json(obj, status, cors) {
 // scope so both validateSession and the /horse-turn handler can reuse it.
 const VALID_MODIFIERS = ["standard", "wide", "close", "diamond", "staggered", "archer", "incline", "decline"];
 
+function sanitizeSessionProgression(raw, session) {
+  if (!raw || raw.v !== 1 || raw.i !== 10 || !Array.isArray(raw.b) || raw.b.length < 1 || raw.b.length > 1080) return null;
+  const validCount = (value) => Number.isInteger(value) && value >= 0 && value <= 2000;
+  const expectedKind = session.type === "holland" ? "holland"
+    : session.type === "plank" ? "plank"
+      : session.mode === "pulse" ? "pulse" : "reps";
+  if (raw.k !== expectedKind) return null;
+  if (raw.k === "holland") {
+    if (!raw.b.every((bucket) => Array.isArray(bucket) && bucket.length === 3 && bucket.every(validCount))) return null;
+    const totals = raw.b.reduce((sum, bucket) => [sum[0] + bucket[0], sum[1] + bucket[1], sum[2] + bucket[2]], [0, 0, 0]);
+    if (totals[0] !== session.hollandPullups || totals[1] !== session.hollandPushups || totals[2] !== session.hollandSquats) return null;
+  } else {
+    if (!raw.b.every(validCount)) return null;
+    const total = raw.b.reduce((sum, value) => sum + value, 0);
+    const expected = raw.k === "pulse" ? session.pulseReps : raw.k === "plank" ? session.count : (session.rawCount ?? session.count);
+    if (total !== expected) return null;
+  }
+  return { v: 1, i: 10, k: raw.k, b: raw.b };
+}
+
 export function validateSession(body) {
   if (!body || typeof body !== "object") return null;
   const user = String(body.user || "").trim().slice(0, 40);
@@ -917,6 +939,11 @@ export function validateSession(body) {
   if (body.mode !== "zen" && VALID_MODIFIERS.includes(body.modifier)) session.modifier = body.modifier;
   const location = sanitizeTerritoryLocation(body.location);
   if (location) session.location = location;
+  if (body.sessionProgression !== undefined) {
+    const progression = sanitizeSessionProgression(body.sessionProgression, session);
+    if (!progression) return null;
+    session.sessionProgression = progression;
+  }
   return session;
 }
 
@@ -1100,6 +1127,7 @@ function sessionFromRow(row) {
   if (row.poker_hand_ranks_json !== null) session.pokerHandRanks = parseStoredJson(row.poker_hand_ranks_json, []);
   if (row.poker_achievements_json !== null) session.pokerAchievementsUnlocked = parseStoredJson(row.poker_achievements_json, []);
   if (row.location_json !== null) session.location = parseStoredJson(row.location_json, undefined);
+  if (row.session_progression_json !== null) session.sessionProgression = parseStoredJson(row.session_progression_json, undefined);
   return session;
 }
 
@@ -1160,8 +1188,8 @@ async function replaceTowGameIfUnchanged(db, before, after) {
 
 async function insertSession(db, session) {
   const userId = await ensureUser(db, session.user);
-  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json,holland_difficulty,holland_pullups,holland_pushups,holland_squats,holland_cycles,holland_circuits,holland_achievement,pulse_band_width,pulse_band_low,pulse_band_high,pulse_end_reason,pulse_break_rpm,pulse_reps) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
-    session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null, session.hollandDifficulty ?? null, session.hollandPullups ?? null, session.hollandPushups ?? null, session.hollandSquats ?? null, session.hollandCycles ?? null, session.hollandCircuits ?? null, session.hollandAchievement ?? null, session.pulseBandWidth ?? null, session.pulseBandLow ?? null, session.pulseBandHigh ?? null, session.pulseEndReason ?? null, session.pulseBreakRpm ?? null, session.pulseReps ?? null,
+  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json,holland_difficulty,holland_pullups,holland_pushups,holland_squats,holland_cycles,holland_circuits,holland_achievement,pulse_band_width,pulse_band_low,pulse_band_high,pulse_end_reason,pulse_break_rpm,pulse_reps,session_progression_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+    session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null, session.hollandDifficulty ?? null, session.hollandPullups ?? null, session.hollandPushups ?? null, session.hollandSquats ?? null, session.hollandCycles ?? null, session.hollandCircuits ?? null, session.hollandAchievement ?? null, session.pulseBandWidth ?? null, session.pulseBandLow ?? null, session.pulseBandHigh ?? null, session.pulseEndReason ?? null, session.pulseBreakRpm ?? null, session.pulseReps ?? null, session.sessionProgression ? JSON.stringify(session.sessionProgression) : null,
   ).run();
 }
 
