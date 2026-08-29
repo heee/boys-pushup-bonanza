@@ -45,3 +45,17 @@ test("recurring plank cues use an inclusive random 45-60 second interval", () =>
 test("rejects an unknown recurring cue unit", () => {
   assert.throws(() => randomGhostCueInterval("minutes"), /Unknown ghost cue unit/);
 });
+
+test("standard pushup workout wires Ghost mode into its state, HUD, and effect layer", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const [app, html] = await Promise.all([
+    readFile(new URL("../app.js", import.meta.url), "utf8"),
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(app, /function getPushupLast\(name\)/);
+  assert.match(app, /state\.pushupMode === "classic" && ghostModeEnabled\(\)/);
+  assert.match(app, /function pushupInGhostPhase\(\)/);
+  assert.match(app, /playGhostSurpassEffect\(\$\("pushup-ghost-transition"\)/);
+  assert.match(html, /id="pushup-ghost-transition" class="ghost-transition"/);
+});

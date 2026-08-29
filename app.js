@@ -1376,6 +1376,7 @@ const state = {
   boysChartDayOffset: 0,
   historyView: "recent",
   highScore: 0,
+  pushupLast: 0,
   bonanzaMode: "mine",
   modeBreakdownScope: "group",
   modeBreakdownPeriod: "week",
@@ -1478,6 +1479,11 @@ const repState = {
   lastCheerAtCount: 0,
   recordBroken: false,
   ladderRecordSpoken: false,
+  // Classic pushup Ghost mode races the most recent pushup result before
+  // switching back to the existing personal-best chase.
+  ghostActive: false,
+  ghostPassed: false,
+  nextGhostCueAt: 0,
   trace: [],
 };
 
@@ -8102,7 +8108,11 @@ function resetRepState() {
   repState.lastCheerAtCount = 0;
   repState.recordBroken = false;
   repState.ladderRecordSpoken = false;
+  repState.ghostActive = state.pushupMode === "classic" && ghostModeEnabled() && !!state.pushupLast;
+  repState.ghostPassed = false;
+  repState.nextGhostCueAt = nextGhostCueAt(0, "reps");
   repState.trace = [];
+  $("pushup-ghost-transition").classList.remove("playing");
   $("rep-count").textContent = "0";
   updateHighscoreMessage(0);
   updateThermometer(0);
@@ -8164,7 +8174,12 @@ function updateThermometer(count) {
   }
   // Countdown mode fills toward the countdown target (PR+1); Classic and
   // Cards both fill toward the plain high score, same as always.
-  const goal = state.pushupMode === "countdown" ? state.countdownTarget : state.highScore;
+  const inGhostPhase = pushupInGhostPhase();
+  const goal = state.pushupMode === "countdown"
+    ? state.countdownTarget
+    : inGhostPhase
+      ? state.pushupLast
+      : state.highScore;
   if (!goal) {
     wrap.classList.add("hidden");
     return;
@@ -8173,7 +8188,8 @@ function updateThermometer(count) {
   const fill = $("thermometer-fill");
   const pct = Math.min(100, Math.round((count / goal) * 100));
   fill.style.width = `${pct}%`;
-  fill.classList.toggle("thermometer-win", count > goal);
+  fill.classList.toggle("thermometer-ghost", inGhostPhase);
+  fill.classList.toggle("thermometer-win", !inGhostPhase && count > goal);
   setThermometerSegments(fill, goal);
 }
 
@@ -8198,6 +8214,17 @@ function getHighScore(name) {
   // rep PR and corrupt the thermometer/countdown-target/record-line logic
   // for every other pushup mode (see getPulseBest for Pulse's own record).
   return bestFor(indexedSessionsForUser(name, "pushups"), name, (s) => s.mode !== "pulse");
+}
+
+// Most recent pushup result, excluding Pulse because its count is elapsed
+// seconds rather than reps. Holland's projected pushups remain eligible just
+// like they are for the standard pushup best and aggregate totals.
+function getPushupLast(name) {
+  const sessions = indexedSessionsForUser(name, "pushups")
+    .filter((s) => s.user === name && s.mode !== "pulse");
+  if (!sessions.length) return 0;
+  const latest = sessions.reduce((a, b) => (sessionTimestamp(b) > sessionTimestamp(a) ? b : a));
+  return latest.count || 0;
 }
 
 // Ladder's own record: the highest rung ever fully cleared, across all past
@@ -8288,14 +8315,27 @@ function getPulseBestSession(name) {
   return sessions.reduce((a, b) => ((b.count || 0) > (a.count || 0) ? b : a));
 }
 
+function pushupInGhostPhase() {
+  return repState.ghostActive && !repState.ghostPassed;
+}
+
 function updateHighscoreMessage(count) {
   const el = $("highscore-message");
+  const inGhostPhase = pushupInGhostPhase();
+  el.classList.toggle("ghost-message", inGhostPhase);
   const enabled = localStorage.getItem(LS.showHighscore) !== "0";
-  if (!enabled || !state.highScore) {
+  const target = inGhostPhase ? state.pushupLast : state.highScore;
+  if ((!inGhostPhase && !enabled) || !target) {
     el.textContent = "";
     return;
   }
-  const remaining = state.highScore - count;
+  const remaining = target - count;
+  if (inGhostPhase) {
+    el.textContent = remaining > 0
+      ? `${remaining} pushup${remaining === 1 ? "" : "s"} behind your ghost 👻`
+      : "Tied your ghost — don't let it catch up! 👻";
+    return;
+  }
   if (remaining > 0) {
     el.textContent = `${remaining} pushup${remaining === 1 ? "" : "s"} away from your high score!`;
   } else if (remaining === 0) {
@@ -9036,6 +9076,13 @@ function onRepCounted(count) {
   // readout is driven by the eval tick, not individual reps.
   if (state.pushupMode === "zen" || state.pushupMode === "pulse") return;
   setTimeout(() => {
+    let ghostJustPassed = false;
+    if (repState.ghostActive && !repState.ghostPassed && count > state.pushupLast) {
+      repState.ghostPassed = true;
+      ghostJustPassed = true;
+      playGhostSurpassEffect($("pushup-ghost-transition"), { sound: soundIsEnabled() });
+    }
+    maybePlayRecurringGhostCue(repState, count, "reps", "pushup-ghost-transition", ghostJustPassed);
     updateHighscoreMessage(count);
     updateThermometer(count);
 
@@ -9265,6 +9312,7 @@ async function startWorkout() {
   await acquireWakeLock();
 
   state.highScore = getHighScore(state.currentUser);
+  state.pushupLast = getPushupLast(state.currentUser);
   resetRepState();
   await setupWorkoutModeState();
   state.workoutActive = true;
