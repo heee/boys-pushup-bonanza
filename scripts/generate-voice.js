@@ -117,36 +117,55 @@ const SULTRY_STYLE_RULES = [
   "quirky, and electric — if in doubt, push the energy, speed, and playful bounce further, not less.",
 ];
 
-// Phonetics/rhythm only — no vocabulary or syntax changes (wee, numpty,
-// dinnae ye ken, double negatives, "so it is"), matching the other presets'
-// decision to keep corpus text identical across personas. Word choice lives
-// in voice-lines.js and is shared; only pronunciation/delivery differs here.
+// Round 1 (word-swaps + generic "roll R / glottal T" prose) came back too
+// robotic — same failure mode German hit in its own rounds 1-3 before it
+// started (a) respelling every applicable word directly rather than a small
+// function-word subset, and (b) restating those exact substitutions in the
+// instructions text too, redundantly, rather than describing the accent in
+// the abstract. Round 2 does both: a much wider phonetic word list below,
+// plus a named concrete-archetype anchor (a furious Scottish football
+// manager's post-match rant / an angry pub doorman) instead of just "thick
+// Scots accent". Per user decision, this round ALSO allows full custom Scots
+// wording (wee/numpty/dinnae ye ken/etc.) for select high-value lines —
+// see SCOTS_LINE_REWRITES — while numbers/names/status words stay
+// phonetics-only so counts and names are never misheard.
 const SCOTS_ACCENT_RULES = [
   "You are an exaggerated, cartoonish stereotype of a furious Scottish (West Coast Glasgow) drill",
-  "instructor — a thick, unmistakable Scots accent applied to every single word, never a neutral",
-  "American read. Roll or tap every \"R\" hard and sharply. Replace the \"T\" sound in the middle or",
-  "end of words with a sharp glottal stop, a catch in the throat, not a clean T (\"water\" sounds",
-  "like \"wa'er\", \"better\" sounds like \"be'er\", \"got\" sounds like \"go'\"). Keep vowels short and",
-  "pure — \"oo\" sounds tighten toward \"ae\"/\"ee\" (\"good\" sounds like \"gid\", \"do\" sounds like",
-  "\"dae\"). Drop the \"g\" off every \"-ing\" ending (\"running\" sounds like \"runnin'\"). Base pitch is",
-  "flatter and more deadpan than standard English, but every sentence rises sharply in pitch right",
-  "at the very end, almost like a question. Deliver in rapid, rhythmic, staccato bursts, not smooth",
-  "flowing sentences. The accent stays exactly this thick at any speed or energy level — never let",
-  "it soften or thin out when things get fast and intense.",
+  "instructor — think a furious Scottish football manager giving a post-match rant, or a raging",
+  "Glaswegian pub doorman throwing someone out. A thick, unmistakable Scots accent on every single",
+  "word, never a neutral American read — this is the single most important thing to get right, more",
+  "important than volume or speed. Roll or tap every \"R\" hard and sharply, every time, no exceptions.",
+  "Replace the \"T\" sound in the middle or end of a word with a sharp glottal stop — a catch in the",
+  "throat, not a clean T — on every single word that has one (\"water\" sounds like \"wa'er\", \"better\"",
+  "sounds like \"be'er\", \"got\" sounds like \"go'\", \"that\" sounds like \"tha'\", \"what\" sounds like",
+  "\"wha'\"). Keep vowels short and tight — \"oo\" sounds tighten toward \"ae\"/\"ee\" (\"good\" sounds like",
+  "\"gid\", \"do\" sounds like \"dae\"), and \"ow\"/\"ou\" sounds flatten toward \"oo\" (\"now\" sounds like",
+  "\"noo\", \"out\" sounds like \"oot\", \"about\" sounds like \"aboot\"). Drop the \"g\" off every \"-ing\"",
+  "ending. Base pitch is flatter and more deadpan than standard English, but every sentence rises",
+  "sharply in pitch right at the very end, almost like a question. Deliver in rapid, rhythmic,",
+  "staccato bursts — real, human, unevenly-emphasized fury, not a smooth or polished text-to-speech",
+  "reading; let the anger sound a little ragged and out of breath. The accent stays exactly this",
+  "thick, on every single word, at any speed or energy level — never let it soften, thin out, or",
+  "slip toward neutral, especially when things get fast and intense.",
 ];
 
-// Respells only the handful of function words a Scots reading reliably
-// changes (you/your/don't/etc. -> ye/yer/dinnae/etc.) plus dropping the g on
-// "-ing" endings. Rolled R and glottal-stopped T aren't spelled out — those
-// come from SCOTS_ACCENT_RULES as general delivery instructions instead,
-// same split German uses (respell what's spellable, instruct the rest).
+// Wider phonetic word list than round 1 — covers common function AND content
+// words so more of any given line actually gets respelled, not just a
+// handful of contractions. Still phonetics only (no meaning changes) so this
+// applies safely to numbers, names, and status words too.
 const SCOTS_WORD_SWAPS = {
-  "you're": "yer", "you'll": "ye'll", "you've": "ye've", "your": "yer", "you": "ye",
+  "you're": "yer", "you'll": "ye'll", "you've": "ye've", "you'd": "ye'd", "your": "yer", "you": "ye",
   "don't": "dinnae", "doesn't": "disnae", "didn't": "didnae", "can't": "cannae",
-  "isn't": "isnae", "aren't": "arenae", "won't": "willnae",
-  "my": "ma", "to": "tae", "of": "o'", "good": "guid",
+  "isn't": "isnae", "aren't": "arenae", "won't": "willnae", "wasn't": "wasnae", "weren't": "werenae",
+  "i'm": "ah'm", "i'll": "ah'll", "i've": "ah've", "i'd": "ah'd", "i": "ah",
+  "my": "ma", "to": "tae", "of": "o'", "do": "dae", "not": "no",
+  "good": "guid", "little": "wee", "great": "braw", "one": "wan",
+  "out": "oot", "about": "aboot", "down": "doon", "now": "noo", "round": "roond", "house": "hoose",
+  "got": "go'", "that": "tha'", "what": "wha'", "yes": "aye",
 };
-function scottishRespell(text) {
+function scottishRespell(text, key) {
+  const rewrite = SCOTS_LINE_REWRITES[key];
+  if (rewrite) return rewrite;
   return text.replace(/[A-Za-z']+/g, (word) => {
     const lower = word.toLowerCase();
     const swap = SCOTS_WORD_SWAPS[lower];
@@ -155,6 +174,27 @@ function scottishRespell(text) {
     return word;
   });
 }
+
+// Per user decision: selective full Scots-wording rewrites for the highest-
+// frequency flavor lines (ENCOURAGE_LINES, heard constantly during a set),
+// instead of phonetics-only. Keyed by the corpus's own normalizeSpoken(text)
+// key, so the manifest lookup app.js uses is untouched — only what gets
+// synthesized for that key changes. Everything not listed here (numbers,
+// names, status words, other line pools) still goes through the generic
+// phonetic pass above; extend this table if the vibe lands and more pools
+// should get the same treatment.
+const SCOTS_LINE_REWRITES = {
+  "keep grinding": "Keep grindin', ye numpty, dinnae stop!",
+  "let's gooo": "C'mon then, let's go, so it is!",
+  "don't you dare stop now": "Dinnae ye dare stop noo, ye hear me!",
+  "push through": "Push on through, ye beauty!",
+  "almost there you can smell the record": "Almost there — ye can smell the record, aye!",
+  "just a few more you're so close": "Just a wee few more! Ye're that close, mind!",
+  "finish strong": "Finish it strong, so it is!",
+  "you've got this": "Ye've got this, nae bother!",
+  "dig deep": "Dig in deep, ye glaikit wee eejit!",
+  "one more one more": "Wan more! Wan more, c'mon!",
+};
 
 // ----------------------------------------------------------------
 // Voice presets. "default" keeps writing to the original flat assets/voice/
@@ -411,7 +451,7 @@ function instructionsFor(preset, entry) {
 // The corpus key/manifest lookup the app uses always stays the original
 // spelling; only this synthesis-time input differs.
 function spokenTextFor(preset, entry) {
-  return preset.respell ? preset.respell(entry.text) : entry.text;
+  return preset.respell ? preset.respell(entry.text, entry.key) : entry.text;
 }
 
 // Deliberately does NOT include opts.preset: each preset writes to its own
