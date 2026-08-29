@@ -97,7 +97,7 @@ import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=143";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=7";
+import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=7";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=151";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -6634,6 +6634,7 @@ function paintDashboard(sessions) {
   }
 
   renderBoysModeStats(filtered, allModesInPeriod);
+  renderModeHistory(allModesInPeriod);
 
   const historyList = $("history-list");
   historyList.innerHTML = "";
@@ -6720,6 +6721,69 @@ function renderRecentList(sessions) {
 function updateHistoryViewVisibility() {
   $("recent-list").classList.toggle("hidden", state.historyView !== "recent");
   $("history-list").classList.toggle("hidden", state.historyView !== "history");
+  $("mode-history-list").classList.toggle("hidden", state.historyView !== "modes");
+}
+
+// A session's own raw metric (reps, seconds held, or Holland cycles) —
+// independent of whichever activityType/leaderboardMode is currently
+// selected, since Mode history mixes every mode together.
+function sessionMetricValue(s) {
+  return sessionModeId(s) === "holland" ? Number(s.hollandCycles) || 0 : Number(s.count) || 0;
+}
+
+function formatModeHistoryTotal(modeId, total) {
+  if (modeId === "planks" || modeId === "pulse") return formatDuration(total * 1000);
+  if (modeId === "holland") return total.toFixed(1);
+  return formatNumber(total);
+}
+
+// Cumulative modes-by-user for the selected time horizon — every mode
+// touched (pushup sub-modes, planks, squats, pull-ups, crunches, Holland),
+// not just the one the leaderboard is currently sliced to (mirrors "Modes
+// used" in Group stats, which uses the same cross-mode, period-filtered set).
+function renderModeHistory(sessions) {
+  const modeListEl = $("mode-history-list");
+  modeListEl.innerHTML = "";
+  if (!sessions.length) {
+    modeListEl.innerHTML = '<p class="history-empty">No sessions in this period.</p>';
+    return;
+  }
+  const byUser = new Map();
+  for (const s of sessions) {
+    if (!s?.user) continue;
+    if (!byUser.has(s.user)) byUser.set(s.user, new Map());
+    const modeId = sessionModeId(s);
+    const userModes = byUser.get(s.user);
+    if (!userModes.has(modeId)) userModes.set(modeId, { sessions: 0, total: 0 });
+    const entry = userModes.get(modeId);
+    entry.sessions += 1;
+    entry.total += sessionMetricValue(s);
+  }
+  const sessionCountFor = (userModes) => Array.from(userModes.values()).reduce((sum, e) => sum + e.sessions, 0);
+  const usersSorted = Array.from(byUser.keys()).sort((a, b) => sessionCountFor(byUser.get(b)) - sessionCountFor(byUser.get(a)));
+  for (const user of usersSorted) {
+    const modes = byUser.get(user);
+    const group = document.createElement("div");
+    group.className = "history-user-group";
+    const header = document.createElement("div");
+    header.className = "history-user-header";
+    header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${modes.size} mode${modes.size === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
+    header.addEventListener("click", () => group.classList.toggle("open"));
+    makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
+    const modesWrap = document.createElement("div");
+    modesWrap.className = "history-sessions";
+    const modesSorted = Array.from(modes.entries()).sort((a, b) => b[1].sessions - a[1].sessions);
+    for (const [modeId, entry] of modesSorted) {
+      const meta = MODE_META[modeId] || MODE_META.classic;
+      const row = document.createElement("div");
+      row.className = "history-session-row";
+      row.innerHTML = `<span>${meta.icon} ${meta.label}</span><span class="history-session-count">${entry.sessions} session${entry.sessions === 1 ? "" : "s"} · ${formatModeHistoryTotal(modeId, entry.total)}</span>`;
+      modesWrap.appendChild(row);
+    }
+    group.appendChild(header);
+    group.appendChild(modesWrap);
+    modeListEl.appendChild(group);
+  }
 }
 
 $("history-view-select").addEventListener("click", (e) => {
