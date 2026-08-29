@@ -35,7 +35,7 @@ export function workoutHeroModel(mode, count, state = {}) {
     const remaining = Math.max(0, targets[mode][0] - targets[mode][1]);
     return { kind: mode, remaining, spokenValue: remaining, spokenPrefix: "" };
   }
-  return { kind: "hero", display: String(count), label: "PUSHUPS", over: false, spokenValue: count, spokenPrefix: "" };
+  return { kind: "hero", display: String(count), label: "PUSHUPS", over: !!state.highScore && count > state.highScore, spokenValue: count, spokenPrefix: "" };
 }
 
 export function workoutHudModel(mode, highScore, fortuneChallenge) {
