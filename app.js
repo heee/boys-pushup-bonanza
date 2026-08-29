@@ -7710,15 +7710,22 @@ $("btn-leaderboard-share").addEventListener("click", shareLeaderboardStats);
 // Normally a single-color fill toward the goal. Once `current` exceeds
 // `goal`, the bar's 100% becomes `current` itself, split into a green
 // "goal" segment and a red "excess" segment, with a flame next to it.
-function buildProgressThermometer(current, goal) {
+// `notched` opts into the chunky-block PB styling (see setThermometerSegments)
+// — only Horse's "bar to beat" meter uses it; the Challenges screen's totals
+// (often in the hundreds/thousands, and sometimes percentages rather than
+// reps) keep the plain continuous fill.
+function buildProgressThermometer(current, goal, notched = false) {
   const model = progressThermometerModel(current, goal);
+  const segCount = notched && goal > 0 ? Math.min(THERMOMETER_MAX_SEGMENTS, goal) : null;
+  const notchClass = segCount ? " thermometer-track-notched" : "";
+  const notchAttr = segCount ? ` style="--seg-count:${segCount}"` : "";
   if (!model.segmented) return `
-    <div class="thermometer-wrap"><div class="thermometer-track">
+    <div class="thermometer-wrap"><div class="thermometer-track${notchClass}"${notchAttr}>
       <div class="thermometer-fill${model.won ? " thermometer-win" : ""}" style="width:${model.percent}%"></div>
     </div></div>`;
   return `
     <div class="thermometer-wrap thermometer-wrap-flame">
-      <div class="thermometer-track thermometer-track-segmented">
+      <div class="thermometer-track thermometer-track-segmented${notchClass}"${notchAttr}>
         <div class="thermometer-segment thermometer-segment-goal" style="width:${model.goalPercent}%"></div>
         <div class="thermometer-segment thermometer-segment-excess" style="width:${model.excessPercent}%"></div>
       </div><span class="thermometer-flame" aria-hidden="true">🔥</span>
@@ -8137,7 +8144,7 @@ function maybeEncourage(count) {
 
 // Chunky-segment count for a personal-best bar: one block per rep below the
 // cap, capped above it so a high goal still reads as a handful of big
-// blocks instead of illegible hairlines (see .thermometer-track-segmented).
+// blocks instead of illegible hairlines (see .thermometer-track-notched).
 const THERMOMETER_MAX_SEGMENTS = 12;
 function setThermometerSegments(fillEl, goal) {
   const segments = goal > 0 ? Math.min(THERMOMETER_MAX_SEGMENTS, goal) : 1;
@@ -8182,7 +8189,7 @@ function updateHorseMeter(count) {
     return;
   }
   meter.classList.remove("hidden");
-  meter.innerHTML = buildProgressThermometer(count, target);
+  meter.innerHTML = buildProgressThermometer(count, target, true);
 }
 
 function getHighScore(name) {

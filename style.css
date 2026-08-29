@@ -1291,15 +1291,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .thermometer-fill.thermometer-win { background: var(--success); }
 .thermometer-fill.thermometer-ghost { background: linear-gradient(90deg, var(--ghost-dim), var(--ghost)); }
 
-/* Personal-best HUD bars read as chunky notched blocks instead of a smooth
-   fill. The mask lives on the track (not the fill) so segment boundaries
-   stay fixed to the track's own width as the fill grows/shrinks inside it —
-   masking the fill directly would size each stripe off the fill's own
-   (changing) width and the notches would drift out of alignment with the
-   track's gaps. --seg-count is set per-session in JS from the goal, capped
-   so a high personal best still reads as a handful of big chunks rather
-   than degrading into illegible hairlines. */
-.thermometer-track-segmented {
+/* Personal-best/target HUD bars read as chunky notched blocks instead of a
+   smooth fill. Named "-notched" (not "-segmented") because that name is
+   already taken by the unrelated goal/excess bicolor split further below
+   (.thermometer-track-segmented, flex-based, green-then-red) — reusing it
+   would silently notch that bar too. The mask lives on the track (not the
+   fill) so segment boundaries stay fixed to the track's own width as the
+   fill grows/shrinks inside it — masking the fill directly would size each
+   stripe off the fill's own (changing) width and the notches would drift
+   out of alignment with the track's gaps. --seg-count is set per-session in
+   JS from the goal, capped so a high personal best still reads as a handful
+   of big chunks rather than degrading into illegible hairlines. */
+.thermometer-track-notched {
   height: 8px;
   --seg-gap: 3px;
   -webkit-mask-image: repeating-linear-gradient(to right,
