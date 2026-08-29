@@ -78,7 +78,10 @@ export function joinOpenPlayer(game, { user, now = Date.now() }) {
   if (game.teams.a.players.includes(name) || game.teams.b.players.includes(name)) return game;
   const total = game.teams.a.players.length + game.teams.b.players.length;
   if (total >= game.rosterSize) throw new Error("This game is full");
-  const side = game.teams.a.players.length <= game.teams.b.players.length ? "a" : "b";
+  // Strictly-smaller-side wins; a tie goes to b (never the host's own side,
+  // since the host always starts alone on a) so joiners land on the
+  // opposing team instead of stacking up behind whoever created the game.
+  const side = game.teams.a.players.length < game.teams.b.players.length ? "a" : "b";
   const teams = { ...game.teams, [side]: { ...game.teams[side], players: [...game.teams[side].players, name] } };
   return { ...game, teams };
 }

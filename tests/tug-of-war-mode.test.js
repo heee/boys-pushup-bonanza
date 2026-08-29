@@ -133,10 +133,10 @@ test("Open games start in lobby, auto-balance joins onto the smaller side, and c
   assert.deepEqual(g.teams.a.players, ["You"]);
   g = joinOpenPlayer(g, { user: "Mia", now: 2 }); // a has 1, b has 0 -> joins b
   assert.deepEqual(g.teams.b.players, ["Mia"]);
-  g = joinOpenPlayer(g, { user: "Dev", now: 3 }); // tied 1-1 -> joins a
-  assert.deepEqual(g.teams.a.players, ["You", "Dev"]);
-  g = joinOpenPlayer(g, { user: "Ann", now: 4 }); // a:2 b:1 -> joins b, now full at 4
-  assert.deepEqual(g.teams.b.players, ["Mia", "Ann"]);
+  g = joinOpenPlayer(g, { user: "Dev", now: 3 }); // tied 1-1 -> joins b (never the host's own side)
+  assert.deepEqual(g.teams.b.players, ["Mia", "Dev"]);
+  g = joinOpenPlayer(g, { user: "Ann", now: 4 }); // a:1 b:2 -> joins a, now full at 4
+  assert.deepEqual(g.teams.a.players, ["You", "Ann"]);
   assert.throws(() => joinOpenPlayer(g, { user: "Sam" }), /full/);
   assert.equal(joinOpenPlayer(g, { user: "Mia" }), g); // already in -> idempotent
 });

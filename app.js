@@ -3916,7 +3916,14 @@ async function shareTowInvite() {
   const game = state.towGame;
   if (!game) return;
   const url = towInviteUrl(game.id);
-  const text = `Join ${game.createdBy}'s Tug of War.`;
+  const { pickTowInviteMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+  const text = pickTowInviteMessage({
+    createdBy: game.createdBy,
+    teamA: game.teams.a.name,
+    teamB: game.teams.b.name,
+    target: game.target,
+    rounds: game.rounds,
+  });
   if (navigator.share) {
     try { await navigator.share({ title: "Tug of War", text, url }); } catch (e) { /* cancelled */ }
   } else if (navigator.clipboard) {
@@ -10399,7 +10406,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=141").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=142").then((module) => {
       workoutShareMessages = module;
       return module;
     });
