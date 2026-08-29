@@ -5772,6 +5772,7 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
   const config = CHART_PERIOD_BUCKETS[period] || CHART_PERIOD_BUCKETS.day;
   const bucketCount = 7;
   const now = new Date();
+  const highlightedOffset = selectedOffset !== null ? selectedOffset : 0;
 
   const buckets = [];
   for (let i = bucketCount - 1; i >= 0; i--) {
@@ -5780,26 +5781,33 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
   }
   const windowStart = buckets[0].start.getTime();
   const windowEnd = buckets[bucketCount - 1].end.getTime();
-  const priorWindowStart = periodBoundary(period, now, -(2 * bucketCount - 1)).getTime();
+  // "vs prior period" always compares the highlighted bucket (the selected
+  // one, or today/this-week/etc if none is selected) against the single
+  // period immediately before it — e.g. today vs yesterday, this month vs
+  // last month — rather than a whole rolling window, so the comparison
+  // becomes available as soon as one full prior period of history exists.
+  const priorBucketStart = periodBoundary(period, now, highlightedOffset - 1).getTime();
+  const priorBucketEnd = periodBoundary(period, now, highlightedOffset).getTime();
 
-  let priorWindowTotal = 0;
+  let priorBucketTotal = 0;
   let earliestTimestamp = Infinity;
   for (const session of sessions) {
     const timestamp = sessionTimestamp(session);
     earliestTimestamp = Math.min(earliestTimestamp, timestamp);
-    if (timestamp >= priorWindowStart && timestamp < windowStart) {
-      priorWindowTotal += metricOf(session);
-    } else if (timestamp >= windowStart && timestamp < windowEnd) {
+    if (timestamp >= priorBucketStart && timestamp < priorBucketEnd) {
+      priorBucketTotal += metricOf(session);
+    }
+    if (timestamp >= windowStart && timestamp < windowEnd) {
       const bucket = buckets.find((b) => timestamp >= b.start.getTime() && timestamp < b.end.getTime());
       if (bucket) bucket.total += metricOf(session);
     }
   }
   // Only a fair "vs prior period" comparison if logging actually goes back
-  // that far — otherwise the prior window is just a sliver of leftover data
-  // from before the display window starts (e.g. a few days of early testing
-  // right after launch), and dividing by it produces a huge, meaningless
-  // percentage rather than a real trend.
-  const hasFullPriorWindow = earliestTimestamp <= priorWindowStart;
+  // far enough to cover that entire immediately-preceding period —
+  // otherwise it's just a sliver of leftover data (e.g. a few hours of
+  // early testing right after launch), and dividing by it produces a huge,
+  // meaningless percentage rather than a real trend.
+  const hasFullPriorBucket = earliestTimestamp <= priorBucketStart;
   const maxTotal = Math.max(1, ...buckets.map((b) => b.total));
 
   $(chartElId).innerHTML = buckets.map((bucket, i) => {
@@ -5830,11 +5838,11 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     });
   }
 
-  // Trend vs the same-length window immediately before this one — "are we improving".
-  const windowTotal = buckets.reduce((sum, b) => sum + b.total, 0);
+  // Trend vs the single period immediately before the highlighted bucket — "are we improving".
+  const highlightedTotal = buckets[bucketCount - 1 + highlightedOffset].total;
   const trendEl = $(trendElId);
-  if (priorWindowTotal > 0 && hasFullPriorWindow) {
-    const pct = Math.round(((windowTotal - priorWindowTotal) / priorWindowTotal) * 100);
+  if (priorBucketTotal > 0 && hasFullPriorBucket) {
+    const pct = Math.round(((highlightedTotal - priorBucketTotal) / priorBucketTotal) * 100);
     trendEl.textContent = `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toLocaleString()}% vs prior period`;
     trendEl.classList.toggle("week-trend-up", pct >= 0);
     trendEl.classList.toggle("week-trend-down", pct < 0);
