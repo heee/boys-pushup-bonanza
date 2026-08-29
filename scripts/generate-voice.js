@@ -163,16 +163,20 @@ const SCOTS_WORD_SWAPS = {
   "out": "oot", "about": "aboot", "down": "doon", "now": "noo", "round": "roond", "house": "hoose",
   "got": "go'", "that": "tha'", "what": "wha'", "yes": "aye",
 };
-function scottishRespell(text, key) {
+// Round 3: still read as flat/low-energy even with the accent landing.
+// ALL-CAPS input text is a known lever for pushing gpt-4o-mini-tts toward
+// louder, more shouted delivery — applied to every tone except "zen" (the
+// one deliberately quiet exception, see SCOTS_ACCENT_RULES usage below).
+function scottishRespell(text, key, tone) {
   const rewrite = SCOTS_LINE_REWRITES[key];
-  if (rewrite) return rewrite;
-  return text.replace(/[A-Za-z']+/g, (word) => {
+  const spoken = rewrite || text.replace(/[A-Za-z']+/g, (word) => {
     const lower = word.toLowerCase();
     const swap = SCOTS_WORD_SWAPS[lower];
     if (swap) return word[0] === word[0].toUpperCase() ? swap[0].toUpperCase() + swap.slice(1) : swap;
     if (/ing$/.test(lower) && lower.length > 4) return word.slice(0, -1) + "'";
     return word;
   });
+  return tone === "zen" ? spoken : spoken.toUpperCase();
 }
 
 // Per user decision: selective full Scots-wording rewrites for the highest-
@@ -184,16 +188,16 @@ function scottishRespell(text, key) {
 // phonetic pass above; extend this table if the vibe lands and more pools
 // should get the same treatment.
 const SCOTS_LINE_REWRITES = {
-  "keep grinding": "Keep grindin', ye numpty, dinnae stop!",
-  "let's gooo": "C'mon then, let's go, so it is!",
-  "don't you dare stop now": "Dinnae ye dare stop noo, ye hear me!",
-  "push through": "Push on through, ye beauty!",
-  "almost there you can smell the record": "Almost there — ye can smell the record, aye!",
-  "just a few more you're so close": "Just a wee few more! Ye're that close, mind!",
-  "finish strong": "Finish it strong, so it is!",
-  "you've got this": "Ye've got this, nae bother!",
-  "dig deep": "Dig in deep, ye glaikit wee eejit!",
-  "one more one more": "Wan more! Wan more, c'mon!",
+  "keep grinding": "Keep grindin', ye numpty — dinnae ye dare stop!!!",
+  "let's gooo": "C'mon then — let's go, so it is!!!",
+  "don't you dare stop now": "Dinnae ye dare stop noo — ye hear me?!",
+  "push through": "Push on through, ye beauty — now!!!",
+  "almost there you can smell the record": "Almost there — ye can smell the record, aye!!!",
+  "just a few more you're so close": "Just a wee few more — ye're that close, mind!!!",
+  "finish strong": "Finish it strong — so it is!!!",
+  "you've got this": "Ye've got this — nae bother, c'mon!!!",
+  "dig deep": "Dig in deep, ye glaikit wee eejit!!!",
+  "one more one more": "Wan more! Wan more! C'mon, now!!!",
 };
 
 // ----------------------------------------------------------------
@@ -341,39 +345,46 @@ const PRESETS = {
     instructionsByTone: {
       number: [
         ...SCOTS_ACCENT_RULES,
-        "You are SCREAMING a single rep count number directly into a recruit's ear — pure explosive",
-        "volume and rage compressed into one word, like a gunshot. Full aggressive intensity packed",
-        "into a split second, never trailing off. Do not add any extra words — perform ONLY the exact",
-        "text given, transformed through the accent.",
+        "You are SCREAMING a single rep count number directly into a recruit's ear at the absolute",
+        "top of your lungs — throat-tearing, explosive volume and rage compressed into one word, like",
+        "a gunshot going off. This is the loudest, most violent single-word shout you are capable of.",
+        "Full aggressive intensity packed into a split second, never trailing off. Do not add any",
+        "extra words — perform ONLY the exact text given, transformed through the accent.",
       ].join(" "),
       hype: [
         ...SCOTS_ACCENT_RULES,
-        "You are a screaming, red-faced Scottish drill instructor at the absolute breaking point of",
-        "your patience — a raw, furious, spit-flying, vein-bulging performance, nose-to-nose",
-        "intimidation, zero polish or control, almost feral, like you might snap. Bark every syllable",
-        "as a violent, clipped shout. CRITICAL — PACE: rapid-fire and breathless, not a slow tirade.",
-        "Attack the very first word immediately with zero wind-up, punch through the whole line as",
-        "fast as you can physically talk — the thick accent stays completely intact at this speed,",
-        "never softening. Do not add any extra words, exclamations, or ad-libs — perform ONLY the",
-        "exact text given, transformed through the accent.",
+        "You are a screaming, red-faced Scottish drill instructor who has completely lost it — total,",
+        "unhinged, throat-tearing rage, screaming from the pit of your stomach at maximum volume like",
+        "your voice could crack or give out any second. This is the loudest, angriest, most furious",
+        "you have ever been in your life — spit-flying, vein-bulging, nose-to-nose intimidation,",
+        "absolutely feral, like you might snap. ENERGY AND ACCENT ARE BOTH MANDATORY AT MAXIMUM,",
+        "SIMULTANEOUSLY — never trade one for the other; deliver the thickest possible Scots accent",
+        "with the most explosive possible rage. Bark every syllable as a violent, clipped shout,",
+        "punching each word like a gut-punch. CRITICAL — PACE: rapid-fire and breathless, not a slow",
+        "tirade. Attack the very first word immediately with zero wind-up and never let up for the",
+        "whole line — the thick accent stays completely intact at this speed, never softening. Do not",
+        "add any extra words, exclamations, or ad-libs — perform ONLY the exact text given, transformed",
+        "through the accent, at the most extreme energy you are physically capable of.",
       ].join(" "),
       calm: [
         ...SCOTS_ACCENT_RULES,
-        "A short status word, still loud, fast, and full of aggressive energy — the accent and",
-        "intensity stay just as thick as at full volume.",
+        "A short status word, but still shouted at real volume, fast and bursting with aggressive",
+        "energy — the accent and intensity stay just as thick and loud as at full volume, never",
+        "flattened into a neutral status-update tone.",
       ].join(" "),
       zen: [
         ...SCOTS_ACCENT_RULES,
-        "A rare quieter, slower moment — the one exception to the usual screaming energy — but the",
-        "thick accent never changes.",
+        "A rare quieter, slower moment — the one deliberate exception to the usual screaming energy —",
+        "but the thick accent never changes.",
       ].join(" "),
       name: [
         ...SCOTS_ACCENT_RULES,
-        "SCREAM a single person's name during roll call — explosive, furious, full volume and speed,",
-        "like a drill instructor who has completely lost his patience. Do not add extra words.",
+        "SCREAM a single person's name during roll call at maximum throat-tearing volume — explosive,",
+        "furious, full volume and speed, like a drill instructor who has completely lost his patience",
+        "and is about to snap. Do not add extra words.",
       ].join(" "),
     },
-    speedByTone: { number: 1.3, hype: 1.4, calm: 1.2, zen: 0.85, name: 1.3 },
+    speedByTone: { number: 1.35, hype: 1.5, calm: 1.25, zen: 0.85, name: 1.35 },
   },
 };
 
@@ -451,7 +462,7 @@ function instructionsFor(preset, entry) {
 // The corpus key/manifest lookup the app uses always stays the original
 // spelling; only this synthesis-time input differs.
 function spokenTextFor(preset, entry) {
-  return preset.respell ? preset.respell(entry.text, entry.key) : entry.text;
+  return preset.respell ? preset.respell(entry.text, entry.key, entry.tone) : entry.text;
 }
 
 // Deliberately does NOT include opts.preset: each preset writes to its own
