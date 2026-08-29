@@ -97,7 +97,7 @@ import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=143";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=7";
+import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=8";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=151";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -3769,15 +3769,18 @@ function renderTowTeamsUI() {
   }
 
   const startBtn = $("btn-tow-start");
+  const abortBtn = $("btn-tow-abort");
   if (inLobby) {
     const total = playersA.length + playersB.length;
     startBtn.classList.toggle("hidden", !isHost);
     startBtn.textContent = `Start now (${total}/${game.rosterSize})`;
     startBtn.disabled = playersA.length < 1 || playersB.length < 1;
+    abortBtn.classList.toggle("hidden", !isHost);
   } else {
     startBtn.classList.remove("hidden");
     startBtn.textContent = "Start match";
     startBtn.disabled = !isOpenSetup && (playersA.length < 1 || playersB.length < 1);
+    abortBtn.classList.add("hidden");
   }
 }
 
@@ -3923,6 +3926,9 @@ async function shareTowInvite() {
     teamB: game.teams.b.name,
     target: game.target,
     rounds: game.rounds,
+    teamAPlayers: game.teams.a.players,
+    teamBPlayers: game.teams.b.players,
+    rosterSize: game.rosterSize,
   });
   if (navigator.share) {
     try { await navigator.share({ title: "Tug of War", text, url }); } catch (e) { /* cancelled */ }
@@ -3932,6 +3938,25 @@ async function shareTowInvite() {
   }
 }
 $("btn-tow-setup-share").addEventListener("click", shareTowInvite);
+
+$("btn-tow-abort").addEventListener("click", async (e) => {
+  const game = state.towGame;
+  if (!game) return;
+  if (!confirm("Abort this Tug of War session? Everyone who's joined will be booted.")) return;
+  const button = e.currentTarget;
+  button.disabled = true;
+  try {
+    const res = await workerCancelOpenTowGame(game.id, state.currentUser);
+    upsertLocalTowGame(res.game);
+    state.towGame = null;
+    toast("Session aborted", 2500);
+    guardLeaveWorkout(() => showScreen("screen-explore-modes"));
+  } catch (err) {
+    toast(err.message || "Couldn't abort — check your connection.", 4000);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("btn-tow-start").addEventListener("click", async (e) => {
   const btn = e.currentTarget;
@@ -3956,7 +3981,13 @@ $("btn-tow-start").addEventListener("click", async (e) => {
   if (state.towSessionType === "open") {
     btn.disabled = true;
     try {
-      const res = await workerCreateTowGame({ target: state.towTarget, rounds: state.towRounds, sessionType: "open", createdBy: state.currentUser });
+      const res = await workerCreateTowGame({
+        target: state.towTarget,
+        rounds: state.towRounds,
+        sessionType: "open",
+        createdBy: state.currentUser,
+        teams: { a: { name: state.towTeamNames.a }, b: { name: state.towTeamNames.b } },
+      });
       state.towGame = res.game;
       upsertLocalTowGame(res.game);
       renderTowSetup("keep");
@@ -6363,9 +6394,13 @@ function renderSessionDetail() {
     : formatNumber(session.count);
   $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
 
-  $("session-detail-badges").innerHTML = sessionBadges(session).map((badge) => `
-    <span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>
-  `).join("");
+  const badgeHTML = (badge) => `<span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>`;
+  const allBadges = sessionBadges(session);
+  const modeBadge = allBadges.find((b) => b.id === "mode");
+  const modifierBadge = allBadges.find((b) => b.id === "modifier");
+  $("session-detail-hero-mode").innerHTML = modeBadge ? badgeHTML(modeBadge) : "";
+  $("session-detail-hero-modifier").innerHTML = modifierBadge ? badgeHTML(modifierBadge) : "";
+  $("session-detail-badges").innerHTML = allBadges.filter((b) => b.id !== "mode" && b.id !== "modifier").map(badgeHTML).join("");
 
   const rings = sessionRings(session, getAllSessionsForDisplay());
   $("session-detail-rings").innerHTML = rings.map((ring) => {
@@ -6417,7 +6452,19 @@ async function shareSessionDetail() {
   const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
   const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
-  const message = `${session.user}: ${countText} — ${sessionModeLabel(session)} on ${formatDateTime(session.timestamp)}`;
+  const modifierBadge = sessionBadges(session).find((b) => b.id === "modifier");
+  const rings = sessionRings(session, getAllSessionsForDisplay());
+  const statRing = [rings.find((r) => r.id === "vsPrior"), rings.find((r) => r.id === "vsAvg")].find((r) => r?.hasData && r.diffPct != null);
+  const statLine = statRing ? `${statRing.diffPct >= 0 ? "+" : ""}${statRing.diffPct}% ${statRing.label}.` : null;
+  const { pickSessionShareMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+  const message = pickSessionShareMessage({
+    user: session.user,
+    countText,
+    modeLabel: sessionModeLabel(session),
+    modifierLabel: modifierBadge?.label || null,
+    dateText: formatDateTime(session.timestamp),
+    statLine,
+  });
   const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isPulse ? "pulse" : (session.mode || "classic");
   const url = modeShareUrl(modeId);
   if (navigator.share) {
@@ -10406,7 +10453,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=142").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=143").then((module) => {
       workoutShareMessages = module;
       return module;
     });

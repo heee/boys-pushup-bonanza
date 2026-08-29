@@ -109,4 +109,7 @@ test("validateTowCreate enforces target/rounds bounds and creator team membershi
   const open = validateTowCreate({ target: 100, rounds: 3, createdBy: "You", sessionType: "open" });
   assert.equal(open.sessionType, "open");
   assert.equal(open.rosterSize, 6);
+  assert.deepEqual(open.teams, { a: { name: "Team A" }, b: { name: "Team B" } });
+  const openNamed = validateTowCreate({ target: 100, rounds: 3, createdBy: "You", sessionType: "open", teams: { a: { name: "Sneaky Weasels" }, b: { name: "Loud Turtles" } } });
+  assert.deepEqual(openNamed.teams, { a: { name: "Sneaky Weasels" }, b: { name: "Loud Turtles" } });
 });

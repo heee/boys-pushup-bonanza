@@ -1489,7 +1489,9 @@ export function validateTowCreate(body) {
     : TOW_OPEN_ROSTER_SIZE;
 
   if (sessionType === "open") {
-    return { id, target, rounds, sessionType, createdBy, rosterSize };
+    const nameA = typeof body.teams?.a?.name === "string" ? body.teams.a.name.trim().slice(0, 60) || "Team A" : "Team A";
+    const nameB = typeof body.teams?.b?.name === "string" ? body.teams.b.name.trim().slice(0, 60) || "Team B" : "Team B";
+    return { id, target, rounds, sessionType, createdBy, rosterSize, teams: { a: { name: nameA }, b: { name: nameB } } };
   }
 
   const cleanNames = (list) => Array.isArray(list)

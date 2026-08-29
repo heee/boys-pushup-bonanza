@@ -182,14 +182,33 @@ function bestRing(id, label, pool, session) {
   return { id, label, hasData: true, pct: Math.round(fill * 100), fill, value, compareValue: best };
 }
 
-// Three comparison rings: this user's own average and best in this mode
-// (+modifier when there's enough data), and the average across everyone.
+// Compares against the single most recent session (same scoped pool as
+// vsAvg — mode+modifier — so it's an apples-to-apples "last time" rather
+// than whatever session happened to be logged right before this one).
+function priorRing(id, label, pool, session) {
+  if (!pool.length) return { id, label, hasData: false };
+  const sessionTime = new Date(session.timestamp).getTime();
+  const priorCandidates = pool.filter((s) => new Date(s.timestamp).getTime() < sessionTime);
+  if (!priorCandidates.length) return { id, label, hasData: false };
+  const prior = priorCandidates.reduce((latest, s) => (new Date(s.timestamp) > new Date(latest.timestamp) ? s : latest));
+  const priorCount = countOf(prior);
+  if (!priorCount) return { id, label, hasData: false };
+  const value = countOf(session);
+  const diffPct = Math.round(((value - priorCount) / priorCount) * 100);
+  const fill = Math.max(0, Math.min(1, value / (priorCount * 2)));
+  return { id, label, hasData: true, diffPct, fill, value, compareValue: priorCount };
+}
+
+// Four comparison rings: this user's own average, their immediately prior
+// session, their best, and the average across everyone — all in this mode
+// (+modifier when there's enough data).
 export function sessionRings(session, allSessions) {
   const personalPool = scopedPool(allSessions, session, { ownerFilter: (s) => s.user === session.user, excludeSelf: true });
   const personalBestPool = scopedPool(allSessions, session, { ownerFilter: (s) => s.user === session.user, excludeSelf: false });
   const groupPool = scopedPool(allSessions, session, { ownerFilter: () => true, excludeSelf: true });
   return [
     avgRing("vsAvg", "vs avg", personalPool, session),
+    priorRing("vsPrior", "vs prior", personalPool, session),
     bestRing("vsBest", "vs best", personalBestPool, session),
     avgRing("vsGroup", "vs group avg", groupPool, session),
   ];

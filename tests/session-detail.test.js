@@ -107,12 +107,27 @@ test("sessionRings compares against personal and group pools, same mode+modifier
     session({ id: "s3", user: "A", mode: "pyramid", modifier: "wide", count: 128 }),
     session({ id: "s4", user: "B", mode: "pyramid", modifier: "wide", count: 100 }),
   ];
-  const [vsAvg, vsBest, vsGroup] = sessionRings(target, all);
+  const [vsAvg, vsPrior, vsBest, vsGroup] = sessionRings(target, all);
   assert.equal(vsAvg.hasData, true);
   assert.equal(vsAvg.compareValue, 109); // avg of 90 and 128
+  assert.equal(vsPrior.hasData, false); // no session in the pool precedes target's timestamp
   assert.equal(vsBest.compareValue, 128);
   assert.equal(vsBest.pct, Math.round((110 / 128) * 100));
   assert.equal(vsGroup.hasData, true);
+});
+
+test("sessionRings' vsPrior compares against the single most recent earlier session, same scope as vsAvg", () => {
+  const target = session({ mode: "pyramid", modifier: "wide", count: 110, timestamp: "2026-08-05T10:00:00Z" });
+  const all = [
+    target,
+    session({ id: "s2", user: "A", mode: "pyramid", modifier: "wide", count: 90, timestamp: "2026-08-01T10:00:00Z" }),
+    session({ id: "s3", user: "A", mode: "pyramid", modifier: "wide", count: 128, timestamp: "2026-08-03T10:00:00Z" }), // most recent before target
+    session({ id: "s4", user: "A", mode: "pyramid", modifier: "wide", count: 200, timestamp: "2026-08-09T10:00:00Z" }), // after target, excluded
+  ];
+  const [, vsPrior] = sessionRings(target, all);
+  assert.equal(vsPrior.hasData, true);
+  assert.equal(vsPrior.compareValue, 128);
+  assert.equal(vsPrior.diffPct, Math.round(((110 - 128) / 128) * 100));
 });
 
 test("sessionRings falls back to mode-only when mode+modifier pool is empty, else reports no data", () => {
@@ -123,7 +138,7 @@ test("sessionRings falls back to mode-only when mode+modifier pool is empty, els
   assert.equal(vsAvg.compareValue, 40);
 
   const lonelyAll = [target];
-  const [lonelyAvg, lonelyBest, lonelyGroup] = sessionRings(target, lonelyAll);
+  const [lonelyAvg, , lonelyBest, lonelyGroup] = sessionRings(target, lonelyAll);
   assert.equal(lonelyAvg.hasData, false);
   // "Best" pool isn't excluded-self: with no other sessions, this session IS the best (100%).
   assert.equal(lonelyBest.hasData, true);

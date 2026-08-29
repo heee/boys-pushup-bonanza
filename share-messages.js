@@ -2521,6 +2521,50 @@ const SHARE_MESSAGES_TOW_INVITE = [
   (c) => `The rope is loaded, the teams are ${c.teamA} and ${c.teamB}, and ${c.createdBy} is grinning like this wasn't just supposed to be a workout app. Join in.`,
 ];
 
+// Rallying cry appended for whichever team currently has fewer players —
+// team is a team *name* string, not a side key.
+const TOW_LOBBY_RALLY_LINES = [
+  (team) => `${team} needs bodies. Don't make them beg.`,
+  (team) => `${team} is one player away from respectability. Be that player.`,
+  (team) => `${team} is currently a cry for help. Fix that.`,
+  (team) => `${team} is understaffed and it shows. Step up.`,
+  (team) => `${team} needs reinforcements before this gets embarrassing.`,
+  (team) => `${team} is thin and everyone can tell. Join ${team}.`,
+  (team) => `${team} is recruiting. The bar is on the floor, literally.`,
+  (team) => `${team} needs a body, any body. Yours works.`,
+  (team) => `${team} is down a player and down on morale. Save them.`,
+  (team) => `${team} could really use you right now.`,
+  (team) => `${team} is one signature away from forfeiting by embarrassment. Sign up.`,
+  (team) => `${team} is standing there alone doing the math on how bad this looks. Help them out.`,
+];
+
+let lastTowRallyTemplate = null;
+function pickTowRallyLine(team) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(TOW_LOBBY_RALLY_LINES); guard++; }
+  while (template === lastTowRallyTemplate && TOW_LOBBY_RALLY_LINES.length > 1 && guard < 10);
+  lastTowRallyTemplate = template;
+  return template(team);
+}
+
+// Factual status line — slots left, who's already in, and a rallying cry for
+// whichever side (by name) currently has fewer players. Appended after the
+// randomized flavor line so re-shares always carry the current lobby state
+// even though the flavor text itself is cached-free variety.
+function towLobbyStatusLine(ctx) {
+  const teamAPlayers = ctx.teamAPlayers || [];
+  const teamBPlayers = ctx.teamBPlayers || [];
+  const filled = teamAPlayers.length + teamBPlayers.length;
+  const rosterSize = ctx.rosterSize || filled;
+  const slotsLeft = Math.max(0, rosterSize - filled);
+  const rosterLine = `${ctx.teamA} (${teamAPlayers.length ? teamAPlayers.join(", ") : "nobody yet"}) vs. ${ctx.teamB} (${teamBPlayers.length ? teamBPlayers.join(", ") : "nobody yet"}).`;
+  const slotsLine = `${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} left.`;
+  const neededTeam = teamAPlayers.length <= teamBPlayers.length ? ctx.teamA : ctx.teamB;
+  const rally = pickTowRallyLine(neededTeam);
+  return `${slotsLine} ${rosterLine} ${rally}`;
+}
+
 let lastTowInviteTemplate = null;
 export function pickTowInviteMessage(ctx) {
   let template;
@@ -2528,5 +2572,52 @@ export function pickTowInviteMessage(ctx) {
   do { template = pickFrom(SHARE_MESSAGES_TOW_INVITE); guard++; }
   while (template === lastTowInviteTemplate && SHARE_MESSAGES_TOW_INVITE.length > 1 && guard < 10);
   lastTowInviteTemplate = template;
-  return template(ctx);
+  const flavor = template(ctx);
+  return (ctx.teamAPlayers || ctx.teamBPlayers) ? `${flavor} ${towLobbyStatusLine(ctx)}` : flavor;
+}
+
+// Share copy for an individual session-detail screen's share button.
+// c.user, c.countText ("65 pushups"), c.modeLabel ("Classic"), c.dateText
+// ("Aug 28, 5:51 AM") always present; c.modifierLabel and c.statLine
+// (a pre-formatted vs-avg/vs-prior callout) are appended only when present,
+// since plenty of sessions have neither.
+const SHARE_MESSAGES_SESSION_DETAIL = [
+  (c) => `${c.user} logged ${c.countText} in ${c.modeLabel} on ${c.dateText}${c.modifierLabel ? ` while running the ${c.modifierLabel} modifier like it owed them money` : ""}. ${c.statLine || "The floor has filed a complaint."}`,
+  (c) => `Somebody check on ${c.user} — ${c.countText} of ${c.modeLabel} on ${c.dateText} is not a normal amount of anything.${c.modifierLabel ? ` With ${c.modifierLabel} on, no less.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.dateText}: ${c.user} did ${c.countText} in ${c.modeLabel} and immediately became insufferable about it.${c.modifierLabel ? ` ${c.modifierLabel} modifier and all.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user}'s ${c.modeLabel} session on ${c.dateText}: ${c.countText}.${c.modifierLabel ? ` Under ${c.modifierLabel} conditions, because apparently regular suffering wasn't enough.` : ""} ${c.statLine || "The bar has been relocated, sorry."}`,
+  (c) => `Breaking: ${c.user} put up ${c.countText} in ${c.modeLabel}${c.modifierLabel ? ` with ${c.modifierLabel} turned on for reasons known only to them` : ""}. ${c.statLine || "The group chat is not ready for this."}`,
+  (c) => `${c.user} walked into ${c.modeLabel} on ${c.dateText} and left with ${c.countText}.${c.modifierLabel ? ` ${c.modifierLabel} the whole time.` : ""} ${c.statLine || "Witnesses are still processing it."}`,
+  (c) => `${c.countText}. ${c.modeLabel}. ${c.dateText}. That's ${c.user}'s entire personality now.${c.modifierLabel ? ` (${c.modifierLabel}, obviously.)` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user} clocked ${c.countText} in ${c.modeLabel}${c.modifierLabel ? ` running ${c.modifierLabel} like it was nothing` : ""} and the floor has requested a transfer. ${c.statLine || ""}`,
+  (c) => `Log entry, ${c.dateText}: ${c.user}, ${c.countText}, ${c.modeLabel}.${c.modifierLabel ? ` Filed under "${c.modifierLabel}, unfortunately."` : ""} ${c.statLine || "Somebody alert the leaderboard."}`,
+  (c) => `${c.user} just made ${c.countText} in ${c.modeLabel} look easy, which is offensive on a personal level.${c.modifierLabel ? ` Especially with ${c.modifierLabel} on.` : ""} ${c.statLine || ""}`,
+  (c) => `On ${c.dateText}, ${c.user} decided ${c.countText} in ${c.modeLabel} was a reasonable Tuesday.${c.modifierLabel ? ` Reasonable, with ${c.modifierLabel}.` : ""} ${c.statLine || "It was not a reasonable Tuesday."}`,
+  (c) => `${c.user} vs. gravity: ${c.countText}, ${c.modeLabel}, ${c.user} wins.${c.modifierLabel ? ` Gravity had ${c.modifierLabel} working against it too.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.countText} of ${c.modeLabel} from ${c.user} on ${c.dateText}.${c.modifierLabel ? ` The ${c.modifierLabel} modifier survived. Barely.` : ""} ${c.statLine || "Everyone else's excuse just expired."}`,
+  (c) => `${c.user} is not okay, evidenced by ${c.countText} in ${c.modeLabel} on ${c.dateText}.${c.modifierLabel ? ` ${c.modifierLabel}, for maximum chaos.` : ""} ${c.statLine || ""}`,
+  (c) => `The ${c.modeLabel} numbers are in: ${c.user}, ${c.countText}, ${c.dateText}.${c.modifierLabel ? ` Modifier: ${c.modifierLabel}. Sanity: questionable.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user} touched grass exactly zero times and instead did ${c.countText} in ${c.modeLabel} on ${c.dateText}.${c.modifierLabel ? ` With ${c.modifierLabel} equipped like a debuff they asked for.` : ""} ${c.statLine || ""}`,
+  (c) => `Somewhere a physical therapist just felt a disturbance. ${c.user} logged ${c.countText} in ${c.modeLabel} on ${c.dateText}.${c.modifierLabel ? ` ${c.modifierLabel} was involved.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user}'s arms have filed for emancipation after ${c.countText} in ${c.modeLabel} on ${c.dateText}.${c.modifierLabel ? ` The ${c.modifierLabel} modifier did not help their case.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.dateText} will be remembered as the day ${c.user} did ${c.countText} in ${c.modeLabel} and refused to shut up about it.${c.modifierLabel ? ` ${c.modifierLabel}, in case that wasn't unhinged enough.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user} generated ${c.countText} of pure ${c.modeLabel} chaos on ${c.dateText}.${c.modifierLabel ? ` ${c.modifierLabel} mode: engaged.` : ""} ${c.statLine || "The rest of the boys should be nervous."}`,
+  (c) => `New entry in the ${c.modeLabel} annals: ${c.user}, ${c.countText}, ${c.dateText}.${c.modifierLabel ? ` Achieved under ${c.modifierLabel}, a modifier nobody asked for.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user} did ${c.countText} in ${c.modeLabel} on ${c.dateText} and the phone's camera has seen things it cannot unsee.${c.modifierLabel ? ` ${c.modifierLabel} made it worse.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.countText} logged. ${c.modeLabel}. ${c.dateText}. ${c.user} is currently insufferable and has earned it.${c.modifierLabel ? ` Extra insufferable due to ${c.modifierLabel}.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user}'s tendons have entered the group chat to complain about the ${c.countText}-rep ${c.modeLabel} session on ${c.dateText}.${c.modifierLabel ? ` ${c.modifierLabel} was named as a contributing factor.` : ""} ${c.statLine || ""}`,
+  (c) => `Field report, ${c.dateText}: ${c.user} completed ${c.countText} in ${c.modeLabel} with no survivors, mostly themselves.${c.modifierLabel ? ` ${c.modifierLabel} was the weapon of choice.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user} really said "${c.countText} in ${c.modeLabel}" like it was nothing, on ${c.dateText} of all days.${c.modifierLabel ? ` ${c.modifierLabel}, unprompted.` : ""} ${c.statLine || ""}`,
+  (c) => `Recorded for posterity: ${c.user}, ${c.countText}, ${c.modeLabel}, ${c.dateText}.${c.modifierLabel ? ` The ${c.modifierLabel} modifier is now legally part of the story.` : ""} ${c.statLine || ""}`,
+  (c) => `${c.user} just gave ${c.modeLabel} a bad name by doing ${c.countText} of it on ${c.dateText}.${c.modifierLabel ? ` ${c.modifierLabel} made sure of it.` : ""} ${c.statLine || ""}`,
+];
+
+let lastSessionDetailTemplate = null;
+export function pickSessionShareMessage(ctx) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(SHARE_MESSAGES_SESSION_DETAIL); guard++; }
+  while (template === lastSessionDetailTemplate && SHARE_MESSAGES_SESSION_DETAIL.length > 1 && guard < 10);
+  lastSessionDetailTemplate = template;
+  return template(ctx).replace(/\s+/g, " ").trim();
 }

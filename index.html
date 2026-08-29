@@ -596,7 +596,10 @@
       </div>
       <p id="tow-open-hint" class="screen-sub hidden">Joiners tap a link and land in whichever team has room</p>
 
-      <button id="btn-tow-start" type="button" class="btn btn-giant btn-primary horse-start-btn">Start match</button>
+      <div id="tow-setup-actions" class="tow-setup-actions">
+        <button id="btn-tow-abort" type="button" class="btn btn-giant btn-secondary horse-start-btn hidden">Abort</button>
+        <button id="btn-tow-start" type="button" class="btn btn-giant btn-primary horse-start-btn">Start match</button>
+      </div>
     </section>
 
     <!-- ============ SCREEN: TUG OF WAR JOIN (Open invite link) ============ -->
@@ -1022,8 +1025,12 @@
         </div>
 
         <div class="session-detail-hero">
-          <div id="session-detail-count" class="session-detail-count">0</div>
-          <div id="session-detail-count-label" class="session-detail-count-label">TOTAL PUSHUPS</div>
+          <div id="session-detail-hero-mode" class="session-detail-hero-badge session-detail-hero-badge-left"></div>
+          <div class="session-detail-hero-center">
+            <div id="session-detail-count" class="session-detail-count">0</div>
+            <div id="session-detail-count-label" class="session-detail-count-label">TOTAL PUSHUPS</div>
+          </div>
+          <div id="session-detail-hero-modifier" class="session-detail-hero-badge session-detail-hero-badge-right"></div>
         </div>
 
         <div id="session-detail-badges" class="session-detail-badges"></div>
@@ -1777,6 +1784,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=243"></script>
+<script type="module" src="app.js?v=244"></script>
 </body>
 </html>
