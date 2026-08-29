@@ -1291,6 +1291,29 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .thermometer-fill.thermometer-win { background: var(--success); }
 .thermometer-fill.thermometer-ghost { background: linear-gradient(90deg, var(--ghost-dim), var(--ghost)); }
 
+/* Personal-best HUD bars read as chunky notched blocks instead of a smooth
+   fill. The mask lives on the track (not the fill) so segment boundaries
+   stay fixed to the track's own width as the fill grows/shrinks inside it —
+   masking the fill directly would size each stripe off the fill's own
+   (changing) width and the notches would drift out of alignment with the
+   track's gaps. --seg-count is set per-session in JS from the goal, capped
+   so a high personal best still reads as a handful of big chunks rather
+   than degrading into illegible hairlines. */
+.thermometer-track-segmented {
+  height: 8px;
+  --seg-gap: 3px;
+  -webkit-mask-image: repeating-linear-gradient(to right,
+    black 0,
+    black calc(100% / var(--seg-count, 1) - var(--seg-gap)),
+    transparent calc(100% / var(--seg-count, 1) - var(--seg-gap)),
+    transparent calc(100% / var(--seg-count, 1)));
+  mask-image: repeating-linear-gradient(to right,
+    black 0,
+    black calc(100% / var(--seg-count, 1) - var(--seg-gap)),
+    transparent calc(100% / var(--seg-count, 1) - var(--seg-gap)),
+    transparent calc(100% / var(--seg-count, 1)));
+}
+
 /* Ghost mode's "racing your last session" message reads secondary — unlike
    the shared .highscore-message default, it stays unbold — applies to Plank,
    Squats, Pull-ups, and Crunches, the four modes with ghost mode wired up. */

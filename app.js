@@ -6727,6 +6727,14 @@ function paintDashboard(sessions) {
 
   renderBoysModeStats(filtered, allModesInPeriod);
   renderModeHistory(allModesInPeriod);
+  const hasModifiers = renderModifierHistory(allModesInPeriod);
+  const modifiersTabBtn = $("modifiers-tab-btn");
+  modifiersTabBtn.classList.toggle("hidden", !hasModifiers);
+  if (!hasModifiers && state.historyView === "modifiers") {
+    state.historyView = "recent";
+    modifiersTabBtn.classList.remove("active");
+    document.querySelectorAll("#history-view-select .segment").forEach((s) => s.classList.toggle("active", s.dataset.view === "recent"));
+  }
 
   const historyList = $("history-list");
   historyList.innerHTML = "";
@@ -6745,7 +6753,7 @@ function paintDashboard(sessions) {
       group.className = "history-user-group";
       const header = document.createElement("div");
       header.className = "history-user-header";
-      header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${fmtCount(totals.get(user))} total</span></span><span class="chev">▸</span>`;
+      header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${userSessions.length} session${userSessions.length === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
       header.addEventListener("click", () => group.classList.toggle("open"));
       makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
       const sessionsWrap = document.createElement("div");
@@ -6814,6 +6822,7 @@ function updateHistoryViewVisibility() {
   $("recent-list").classList.toggle("hidden", state.historyView !== "recent");
   $("history-list").classList.toggle("hidden", state.historyView !== "history");
   $("mode-history-list").classList.toggle("hidden", state.historyView !== "modes");
+  $("modifier-history-list").classList.toggle("hidden", state.historyView !== "modifiers");
 }
 
 // A session's own raw metric (reps, seconds held, or Holland cycles) —
@@ -6876,6 +6885,52 @@ function renderModeHistory(sessions) {
     group.appendChild(modesWrap);
     modeListEl.appendChild(group);
   }
+}
+
+// Cumulative modifiers-by-user for the selected time horizon, same shape as
+// renderModeHistory but grouped by modifier instead of mode; returns whether
+// any tagged sessions exist so the Modifiers tab can be shown/hidden.
+function renderModifierHistory(sessions) {
+  const modifierListEl = $("modifier-history-list");
+  modifierListEl.innerHTML = "";
+  const tagged = sessions.filter((s) => s.modifier);
+  if (!tagged.length) return false;
+  // Sessions carrying the same modifier can span different modes (reps,
+  // seconds held, Holland cycles) with incompatible units, so unlike mode
+  // history this only tallies a session count — no cross-mode total.
+  const byUser = new Map();
+  for (const s of tagged) {
+    if (!s?.user) continue;
+    if (!byUser.has(s.user)) byUser.set(s.user, new Map());
+    const userModifiers = byUser.get(s.user);
+    userModifiers.set(s.modifier, (userModifiers.get(s.modifier) || 0) + 1);
+  }
+  const sessionCountFor = (userModifiers) => Array.from(userModifiers.values()).reduce((sum, n) => sum + n, 0);
+  const usersSorted = Array.from(byUser.keys()).sort((a, b) => sessionCountFor(byUser.get(b)) - sessionCountFor(byUser.get(a)));
+  for (const user of usersSorted) {
+    const modifiers = byUser.get(user);
+    const group = document.createElement("div");
+    group.className = "history-user-group";
+    const header = document.createElement("div");
+    header.className = "history-user-header";
+    header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${modifiers.size} modifier${modifiers.size === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
+    header.addEventListener("click", () => group.classList.toggle("open"));
+    makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
+    const modifiersWrap = document.createElement("div");
+    modifiersWrap.className = "history-sessions";
+    const modifiersSorted = Array.from(modifiers.entries()).sort((a, b) => b[1] - a[1]);
+    for (const [modifierId, count] of modifiersSorted) {
+      const meta = MODIFIERS.find((m) => m.id === modifierId);
+      const row = document.createElement("div");
+      row.className = "history-session-row";
+      row.innerHTML = `<span>${meta ? meta.icon : ""} ${meta ? meta.title : modifierId}</span><span class="history-session-count">${count} session${count === 1 ? "" : "s"}</span>`;
+      modifiersWrap.appendChild(row);
+    }
+    group.appendChild(header);
+    group.appendChild(modifiersWrap);
+    modifierListEl.appendChild(group);
+  }
+  return true;
 }
 
 $("history-view-select").addEventListener("click", (e) => {
@@ -8080,6 +8135,15 @@ function maybeEncourage(count) {
   return null;
 }
 
+// Chunky-segment count for a personal-best bar: one block per rep below the
+// cap, capped above it so a high goal still reads as a handful of big
+// blocks instead of illegible hairlines (see .thermometer-track-segmented).
+const THERMOMETER_MAX_SEGMENTS = 12;
+function setThermometerSegments(fillEl, goal) {
+  const segments = goal > 0 ? Math.min(THERMOMETER_MAX_SEGMENTS, goal) : 1;
+  fillEl.parentElement.style.setProperty("--seg-count", segments);
+}
+
 function updateThermometer(count) {
   const wrap = $("thermometer-wrap");
   // Rep updates run this after every detection, so honor the centralized HUD
@@ -8103,6 +8167,7 @@ function updateThermometer(count) {
   const pct = Math.min(100, Math.round((count / goal) * 100));
   fill.style.width = `${pct}%`;
   fill.classList.toggle("thermometer-win", count > goal);
+  setThermometerSegments(fill, goal);
 }
 
 // Horse's live-count meter tracks the bar to beat (game.target), not the
@@ -10569,6 +10634,7 @@ function updatePlankThermometer(seconds) {
   fill.style.width = `${pct}%`;
   fill.classList.toggle("thermometer-ghost", inGhostPhase);
   fill.classList.toggle("thermometer-win", !inGhostPhase && seconds > target);
+  setThermometerSegments(fill, target);
 }
 
 function updatePlankHighscoreMessage(seconds) {
@@ -10819,6 +10885,7 @@ function updateSquatThermometer(count) {
   fill.style.width = `${pct}%`;
   fill.classList.toggle("thermometer-ghost", inGhostPhase);
   fill.classList.toggle("thermometer-win", !inGhostPhase && count > target);
+  setThermometerSegments(fill, target);
 }
 
 function updateSquatHighscoreMessage(count) {
@@ -11249,6 +11316,7 @@ function updatePullupThermometer(count) {
   fill.style.width = `${pct}%`;
   fill.classList.toggle("thermometer-ghost", inGhostPhase);
   fill.classList.toggle("thermometer-win", !inGhostPhase && count > target);
+  setThermometerSegments(fill, target);
 }
 
 function updatePullupHighscoreMessage(count) {
@@ -12031,6 +12099,7 @@ function updateSitupThermometer(count) {
   fill.style.width = `${pct}%`;
   fill.classList.toggle("thermometer-ghost", inGhostPhase);
   fill.classList.toggle("thermometer-win", !inGhostPhase && count > target);
+  setThermometerSegments(fill, target);
 }
 
 function updateSitupHighscoreMessage(count) {
