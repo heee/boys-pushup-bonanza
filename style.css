@@ -1938,6 +1938,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 .horse-header-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.2rem; }
 .horse-header-row .screen-title { margin: 0; }
+#btn-tow-setup-share { margin-left: auto; }
 
 .horse-order-header { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.2rem; }
 .horse-order-header .screen-title { margin: 0; }
@@ -2314,11 +2315,22 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 
 .tow-teams-list { margin-top: 0.6rem; }
-.tow-team-summary-row { cursor: pointer; }
-.tow-team-summary-row:active { background: var(--bg-elevated-2); }
-/* Left accent bar marks "your team" — more compact than Horse's full
-   inset-ring card treatment, matching the Session-detail row pattern. */
-.tow-team-summary-row.tow-team-summary-mine { border-left: 3px solid var(--primary); }
+/* Same gradient fill as the giant CTA buttons (.btn-primary) — makes the
+   team header row read as a distinct control, clearly separate from the
+   plain player rows it expands into underneath. */
+.tow-team-summary-row {
+  cursor: pointer;
+  background: linear-gradient(155deg, var(--primary-dim), var(--primary-deep));
+}
+.tow-team-summary-row:active { filter: brightness(0.92); }
+.tow-team-summary-row .tow-team-name,
+.tow-team-summary-row .tow-team-name.tow-team-name-mine,
+.tow-team-summary-row .tow-team-count,
+.tow-team-summary-row .tow-team-chevron { color: var(--text-on-accent); }
+/* Left accent bar marks "your team" — needs a color that still reads
+   against the row's own accent fill, so it's the on-accent text color
+   rather than --primary (which would blend right in). */
+.tow-team-summary-row.tow-team-summary-mine { border-left: 3px solid var(--text-on-accent); }
 .tow-avatar-pair { display: flex; align-items: center; flex-shrink: 0; }
 .tow-avatar-pair .avatar-circle { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; border: 2px solid var(--bg-elevated); }
 .tow-avatar-pair .avatar-circle + .avatar-circle { margin-left: -0.55rem; }
