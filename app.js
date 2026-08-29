@@ -6551,7 +6551,8 @@ function formatModeMetric(metric, value = metric.value) {
 function renderBoysModeStats(sessions, allModeSessions = sessions) {
   const el = $("boys-mode-stats");
   const metrics = modeStatsModel(sessions, state.leaderboardMode);
-  metrics.push(modifiersUsedStat(sessions), modesUsedStat(allModeSessions));
+  const modifiersUsed = modifiersUsedStat(sessions);
+  metrics.push(...(modifiersUsed.available ? [modifiersUsed] : []), modesUsedStat(allModeSessions));
   el.innerHTML = metrics.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
     if (!metric.available) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
