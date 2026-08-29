@@ -2255,7 +2255,11 @@ function goalValueText(key, g) {
 
 function renderGoalsSettingsScreen() {
   const goals = goalsFor(state.currentUser);
-  for (const key of GOAL_ORDER) $(`goal-value-${key}`).textContent = goalValueText(key, goals[key]);
+  for (const key of GOAL_ORDER) {
+    const el = $(`goal-value-${key}`);
+    el.textContent = goalValueText(key, goals[key]);
+    el.classList.toggle("settings-category-value-active", goals[key].enabled);
+  }
   $("goal-scope-select").querySelectorAll(".segment").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.goalScope === goals.scope);
   });

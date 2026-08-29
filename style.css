@@ -3561,6 +3561,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .settings-category-icon-goals { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
+.settings-category-value-active { color: var(--gold); font-weight: 600; }
 .settings-category-chevron { flex-shrink: 0; color: var(--text-tertiary); font-size: 1.1rem; }
 
 .mode-breakdown-list { margin-top: 1.1rem; }
