@@ -117,6 +117,45 @@ const SULTRY_STYLE_RULES = [
   "quirky, and electric — if in doubt, push the energy, speed, and playful bounce further, not less.",
 ];
 
+// Phonetics/rhythm only — no vocabulary or syntax changes (wee, numpty,
+// dinnae ye ken, double negatives, "so it is"), matching the other presets'
+// decision to keep corpus text identical across personas. Word choice lives
+// in voice-lines.js and is shared; only pronunciation/delivery differs here.
+const SCOTS_ACCENT_RULES = [
+  "You are an exaggerated, cartoonish stereotype of a furious Scottish (West Coast Glasgow) drill",
+  "instructor — a thick, unmistakable Scots accent applied to every single word, never a neutral",
+  "American read. Roll or tap every \"R\" hard and sharply. Replace the \"T\" sound in the middle or",
+  "end of words with a sharp glottal stop, a catch in the throat, not a clean T (\"water\" sounds",
+  "like \"wa'er\", \"better\" sounds like \"be'er\", \"got\" sounds like \"go'\"). Keep vowels short and",
+  "pure — \"oo\" sounds tighten toward \"ae\"/\"ee\" (\"good\" sounds like \"gid\", \"do\" sounds like",
+  "\"dae\"). Drop the \"g\" off every \"-ing\" ending (\"running\" sounds like \"runnin'\"). Base pitch is",
+  "flatter and more deadpan than standard English, but every sentence rises sharply in pitch right",
+  "at the very end, almost like a question. Deliver in rapid, rhythmic, staccato bursts, not smooth",
+  "flowing sentences. The accent stays exactly this thick at any speed or energy level — never let",
+  "it soften or thin out when things get fast and intense.",
+];
+
+// Respells only the handful of function words a Scots reading reliably
+// changes (you/your/don't/etc. -> ye/yer/dinnae/etc.) plus dropping the g on
+// "-ing" endings. Rolled R and glottal-stopped T aren't spelled out — those
+// come from SCOTS_ACCENT_RULES as general delivery instructions instead,
+// same split German uses (respell what's spellable, instruct the rest).
+const SCOTS_WORD_SWAPS = {
+  "you're": "yer", "you'll": "ye'll", "you've": "ye've", "your": "yer", "you": "ye",
+  "don't": "dinnae", "doesn't": "disnae", "didn't": "didnae", "can't": "cannae",
+  "isn't": "isnae", "aren't": "arenae", "won't": "willnae",
+  "my": "ma", "to": "tae", "of": "o'", "good": "guid",
+};
+function scottishRespell(text) {
+  return text.replace(/[A-Za-z']+/g, (word) => {
+    const lower = word.toLowerCase();
+    const swap = SCOTS_WORD_SWAPS[lower];
+    if (swap) return word[0] === word[0].toUpperCase() ? swap[0].toUpperCase() + swap.slice(1) : swap;
+    if (/ing$/.test(lower) && lower.length > 4) return word.slice(0, -1) + "'";
+    return word;
+  });
+}
+
 // ----------------------------------------------------------------
 // Voice presets. "default" keeps writing to the original flat assets/voice/
 // location so existing clips/manifest stay valid with zero migration; the
@@ -253,6 +292,48 @@ const PRESETS = {
       ].join(" "),
     },
     speedByTone: { number: 1.2, hype: 1.3, calm: 1.15, zen: 1.0, name: 1.2 },
+  },
+  scottish: {
+    label: "Angry Scotsman",
+    voice: "onyx",
+    outDir: path.join(ROOT, "assets", "voice", "scottish"),
+    respell: scottishRespell,
+    instructionsByTone: {
+      number: [
+        ...SCOTS_ACCENT_RULES,
+        "You are SCREAMING a single rep count number directly into a recruit's ear — pure explosive",
+        "volume and rage compressed into one word, like a gunshot. Full aggressive intensity packed",
+        "into a split second, never trailing off. Do not add any extra words — perform ONLY the exact",
+        "text given, transformed through the accent.",
+      ].join(" "),
+      hype: [
+        ...SCOTS_ACCENT_RULES,
+        "You are a screaming, red-faced Scottish drill instructor at the absolute breaking point of",
+        "your patience — a raw, furious, spit-flying, vein-bulging performance, nose-to-nose",
+        "intimidation, zero polish or control, almost feral, like you might snap. Bark every syllable",
+        "as a violent, clipped shout. CRITICAL — PACE: rapid-fire and breathless, not a slow tirade.",
+        "Attack the very first word immediately with zero wind-up, punch through the whole line as",
+        "fast as you can physically talk — the thick accent stays completely intact at this speed,",
+        "never softening. Do not add any extra words, exclamations, or ad-libs — perform ONLY the",
+        "exact text given, transformed through the accent.",
+      ].join(" "),
+      calm: [
+        ...SCOTS_ACCENT_RULES,
+        "A short status word, still loud, fast, and full of aggressive energy — the accent and",
+        "intensity stay just as thick as at full volume.",
+      ].join(" "),
+      zen: [
+        ...SCOTS_ACCENT_RULES,
+        "A rare quieter, slower moment — the one exception to the usual screaming energy — but the",
+        "thick accent never changes.",
+      ].join(" "),
+      name: [
+        ...SCOTS_ACCENT_RULES,
+        "SCREAM a single person's name during roll call — explosive, furious, full volume and speed,",
+        "like a drill instructor who has completely lost his patience. Do not add extra words.",
+      ].join(" "),
+    },
+    speedByTone: { number: 1.3, hype: 1.4, calm: 1.2, zen: 0.85, name: 1.3 },
   },
 };
 
