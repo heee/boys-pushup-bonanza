@@ -2495,7 +2495,6 @@ function renderFortuneIdleUI() {
   // back to Classic (see showScreen's screen-workout branch).
   $("pushup-mode-select").classList.toggle("hidden", isFortune);
   $("btn-start").classList.toggle("hidden", isFortune);
-  $("workout-hint").classList.toggle("hidden", isFortune);
   if (isFortune) {
     loadFortuneMode().catch(() => {});
     preloadFortuneAssets(fortuneTheme());
@@ -4368,9 +4367,14 @@ function pendingTowItems() {
       // players[name].joinedAt, but Tug of War tracks no per-player join
       // time, so this just lists whoever's in via `opponents`.
       const allPlayers = [...game.teams.a.players, ...game.teams.b.players];
+      // Muted while the host is already sitting on this exact lobby screen —
+      // the bell exists to pull them TO this page, so wiggling/dotting once
+      // they're already here is just noise (still listed if they open the
+      // dropdown, just not clamoring for attention).
+      const viewingThisLobby = state.screen === "screen-tow-setup" && state.towGame?.id === game.id && state.towGame?.status === "lobby";
       if (user === game.createdBy) {
         if (allPlayers.length === 1) continue; // nobody's joined yet — nothing to show
-        items.push({ mode: "tow", kind: "ready", gameId: game.id, creator: game.createdBy, opponents });
+        items.push({ mode: "tow", kind: "ready", gameId: game.id, creator: game.createdBy, opponents, muted: viewingThisLobby });
       } else {
         items.push({ mode: "tow", kind: "waiting", gameId: game.id, creator: game.createdBy, upNow: game.createdBy, opponents });
       }
@@ -4476,8 +4480,10 @@ function renderHorseBellDropdown() {
   $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
   // "turn"/"choosing" (your move right now) get the full urgent treatment —
   // opaque + wiggling. "invite"/"waiting" still light the dot, but stay calm.
-  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => item.kind === "turn" || item.kind === "choosing" || item.kind === "ready"));
-  $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => item.kind !== "waiting"));
+  // A "muted" item (already sitting on the very screen the bell would send
+  // you to) counts as neither — it's in the list but doesn't clamor.
+  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => !item.muted && (item.kind === "turn" || item.kind === "choosing" || item.kind === "ready")));
+  $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => !item.muted && item.kind !== "waiting"));
   const list = $("horse-bell-list");
   list.innerHTML = items.length
     ? items.map((item) => (item.mode === "tow" ? towBellRowHTML(item) : horseBellRowHTML(item))).join("")
