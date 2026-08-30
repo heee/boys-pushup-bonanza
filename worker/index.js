@@ -22,8 +22,8 @@
 //                          rawCount/weightLbs are optional weighted-mode transparency fields — the actual
 //                          physical reps and added weight behind an already-scaled-up `count`;
 //                          mode: omit for Classic, "countdown", "cards", "dice", "ladder", "fortune", "chase",
-//                          "pyramid", or "pulse" for the other pushup modes — logged identically to Classic
-//                          otherwise, this is just a tag;
+//                          "pyramid", "pulse", or "cock" for the other pushup modes — logged identically to
+//                          Classic otherwise, this is just a tag;
 //                          ladderMaxRung: Ladder-mode-only — highest rung fully cleared that session;
 //                          pyramidSize/pyramidDirection/pyramidPeakReached/pyramidCompleted: Pyramid-mode-only —
 //                          the chosen base size (5/8/10/12/15), direction ("up"/"updown"), whether the apex was
@@ -32,6 +32,10 @@
 //                          Pulse-mode-only — the band-width tier played ("wide"/"standard"/"razor"), the rpm
 //                          bounds locked in at start, how the run ended ("ceiling"/"floor"/"banked"), the rolling
 //                          rpm at the moment of a ceiling/floor break (null when banked), and the actual rep count;
+//                          cockResult/cockEndReason/cockMedianRpm/cockFinalCockRpm: Cock-mode-only — the pace-duel
+//                          outcome ("win"/"loss"), how it ended ("nerve_zero"/"resolve_zero"/"fab_ahead"/
+//                          "fab_behind"), the boy's historical median rpm locked in at start, and the bot's own
+//                          pace at the moment the run ended;
 //                          sessionProgression: optional compact, validated ten-second buckets used by the
 //                          Session Detail interval graph (absent on historical sessions);
 //                          modifier: cross-mode, any mode except Zen — how the pushup was physically executed
@@ -869,7 +873,7 @@ export function validateSession(body) {
   if (Number.isFinite(weightLbs) && weightLbs >= 0 && weightLbs <= 1000) {
     session.weightLbs = weightLbs;
   }
-  const VALID_MODES = ["countdown", "cards", "poker", "dice", "ladder", "fortune", "chase", "pyramid", "zen", "sharpshooter", "wheel", "pulse"];
+  const VALID_MODES = ["countdown", "cards", "poker", "dice", "ladder", "fortune", "chase", "pyramid", "zen", "sharpshooter", "wheel", "pulse", "cock"];
   if (VALID_MODES.includes(body.mode)) session.mode = body.mode;
   // Ladder mode's own record field: the highest rung fully cleared that session.
   const ladderMaxRung = Math.floor(Number(body.ladderMaxRung));
@@ -913,6 +917,27 @@ export function validateSession(body) {
       const breakRpm = Math.round(Number(body.pulseBreakRpm));
       if (Number.isFinite(breakRpm) && breakRpm >= 0 && breakRpm <= 500) session.pulseBreakRpm = breakRpm;
     }
+  }
+  // Cock mode's own fields: the pace-duel outcome and how it ended. Reject
+  // the whole session if the result/end-reason combo doesn't make sense —
+  // this data can't be reconstructed after the fact (see docs/cock-mode-plan.md).
+  if (body.mode === "cock") {
+    const COCK_VALID_RESULTS = ["win", "loss"];
+    const COCK_VALID_END_REASONS = ["nerve_zero", "resolve_zero", "fab_ahead", "fab_behind"];
+    const COCK_WIN_REASONS = ["nerve_zero", "fab_ahead"];
+    const COCK_LOSS_REASONS = ["resolve_zero", "fab_behind"];
+    const result = COCK_VALID_RESULTS.includes(body.cockResult) ? body.cockResult : null;
+    const endReason = COCK_VALID_END_REASONS.includes(body.cockEndReason) ? body.cockEndReason : null;
+    const medianRpm = Math.round(Number(body.cockMedianRpm));
+    const finalCockRpm = Math.round(Number(body.cockFinalCockRpm));
+    const resultMatchesReason = result === "win" ? COCK_WIN_REASONS.includes(endReason) : result === "loss" ? COCK_LOSS_REASONS.includes(endReason) : false;
+    const validMedian = Number.isFinite(medianRpm) && medianRpm >= 0 && medianRpm <= 500;
+    const validFinalRpm = Number.isFinite(finalCockRpm) && finalCockRpm >= 0 && finalCockRpm <= 500;
+    if (!result || !endReason || !resultMatchesReason || !validMedian || !validFinalRpm) return null;
+    session.cockResult = result;
+    session.cockEndReason = endReason;
+    session.cockMedianRpm = medianRpm;
+    session.cockFinalCockRpm = finalCockRpm;
   }
   if (body.mode === "poker") {
     const hands = Math.floor(Number(body.pokerHandsCompleted));
@@ -1120,7 +1145,7 @@ function parseStoredJson(value, fallback) {
 
 function sessionFromRow(row) {
   const session = { id: row.id, user: row.user, timestamp: row.timestamp, count: row.count };
-  const fields = { avatar: "avatar", started_at: "startedAt", type: "type", raw_count: "rawCount", weight_lbs: "weightLbs", mode: "mode", ladder_max_rung: "ladderMaxRung", pyramid_size: "pyramidSize", pyramid_direction: "pyramidDirection", poker_hands_completed: "pokerHandsCompleted", poker_best_rank: "pokerBestRank", poker_premium_hands: "pokerPremiumHands", fortune_challenge_id: "fortuneChallengeId", fortune_grip_side: "fortuneGripSide", modifier: "modifier", holland_difficulty: "hollandDifficulty", holland_pullups: "hollandPullups", holland_pushups: "hollandPushups", holland_squats: "hollandSquats", holland_cycles: "hollandCycles", holland_circuits: "hollandCircuits", holland_achievement: "hollandAchievement", pulse_band_width: "pulseBandWidth", pulse_band_low: "pulseBandLow", pulse_band_high: "pulseBandHigh", pulse_end_reason: "pulseEndReason", pulse_break_rpm: "pulseBreakRpm", pulse_reps: "pulseReps" };
+  const fields = { avatar: "avatar", started_at: "startedAt", type: "type", raw_count: "rawCount", weight_lbs: "weightLbs", mode: "mode", ladder_max_rung: "ladderMaxRung", pyramid_size: "pyramidSize", pyramid_direction: "pyramidDirection", poker_hands_completed: "pokerHandsCompleted", poker_best_rank: "pokerBestRank", poker_premium_hands: "pokerPremiumHands", fortune_challenge_id: "fortuneChallengeId", fortune_grip_side: "fortuneGripSide", modifier: "modifier", holland_difficulty: "hollandDifficulty", holland_pullups: "hollandPullups", holland_pushups: "hollandPushups", holland_squats: "hollandSquats", holland_cycles: "hollandCycles", holland_circuits: "hollandCircuits", holland_achievement: "hollandAchievement", pulse_band_width: "pulseBandWidth", pulse_band_low: "pulseBandLow", pulse_band_high: "pulseBandHigh", pulse_end_reason: "pulseEndReason", pulse_break_rpm: "pulseBreakRpm", pulse_reps: "pulseReps", cock_result: "cockResult", cock_end_reason: "cockEndReason", cock_median_rpm: "cockMedianRpm", cock_final_cock_rpm: "cockFinalCockRpm" };
   for (const [column, key] of Object.entries(fields)) if (row[column] !== null) session[key] = row[column];
   if (row.pyramid_peak_reached !== null) session.pyramidPeakReached = Boolean(row.pyramid_peak_reached);
   if (row.pyramid_completed !== null) session.pyramidCompleted = Boolean(row.pyramid_completed);
@@ -1188,8 +1213,8 @@ async function replaceTowGameIfUnchanged(db, before, after) {
 
 async function insertSession(db, session) {
   const userId = await ensureUser(db, session.user);
-  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json,holland_difficulty,holland_pullups,holland_pushups,holland_squats,holland_cycles,holland_circuits,holland_achievement,pulse_band_width,pulse_band_low,pulse_band_high,pulse_end_reason,pulse_break_rpm,pulse_reps,session_progression_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
-    session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null, session.hollandDifficulty ?? null, session.hollandPullups ?? null, session.hollandPushups ?? null, session.hollandSquats ?? null, session.hollandCycles ?? null, session.hollandCircuits ?? null, session.hollandAchievement ?? null, session.pulseBandWidth ?? null, session.pulseBandLow ?? null, session.pulseBandHigh ?? null, session.pulseEndReason ?? null, session.pulseBreakRpm ?? null, session.pulseReps ?? null, session.sessionProgression ? JSON.stringify(session.sessionProgression) : null,
+  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json,holland_difficulty,holland_pullups,holland_pushups,holland_squats,holland_cycles,holland_circuits,holland_achievement,pulse_band_width,pulse_band_low,pulse_band_high,pulse_end_reason,pulse_break_rpm,pulse_reps,cock_result,cock_end_reason,cock_median_rpm,cock_final_cock_rpm,session_progression_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+    session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null, session.hollandDifficulty ?? null, session.hollandPullups ?? null, session.hollandPushups ?? null, session.hollandSquats ?? null, session.hollandCycles ?? null, session.hollandCircuits ?? null, session.hollandAchievement ?? null, session.pulseBandWidth ?? null, session.pulseBandLow ?? null, session.pulseBandHigh ?? null, session.pulseEndReason ?? null, session.pulseBreakRpm ?? null, session.pulseReps ?? null, session.cockResult ?? null, session.cockEndReason ?? null, session.cockMedianRpm ?? null, session.cockFinalCockRpm ?? null, session.sessionProgression ? JSON.stringify(session.sessionProgression) : null,
   ).run();
 }
 

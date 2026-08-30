@@ -524,6 +524,34 @@ export const PULSE_COLD_LINES = [
   "Push faster! You're under the floor!",
 ];
 
+// Cock Mode — pace duel against a bot ("the cock") (see docs/cock-mode-plan.md).
+// The cock is a trash-talking rooster, not a grind-mode hype voice — lines
+// lean into bravado/bluffing rather than the app's usual encouragement tone.
+export const COCK_START_LINES = [
+  "The cock's puffed up and ready! Let's see who folds first!",
+  "Pace against the cock, starting now! Don't blink!",
+  "The cock doesn't back down easy. Hope you don't either!",
+];
+
+// Fired once per nerve-meter threshold crossed downward (e.g. under 50%,
+// under 25%), not on a timer — see the threshold-crossing guard in
+// app.js's cockEvaluateTick.
+export const COCK_TAUNT_LINES = [
+  "The cock's getting nervous!",
+  "Look at that cock squirm!",
+  "The cock is one step from running!",
+];
+
+export const COCK_LOSS_LINES = [
+  "The cock chickens out! You win!",
+  "That's it, the cock's folded! Victory!",
+];
+
+export const COCK_WIN_LINES = [
+  "The cock wins this one. Come back tougher!",
+  "You folded first. The cock struts off proud!",
+];
+
 export const FUN_MESSAGES_PLANK = [
   (s) => `${s} second plank! Somewhere, a yoga instructor sheds a single tear.`,
   (s) => `Held it for ${s} seconds. Absolute plank behavior.`,
@@ -615,6 +643,10 @@ export function buildCorpus() {
   for (const line of PULSE_START_LINES) add(line, "hype");
   for (const line of PULSE_HOT_LINES) add(line, "hype");
   for (const line of PULSE_COLD_LINES) add(line, "hype");
+  for (const line of COCK_START_LINES) add(line, "hype");
+  for (const line of COCK_TAUNT_LINES) add(line, "hype");
+  for (const line of COCK_LOSS_LINES) add(line, "hype");
+  for (const line of COCK_WIN_LINES) add(line, "hype");
   for (const line of LADDER_CHEER_LINES) add(line, "hype");
   for (const line of SHARPSHOOTER_HIT_LINES) add(line, "hype");
   for (const line of PYRAMID_ROW_CHEER_LINES) add(line, "hype");

@@ -14,6 +14,10 @@ import {
   HORSE_LETTER_LINES,
   HORSE_WIN_LINES,
   SHARPSHOOTER_HIT_LINES,
+  COCK_START_LINES,
+  COCK_TAUNT_LINES,
+  COCK_LOSS_LINES,
+  COCK_WIN_LINES,
   PULSE_RECORD_LINE,
   PULSE_START_LINES,
   PULSE_HOT_LINES,
@@ -105,6 +109,22 @@ test("every Pulse start/hot/cold line and the record line are included in the pr
 test("Pulse corpus entries normalize to unique, non-empty keys", () => {
   const keys = buildCorpus().map((entry) => entry.key);
   for (const line of [...PULSE_START_LINES, ...PULSE_HOT_LINES, ...PULSE_COLD_LINES, PULSE_RECORD_LINE]) {
+    const key = normalizeSpoken(line);
+    assert.ok(key.length > 0, line);
+    assert.equal(keys.includes(key), true, line);
+  }
+});
+
+test("every Cock start/taunt/win/loss line is included in the pre-rendered voice corpus", () => {
+  const texts = new Set(buildCorpus().map((entry) => entry.text));
+  for (const line of [...COCK_START_LINES, ...COCK_TAUNT_LINES, ...COCK_LOSS_LINES, ...COCK_WIN_LINES]) {
+    assert.equal(texts.has(line), true, line);
+  }
+});
+
+test("Cock corpus entries normalize to unique, non-empty keys", () => {
+  const keys = buildCorpus().map((entry) => entry.key);
+  for (const line of [...COCK_START_LINES, ...COCK_TAUNT_LINES, ...COCK_LOSS_LINES, ...COCK_WIN_LINES]) {
     const key = normalizeSpoken(line);
     assert.ok(key.length > 0, line);
     assert.equal(keys.includes(key), true, line);
