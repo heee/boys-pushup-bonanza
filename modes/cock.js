@@ -16,11 +16,27 @@ export const COCK_HISTORY_WINDOW = 25;
 export const COCK_ROLLING_WINDOW_MS = 4500;
 export const COCK_GRACE_MS = 4000;
 
-// Meter tuning: starts full (100), moves this many points per evaluation
-// tick while ahead/behind, clamped to [0, 100]. Symmetric by default: only
-// tune independently if on-device play shows one side folding too fast.
+// Meter tuning: starts full (100), clamped to [0, 100]. The per-tick step is
+// NOT flat — it scales with how big a relative pace margin you're actually
+// running, not just whether you're ahead at all. A flat rate made "barely
+// ahead" and "sprinting flat out" resolve the duel in the same ~12-15s,
+// which felt like it ended out of nowhere on a hard sprint (Henning,
+// 2026-08-31 feedback). Now a marginal lead grinds it out over something
+// closer to a real pushup set, while a genuine all-out sprint can still
+// close it out fast — that's supposed to feel earned, not instant.
 export const COCK_METER_START = 100;
-export const COCK_METER_STEP = 1.2;
+export const COCK_METER_BASE_STEP = 0.15;
+export const COCK_METER_MARGIN_GAIN = 0.68;
+// Relative margin (|rollingRpm - cockRpm| / cockRpm) beyond this is treated
+// the same as exactly this much — a 3x pace blowout shouldn't drain any
+// faster than a clean 2x one.
+export const COCK_METER_MARGIN_CAP = 1.0;
+
+// How much a given relative margin drains the losing side's meter this
+// tick — small near zero margin, ramping up toward BASE+GAIN at the cap.
+export function cockMeterStep(marginPct) {
+  return COCK_METER_BASE_STEP + COCK_METER_MARGIN_GAIN * Math.min(Math.abs(marginPct), COCK_METER_MARGIN_CAP);
+}
 
 // The cock's pace ramps up linearly from the median over the run, reaching
 // 1 + COCK_RAMP_PCT times the median at COCK_RAMP_DURATION_MS elapsed, then
@@ -129,13 +145,15 @@ export function cockTick(state, { nowMs, rollingRpm, medianRpm }) {
 
   const cockRpm = cockPaceRpm(medianRpm, elapsedMs);
   const ahead = rollingRpm > cockRpm;
+  const marginPct = cockRpm > 0 ? (rollingRpm - cockRpm) / cockRpm : 0;
+  const step = cockMeterStep(marginPct);
 
   const cockNerve = ahead
-    ? Math.max(0, state.cockNerve - COCK_METER_STEP)
-    : Math.min(COCK_METER_START, state.cockNerve + COCK_METER_STEP);
+    ? Math.max(0, state.cockNerve - step)
+    : Math.min(COCK_METER_START, state.cockNerve + step);
   const boyResolve = ahead
-    ? Math.min(COCK_METER_START, state.boyResolve + COCK_METER_STEP)
-    : Math.max(0, state.boyResolve - COCK_METER_STEP);
+    ? Math.min(COCK_METER_START, state.boyResolve + step)
+    : Math.max(0, state.boyResolve - step);
 
   const next = { ...state, phase: ahead ? "ahead" : "behind", cockNerve, boyResolve };
 

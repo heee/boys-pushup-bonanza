@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   COCK_GRACE_MS,
+  COCK_METER_BASE_STEP,
+  COCK_METER_MARGIN_CAP,
+  COCK_METER_MARGIN_GAIN,
   COCK_METER_START,
-  COCK_METER_STEP,
   COCK_RAMP_DURATION_MS,
   COCK_RAMP_PCT,
   COCK_UNLOCK_SESSIONS,
@@ -12,6 +14,7 @@ import {
   cockIsClassicSession,
   cockMedian,
   cockMedianFromHistory,
+  cockMeterStep,
   cockPaceRpm,
   cockRampMultiplier,
   cockRollingRpm,
@@ -20,6 +23,14 @@ import {
   cockUnlockStatus,
   cockValidHistoryRpms,
 } from "../modes/cock.js";
+
+// Mirrors the tick's own margin calc so tests assert against the real
+// formula instead of a hand-copied magic number.
+function expectedStep(rollingRpm, medianRpm, elapsedMs) {
+  const cockRpm = cockPaceRpm(medianRpm, elapsedMs);
+  const marginPct = (rollingRpm - cockRpm) / cockRpm;
+  return cockMeterStep(marginPct);
+}
 
 function classicSession({ count, minutes, timestamp = "2026-08-30T12:10:00.000Z" }) {
   const endedMs = new Date(timestamp).getTime();
@@ -104,25 +115,36 @@ test("cockTick stays in grace until the window fills, no meter movement possible
   assert.equal(during.ended, false);
 });
 
-test("cockTick drains the cock's nerve and refills the boy's resolve while ahead", () => {
+test("cockTick drains the cock's nerve and refills the boy's resolve while ahead, scaled by margin", () => {
   let state = cockCreateRunState(0);
   state = cockTick(state, { nowMs: COCK_GRACE_MS + 100, rollingRpm: 50, medianRpm: 30 });
   assert.equal(state.phase, "ahead");
-  assert.equal(state.cockNerve, COCK_METER_START - COCK_METER_STEP);
+  const step = expectedStep(50, 30, COCK_GRACE_MS + 100);
+  assert.equal(state.cockNerve, COCK_METER_START - step);
   assert.equal(state.boyResolve, COCK_METER_START);
 });
 
-test("cockTick drains the boy's resolve and refills the cock's nerve while behind", () => {
+test("cockTick drains the boy's resolve and refills the cock's nerve while behind, scaled by margin", () => {
   let state = cockCreateRunState(0);
   state = cockTick(state, { nowMs: COCK_GRACE_MS + 100, rollingRpm: 5, medianRpm: 30 });
   assert.equal(state.phase, "behind");
-  assert.equal(state.boyResolve, COCK_METER_START - COCK_METER_STEP);
+  const step = expectedStep(5, 30, COCK_GRACE_MS + 100);
+  assert.equal(state.boyResolve, COCK_METER_START - step);
   assert.equal(state.cockNerve, COCK_METER_START);
+});
+
+test("cockMeterStep grows with relative margin and clamps at the cap", () => {
+  assert.equal(cockMeterStep(0), COCK_METER_BASE_STEP);
+  assert.equal(cockMeterStep(0.5), COCK_METER_BASE_STEP + COCK_METER_MARGIN_GAIN * 0.5);
+  assert.equal(cockMeterStep(COCK_METER_MARGIN_CAP), COCK_METER_BASE_STEP + COCK_METER_MARGIN_GAIN);
+  assert.equal(cockMeterStep(COCK_METER_MARGIN_CAP * 3), COCK_METER_BASE_STEP + COCK_METER_MARGIN_GAIN);
+  // Sign-agnostic — a big deficit drains just as fast as an equal-sized lead.
+  assert.equal(cockMeterStep(-0.5), cockMeterStep(0.5));
 });
 
 test("cockTick ends in a win once the cock's nerve hits zero", () => {
   let state = cockCreateRunState(0);
-  state.cockNerve = COCK_METER_STEP; // one tick from zero
+  state.cockNerve = expectedStep(50, 30, COCK_GRACE_MS + 100); // one tick from zero
   state = cockTick(state, { nowMs: COCK_GRACE_MS + 100, rollingRpm: 50, medianRpm: 30 });
   assert.equal(state.ended, true);
   assert.equal(state.result, "win");
@@ -133,7 +155,7 @@ test("cockTick ends in a win once the cock's nerve hits zero", () => {
 
 test("cockTick ends in a loss once the boy's resolve hits zero", () => {
   let state = cockCreateRunState(0);
-  state.boyResolve = COCK_METER_STEP;
+  state.boyResolve = expectedStep(5, 30, COCK_GRACE_MS + 100);
   state = cockTick(state, { nowMs: COCK_GRACE_MS + 100, rollingRpm: 5, medianRpm: 30 });
   assert.equal(state.ended, true);
   assert.equal(state.result, "loss");
@@ -142,7 +164,7 @@ test("cockTick ends in a loss once the boy's resolve hits zero", () => {
 
 test("cockTick and cockEndViaFab are no-ops once the run has ended", () => {
   let state = cockCreateRunState(0);
-  state.cockNerve = COCK_METER_STEP;
+  state.cockNerve = expectedStep(50, 30, COCK_GRACE_MS + 100);
   state = cockTick(state, { nowMs: COCK_GRACE_MS + 100, rollingRpm: 50, medianRpm: 30 });
   assert.equal(state.ended, true);
   const stillEnded = cockTick(state, { nowMs: COCK_GRACE_MS + 200, rollingRpm: 0, medianRpm: 30 });

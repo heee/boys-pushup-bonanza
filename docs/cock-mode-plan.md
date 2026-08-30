@@ -38,9 +38,16 @@ existing rolling-rpm and history infrastructure.
 - **Loss condition:** mirrored — the boy has his own resolve meter (0–100, same
   drain/refill logic, inverted: drains while behind the cock's pace) that is
   **never rendered on screen**. Hits 0 → **automatic loss**, taken straight to the
-  session end screen. Drain/refill rates for both meters are tunable constants; a
-  reasonable starting point is symmetric with the bot's (adjust independently
-  during on-device tuning if one side folds too fast/slow).
+  session end screen. **Tuning update (2026-08-31, Henning feedback):** the
+  drain/refill rate is not flat — a v1 flat rate meant sprinting flat-out and
+  barely beating the cock's pace resolved the duel in the same ~12-15s, which
+  felt like it ended out of nowhere on a hard push. The per-tick step now
+  scales with relative margin (`cockMeterStep` in `modes/cock.js`:
+  `COCK_METER_BASE_STEP` + `COCK_METER_MARGIN_GAIN * min(|marginPct|,
+  COCK_METER_MARGIN_CAP)`), so a marginal lead grinds out over ~50-80s (closer
+  to a real set) while an all-out sprint can still close it in ~18-20s —
+  intensity is rewarded, but no longer for free. Still symmetric between the
+  two meters; revisit independently if one side folds too fast/slow.
 - **Manual end via FAB:** Cock Mode reuses the shared checkmark FAB (`#btn-complete`,
   same fixed bottom-right circular control other modes use — no new buttons, no
   "chicken out"/"keep pushing" copy anywhere). Tapping it **resolves the current
