@@ -160,6 +160,10 @@ body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* #app has no fixed height on most screens, so the page (body/html) is
+     the actual scroll container — needs the same scroll-anchoring opt-out
+     as #app-main; see its comment for why. */
+  overflow-anchor: none;
 }
 
 button, input {
@@ -439,6 +443,14 @@ button, input {
   /* Tab bar is fixed/out-of-flow now, so its clearance has to come from
      here explicitly instead of natural flex stacking. */
   padding: 1.25rem 1.1rem calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 1rem);
+  /* Without this, the summary screen's missed-reps stepper repaints text
+     above it (roadtrip cue, chase result, weighted note) on every tap, and
+     Safari's scroll anchoring "helpfully" re-scrolls to compensate for that
+     above-the-fold size change — visibly jumping the page and, since it can
+     overshoot past the real scrollable range, leaving the Go again/Share
+     buttons stuck under the fixed tab bar with no scroll gesture able to
+     reach them. */
+  overflow-anchor: none;
 }
 
 .screen { display: none; flex: 1; flex-direction: column; }
