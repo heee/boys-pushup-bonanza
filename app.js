@@ -12681,10 +12681,11 @@ function renderRecapModal() {
 
   const deltaEl = $("recap-delta");
   if (tab.deltaPct != null) {
-    deltaEl.classList.remove("hidden");
+    deltaEl.classList.remove("recap-delta-empty");
     deltaEl.textContent = `${tab.deltaPct >= 0 ? "+" : ""}${tab.deltaPct}% vs last ${tier}`;
   } else {
-    deltaEl.classList.add("hidden");
+    deltaEl.classList.add("recap-delta-empty");
+    deltaEl.textContent = " ";
   }
 
   const stripEl = $("recap-strip");
@@ -12695,7 +12696,7 @@ function renderRecapModal() {
     tab.strip.days.forEach((active) => {
       const dot = document.createElement("span");
       dot.className = `recap-strip-dot${active ? " active" : ""}`;
-      dot.textContent = "🔥";
+      dot.textContent = active ? "🔥" : "❄️";
       row.appendChild(dot);
     });
     stripEl.appendChild(row);

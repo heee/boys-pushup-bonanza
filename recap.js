@@ -202,7 +202,7 @@ function computeHighlights({ pool, user, tier, start, end, rank, prevRank, perio
   // Slot 2 — personal-best / volume-record.
   if (tier === "week") {
     if (periodBest > allTimeBestBefore) {
-      highlights.push({ icon: "⭐", text: `New personal best — ${periodBest} in one session` });
+      highlights.push({ icon: "⭐", text: `New PR — ${periodBest} in one session` });
     }
   } else if (tier === "month") {
     if (isRecordTotal) highlights.push({ icon: "⭐", text: "New monthly volume PB" });
