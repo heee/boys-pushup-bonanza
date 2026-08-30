@@ -5094,6 +5094,122 @@ body:has(#screen-challenges.active) #app {
 .summary-pulse-trace-line.summary-pulse-trace-hot { stroke: var(--flame); }
 .summary-pulse-trace-line.summary-pulse-trace-cold { stroke: var(--pulse-cold); }
 .summary-pulse-trace-dot { fill: var(--primary); }
+
+/* --- Cock Mode (pace duel vs. the cock) --- */
+.workout-active.mode-cock .rep-count-wrap { display: none; }
+.cock-hud { width: 100%; display: flex; flex-direction: column; justify-content: center; flex: 1; }
+.cock-status-row { text-align: center; margin-bottom: 0.6rem; }
+.cock-status-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+}
+.cock-pill-neutral { background: var(--bg-elevated-2); color: var(--text-tertiary); }
+.cock-pill-good { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.cock-pill-bad { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+
+.cock-bot-card {
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.cock-bot-row { display: flex; align-items: center; gap: 0.7rem; }
+.cock-bot-face {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 12px;
+  background: var(--bg-elevated-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.cock-bot-meta { flex: 1; min-width: 0; }
+.cock-bot-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); }
+.cock-bot-line { font-size: 0.9rem; font-weight: 700; margin-top: 0.1rem; }
+.cock-bot-rpm { text-align: right; font-variant-numeric: tabular-nums; }
+.cock-bot-rpm-num { font-size: 1.3rem; font-weight: 800; }
+.cock-bot-rpm-unit { font-size: 0.62rem; color: var(--text-tertiary); display: block; }
+.cock-nerve-track { height: 8px; border-radius: 999px; background: var(--switch-off-track); overflow: hidden; }
+.cock-nerve-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--danger), var(--gold));
+  transition: width 0.2s ease;
+}
+
+.cock-trace-wrap {
+  position: relative;
+  background: var(--bg-elevated-2);
+  border-radius: 16px;
+  padding: 0.8rem 0;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.cock-trace-svg { width: 100%; display: block; position: relative; height: 9rem; }
+.cock-trace-line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.cock-trace-you { stroke: var(--gold); stroke-width: 2.6; }
+.cock-trace-bot { stroke: var(--text-tertiary); stroke-width: 2; opacity: 0.85; }
+.cock-trace-dot.cock-trace-you-dot { fill: var(--gold); }
+.cock-trace-dot.cock-trace-bot-dot { fill: var(--text-tertiary); }
+.cock-now-marker {
+  position: absolute;
+  left: 70%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--text) 35%, transparent), transparent);
+}
+.cock-trace-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin-bottom: 0.9rem;
+}
+.cock-elapsed { font-variant-numeric: tabular-nums; color: var(--text); }
+.cock-legend { display: inline-flex; align-items: center; gap: 0.3rem; }
+.cock-legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.cock-legend-you { background: var(--gold); }
+.cock-legend-bot { background: var(--text-tertiary); }
+
+.cock-stats-row { display: flex; align-items: center; justify-content: center; gap: 1.6rem; }
+.cock-stat { text-align: center; }
+.cock-stat-label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 0.3rem; }
+.cock-stat-value { font-size: 1.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.cock-stat-unit { font-size: 0.66rem; font-weight: 700; color: var(--text-tertiary); margin-left: 0.15rem; }
+.cock-stat-divider { width: 1px; height: 2.1rem; background: var(--border); }
+
+/* --- Results screen (screen-summary) --- */
+.summary-cock-result { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.summary-cock-outcome { font-size: 1.3rem; font-weight: 800; text-align: center; }
+.summary-cock-outcome-win { color: var(--success); }
+.summary-cock-outcome-loss { color: var(--danger); }
+.summary-cock-cause { font-size: 0.85rem; color: var(--text-tertiary); margin-top: 0.3rem; text-align: center; }
+.summary-cock-streak {
+  display: inline-flex;
+  align-self: center;
+  margin: 0.7rem auto 0;
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+}
 .summary-pulse-trace-dot.summary-pulse-trace-dot-hot { fill: var(--flame); }
 .summary-pulse-trace-dot.summary-pulse-trace-dot-cold { fill: var(--pulse-cold); }
 .summary-pulse-trace-times {

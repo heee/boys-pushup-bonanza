@@ -13,6 +13,7 @@ export const MODE_META = {
   ladder: { label: "Ladder", icon: "🪜" },
   pyramid: { label: "Pyramid", icon: "▲" },
   pulse: { label: "Pulse", icon: "❤️‍🔥" },
+  cock: { label: "Cock Mode", icon: "🐓" },
   sharpshooter: { label: "Sharpshooter", icon: "🎯" },
   fortune: { label: "Fortune", icon: "🥠" },
   chase: { label: "Chase", icon: "🏃" },
@@ -61,6 +62,9 @@ export function sessionBadges(session) {
     const label = session.pulseBandWidth.charAt(0).toUpperCase() + session.pulseBandWidth.slice(1);
     badges.push({ id: "pulse-band-width", icon: "📶", label: `${label} band` });
   }
+  if (modeId === "cock" && session.cockResult) {
+    badges.push({ id: "cock-result", icon: session.cockResult === "win" ? "🏆" : "🐓", label: session.cockResult === "win" ? "Win" : "Loss", tone: session.cockResult === "win" ? "achievement" : "mode" });
+  }
   if (modeId === "holland" && session.hollandDifficulty) {
     const label = session.hollandDifficulty.charAt(0).toUpperCase() + session.hollandDifficulty.slice(1);
     badges.push({ id: "holland-difficulty", icon: "🕸️", label });
@@ -102,6 +106,10 @@ export function sessionKeyMetrics(session) {
     if (session.pulseBreakRpm != null) metrics.push({ id: "pulseBreakRpm", label: "Pace at break", format: "text", value: `${session.pulseBreakRpm} rpm` });
   }
 
+  if (modeId === "cock" && session.cockResult) {
+    metrics.push({ id: "cockResult", label: "Result", format: "text", value: session.cockResult === "win" ? "Win" : "Loss" });
+    if (session.cockFinalCockRpm != null) metrics.push({ id: "cockFinalCockRpm", label: "Cock's pace at end", format: "text", value: `${session.cockFinalCockRpm} rpm` });
+  }
   if (modeId === "pyramid" && session.pyramidSize != null) {
     metrics.push({ id: "pyramidSize", label: "Pyramid size", format: "integer", value: session.pyramidSize });
     metrics.push({ id: "pyramidCompleted", label: "Completed", format: "boolean", value: session.pyramidCompleted });

@@ -36,3 +36,13 @@ test("Pulse is locked with a visible progress count until enough Classic session
   const unlocked = exploreModesModel({ sessions, hasPR: true, refresh: false, chasePrepared: { eligible: true }, chaseLeaderLabel: () => "B", pulseUnlock: { unlocked: true, validCount: 3, needed: 3 } });
   assert.equal(unlocked.find((item) => item.mode.id === "pulse").playable, true);
 });
+
+test("Cock Mode is locked with a visible progress count until enough Classic sessions are logged", () => {
+  const locked = exploreModesModel({ sessions, hasPR: true, refresh: false, chasePrepared: { eligible: true }, chaseLeaderLabel: () => "B", cockUnlock: { unlocked: false, validCount: 1, needed: 3 } });
+  const cock = locked.find((item) => item.mode.id === "cock");
+  assert.equal(cock.playable, false);
+  assert.equal(cock.status, "1/3 Classic sessions logged");
+
+  const unlocked = exploreModesModel({ sessions, hasPR: true, refresh: false, chasePrepared: { eligible: true }, chaseLeaderLabel: () => "B", cockUnlock: { unlocked: true, validCount: 3, needed: 3 } });
+  assert.equal(unlocked.find((item) => item.mode.id === "cock").playable, true);
+});

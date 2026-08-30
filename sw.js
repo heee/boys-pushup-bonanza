@@ -1,11 +1,11 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v323";
+const CACHE_NAME = "bpb-shell-v324";
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=236",
-  "./app.js?v=252",
+  "./style.css?v=237",
+  "./app.js?v=253",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",
   "./wheel-mode.js?v=4",
@@ -13,6 +13,7 @@ const SHELL_FILES = [
   "./modes/situp.js",
   "./modes/holland.js",
   "./modes/pulse.js",
+  "./modes/cock.js",
   "./share-messages.js?v=143",
   "./api.js",
   "./storage.js",
@@ -32,10 +33,10 @@ const SHELL_FILES = [
   "./screens/session-detail.js?v=8",
   "./screens/challenges.js",
   "./screens/settings.js",
-  "./screens/explore-modes.js?v=143",
+  "./screens/explore-modes.js?v=144",
   "./screens/modifiers.js?v=100",
   "./screens/users.js",
-  "./workout-modes.js?v=151",
+  "./workout-modes.js?v=152",
   "./horse.js",
   "./horse-words.js",
   "./screens/horse.js",
@@ -46,7 +47,7 @@ const SHELL_FILES = [
   "./chase.js",
   "./ladder-rivals.js",
   "./voice.js?v=150",
-  "./voice-lines.js?v=142",
+  "./voice-lines.js?v=143",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

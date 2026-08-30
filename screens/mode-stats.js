@@ -104,6 +104,14 @@ const SPECS = {
     { id: "totalHeld", label: "Total time in band", format: "seconds", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
     { id: "bestHeld", label: "Best time in band", format: "seconds", qualifier: "group best", value: (s) => { const e = eligible(s, "count"); return e.length ? Math.max(...e.map((x) => Number(x.count))) : null; } },
   ],
+  // Cock Mode's meaningful stat is the win/loss record, not reps — falling
+  // through to SPECS.all would show a real avg pace (harmless, since count
+  // is genuine reps here) but bury the actual point of the mode.
+  cock: [
+    { id: "duels", label: "Duels logged", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "wins", label: "Wins", format: "integer", qualifier: "total", value: (s) => { const e = s.filter((x) => x.cockResult === "win" || x.cockResult === "loss"); return e.length ? e.filter((x) => x.cockResult === "win").length : null; } },
+    { id: "winRate", label: "Win rate", format: "percent", qualifier: "group rate", value: (s) => { const e = s.filter((x) => x.cockResult === "win" || x.cockResult === "loss"); return e.length ? e.filter((x) => x.cockResult === "win").length / e.length : null; } },
+  ],
   holland: [
     { id: "workouts", label: "Holland workouts", format: "integer", qualifier: "total", value: (s) => s.length },
     { id: "totalCycles", label: "Total Holland cycles", format: "decimal", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.hollandCycles) || 0) : null },

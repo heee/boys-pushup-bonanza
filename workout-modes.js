@@ -52,6 +52,7 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   const horse = mode === "horse";
   const tow = mode === "tow";
   const pulse = mode === "pulse";
+  const cock = mode === "cock";
   const fortuneHidesCounter = fortune && !!fortuneChallenge?.hideCounter;
   const fortuneMinimalFeedback = fortune && !!fortuneChallenge?.minimalFeedback;
   return {
@@ -68,11 +69,12 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
     horse,
     tow,
     pulse,
-    hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || horse || fortuneHidesCounter || zen || pulse,
-    hideHighscore: dice || wheel || sharpshooter || pyramid || horse || tow || fortuneMinimalFeedback || chase || zen || pulse,
-    // Pulse has its own band visualization (the trace chart), not the
-    // generic high-score thermometer.
-    hideThermometer: zen || horse || tow || pulse || !highScore,
+    cock,
+    hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || horse || fortuneHidesCounter || zen || pulse || cock,
+    hideHighscore: dice || wheel || sharpshooter || pyramid || horse || tow || fortuneMinimalFeedback || chase || zen || pulse || cock,
+    // Pulse/Cock both have their own pace visualization (trace chart), not
+    // the generic high-score thermometer.
+    hideThermometer: zen || horse || tow || pulse || cock || !highScore,
   };
 }
 

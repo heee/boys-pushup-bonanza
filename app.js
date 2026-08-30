@@ -42,6 +42,10 @@ import {
   PULSE_START_LINES,
   PULSE_HOT_LINES,
   PULSE_COLD_LINES,
+  COCK_START_LINES,
+  COCK_TAUNT_LINES,
+  COCK_LOSS_LINES,
+  COCK_WIN_LINES,
   SHARPSHOOTER_HIT_LINES,
   SITUP_CHEER_LINES,
   SITUP_RECORD_LINE,
@@ -61,7 +65,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=142";
+} from "./voice-lines.js?v=143";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -105,11 +109,11 @@ import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=132";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=143";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=144";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=8";
-import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=151";
+import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=152";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -166,6 +170,16 @@ import {
   pulseTick,
   pulseUnlockStatus,
 } from "./modes/pulse.js";
+import {
+  COCK_GRACE_MS,
+  cockCreateRunState,
+  cockEndViaFab,
+  cockMedianFromHistory,
+  cockPaceRpm,
+  cockRollingRpm,
+  cockTick,
+  cockUnlockStatus,
+} from "./modes/cock.js";
 import {
   HOLLAND_TARGETS,
   hollandAdvanceSegment,
@@ -266,6 +280,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "sharpshooter", label: "Sharpshooter" },
   { id: "pyramid", label: "Pyramid" },
   { id: "pulse", label: "Pulse" },
+  { id: "cock", label: "Cock" },
   { id: "pullups", label: "Pull-ups" },
   { id: "squats", label: "Squats" },
   { id: "situps", label: "Crunches" },
@@ -1370,6 +1385,11 @@ const state = {
   pulseTraceSamples: [],
   pulseFullTraceSamples: [],
   pulseResult: null,
+  cockMedianRpm: 0,
+  cockRunState: null,
+  cockRepTimestamps: [],
+  cockTraceSamples: [],
+  cockFullTraceSamples: [],
   modifier: null,
   resolvedModifier: null,
   ladderRivals: [],
@@ -1832,6 +1852,9 @@ function showScreen(id) {
   if (id === "screen-summary" && state.lastSessionType !== "pulse") {
     $("summary-pulse-result")?.classList.add("hidden");
     $("summary-count")?.classList.remove("hidden");
+  }
+  if (id === "screen-summary" && state.lastSessionType !== "cock") {
+    $("summary-cock-result")?.classList.add("hidden");
   }
   if (id === "screen-dashboard") renderDashboard();
   if (id === "screen-session-detail") renderSessionDetail();
@@ -2619,7 +2642,8 @@ function renderExploreModesScreen(refresh = true) {
   const list = $("explore-modes-list");
   const hasPR = getHighScore(state.currentUser) >= 1;
   const pulseUnlock = pulseUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
-  const items = exploreModesModel({ sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock });
+  const cockUnlock = cockUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
+  const items = exploreModesModel({ sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock });
   const sectionLabels = { pushups: "Pushups", other: "Other exercises" };
   let lastSection = null;
   list.innerHTML = items.map((item) => {
@@ -2825,6 +2849,38 @@ $("btn-pulse-start").addEventListener("click", () => {
   startWorkout();
 });
 
+// Cock Mode setup screen — computes the bot's baseline median fresh from
+// history every render (mirrors renderPulseSetup), so what's shown always
+// matches what Start will lock in; the median only gets truly fixed once
+// startWorkout() copies it into the run.
+function renderCockSetup() {
+  const history = pulseHistorySessionsForUser(state.currentUser);
+  const medianRpm = cockMedianFromHistory(history);
+  state.cockMedianRpm = medianRpm ? Math.round(medianRpm) : 0;
+
+  $("cock-median-rpm").textContent = medianRpm ? String(state.cockMedianRpm) : "—";
+
+  const record = getCockRecord(state.currentUser);
+  $("cock-best-run").textContent = record.wins + record.losses > 0
+    ? `${record.wins}W – ${record.losses}L · current streak ${record.streak}`
+    : "No runs yet";
+
+  $("btn-cock-start").disabled = !medianRpm;
+  $("btn-cock-start").textContent = medianRpm ? "Start duel" : "Log more Classic sessions first";
+}
+
+$("btn-cock-setup-back").addEventListener("click", () => {
+  guardLeaveWorkout(() => showScreen("screen-explore-modes"));
+});
+
+$("btn-cock-start").addEventListener("click", () => {
+  if (!state.cockMedianRpm) return;
+  state.pushupMode = "cock";
+  preserveNextModeSelection = true;
+  guardLeaveWorkout(() => showScreen("screen-workout"));
+  startWorkout();
+});
+
 // Shared routing for jumping straight into a mode — used by the Explore
 // Modes tap handler below and by the #mode= share-link deep link in init().
 // `onChaseIneligible` lets the tap handler disable/re-render its row; the
@@ -2868,6 +2924,13 @@ async function openExploreMode(modeId, { onChaseIneligible } = {}) {
   if (modeId === "pulse") {
     renderPulseSetup();
     guardLeaveWorkout(() => showScreen("screen-pulse-setup"));
+    return;
+  }
+  // Cock Mode needs its bot pace median computed from history before it can
+  // start — see screen-cock-setup.
+  if (modeId === "cock") {
+    renderCockSetup();
+    guardLeaveWorkout(() => showScreen("screen-cock-setup"));
     return;
   }
   // Horse needs a word/session-type/player picked before it can start — see
@@ -8376,6 +8439,30 @@ function getPulseBestSession(name) {
   return sessions.reduce((a, b) => ((b.count || 0) > (a.count || 0) ? b : a));
 }
 
+// Cock Mode's own record: total wins/losses plus the current streak (wins
+// in a row counting back from the most recent session, broken by any loss).
+// Leaderboard ranks on total wins — see docs/cock-mode-plan.md.
+function cockSessionsForUser(name) {
+  return indexedSessionsForUser(name, "pushups")
+    .filter((s) => s.user === name && s.mode === "cock")
+    .sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a));
+}
+
+function getCockRecord(name) {
+  const sessions = cockSessionsForUser(name);
+  let wins = 0, losses = 0, streak = 0, streakBroken = false;
+  for (const s of sessions) {
+    if (s.cockResult === "win") {
+      wins += 1;
+      if (!streakBroken) streak += 1;
+    } else if (s.cockResult === "loss") {
+      losses += 1;
+      streakBroken = true;
+    }
+  }
+  return { wins, losses, streak };
+}
+
 function pushupInGhostPhase() {
   return repState.ghostActive && !repState.ghostPassed;
 }
@@ -8454,6 +8541,7 @@ function processRatio(ratio, inferenceMs) {
     repState.count = result.count;
     recordProgression(state.sessionProgression, Date.now() - state.sessionStartedAt.getTime());
     if (state.pushupMode === "pulse") state.pulseRepTimestamps.push(now);
+    if (state.pushupMode === "cock") state.cockRepTimestamps.push(now);
     onRepCounted(result.count);
   }
 }
@@ -9136,7 +9224,7 @@ function onRepCounted(count) {
   // Pulse has no rep-number callouts or per-rep buzz — its own haptics fire
   // only on hot/cold phase transitions (see pulseEvaluateTick), and the pace
   // readout is driven by the eval tick, not individual reps.
-  if (state.pushupMode === "zen" || state.pushupMode === "pulse") return;
+  if (state.pushupMode === "zen" || state.pushupMode === "pulse" || state.pushupMode === "cock") return;
   setTimeout(() => {
     let ghostJustPassed = false;
     if (repState.ghostActive && !repState.ghostPassed && count > state.pushupLast) {
@@ -9542,6 +9630,14 @@ async function setupWorkoutModeState() {
   $("pulse-hud").classList.toggle("hidden", !isPulse);
   $("workout-active").classList.toggle("mode-pulse", isPulse);
 
+  // Cock Mode's median was already computed and locked in on the setup
+  // screen (state.cockMedianRpm) — this just starts the live run's clock,
+  // timers, and per-run bookkeeping. See cockStartLiveRun.
+  const isCock = state.pushupMode === "cock";
+  if (isCock) cockStartLiveRun(); else cockStopLiveTimers();
+  $("cock-hud").classList.toggle("hidden", !isCock);
+  $("workout-active").classList.toggle("mode-cock", isCock);
+
   // Fortune Cookie is the odd one out: it reuses Classic's own giant hero
   // number and rep counting unchanged (the challenge was already picked and
   // shown during the idle-screen reveal, not here) — except No Looking and
@@ -9592,6 +9688,7 @@ function stopWorkoutHard() {
   clearTimeout(state.sharpshooterAnimationTimer);
   state.sharpshooterAnimationTimer = null;
   pulseStopLiveTimers();
+  cockStopLiveTimers();
   stopCameraAndDetection();
   releaseWakeLock();
   state.workoutActive = false;
@@ -10041,6 +10138,208 @@ function pulseZoneOf(rpm) {
   return "in";
 }
 
+// ------------------- Cock Mode (live run) -------------------
+// Cock Mode reuses the Classic camera/rep-counter pipeline unchanged (see
+// state.cockRepTimestamps pushed in updateRepCount) — cockStartLiveRun just
+// runs the modes/cock.js state machine, plus the HUD/trace rendering. See
+// docs/cock-mode-plan.md.
+const COCK_EVAL_TICK_MS = 150;
+const COCK_TRACE_WINDOW_MS = 30000;
+const COCK_TRACE_NOW_X = 280 * 0.7;
+let cockEvalTimer = null;
+
+function cockStopLiveTimers() {
+  if (cockEvalTimer != null) clearInterval(cockEvalTimer);
+  cockEvalTimer = null;
+}
+
+function cockStartLiveRun() {
+  cockStopLiveTimers();
+  const now = performance.now();
+  state.cockRunState = cockCreateRunState(now);
+  state.cockRepTimestamps = [];
+  state.cockTraceSamples = [];
+  state.cockFullTraceSamples = [];
+  renderCockLiveHud(0);
+  cockEvalTimer = setInterval(cockEvaluateTick, COCK_EVAL_TICK_MS);
+}
+
+// Nerve/resolve threshold crossings that get a spoken taunt — fires once per
+// downward crossing, not on a timer (mirrors Pulse's phase-change guard).
+const COCK_TAUNT_THRESHOLDS = [50, 25];
+
+function cockEvaluateTick() {
+  if (!state.cockRunState || state.cockRunState.ended) return;
+  const now = performance.now();
+  const rollingRpm = cockRollingRpm(state.cockRepTimestamps, now);
+  const prevState = state.cockRunState;
+  state.cockRunState = cockTick(prevState, { nowMs: now, rollingRpm, medianRpm: state.cockMedianRpm });
+
+  const cockRpm = cockPaceRpm(state.cockMedianRpm, now - state.cockRunState.runStartMs);
+  const sample = { t: now, youRpm: rollingRpm, cockRpm };
+  state.cockTraceSamples.push(sample);
+  const cutoff = now - COCK_TRACE_WINDOW_MS;
+  while (state.cockTraceSamples.length && state.cockTraceSamples[0].t < cutoff) state.cockTraceSamples.shift();
+  state.cockFullTraceSamples.push(sample);
+
+  renderCockLiveHud(rollingRpm);
+
+  for (const threshold of COCK_TAUNT_THRESHOLDS) {
+    if (prevState.cockNerve > threshold && state.cockRunState.cockNerve <= threshold) {
+      vibrate([60, 50, 60]);
+      speak(pickFrom(COCK_TAUNT_LINES));
+      break;
+    }
+  }
+
+  if (state.cockRunState.ended) completeCockRun();
+}
+
+function cockSmoothPathD(points) {
+  return pulseSmoothPathD(points);
+}
+
+function renderCockTrace() {
+  const samples = state.cockTraceSamples;
+  const youDot = $("cock-trace-you-dot");
+  const botDot = $("cock-trace-bot-dot");
+  if (!samples.length) {
+    $("cock-trace-you").setAttribute("d", "");
+    $("cock-trace-bot").setAttribute("d", "");
+    youDot.classList.add("hidden");
+    botDot.classList.add("hidden");
+    return;
+  }
+  const now = samples[samples.length - 1].t;
+  // Auto-scaled y-axis (unlike Pulse's fixed band) — Cock Mode has no fixed
+  // bounds, both lines just need to fit the visible window with headroom.
+  const maxRpm = Math.max(20, ...samples.map((s) => Math.max(s.youRpm, s.cockRpm))) * 1.15;
+  const toXY = (rpm, t) => {
+    const ageMs = now - t;
+    const x = Math.max(0, Math.min(COCK_TRACE_NOW_X, COCK_TRACE_NOW_X * (1 - ageMs / COCK_TRACE_WINDOW_MS)));
+    const y = Math.max(4, Math.min(146, 146 - (rpm / maxRpm) * 140));
+    return [x, y];
+  };
+  $("cock-trace-you").setAttribute("d", cockSmoothPathD(samples.map((s) => toXY(s.youRpm, s.t))));
+  $("cock-trace-bot").setAttribute("d", cockSmoothPathD(samples.map((s) => toXY(s.cockRpm, s.t))));
+
+  const last = samples[samples.length - 1];
+  const [youX, youY] = toXY(last.youRpm, last.t);
+  const [botX, botY] = toXY(last.cockRpm, last.t);
+  youDot.classList.remove("hidden");
+  youDot.setAttribute("cx", String(youX));
+  youDot.setAttribute("cy", String(youY));
+  botDot.classList.remove("hidden");
+  botDot.setAttribute("cx", String(botX));
+  botDot.setAttribute("cy", String(botY));
+}
+
+function renderCockLiveHud(rollingRpm) {
+  const r = state.cockRunState;
+  if (!r) return;
+  const elapsedMs = performance.now() - r.runStartMs;
+  $("cock-elapsed").textContent = formatDuration(Math.max(0, elapsedMs));
+  $("cock-stat-pace").innerHTML = `${Math.round(rollingRpm)}<span class="cock-stat-unit">rpm</span>`;
+  $("cock-stat-reps").textContent = String(state.cockRepTimestamps.length);
+
+  const cockRpm = cockPaceRpm(state.cockMedianRpm, elapsedMs);
+  $("cock-bot-rpm-value").textContent = String(Math.round(cockRpm));
+
+  const pill = $("cock-status-pill");
+  if (r.phase === "grace") {
+    pill.textContent = "FINDING PACE…";
+    pill.className = "cock-status-pill cock-pill-neutral";
+  } else if (r.phase === "ahead") {
+    pill.textContent = "YOU'RE AHEAD";
+    pill.className = "cock-status-pill cock-pill-good";
+  } else {
+    pill.textContent = "FALLING BEHIND";
+    pill.className = "cock-status-pill cock-pill-bad";
+  }
+
+  $("cock-nerve-fill").style.width = `${Math.max(0, Math.min(100, r.cockNerve))}%`;
+  $("cock-bot-line").textContent = r.cockNerve <= 25 ? "One step from folding" : r.cockNerve <= 50 ? "Wobbling" : r.cockNerve <= 75 ? "Uneasy" : "Steady";
+
+  renderCockTrace();
+}
+
+function renderCockSummary() {
+  const r = state.cockResult;
+  if (!r) return;
+  const win = r.result === "win";
+  $("summary-cock-outcome").textContent = win ? "You win! 🐓" : "The cock wins";
+  $("summary-cock-outcome").className = `summary-cock-outcome ${win ? "summary-cock-outcome-win" : "summary-cock-outcome-loss"}`;
+  const causeText = r.endReason === "nerve_zero" ? "The cock chickened out"
+    : r.endReason === "resolve_zero" ? "You chickened out"
+    : r.endReason === "fab_ahead" ? "You banked it while ahead"
+    : "You stopped while behind";
+  $("summary-cock-cause").textContent = `${causeText} · ${r.reps} rep${r.reps === 1 ? "" : "s"}`;
+  const record = getCockRecord(state.currentUser);
+  if (win && record.streak > 1) {
+    $("summary-cock-streak").textContent = `${record.streak} wins in a row!`;
+    $("summary-cock-streak").classList.remove("hidden");
+  } else {
+    $("summary-cock-streak").classList.add("hidden");
+  }
+  $("summary-cock-result").classList.remove("hidden");
+}
+
+async function completeCockRun() {
+  cockStopLiveTimers();
+  const result = state.cockRunState;
+  const reps = state.cockRepTimestamps.length;
+  stopCameraAndDetection();
+  await releaseWakeLock();
+  state.workoutActive = false;
+  $("workout-active").classList.add("hidden");
+  $("workout-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count: reps,
+    avatar: state.currentAvatar,
+    startedAt: state.sessionStartedAt ? state.sessionStartedAt.toISOString() : undefined,
+    mode: "cock",
+    cockResult: result.result,
+    cockEndReason: result.endReason,
+    cockMedianRpm: state.cockMedianRpm,
+    cockFinalCockRpm: result.finalCockRpm,
+    ...(state.sessionLocation ? { location: state.sessionLocation } : {}),
+  };
+
+  // Optimistically reflect it locally right away so it shows up immediately.
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  state.lastSessionType = "cock";
+  state.cockResult = { ...result, reps };
+  state.summarySessionId = session.id;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+
+  renderCockSummary();
+  $("missed-reps-wrap").classList.add("hidden");
+  $("summary-weighted-note").classList.add("hidden");
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  const win = result.result === "win";
+  if (win) launchConfetti("confetti", CONFETTI_EMOJI, 24);
+  speak(win ? pickFrom(COCK_LOSS_LINES) : pickFrom(COCK_WIN_LINES));
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
 function renderPulseSummaryTrace() {
   const samples = state.pulseFullTraceSamples;
   const r = state.pulseResult;
@@ -10197,6 +10496,28 @@ async function completeWorkout() {
     if (!state.pulseRunState || state.pulseRunState.ended) return;
     state.pulseRunState = pulseBankRun(state.pulseRunState, performance.now());
     await completePulseRun();
+    return;
+  }
+  // Cock Mode reuses the shared checkmark FAB too — it resolves the CURRENT
+  // position (ahead -> win, behind -> loss; no-op during the grace period),
+  // rather than banking a score, so it needs its own save path.
+  if (state.pushupMode === "cock") {
+    if (!state.cockRunState || state.cockRunState.ended) return;
+    const nowMs = performance.now();
+    const ended = cockEndViaFab(state.cockRunState, { nowMs, medianRpm: state.cockMedianRpm });
+    state.cockRunState = ended;
+    if (ended.result == null) {
+      // Grace-period tap: no result to record, just stop the run cleanly.
+      cockStopLiveTimers();
+      stopCameraAndDetection();
+      await releaseWakeLock();
+      state.workoutActive = false;
+      $("workout-active").classList.add("hidden");
+      $("workout-idle").classList.remove("hidden");
+      showScreen("screen-workout");
+      return;
+    }
+    await completeCockRun();
     return;
   }
   const isZen = state.pushupMode === "zen";
@@ -10724,6 +11045,11 @@ $("btn-summary-again").addEventListener("click", () => {
   if (state.lastSessionType === "pulse") {
     renderPulseSetup();
     showScreen("screen-pulse-setup");
+    return;
+  }
+  if (state.lastSessionType === "cock") {
+    renderCockSetup();
+    showScreen("screen-cock-setup");
     return;
   }
   const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout" };

@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=236">
+<link rel="stylesheet" href="style.css?v=237">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -239,6 +239,51 @@
           </div>
         </div>
 
+        <div id="cock-hud" class="cock-hud hidden">
+          <div class="cock-status-row">
+            <span id="cock-status-pill" class="cock-status-pill cock-pill-neutral">FINDING PACE…</span>
+          </div>
+          <div class="cock-bot-card">
+            <div class="cock-bot-row">
+              <div class="cock-bot-face">🐓</div>
+              <div class="cock-bot-meta">
+                <div class="cock-bot-label">COCK'S NERVE</div>
+                <div id="cock-bot-line" class="cock-bot-line">Steady</div>
+              </div>
+              <div class="cock-bot-rpm">
+                <span id="cock-bot-rpm-value" class="cock-bot-rpm-num">0</span>
+                <span class="cock-bot-rpm-unit">cock rpm</span>
+              </div>
+            </div>
+            <div class="cock-nerve-track"><div id="cock-nerve-fill" class="cock-nerve-fill"></div></div>
+          </div>
+          <div id="cock-trace-wrap" class="cock-trace-wrap">
+            <svg id="cock-trace-svg" class="cock-trace-svg" viewBox="0 0 280 150" preserveAspectRatio="none">
+              <path id="cock-trace-bot" class="cock-trace-line cock-trace-bot" d=""></path>
+              <path id="cock-trace-you" class="cock-trace-line cock-trace-you" d=""></path>
+              <circle id="cock-trace-bot-dot" class="cock-trace-dot cock-trace-bot-dot" cx="0" cy="75" r="3.5"></circle>
+              <circle id="cock-trace-you-dot" class="cock-trace-dot cock-trace-you-dot" cx="0" cy="75" r="4.5"></circle>
+            </svg>
+            <div class="cock-now-marker"></div>
+          </div>
+          <div class="cock-trace-labels">
+            <span class="cock-legend"><span class="cock-legend-dot cock-legend-you"></span>You</span>
+            <span id="cock-elapsed" class="cock-elapsed">0:00</span>
+            <span class="cock-legend"><span class="cock-legend-dot cock-legend-bot"></span>Cock</span>
+          </div>
+          <div class="cock-stats-row">
+            <div class="cock-stat">
+              <div class="cock-stat-label">PACE</div>
+              <div id="cock-stat-pace" class="cock-stat-value">0<span class="cock-stat-unit">rpm</span></div>
+            </div>
+            <div class="cock-stat-divider"></div>
+            <div class="cock-stat">
+              <div class="cock-stat-label">REPS</div>
+              <div id="cock-stat-reps" class="cock-stat-value">0</div>
+            </div>
+          </div>
+        </div>
+
         <span id="tow-workout-round-pill" class="tow-round-pill tow-workout-round-pill hidden"></span>
 
         <div id="horse-hud" class="horse-hud hidden">
@@ -354,6 +399,27 @@
 
       <p id="pulse-best-run" class="pulse-best-run">No runs yet</p>
       <button id="btn-pulse-start" type="button" class="btn btn-giant btn-primary">Start run</button>
+    </section>
+
+    <!-- ============ SCREEN: COCK SETUP ============ -->
+    <section id="screen-cock-setup" class="screen">
+      <div class="horse-header-row">
+        <button id="btn-cock-setup-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 class="screen-title">Cock Mode 🐓</h1>
+      </div>
+
+      <div class="pulse-history-card">
+        <div class="pulse-history-label">Your pace, last 25 sessions</div>
+        <div class="pulse-history-rpm-row">
+          <span id="cock-median-rpm" class="pulse-history-rpm">—</span>
+          <span class="pulse-history-rpm-unit">rpm median</span>
+        </div>
+      </div>
+
+      <p class="screen-sub">The cock starts at your own pace and slowly speeds up. Stay ahead long enough and it chickens out — fall behind too long and it wins.</p>
+
+      <p id="cock-best-run" class="pulse-best-run">No runs yet</p>
+      <button id="btn-cock-start" type="button" class="btn btn-giant btn-primary">Start duel</button>
     </section>
 
     <!-- ============ SCREEN: HORSE SETUP ============ -->
@@ -971,6 +1037,11 @@
       <div class="summary-body">
         <h1 class="screen-title">Session complete! 🎉</h1>
         <div class="summary-count" id="summary-count">0</div>
+        <div id="summary-cock-result" class="summary-cock-result hidden">
+          <div id="summary-cock-outcome" class="summary-cock-outcome"></div>
+          <div id="summary-cock-cause" class="summary-cock-cause"></div>
+          <div id="summary-cock-streak" class="summary-cock-streak hidden"></div>
+        </div>
         <div id="summary-pulse-result" class="summary-pulse-result hidden">
           <div id="summary-pulse-cause" class="summary-pulse-cause"></div>
           <div id="summary-pulse-time" class="summary-count">0:00</div>
@@ -1082,6 +1153,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="sharpshooter"><span>Sharpshooter</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pyramid"><span>Pyramid</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pulse"><span>Pulse</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="cock"><span>Cock</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1806,6 +1878,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=252"></script>
+<script type="module" src="app.js?v=253"></script>
 </body>
 </html>

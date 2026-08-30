@@ -22,6 +22,13 @@ test("All and Classic aggregate timed sessions and pace", () => {
   assert.equal(metric("all", "avgPace", sessions).value, 10);
 });
 
+test("Cock Mode reports duels/wins/win-rate off cockResult, not the generic reps spec", () => {
+  const sessions = [session("A", 41, { cockResult: "win" }), session("A", 12, { cockResult: "loss" }), session("A", 30, { cockResult: "win" })];
+  assert.equal(metric("cock", "duels", sessions).value, 3);
+  assert.equal(metric("cock", "wins", sessions).value, 2);
+  assert.equal(metric("cock", "winRate", sessions).value, 2 / 3);
+});
+
 test("Countdown excludes legacy outcomes but keeps all attempts", () => {
   const sessions = [session("A", 20, { countdownBeat: true }), session("A", 10), session("B", 8, { countdownBeat: false })];
   assert.equal(metric("countdown", "attempts", sessions).value, 3);

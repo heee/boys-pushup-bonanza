@@ -17,6 +17,7 @@ export const EXPLORE_MODES = [
   { id: "sharpshooter", icon: "🏹", title: "Sharpshooter", tagline: "Destroy targets, one shot at a time", live: true },
   { id: "pyramid", icon: "🔺", title: "Pyramid", tagline: "Descend the base, conquer the apex", live: true },
   { id: "pulse", icon: "❤️‍🔥", title: "Pulse", tagline: "Hold your pace, not your reps", live: true },
+  { id: "cock", icon: "🐓", title: "Cock Mode", tagline: "Outpace the cock before it outpaces you", live: true },
   { id: "zen", icon: "🧘", title: "Zen Mode", tagline: "No counters, no noise — just push", live: true },
   { id: "horse", icon: "🐴", title: "Horse", tagline: "Beat the set before you, or take a letter", live: true },
   { id: "tow", icon: "🪢", title: "Tug of war", tagline: "Two teams race to the target, together", live: true },
@@ -46,7 +47,7 @@ function orderBucket(bucket) {
   return [...playable, ...locked, ...roadmap];
 }
 
-export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, chaseLeaderLabel, pulseUnlock }) {
+export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock }) {
   const usage = usageByMode(sessions);
   const decorated = EXPLORE_MODES.map((mode, index) => {
     const lockedForPR = (mode.id === "countdown" || mode.id === "wheel") && !hasPR;
@@ -57,7 +58,10 @@ export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, cha
     // as a visible progress count rather than a plain "coming soon" (see
     // docs/pulse-mode-plan.md's Locked-state UI decision).
     const lockedForPulse = mode.id === "pulse" && pulseUnlock && !pulseUnlock.unlocked;
-    const playable = mode.live && !lockedForPR && !lockedForChase && !checkingChase && !lockedForPulse;
+    // Cock Mode's bot pace is drawn from the same history median as Pulse's
+    // band, so it uses the identical unlock gate (see docs/cock-mode-plan.md).
+    const lockedForCock = mode.id === "cock" && cockUnlock && !cockUnlock.unlocked;
+    const playable = mode.live && !lockedForPR && !lockedForChase && !checkingChase && !lockedForPulse && !lockedForCock;
     let tagline = mode.tagline;
     if (mode.id === "chase" && chasePrepared?.first) {
       const first = chasePrepared.first;
@@ -67,6 +71,7 @@ export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, cha
       : lockedForChase ? "You’re leading every board"
       : lockedForPR ? "Log a session first"
       : lockedForPulse ? `${pulseUnlock.validCount}/${pulseUnlock.needed} Classic sessions logged`
+      : lockedForCock ? `${cockUnlock.validCount}/${cockUnlock.needed} Classic sessions logged`
       : "Coming soon";
     const section = OTHER_EXERCISE_IDS.has(mode.id) ? "other" : "pushups";
     return { mode, index, playable, tagline, status, section, usage: usage.get(mode.id) || 0 };

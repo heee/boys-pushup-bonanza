@@ -56,6 +56,14 @@ test("Pulse hides the generic hero/highscore/thermometer for its own pace visual
   assert.equal(hud.hideThermometer, true);
 });
 
+test("Cock Mode hides the generic hero/highscore/thermometer for its own pace-duel visualization", () => {
+  const hud = workoutHudModel("cock", 40);
+  assert.equal(hud.cock, true);
+  assert.equal(hud.hideHero, true);
+  assert.equal(hud.hideHighscore, true);
+  assert.equal(hud.hideThermometer, true);
+});
+
 test("ladder rows keep five-rung pages ordered top to bottom", () => {
   const rows = ladderRungRows(6, [{ rung: 7, users: [1, 2, 3] }], (users) => users.length > 2);
   assert.deepEqual(rows.map(({ rung, status }) => [rung, status]), [[10, "locked"], [9, "locked"], [8, "locked"], [7, "locked"], [6, "active"]]);

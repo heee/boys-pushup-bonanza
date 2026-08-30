@@ -57,6 +57,18 @@ existing rolling-rpm and history infrastructure.
   pick one during implementation; win streak reads better head-to-head, default to
   that unless it fights the existing leaderboard sort shape). New
   `{ id: "cock", label: "Cock" }` entry in `LEADERBOARD_MODE_OPTIONS`.
+  **Implementation note (built as):** win streak turned out to fight the
+  leaderboard sort shape — every mode's week chart/day-total/personal-best
+  infra is built around summing/maxing a numeric session field over time, and
+  a "consecutive wins" streak isn't that kind of value. Since `count` is real
+  reps for Cock (unlike Pulse's seconds-overload), the Cock tab reuses that
+  same reps-based charting for free, with zero new chart code. The actual
+  win/loss record instead surfaces as its own thing: a dedicated
+  `SPECS.cock` block in `screens/mode-stats.js` (Duels logged / Wins / Win
+  rate, replacing the generic avg-pace stat), a setup-screen readout
+  (`getCockRecord` in app.js: W–L + current streak), and a win/loss badge +
+  "Result" field on the session-detail screen. Revisit true streak-based
+  ranking later if reps-based Cock leaderboard placement feels wrong.
 
 ## Live pace mechanic
 

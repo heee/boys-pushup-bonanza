@@ -26,6 +26,8 @@ test("sessionModeId/Label fall back to classic and read plank type", () => {
   assert.equal(sessionModeLabel(session({ type: "holland" })), "Holland Mode");
   assert.equal(sessionModeId(session({ mode: "pulse" })), "pulse");
   assert.equal(sessionModeLabel(session({ mode: "pulse" })), "Pulse");
+  assert.equal(sessionModeId(session({ mode: "cock" })), "cock");
+  assert.equal(sessionModeLabel(session({ mode: "cock" })), "Cock Mode");
 });
 
 test("Pulse sessions get their own metrics (not the generic reps-based duration/pace) and a band-width badge", () => {
@@ -40,6 +42,23 @@ test("Pulse sessions get their own metrics (not the generic reps-based duration/
 
   const badges = sessionBadges(pulseSession);
   assert.equal(badges.find((b) => b.id === "pulse-band-width").label, "Standard band");
+});
+
+test("Cock sessions keep the generic reps-based duration/pace metrics and add result + badge", () => {
+  const winSession = session({ mode: "cock", count: 41, cockResult: "win", cockEndReason: "nerve_zero", cockMedianRpm: 34, cockFinalCockRpm: 38 });
+  const metrics = sessionKeyMetrics(winSession);
+  assert.equal(metrics.some((m) => m.id === "duration"), true);
+  assert.equal(metrics.some((m) => m.id === "pace"), true);
+  assert.equal(metrics.find((m) => m.id === "cockResult").value, "Win");
+  assert.equal(metrics.find((m) => m.id === "cockFinalCockRpm").value, "38 rpm");
+
+  const badges = sessionBadges(winSession);
+  assert.equal(badges.find((b) => b.id === "mode").label, "Cock Mode");
+  assert.equal(badges.find((b) => b.id === "cock-result").label, "Win");
+
+  const lossSession = session({ mode: "cock", count: 12, cockResult: "loss", cockEndReason: "resolve_zero", cockMedianRpm: 34, cockFinalCockRpm: 34 });
+  assert.equal(sessionKeyMetrics(lossSession).find((m) => m.id === "cockResult").value, "Loss");
+  assert.equal(sessionBadges(lossSession).find((b) => b.id === "cock-result").label, "Loss");
 });
 
 test("sessionDurationMs/Pace derive from startedAt, and reject bad ranges", () => {
