@@ -10266,6 +10266,7 @@ function renderCockLiveHud(rollingRpm) {
 function renderCockSummary() {
   const r = state.cockResult;
   if (!r) return;
+  $("summary-count").textContent = formatNumber(r.reps);
   const win = r.result === "win";
   $("summary-cock-outcome").textContent = win ? "You win! 🐓" : "The cock wins";
   $("summary-cock-outcome").className = `summary-cock-outcome ${win ? "summary-cock-outcome-win" : "summary-cock-outcome-loss"}`;
@@ -10273,7 +10274,7 @@ function renderCockSummary() {
     : r.endReason === "resolve_zero" ? "You chickened out"
     : r.endReason === "fab_ahead" ? "You banked it while ahead"
     : "You stopped while behind";
-  $("summary-cock-cause").textContent = `${causeText} · ${r.reps} rep${r.reps === 1 ? "" : "s"}`;
+  $("summary-cock-cause").textContent = causeText;
   const record = getCockRecord(state.currentUser);
   if (win && record.streak > 1) {
     $("summary-cock-streak").textContent = `${record.streak} wins in a row!`;
