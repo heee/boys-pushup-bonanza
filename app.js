@@ -6863,6 +6863,33 @@ function paintDashboard(sessions) {
   updateHistoryViewVisibility();
 }
 
+// Short "elapsed since" label for the recent-activity statement (mirrors
+// roadtripAge's granularity, but takes a ms timestamp directly).
+function timeAgoLabel(timestampMs) {
+  const seconds = Math.max(0, Math.round((Date.now() - timestampMs) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  return months < 12 ? `${months} month${months === 1 ? "" : "s"} ago` : `${Math.floor(months / 12)} year${months < 24 ? "" : "s"} ago`;
+}
+
+// "a classic push-up session" / "a plank session" / "a Holland Mode session" —
+// the standalone activities' MODE_META label already names the activity, so
+// folding it into "a {mode} {activity} session" would repeat it.
+function sessionActivityPhrase(s) {
+  const modeId = sessionModeId(s);
+  if (modeId === "holland") return "a Holland Mode session";
+  if (["planks", "squats", "pullups", "situps"].includes(modeId)) {
+    return `a ${activityLabel(sessionActivity(s), true)} session`;
+  }
+  return `a ${sessionModeLabel(s).toLowerCase()} push-up session`;
+}
+
 function renderRecentList(sessions) {
   const isPlank = state.activityType === "planks";
   const isHolland = state.activityType === "holland";
@@ -6883,13 +6910,14 @@ function renderRecentList(sessions) {
       ? `<button type="button" class="recent-modifier" aria-label="${escapeHtml(modifierMeta.title)} modifier">${modifierMeta.icon}</button>`
       : "";
     row.innerHTML = `
-      ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
-      <div class="recent-name">${escapeHtml(s.user)}</div>
+      ${avatarCircleHTML(avatarForUser(s.user), "1.3rem")}
+      <div class="recent-statement">
+        <span class="recent-name">${escapeHtml(s.user)}</span> completed ${sessionActivityPhrase(s)} ${timeAgoLabel(sessionTimestamp(s))}
+      </div>
       <div class="recent-count-col">
         ${modifierIcon}
         <span class="recent-count">${(isPlank || isPulse) ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : formatNumber(s.count)}</span>
       </div>
-      <div class="recent-time">${formatDateTime(s.timestamp)}</div>
     `;
     makeNameCompareClickable(row.querySelector(".recent-name"), s.user, true);
     if (modifierMeta) {
