@@ -132,6 +132,17 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* iOS Safari fires its native double-tap-to-zoom gesture regardless of the
+   user-scalable=no/maximum-scale=1 viewport meta (WebKit has ignored those
+   for zoom gestures since iOS 10) — two quick taps on a stepper button like
+   the missed-reps +/- reads as a zoom gesture and the page stays zoomed in
+   and offset until reload. touch-action: manipulation tells WebKit to skip
+   the double-tap/pinch zoom gesture detection entirely while still allowing
+   normal scrolling and single taps. */
+* {
+  touch-action: manipulation;
+}
+
 /* iOS home-screen launch quirk: on the very first paint after opening the
    installed PWA, env(safe-area-inset-bottom) sometimes resolves late, so the
    fixed tab bar's own bottom padding comes up short for a frame — exposing
@@ -3420,10 +3431,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   border-bottom: 1px solid var(--border);
 }
 .recent-row:last-child { border-bottom: none; }
-.recent-name { flex: 1; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Fixed-width columns (rather than two same-line siblings whose combined
-   width varies per row) so the count and date each line up top to bottom
-   down the list, like a table. */
+.recent-statement { flex: 1; min-width: 0; font-size: 0.85rem; line-height: 1.35; color: var(--text-dim); }
+.recent-name { font-weight: 700; color: var(--text); }
+/* Fixed-width count column so counts line up top to bottom down the list,
+   like a table, regardless of how long the statement text runs. */
 .recent-count-col {
   display: flex;
   align-items: center;
@@ -3444,7 +3455,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   padding: 0.1rem;
   cursor: pointer;
 }
-.recent-time { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; width: 5.5rem; flex: 0 0 auto; text-align: right; }
 
 .leaderboard-row {
   display: flex;
