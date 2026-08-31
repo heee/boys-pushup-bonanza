@@ -2805,6 +2805,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .summary-actions {
   display: flex;
+  flex-direction: column;
   gap: 0.7rem;
   width: 100%;
   max-width: 24rem;
@@ -2813,7 +2814,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
      deserve a stronger visual gap, not just "not overlapping". */
   margin-bottom: 1rem;
 }
-.summary-actions .btn {
+.summary-actions-row {
+  display: flex;
+  gap: 0.7rem;
+}
+.summary-actions .btn,
+.summary-actions-row .btn {
   flex: 1;
   margin-bottom: 0;
   padding-left: 0.6rem;

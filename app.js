@@ -11082,7 +11082,12 @@ $("btn-summary-again").addEventListener("click", () => {
     return;
   }
   const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout" };
-  showScreen(screenByType[state.lastSessionType] || "screen-workout");
+  const screen = screenByType[state.lastSessionType];
+  if (!screen) preserveNextModeSelection = true;
+  showScreen(screen || "screen-workout");
+});
+$("btn-summary-different-mode").addEventListener("click", () => {
+  showScreen("screen-explore-modes");
 });
 $("btn-summary-share").addEventListener("click", shareFlex);
 $("summary-roadtrip-cue").addEventListener("click", shareRoadtripConquest);

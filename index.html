@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=238">
+<link rel="stylesheet" href="style.css?v=239">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1078,8 +1078,11 @@
         <div id="summary-sync-status" class="sync-status" role="status" aria-live="polite"></div>
       </div>
       <div class="summary-actions">
-        <button id="btn-summary-again" class="btn btn-primary btn-large">Go again ↻</button>
-        <button id="btn-summary-share" class="btn btn-secondary btn-large btn-with-icon">Share flex <span class="icon-share" aria-hidden="true"></span></button>
+        <button id="btn-summary-again" class="btn btn-primary btn-large">Try again ↻</button>
+        <div class="summary-actions-row">
+          <button id="btn-summary-different-mode" class="btn btn-secondary btn-large">Different mode</button>
+          <button id="btn-summary-share" class="btn btn-secondary btn-large btn-with-icon">Share flex <span class="icon-share" aria-hidden="true"></span></button>
+        </div>
       </div>
     </section>
 
@@ -1878,6 +1881,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=255"></script>
+<script type="module" src="app.js?v=256"></script>
 </body>
 </html>
