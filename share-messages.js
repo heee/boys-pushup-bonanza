@@ -923,6 +923,66 @@ const SHARE_MESSAGES_PLANK_STREAK = [
   (t, ctx) => `${t} plank, ${ctx.streak} days running 🏃 Catch me if you can.`,
 ];
 
+const SHARE_MESSAGES_SQUAT_STREAK = [
+  (n, ctx) => `${n} squats and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
+  (n, ctx) => `${ctx.streak} days straight, ${n} squats today 😤 Consistency is the cheat code.`,
+  (n, ctx) => `Day ${ctx.streak} of the streak. ${n} squats banked 🦵`,
+  (n, ctx) => `${ctx.streak} days deep, no cracks yet 🧱 ${n} more squats today.`,
+  (n, ctx) => `Streak's at ${ctx.streak} 🔥 ${n} squats keeping it alive.`,
+  (n, ctx) => `${ctx.streak}-day streak, ${n} squats today. Who's actually showing up? 👀`,
+  (n, ctx) => `Day ${ctx.streak}. Still here, still squatting 😤 ${n} today.`,
+  (n, ctx) => `${n} squats, ${ctx.streak} days running 🏃 Catch me if you can.`,
+];
+
+const SHARE_MESSAGES_PULLUP_STREAK = [
+  (n, ctx) => `${n} pull-ups and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
+  (n, ctx) => `${ctx.streak} days straight, ${n} pull-ups today 😤 Consistency is the cheat code.`,
+  (n, ctx) => `Day ${ctx.streak} of the streak. ${n} pull-ups banked 💪`,
+  (n, ctx) => `${ctx.streak} days deep, no cracks yet 🧱 ${n} more pull-ups today.`,
+  (n, ctx) => `Streak's at ${ctx.streak} 🔥 ${n} pull-ups keeping it alive.`,
+  (n, ctx) => `${ctx.streak}-day streak, ${n} pull-ups today. Who's actually showing up? 👀`,
+  (n, ctx) => `Day ${ctx.streak}. Still here, still hanging on 😤 ${n} today.`,
+  (n, ctx) => `${n} pull-ups, ${ctx.streak} days running 🏃 Catch me if you can.`,
+];
+
+const SHARE_MESSAGES_SITUP_STREAK = [
+  (n, ctx) => `${n} crunches and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
+  (n, ctx) => `${ctx.streak} days straight, ${n} crunches today 😤 Consistency is the cheat code.`,
+  (n, ctx) => `Day ${ctx.streak} of the streak. ${n} crunches banked 🙇`,
+  (n, ctx) => `${ctx.streak} days deep, no cracks yet 🧱 ${n} more crunches today.`,
+  (n, ctx) => `Streak's at ${ctx.streak} 🔥 ${n} crunches keeping it alive.`,
+  (n, ctx) => `${ctx.streak}-day streak, ${n} crunches today. Who's actually showing up? 👀`,
+  (n, ctx) => `Day ${ctx.streak}. Still here, still crunching 😤 ${n} today.`,
+  (n, ctx) => `${n} crunches, ${ctx.streak} days running 🏃 Catch me if you can.`,
+];
+
+const SHARE_MESSAGES_SQUAT_WEEK = [
+  (n, ctx) => `${n} squats today, ${ctx.weekTotalDisplay} this week 📈 The bonanza never sleeps.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} squats this week and counting 🚀 Today's ${n} of them.`,
+  (n, ctx) => `Week total: ${ctx.weekTotalDisplay} 📊 ${n} of those just now.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} squats this week 💪 Somebody's carrying the leaderboard.`,
+  (n, ctx) => `${n} today brings the week to ${ctx.weekTotalDisplay} 📈 Keep up.`,
+  (n, ctx) => `Weekly tally: ${ctx.weekTotalDisplay} 🏦 ${n} of it fresh.`,
+];
+
+const SHARE_MESSAGES_PULLUP_WEEK = [
+  (n, ctx) => `${n} pull-ups today, ${ctx.weekTotalDisplay} this week 📈 The bonanza never sleeps.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} pull-ups this week and counting 🚀 Today's ${n} of them.`,
+  (n, ctx) => `Week total: ${ctx.weekTotalDisplay} 📊 ${n} of those just now.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} pull-ups this week 💪 Somebody's carrying the leaderboard.`,
+  (n, ctx) => `${n} today brings the week to ${ctx.weekTotalDisplay} 📈 Keep up.`,
+  (n, ctx) => `Weekly tally: ${ctx.weekTotalDisplay} 🏦 ${n} of it fresh.`,
+];
+
+const SHARE_MESSAGES_SITUP_WEEK = [
+  (n, ctx) => `${n} crunches today, ${ctx.weekTotalDisplay} this week 📈 The bonanza never sleeps.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} crunches this week and counting 🚀 Today's ${n} of them.`,
+  (n, ctx) => `Week total: ${ctx.weekTotalDisplay} 📊 ${n} of those just now.`,
+  (n, ctx) => `${ctx.weekTotalDisplay} crunches this week 💪 Somebody's carrying the leaderboard.`,
+  (n, ctx) => `${n} today brings the week to ${ctx.weekTotalDisplay} 📈 Keep up.`,
+  (n, ctx) => `Weekly tally: ${ctx.weekTotalDisplay} 🏦 ${n} of it fresh.`,
+];
+
 const SHARE_MESSAGES_WEEK = [
   (n, ctx) => `${n} pushups today, ${ctx.weekTotalDisplay} this week 📈 The bonanza never sleeps.`,
   (n, ctx) => `${ctx.weekTotalDisplay} pushups this week and counting 🚀 Today's ${n} of them.`,
@@ -2113,10 +2173,18 @@ function decorateShareMessage(message, ctx, displayCount) {
   // Streak/week trivia — only when it's actually notable, and only one of the
   // two (a long streak is the more impressive brag when both are true).
   if (ctx.streak >= 3) {
-    const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK : SHARE_MESSAGES_STREAK;
+    const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK
+      : ctx.isSquat ? SHARE_MESSAGES_SQUAT_STREAK
+      : ctx.isPullup ? SHARE_MESSAGES_PULLUP_STREAK
+      : ctx.isSitup ? SHARE_MESSAGES_SITUP_STREAK
+      : SHARE_MESSAGES_STREAK;
     extras.push(pickFrom(pool)(displayCount, ctx));
   } else if (ctx.weekTotalRaw > 0 && ctx.todayRaw != null && ctx.weekTotalRaw > ctx.todayRaw) {
-    const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_WEEK : SHARE_MESSAGES_WEEK;
+    const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_WEEK
+      : ctx.isSquat ? SHARE_MESSAGES_SQUAT_WEEK
+      : ctx.isPullup ? SHARE_MESSAGES_PULLUP_WEEK
+      : ctx.isSitup ? SHARE_MESSAGES_SITUP_WEEK
+      : SHARE_MESSAGES_WEEK;
     extras.push(pickFrom(pool)(displayCount, ctx));
   }
 
