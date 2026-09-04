@@ -1,10 +1,10 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v343";
+const CACHE_NAME = "bpb-shell-v344";
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=250",
+  "./style.css?v=251",
   "./app.js?v=264",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",

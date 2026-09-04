@@ -3152,7 +3152,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   vertical-align: middle;
 }
 .games-tab-dot:not(.hidden) { display: inline-block; }
-.games-header { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.games-header { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1.2rem; }
 .games-header .screen-title { margin: 0; }
 .games-start-btn { flex-shrink: 0; }
 .games-recent-section { margin-top: 1.4rem; }
