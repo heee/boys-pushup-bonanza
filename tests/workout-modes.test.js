@@ -17,12 +17,12 @@ test("specialized modes expose their remaining focal count", () => {
   assert.equal(workoutHeroModel("sharpshooter", 10, { sharpshooterTarget: 18, sharpshooterRepsDone: 7 }).remaining, 11);
 });
 
-test("Sharpshooter targets span 50-90% of a personal best and 5-15 without history", () => {
-  assert.equal(sharpshooterTargetForBest(40, () => 0), 20);
-  assert.equal(sharpshooterTargetForBest(40, () => 0.999999), 36);
-  assert.equal(sharpshooterTargetForBest(0, () => 0), 5);
-  assert.equal(sharpshooterTargetForBest(0, () => 0.999999), 15);
-  assert.equal(sharpshooterTargetForBest(3, () => 0), 2);
+test("Sharpshooter targets span 10-30% of a personal best and 3-10 without history", () => {
+  assert.equal(sharpshooterTargetForBest(40, () => 0), 4);
+  assert.equal(sharpshooterTargetForBest(40, () => 0.999999), 12);
+  assert.equal(sharpshooterTargetForBest(0, () => 0), 3);
+  assert.equal(sharpshooterTargetForBest(0, () => 0.999999), 10);
+  assert.equal(sharpshooterTargetForBest(3, () => 0), 1);
 });
 
 test("Sharpshooter replaces the generic hero and high-score callout", () => {
