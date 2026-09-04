@@ -2485,7 +2485,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-scoreboard-target-label { margin: 0; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.06em; color: var(--text-tertiary); }
 .tow-scoreboard-target-value { margin: 0; font-weight: 800; color: var(--text-dim); }
 
-.tow-rope-wrap { margin: 0.4rem 0 1rem; }
+.tow-rope-wrap { margin: 0.4rem 0 1rem; position: relative; z-index: 2; }
 .tow-rope-track {
   position: relative;
   height: 14px;
@@ -2499,6 +2499,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-rope-chevron {
   position: absolute;
   top: 50%;
+  z-index: 1;
   transform: translate(-50%, -50%);
   font-size: 1.1rem;
   color: var(--text-tertiary);
