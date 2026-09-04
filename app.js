@@ -4491,44 +4491,50 @@ function pendingTowItems() {
 // "A turn due" (turn/choosing — it's literally your move right now) gets the
 // bordered highlight box; everything else in the Games list sits plain.
 function gamesHighlightClass(item) {
-  return item.kind === "turn" || item.kind === "choosing" ? " horse-row-active" : "";
+  return item.kind === "turn" || item.kind === "choosing" ? " highlight" : "";
+}
+
+function gamesRowWaitingClass(item) {
+  return item.kind === "waiting" ? " games-row-status-waiting" : "";
 }
 
 function towGamesRowHTML(item) {
   const avatar = avatarForUser(item.creator).id;
   if (item.kind === "turn") {
-    return `<button type="button" class="tier1-row horse-player-row horse-bell-row${gamesHighlightClass(item)}" data-bell-tow-turn="${item.gameId}">
-        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
-        <span class="horse-player-name">Your turn · Tug of war · Round ${item.round} of ${item.rounds} · ${escapeHtml(item.trailLabel)}</span>
+    return `<button type="button" class="games-row${gamesHighlightClass(item)}" data-bell-tow-turn="${item.gameId}">
+        <span class="games-row-icon"><span class="avatar-circle games-row-avatar" data-avatar="${avatar}"></span></span>
+        <span class="games-row-info"><span class="games-row-title">Your turn · Tug of war · Round ${item.round} of ${item.rounds} · ${escapeHtml(item.trailLabel)}</span></span>
       </button>`;
   }
   if (item.kind === "invite") {
     return `
-      <div class="tier1-row horse-player-row">
-        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
-        <span class="horse-player-name">${escapeHtml(item.from)} invited you to Tug of war · ${escapeHtml(item.teamName)} · target ${item.target}</span>
-        <button type="button" class="icon-btn" data-bell-tow-view="${item.gameId}" aria-label="View">→</button>
-        <button type="button" class="icon-btn" data-bell-tow-decline="${item.gameId}" aria-label="Decline">✕</button>
+      <div class="games-row">
+        <span class="games-row-icon"><span class="avatar-circle games-row-avatar" data-avatar="${avatar}"></span></span>
+        <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.from)} invited you to Tug of war · ${escapeHtml(item.teamName)} · target ${item.target}</span></span>
+        <span class="games-row-actions">
+          <button type="button" class="icon-btn" data-bell-tow-view="${item.gameId}" aria-label="View">→</button>
+          <button type="button" class="icon-btn" data-bell-tow-decline="${item.gameId}" aria-label="Decline">✕</button>
+        </span>
       </div>`;
   }
   if (item.kind === "ready") {
-    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-tow-view="${item.gameId}">
-        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
-        <span class="horse-player-name">${escapeHtml(item.opponents)} joined your Open Tug of war — start when ready</span>
+    return `<button type="button" class="games-row" data-bell-tow-view="${item.gameId}">
+        <span class="games-row-icon"><span class="avatar-circle games-row-avatar" data-avatar="${avatar}"></span></span>
+        <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.opponents)} joined your Open Tug of war — start when ready</span></span>
       </button>`;
   }
-  return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-tow-view="${item.gameId}">
-        <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
-        <span class="horse-player-name horse-player-status-waiting">Waiting on ${escapeHtml(item.upNow)} in Tug of war</span>
+  return `<button type="button" class="games-row${gamesRowWaitingClass(item)}" data-bell-tow-view="${item.gameId}">
+        <span class="games-row-icon"><span class="avatar-circle games-row-avatar" data-avatar="${avatar}"></span></span>
+        <span class="games-row-info"><span class="games-row-title">Waiting on ${escapeHtml(item.upNow)} in Tug of war</span></span>
       </button>`;
 }
 
 function horseGamesRowHTML(item) {
   {
     if (item.kind === "turn") {
-      return `<button type="button" class="tier1-row horse-player-row horse-bell-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
-        <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name">Your turn in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : " · set the opening bar"}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
+      return `<button type="button" class="games-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
+        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-info"><span class="games-row-title">Your turn in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : " · set the opening bar"}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span></span>
       </button>`;
     }
     if (item.kind === "invite") {
@@ -4536,35 +4542,37 @@ function horseGamesRowHTML(item) {
       // the line doesn't repeat their name right after naming them.
       const others = item.opponents.split(", ").filter((name) => name && name !== item.from).join(", ");
       return `
-      <div class="tier1-row horse-player-row">
-        <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name">${escapeHtml(item.from)} invited you to Horse${others ? ` vs. ${escapeHtml(others)}` : ""}</span>
-        <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
-        <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
+      <div class="games-row">
+        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.from)} invited you to Horse${others ? ` vs. ${escapeHtml(others)}` : ""}</span></span>
+        <span class="games-row-actions">
+          <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
+          <button type="button" class="icon-btn" data-bell-decline="${item.gameId}" aria-label="Decline">✕</button>
+        </span>
       </div>`;
     }
     if (item.kind === "choosing") {
-      return `<button type="button" class="tier1-row horse-player-row horse-bell-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
-        <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name">Your turn to set the target in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""}</span>
+      return `<button type="button" class="games-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
+        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-info"><span class="games-row-title">Your turn to set the target in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""}</span></span>
       </button>`;
     }
     if (item.kind === "expired") {
-      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
-        <span aria-hidden="true">⏰</span>
-        <span class="horse-player-name">Horse challenge${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""} ended — tally the scores</span>
+      return `<button type="button" class="games-row" data-bell-view="${item.gameId}">
+        <span class="games-row-icon" aria-hidden="true">⏰</span>
+        <span class="games-row-info"><span class="games-row-title">Horse challenge${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""} ended — tally the scores</span></span>
       </button>`;
     }
     if (item.kind === "joined") {
-      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
-        <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name">${escapeHtml(item.name)} joined your Open Horse game</span>
+      return `<button type="button" class="games-row" data-bell-view="${item.gameId}">
+        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.name)} joined your Open Horse game</span></span>
       </button>`;
     }
     const otherWaiting = item.opponents.split(", ").filter((name) => name && name !== item.upNow).join(", ");
-    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
-        <span aria-hidden="true">🐴</span>
-        <span class="horse-player-name horse-player-status-waiting">Waiting on ${escapeHtml(item.upNow)}${otherWaiting ? ` (vs. ${escapeHtml(otherWaiting)})` : ""} in Horse</span>
+    return `<button type="button" class="games-row${gamesRowWaitingClass(item)}" data-bell-view="${item.gameId}">
+        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-info"><span class="games-row-title">Waiting on ${escapeHtml(item.upNow)}${otherWaiting ? ` (vs. ${escapeHtml(otherWaiting)})` : ""} in Horse</span></span>
       </button>`;
   }
 }
@@ -4635,11 +4643,11 @@ function finishedGameRowHTML(entry) {
     const resultText = won
       ? `won${opponents ? ` vs. ${escapeHtml(opponents)}` : ""}`
       : `lost to ${escapeHtml((game.winner || []).join(" & ") || "?")}`;
-    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-games-recent-horse="${game.id}">
-        <span aria-hidden="true">🐴</span>
-        <span class="horse-summary-name-col">
-          <span class="horse-summary-name">Horse<span class="games-recent-result"> · ${resultText}</span></span>
-          <span class="horse-summary-subtitle">${timeLabel}</span>
+    return `<button type="button" class="games-row" data-games-recent-horse="${game.id}">
+        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-info">
+          <span class="games-row-title">Horse<span class="games-recent-result"> · ${resultText}</span></span>
+          <span class="games-row-subtitle">${timeLabel}</span>
         </span>
       </button>`;
   }
@@ -4649,11 +4657,11 @@ function finishedGameRowHTML(entry) {
   const resultText = (game.status === "voided" || !side)
     ? "voided"
     : `${game.winner === side ? "won" : "lost"} ${game.scores[side]}-${game.scores[side === "a" ? "b" : "a"]}`;
-  return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-games-recent-tow="${game.id}">
-        <span class="avatar-circle games-recent-avatar" data-avatar="${avatar}"></span>
-        <span class="horse-summary-name-col">
-          <span class="horse-summary-name">Tug of war<span class="games-recent-result"> · ${resultText}</span></span>
-          <span class="horse-summary-subtitle">${timeLabel}</span>
+  return `<button type="button" class="games-row" data-games-recent-tow="${game.id}">
+        <span class="games-row-icon"><span class="avatar-circle games-row-avatar" data-avatar="${avatar}"></span></span>
+        <span class="games-row-info">
+          <span class="games-row-title">Tug of war<span class="games-recent-result"> · ${resultText}</span></span>
+          <span class="games-row-subtitle">${timeLabel}</span>
         </span>
       </button>`;
 }
@@ -4702,7 +4710,7 @@ function renderGamesScreen() {
     recentListEl.innerHTML = finished.length
       ? finished.map(finishedGameRowHTML).join("")
       : `<p class="screen-sub horse-bell-empty">No completed games yet.</p>`;
-    recentListEl.querySelectorAll(".games-recent-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+    recentListEl.querySelectorAll(".games-row-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
     return;
   }
 
@@ -4725,7 +4733,7 @@ function renderGamesScreen() {
       ? activeItems.map((item) => (item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item))).join("")
       : finished.length ? finished.map(finishedGameRowHTML).join("") : `<p class="screen-sub horse-bell-empty">No completed games yet.</p>`;
   listEl.innerHTML = html;
-  listEl.querySelectorAll(".tow-bell-avatar, .games-recent-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  listEl.querySelectorAll(".games-row-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
 }
 
 $("games-tab-select").addEventListener("click", (e) => {
