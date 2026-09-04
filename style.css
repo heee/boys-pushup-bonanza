@@ -316,7 +316,6 @@ button, input {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  background: var(--bg-elevated-2);
   border: none;
   border-radius: 999px;
   padding: 0.2rem 0.6rem;
@@ -330,7 +329,6 @@ button, input {
 .streak-badge .streak-num { font-size: 0.85rem; color: var(--flame); font-weight: 700; }
 .streak-badge .streak-num.streak-zero { color: #4a90d9; }
 .streak-badge .streak-rest-badge { font-size: 0.6rem; margin: 0 -0.05rem; }
-.streak-badge.streak-badge-rest { background: rgba(74, 144, 217, 0.18); }
 .streak-badge.streak-badge-rest .streak-num { color: #4a90d9; }
 .streak-badge-goal {
   display: inline-flex;
