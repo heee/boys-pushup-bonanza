@@ -2531,7 +2531,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-burst-added { margin: 0 0 0.3rem; font-size: 3.5rem; font-weight: 900; color: var(--primary); line-height: 1.05; }
 .tow-burst-complete-screen .tow-rope-wrap { width: 100%; max-width: 22rem; }
 
-.tow-summary-kicker { margin: 0 0 0.3rem; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); text-align: center; }
+.tow-summary-kicker { margin: 0 0 0.3rem; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em; color: var(--text-tertiary); text-align: center; }
 .tow-summary-winner-name { margin: 0 auto 1.2rem; font-size: 1.7rem; font-weight: 800; line-height: 1.25; color: var(--primary); text-align: center; }
 
 .tow-summary-teams { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 0.8rem; }
@@ -2543,8 +2543,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-summary-team-winner .tow-summary-team-total { color: var(--primary); }
 .tow-summary-players { display: flex; flex-direction: column; gap: 0.3rem; }
 .tow-summary-player-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0; }
-.tow-summary-player-row .tow-player-name { color: var(--text-dim); }
-.tow-summary-player-row .tow-player-reps { color: var(--text-dim); }
+.tow-summary-player-row .avatar-circle { width: 1.8rem; height: 1.8rem; font-size: 1rem; flex-shrink: 0; }
+.tow-summary-player-row .tow-player-name { font-weight: 400; color: var(--text-dim); }
+.tow-summary-player-row .tow-player-reps { font-weight: 600; color: var(--text-dim); margin-left: auto; }
 
 .tow-bell-avatar { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 
