@@ -157,6 +157,7 @@ import {
 } from "./roadtrip.js";
 import { buildRecapTier, checkAndQueueRecaps, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
+import { createClapGestureDetector } from "./modes/clap-gesture.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
 import {
   PULSE_BAND_WIDTHS,
@@ -1567,6 +1568,10 @@ const squatState = {
   warmupStartedAt: 0,
   down: DEFAULT_DOWN,
   up: DEFAULT_UP,
+  // Extend-arms, clap, pause, clap-again gesture that ends the session
+  // hands-free — only watched while standing at rest between reps.
+  clapGesture: null,
+  clapBannerShown: false,
 };
 
 const PULLUP_WARMUP_MIN_MS = 1200;
@@ -11702,6 +11707,35 @@ function processSquatRatio(ratio) {
   }
 }
 
+// Hands-free end-session gesture: only watched while standing at rest
+// between reps (phase "up"), so an arm swing mid-squat can't be misread as
+// the start of it. Reset whenever a squat begins so a stray extended-arm
+// moment right after standing back up doesn't carry over across reps.
+function processSquatClapGesture(landmarks) {
+  if (!squatState.clapGesture) return;
+  if (squatState.paused || squatState.phase !== "up") {
+    squatState.clapGesture.reset();
+    if (squatState.clapBannerShown) {
+      squatState.clapBannerShown = false;
+      hideSquatStatusBanner();
+    }
+    return;
+  }
+  const { stepIndex, completed } = squatState.clapGesture.advance(landmarks, performance.now());
+  if (completed) {
+    squatState.clapBannerShown = false;
+    completeSquat();
+    return;
+  }
+  if (stepIndex >= 2 && !squatState.clapBannerShown) {
+    squatState.clapBannerShown = true;
+    showSquatStatusBanner("👏 Clap once more to end the session");
+  } else if (stepIndex === 0 && squatState.clapBannerShown) {
+    squatState.clapBannerShown = false;
+    hideSquatStatusBanner();
+  }
+}
+
 // Pose landmark indices (MediaPipe 33-point model) and the visibility floor
 // below which a hip is treated as out of frame rather than tracked.
 const POSE_LEFT_HIP = 23;
@@ -11764,6 +11798,7 @@ const squatCamera = createCameraController({
       tickSquatWarmup();
     } else if (squatState.stage === "counting") {
       processSquatRatio(hipY);
+      processSquatClapGesture(landmarks);
     }
   },
   onNoDetection() {
@@ -11833,6 +11868,8 @@ function beginSquatCounting(thresholds) {
   squatState.paused = false;
   squatState.lastCheerAtCount = 0;
   squatState.recordBroken = false;
+  squatState.clapGesture = createClapGestureDetector();
+  squatState.clapBannerShown = false;
   squatState.stage = "counting";
   state.squatBest = getSquatBest(state.currentUser);
   state.squatLast = getSquatLast(state.currentUser);
