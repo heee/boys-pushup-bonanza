@@ -3853,6 +3853,17 @@ function renderTowTeamsUI() {
   $("tow-team-actions").classList.toggle("hidden", inLobby || isOpenSetup);
   $("tow-shuffle-hint").classList.toggle("hidden", inLobby || isOpenSetup);
   $("tow-open-hint").classList.toggle("hidden", !(isOpenSetup || inLobby));
+
+  // In the lobby, target/rounds are locked in — show them as a plain
+  // stated line instead of the editable stepper section, and drop the
+  // "Teams" label row since the two team cards speak for themselves.
+  $("tow-stat-section").classList.toggle("hidden", inLobby);
+  $("tow-lobby-stats").classList.toggle("hidden", !inLobby);
+  if (inLobby) {
+    $("tow-lobby-stats").textContent = `Target ${game.target} · ${game.rounds} round${game.rounds === 1 ? "" : "s"}`;
+  }
+  $("tow-teams-label-row").classList.toggle("hidden", inLobby);
+  $("tow-teams-list").classList.toggle("tow-teams-list-lobby", inLobby);
   if (isOpenSetup || inLobby) {
     $("tow-open-hint").textContent = !inLobby || isHost
       ? "Joiners tap a link and land in whichever team has room"

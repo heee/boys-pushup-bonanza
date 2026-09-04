@@ -611,30 +611,34 @@
         <p id="tow-session-note" class="screen-sub"></p>
       </div>
 
-      <p class="pyramid-setup-section-label horse-section-label">
-        <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        Target &amp; max rounds
-      </p>
-      <div id="tow-stat-list" class="tier1-list tow-stat-list">
-        <div class="tier1-row tow-stat-row">
-          <span>Target reps</span>
-          <div class="tow-stepper-row">
-            <button type="button" id="btn-tow-target-dec" class="tow-stepper-sm" aria-label="Decrease target">−</button>
-            <span id="tow-target-value" class="tow-stepper-value-sm">300</span>
-            <button type="button" id="btn-tow-target-inc" class="tow-stepper-sm" aria-label="Increase target">+</button>
+      <p id="tow-lobby-stats" class="screen-sub tow-lobby-stats hidden"></p>
+
+      <div id="tow-stat-section">
+        <p class="pyramid-setup-section-label horse-section-label">
+          <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Target &amp; max rounds
+        </p>
+        <div id="tow-stat-list" class="tier1-list tow-stat-list">
+          <div class="tier1-row tow-stat-row">
+            <span>Target reps</span>
+            <div class="tow-stepper-row">
+              <button type="button" id="btn-tow-target-dec" class="tow-stepper-sm" aria-label="Decrease target">−</button>
+              <span id="tow-target-value" class="tow-stepper-value-sm">300</span>
+              <button type="button" id="btn-tow-target-inc" class="tow-stepper-sm" aria-label="Increase target">+</button>
+            </div>
           </div>
-        </div>
-        <div class="tier1-row tow-stat-row">
-          <span>Max rounds</span>
-          <div class="tow-stepper-row">
-            <button type="button" id="btn-tow-rounds-dec" class="tow-stepper-sm" aria-label="Decrease rounds">−</button>
-            <span id="tow-rounds-value" class="tow-stepper-value-sm">5</span>
-            <button type="button" id="btn-tow-rounds-inc" class="tow-stepper-sm" aria-label="Increase rounds">+</button>
+          <div class="tier1-row tow-stat-row">
+            <span>Max rounds</span>
+            <div class="tow-stepper-row">
+              <button type="button" id="btn-tow-rounds-dec" class="tow-stepper-sm" aria-label="Decrease rounds">−</button>
+              <span id="tow-rounds-value" class="tow-stepper-value-sm">5</span>
+              <button type="button" id="btn-tow-rounds-inc" class="tow-stepper-sm" aria-label="Increase rounds">+</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="tow-teams-label-row">
+      <div id="tow-teams-label-row" class="tow-teams-label-row">
         <p class="pyramid-setup-section-label horse-section-label">
           <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
           Teams
