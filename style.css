@@ -3231,7 +3231,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .boys-mode-stats {
   display: flex;
   flex-direction: column;
-  background: var(--bg-elevated);
   border-radius: 16px;
   overflow: hidden;
 }
