@@ -2172,6 +2172,24 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .horse-candidate-row:active { background: var(--bg-elevated-2); }
 
+/* .tow-candidate-row needs the same UA-button reset as .horse-candidate-row
+   above — otherwise native button chrome (a light/white background on some
+   browsers) shows through under display:flex. */
+.tow-candidate-row {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.tow-candidate-row:active { background: var(--bg-elevated-2); }
+
 .horse-start-btn { margin-top: 1.4rem; }
 
 .horse-open-card {
