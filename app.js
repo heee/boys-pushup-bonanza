@@ -155,7 +155,7 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
-import { buildRecapTier, checkAndQueueRecaps, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js";
+import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { createClapGestureDetector } from "./modes/clap-gesture.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
@@ -13283,10 +13283,40 @@ function recapValueDisplay(value, unit) {
   return unit === "seconds" ? formatDuration(value * 1000) : formatNumber(value);
 }
 
+// Wins that don't live in the sessions array — goal-based Challenges,
+// Horse, and Tug of War — resolved once per recap-queue open and handed to
+// recap.js as plain {activityKey, time} events (see computeRecapTab).
+// Cockfight wins are already ordinary sessions, so they're not included
+// here; recap.js reads them straight off the session pool instead.
+function buildRecapExtras(user) {
+  const now = new Date();
+  const cached = getCachedData();
+
+  const challengeWins = [];
+  for (const c of challengeDefs) {
+    if (challengeStatus(c, now) !== "past") continue;
+    if (!challengeParticipantsOf(c).includes(user)) continue;
+    if (!challengeWinners(c).includes(user)) continue;
+    const activityKey = CHALLENGE_ACTIVITY_TO_EXERCISE_KEY[challengeActivityId(c)];
+    if (!activityKey) continue;
+    challengeWins.push({ activityKey, time: challengeWindow(c).endDate.getTime() });
+  }
+
+  const horseWins = (cached.horseGames || [])
+    .filter((g) => g.status === "complete" && g.winner?.includes(user))
+    .map((g) => ({ time: lastArrayActivityAt(g.sets) ?? g.startedAt ?? g.createdAt ?? 0 }));
+
+  const towWins = (cached.towGames || [])
+    .filter((g) => g.status === "complete" && g.winner && g.teams?.[g.winner]?.players?.includes(user))
+    .map((g) => ({ time: lastArrayActivityAt(g.bursts) ?? g.startedAt ?? g.createdAt ?? 0 }));
+
+  return { challengeWins, horseWins, towWins };
+}
+
 function openNextRecap() {
   if (!state.recapQueue.length) return;
   const tier = state.recapQueue[0];
-  const tabs = buildRecapTier(getAllSessionsForDisplay(), state.currentUser, tier, new Date());
+  const tabs = buildRecapTier(getAllSessionsForDisplay(), state.currentUser, tier, new Date(), buildRecapExtras(state.currentUser));
   if (!tabs.length) {
     state.recapQueue.shift();
     openNextRecap();
@@ -13389,6 +13419,7 @@ function renderRecapModal() {
   const tiles = [
     { value: formatNumber(tab.sessionsCount), label: "sessions" },
     { value: recapValueDisplay(tab.periodBest, tab.unit), label: "best (PB)" },
+    { value: formatNumber(tab.totalMinutes), label: "minutes" },
     { value: tab.rank ? `#${tab.rank}` : "—", label: rankLabel },
   ];
   tilesEl.innerHTML = tiles.map((tile) =>

@@ -40,6 +40,18 @@ export const RECAP_EXERCISES = [
 
 const LEADERBOARD_GROUP_LABEL = "Boys Bonanza";
 
+// Maps a Challenges-screen challenge's activity id (screens/challenges.js's
+// challengeActivityId) to the matching recap exercise key, so a challenge
+// win can be attributed to the right tab. Challenge activities with no
+// recap tab (e.g. none today) are simply omitted and never counted.
+export const CHALLENGE_ACTIVITY_TO_EXERCISE_KEY = {
+  pushups: "pushup",
+  situps: "situp",
+  squats: "squat",
+  pullups: "pullup",
+  planks: "plank",
+};
+
 function sessionTime(session) {
   const value = Date.parse(session?.timestamp || session?.date || "");
   return Number.isFinite(value) ? value : 0;
@@ -132,6 +144,31 @@ function bestPriorPeriodTotal(pool, user, tier, beforeEnd) {
     guard++;
   }
   return best;
+}
+
+// Wall-clock length of a session (startedAt → timestamp). Sessions logged
+// before startedAt existed (or missing it for any other reason) contribute
+// 0 rather than skewing the total with a bogus duration.
+function sessionDurationMs(session) {
+  const startedAt = Date.parse(session?.startedAt || "");
+  const endedAt = sessionTime(session);
+  if (!Number.isFinite(startedAt) || !endedAt) return 0;
+  return Math.max(0, endedAt - startedAt);
+}
+
+// Counts wins the caller has already attributed to this user, scoped to
+// this tab's exercise and period. `extras` groups them by source so
+// pushup-only sources (Horse, Tug of War) only ever land on the pushup tab.
+function countExtraWins(extras, exerciseKey, start, end) {
+  const startTime = start.getTime();
+  const endTime = end.getTime();
+  const inPeriod = (w) => w.time >= startTime && w.time < endTime;
+  let count = (extras.challengeWins || []).filter((w) => w.activityKey === exerciseKey && inPeriod(w)).length;
+  if (exerciseKey === "pushup") {
+    count += (extras.horseWins || []).filter(inPeriod).length;
+    count += (extras.towWins || []).filter(inPeriod).length;
+  }
+  return count;
 }
 
 function weekBucketIndex(date) {
@@ -250,8 +287,11 @@ function computeTerritoryHighlight(sessions, user, tier, start, end) {
   return { icon: "🗺️", text: `Holding ${heldNow.length} territor${heldNow.length === 1 ? "y" : "ies"}` };
 }
 
-// Full payload for one exercise tab within one period recap.
-export function computeRecapTab(sessions, exercise, tier, now = new Date(), isPrimaryTab = false) {
+// Full payload for one exercise tab within one period recap. `extras` (see
+// countExtraWins) carries win events app.js has already resolved from
+// Challenges/Horse/Tug of War/Cockfight — recap.js stays sessions-only
+// otherwise, so this is the one seam where that outside data enters.
+export function computeRecapTab(sessions, exercise, tier, now = new Date(), isPrimaryTab = false, extras = {}) {
   const { start, end } = completedPeriodRange(tier, now);
   const { start: prevStart, end: prevEnd } = previousPeriodRange(tier, now);
   const pool = filterByMode(sessions, exercise.filterMode);
@@ -276,6 +316,18 @@ export function computeRecapTab(sessions, exercise, tier, now = new Date(), isPr
     isRecordTotal, deltaPct: deltaPct ?? 0, territory,
   });
 
+  // Cockfight wins are ordinary pushup sessions (mode:"cock") already in
+  // `pool`, so they're counted straight from sessionsInPeriod rather than
+  // through `extras`. Appended after the normal 3-highlight cap so it never
+  // crowds out rank/PB/territory.
+  const cockWins = sessionsInPeriod.filter((s) => s.mode === "cock" && s.cockResult === "win").length;
+  const challengeWinCount = cockWins + countExtraWins(extras, exercise.key, start, end);
+  if (challengeWinCount > 0) {
+    highlights.push({ icon: "🏅", text: `Won ${challengeWinCount} challenge${challengeWinCount === 1 ? "" : "s"} this ${tier}` });
+  }
+
+  const totalMinutes = Math.round(sessionsInPeriod.reduce((sum, s) => sum + sessionDurationMs(s), 0) / 60000);
+
   return {
     exercise: exercise.key,
     label: exercise.label,
@@ -286,6 +338,8 @@ export function computeRecapTab(sessions, exercise, tier, now = new Date(), isPr
     deltaPct,
     sessionsCount: sessionsInPeriod.length,
     periodBest,
+    totalMinutes,
+    challengeWinCount,
     rank,
     prevRank,
     participants,
@@ -320,11 +374,13 @@ export function checkAndQueueRecaps(sessions, user, now, storage) {
 }
 
 // Builds every tab's payload for one tier, in most-active-first order.
-export function buildRecapTier(sessions, user, tier, now = new Date()) {
+// `extras` (see computeRecapTab) is optional — omit it and every tab's
+// challenge-win count simply falls back to Cockfight-only.
+export function buildRecapTier(sessions, user, tier, now = new Date(), extras = {}) {
   const { start, end } = completedPeriodRange(tier, now);
   const active = getActiveExercises(sessions, user, start, end);
   return active.map((exercise, index) =>
-    computeRecapTab(sessions, { ...exercise, user }, tier, now, index === 0)
+    computeRecapTab(sessions, { ...exercise, user }, tier, now, index === 0, extras)
   );
 }
 
@@ -398,21 +454,22 @@ export function exportRecapImage(tier, tab, user) {
     ctx.fillText(pillText, W / 2, 555);
   }
 
-  // Stat tile row: sessions / best / rank.
+  // Stat tile row: sessions / best / minutes / rank.
   const tiles = [
     { value: formatShareNumber(tab.sessionsCount), label: "sessions" },
     { value: formatShareValue(tab.periodBest, tab.unit), label: "best (PB)" },
+    { value: formatShareNumber(tab.totalMinutes), label: "minutes" },
     { value: tab.rank ? `#${tab.rank}` : "—", label: tab.prevRank && tab.prevRank !== tab.rank ? `rank, was #${tab.prevRank}` : "rank" },
   ];
-  const tileY = 660, tileH = 190, tileGap = 24;
-  const tileW = (W - 120 - tileGap * 2) / 3;
+  const tileY = 660, tileH = 190, tileGap = 20;
+  const tileW = (W - 120 - tileGap * 3) / 4;
   tiles.forEach((tile, i) => {
     const x = 60 + i * (tileW + tileGap);
     ctx.fillStyle = palette.tile;
     roundRect(ctx, x, tileY, tileW, tileH, 24);
     ctx.fill();
     ctx.fillStyle = palette.text;
-    ctx.font = "700 52px system-ui, sans-serif";
+    ctx.font = "700 44px system-ui, sans-serif";
     ctx.fillText(tile.value, x + tileW / 2, tileY + 90);
     ctx.font = "500 26px system-ui, sans-serif";
     ctx.globalAlpha = 0.75;

@@ -5038,8 +5038,8 @@ body:has(#screen-challenges.active) #app {
 
 .recap-tiles {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.55rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
   margin: 1.3rem 0 0;
 }
 .recap-tile {
@@ -5049,12 +5049,12 @@ body:has(#screen-challenges.active) #app {
   align-items: center;
   justify-content: center;
   gap: 0.15rem;
-  padding: 0.45rem 0.3rem;
+  padding: 0.45rem 0.25rem;
   border-radius: 16px;
   background: var(--recap-tile-bg);
 }
-.recap-tile-value { font-size: 1.3rem; font-weight: 800; }
-.recap-tile-label { font-size: 0.66rem; font-weight: 600; opacity: 0.8; text-align: center; }
+.recap-tile-value { font-size: 1.1rem; font-weight: 800; }
+.recap-tile-label { font-size: 0.6rem; font-weight: 600; opacity: 0.8; text-align: center; }
 
 .recap-highlights {
   margin: 1.1rem 0 0;
