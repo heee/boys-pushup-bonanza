@@ -1786,21 +1786,11 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   pointer-events: none;
 }
 .sharpshooter-target.rep-hit { animation: sharpshooter-rep-hit 240ms ease-out; }
-.sharpshooter-target.bullseye { animation: sharpshooter-bullseye 780ms cubic-bezier(.2,.85,.3,1); }
-.sharpshooter-target.bullseye .sharpshooter-count { opacity: 0; }
-.sharpshooter-target.bullseye .sharpshooter-impact { animation: sharpshooter-impact 780ms ease-out; }
+.sharpshooter-target.shatter .sharpshooter-impact { animation: sharpshooter-impact 650ms ease-out; }
 @keyframes sharpshooter-rep-hit {
   0% { transform: scale(1); }
   45% { transform: scale(0.965); filter: brightness(1.16); }
   100% { transform: scale(1); }
-}
-@keyframes sharpshooter-bullseye {
-  0% { transform: scale(1) rotate(0); filter: brightness(1); }
-  12% { transform: scale(0.9) rotate(-2deg); filter: brightness(1.65); }
-  30% { transform: scale(1.12) rotate(2deg); }
-  58% { transform: scale(0.96) rotate(-1deg); opacity: 1; }
-  82% { transform: scale(1.18); opacity: 0; }
-  100% { transform: scale(0.78); opacity: 0; }
 }
 @keyframes sharpshooter-impact {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
@@ -1808,14 +1798,86 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   55% { opacity: 0.8; transform: translate(-50%, -50%) scale(3.6); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
 }
+
+/* Target break-apart: 8 pie-slice wedges + 4 crosshair fragments fly outward
+   on completion, replacing the old bullseye pulse. Wedges reproduce the ring
+   color bands via a radial-gradient (sized to closest-side == outer ring
+   radius) so each slice shows the correct band regardless of its rotation
+   (radial gradients are angle-symmetric, so rotating the wedge doesn't shift
+   the bands). */
+.sharpshooter-shatter { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.ss-wedge {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  clip-path: polygon(50% 50%, 29.3% 0%, 70.7% 0%);
+  transform: rotate(var(--wedge-ang, 0deg));
+  transform-origin: 50% 50%;
+  background: radial-gradient(circle closest-side at 50% 50%,
+    #c9252d 0%, #c9252d 29%,
+    #fffaf0 29%, #fffaf0 53%,
+    #c9252d 53%, #c9252d 78%,
+    #f9f5ed 78%, #f9f5ed 100%);
+}
+.ss-frag { position: absolute; left: 50%; top: 50%; opacity: 0; background: rgba(55, 45, 41, 0.35); }
+.ss-frag-top,
+.ss-frag-bottom { width: 2px; height: 47%; }
+.ss-frag-left,
+.ss-frag-right { width: 47%; height: 2px; }
+.ss-frag-top { transform: translate(-50%, -100%); transform-origin: 50% 100%; }
+.ss-frag-bottom { transform: translate(-50%, 0); transform-origin: 50% 0%; }
+.ss-frag-left { transform: translate(-100%, -50%); transform-origin: 100% 50%; }
+.ss-frag-right { transform: translate(0, -50%); transform-origin: 0% 50%; }
+
+.sharpshooter-target.shatter .sharpshooter-ring,
+.sharpshooter-target.shatter .sharpshooter-crosshair,
+.sharpshooter-target.shatter .sharpshooter-count { opacity: 0; transition: opacity 70ms ease-out; }
+.sharpshooter-target.shatter .ss-wedge { animation: ss-wedge-fly 650ms cubic-bezier(.25,.7,.4,1) forwards; }
+.sharpshooter-target.shatter .ss-frag-top { animation: ss-frag-fly-top 600ms ease-out forwards; }
+.sharpshooter-target.shatter .ss-frag-bottom { animation: ss-frag-fly-bottom 600ms ease-out forwards; }
+.sharpshooter-target.shatter .ss-frag-left { animation: ss-frag-fly-left 600ms ease-out forwards; }
+.sharpshooter-target.shatter .ss-frag-right { animation: ss-frag-fly-right 600ms ease-out forwards; }
+@keyframes ss-wedge-fly {
+  0% { transform: rotate(var(--wedge-ang)) translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--wedge-ang)) translateY(-85%) rotate(160deg) scale(0.6); opacity: 0; }
+}
+@keyframes ss-frag-fly-top {
+  0% { transform: translate(-50%, -100%) translateY(0); opacity: 1; }
+  100% { transform: translate(-50%, -100%) translateY(-160%); opacity: 0; }
+}
+@keyframes ss-frag-fly-bottom {
+  0% { transform: translate(-50%, 0) translateY(0); opacity: 1; }
+  100% { transform: translate(-50%, 0) translateY(160%); opacity: 0; }
+}
+@keyframes ss-frag-fly-left {
+  0% { transform: translate(-100%, -50%) translateX(0); opacity: 1; }
+  100% { transform: translate(-100%, -50%) translateX(-160%); opacity: 0; }
+}
+@keyframes ss-frag-fly-right {
+  0% { transform: translate(0, -50%) translateX(0); opacity: 1; }
+  100% { transform: translate(0, -50%) translateX(160%); opacity: 0; }
+}
+
+.sharpshooter-target.rebuild .sharpshooter-ring,
+.sharpshooter-target.rebuild .sharpshooter-crosshair { animation: ss-rebuild 260ms ease-out; }
+@keyframes ss-rebuild {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
 .workout-active.mode-sharpshooter .rep-count-wrap { display: none; }
 @media (max-height: 700px) {
   .sharpshooter-target { width: min(55vw, 15rem); }
 }
 @media (prefers-reduced-motion: reduce) {
   .sharpshooter-target.rep-hit,
-  .sharpshooter-target.bullseye,
-  .sharpshooter-target.bullseye .sharpshooter-impact { animation-duration: 1ms; }
+  .sharpshooter-target.shatter .sharpshooter-impact,
+  .sharpshooter-target.shatter .ss-wedge,
+  .sharpshooter-target.shatter .ss-frag-top,
+  .sharpshooter-target.shatter .ss-frag-bottom,
+  .sharpshooter-target.shatter .ss-frag-left,
+  .sharpshooter-target.shatter .ss-frag-right,
+  .sharpshooter-target.rebuild .sharpshooter-ring,
+  .sharpshooter-target.rebuild .sharpshooter-crosshair { animation-duration: 1ms; }
 }
 
 /* ---------------- Ladder mode ---------------- */

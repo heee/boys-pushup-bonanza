@@ -9320,7 +9320,7 @@ function loadNextSharpshooterTarget() {
 
 function pulseSharpshooterTarget() {
   const target = $("sharpshooter-target");
-  if (!target || target.classList.contains("bullseye")) return;
+  if (!target || target.classList.contains("shatter")) return;
   target.classList.remove("rep-hit");
   void target.offsetWidth;
   target.classList.add("rep-hit");
@@ -9329,17 +9329,23 @@ function pulseSharpshooterTarget() {
 function celebrateSharpshooterHit() {
   const target = $("sharpshooter-target");
   clearTimeout(state.sharpshooterAnimationTimer);
-  target.classList.remove("rep-hit", "bullseye");
+  clearTimeout(state.sharpshooterRebuildTimer);
+  target.classList.remove("rep-hit", "shatter", "rebuild");
   void target.offsetWidth;
   $("sharpshooter-count").textContent = "0";
-  target.classList.add("bullseye");
+  target.classList.add("shatter");
   if (soundIsEnabled()) playSharpshooterHit();
   vibrate(120);
   state.sharpshooterAnimationTimer = setTimeout(() => {
-    target.classList.remove("bullseye");
+    target.classList.remove("shatter");
+    void target.offsetWidth;
+    target.classList.add("rebuild");
     const remaining = Math.max(0, state.sharpshooterTarget - state.sharpshooterRepsDone);
     $("sharpshooter-count").textContent = String(remaining);
-  }, 800);
+    state.sharpshooterRebuildTimer = setTimeout(() => {
+      target.classList.remove("rebuild");
+    }, 280);
+  }, 650);
 }
 
 function onRepCounted(count) {
@@ -9769,7 +9775,7 @@ async function setupWorkoutModeState() {
     state.sharpshooterTarget = 0;
     state.sharpshooterRepsDone = 0;
   }
-  $("sharpshooter-target").classList.remove("rep-hit", "bullseye");
+  $("sharpshooter-target").classList.remove("rep-hit", "shatter", "rebuild");
   $("sharpshooter-hud").classList.toggle("hidden", !isSharpshooter);
   $("workout-active").classList.toggle("mode-sharpshooter", isSharpshooter);
 
