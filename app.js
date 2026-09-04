@@ -4632,13 +4632,13 @@ function finishedGameRowHTML(entry) {
     const game = entry.game;
     const won = (game.winner || []).includes(user);
     const opponents = otherHorsePlayers(game, user);
-    const statement = won
-      ? `Horse · won${opponents ? ` vs. ${escapeHtml(opponents)}` : ""}`
-      : `Horse · lost to ${escapeHtml((game.winner || []).join(" & ") || "?")}`;
+    const resultText = won
+      ? `won${opponents ? ` vs. ${escapeHtml(opponents)}` : ""}`
+      : `lost to ${escapeHtml((game.winner || []).join(" & ") || "?")}`;
     return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-games-recent-horse="${game.id}">
         <span aria-hidden="true">🐴</span>
         <span class="horse-summary-name-col">
-          <span class="horse-summary-name">${statement}</span>
+          <span class="horse-summary-name">Horse<span class="games-recent-result"> · ${resultText}</span></span>
           <span class="horse-summary-subtitle">${timeLabel}</span>
         </span>
       </button>`;
@@ -4646,13 +4646,13 @@ function finishedGameRowHTML(entry) {
   const game = entry.game;
   const side = towTeamOfPlayer(game, user);
   const avatar = avatarForUser(user).id;
-  const statement = (game.status === "voided" || !side)
-    ? "Tug of war · voided"
-    : `Tug of war · ${game.winner === side ? "won" : "lost"} ${game.scores[side]}-${game.scores[side === "a" ? "b" : "a"]}`;
+  const resultText = (game.status === "voided" || !side)
+    ? "voided"
+    : `${game.winner === side ? "won" : "lost"} ${game.scores[side]}-${game.scores[side === "a" ? "b" : "a"]}`;
   return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-games-recent-tow="${game.id}">
         <span class="avatar-circle games-recent-avatar" data-avatar="${avatar}"></span>
         <span class="horse-summary-name-col">
-          <span class="horse-summary-name">${statement}</span>
+          <span class="horse-summary-name">Tug of war<span class="games-recent-result"> · ${resultText}</span></span>
           <span class="horse-summary-subtitle">${timeLabel}</span>
         </span>
       </button>`;

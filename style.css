@@ -2292,6 +2292,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .horse-summary-name-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
 .horse-summary-name { font-weight: 700; }
+.games-recent-result { font-weight: 400; }
 .horse-summary-name-out { text-decoration: line-through; color: var(--text-dim); }
 .horse-summary-subtitle { font-size: 0.78rem; color: var(--text-tertiary); }
 .horse-summary-row-winner .horse-summary-subtitle { color: var(--gold); }
