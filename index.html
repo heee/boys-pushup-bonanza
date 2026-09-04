@@ -6,6 +6,12 @@
 <title>Boys Bonanza</title>
 <meta name="description" content="Pushup counter and leaderboard for the boys. Phone on the floor, face over the camera, let's go.">
 
+<!-- Face/pose detector assets (camera.js) come from these two origins —
+     opening the connection early shaves the DNS/TLS handshake off whichever
+     mode's detector loads first. -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
+
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#17120d" media="(prefers-color-scheme: dark)">
@@ -1928,6 +1934,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=269"></script>
+<script type="module" src="app.js?v=270"></script>
 </body>
 </html>

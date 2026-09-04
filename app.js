@@ -1875,6 +1875,11 @@ function showScreen(id) {
   if (id === "screen-settings-goal-edit") renderGoalEditScreen();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
+    // Warm the face detector the moment this idle screen appears rather than
+    // waiting for the Start tap — ensureDetector() caches its result, so by
+    // the time startWorkout() calls it again, it usually resolves instantly
+    // instead of showing "Loading face detector…" for the first time here.
+    camera.ensureDetector().catch(() => {});
     $("workout-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("workout-avatar"), state.currentAvatar, "2rem");
     renderWeightedQuickToggle();
@@ -1894,15 +1899,18 @@ function showScreen(id) {
     setAvatarEl($("plank-avatar"), state.currentAvatar, "2rem");
   }
   if (id === "screen-squat-workout" && !state.squatActive) {
+    squatCamera.ensureDetector().catch(() => {});
     $("squat-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("squat-avatar"), state.currentAvatar, "2rem");
     renderSquatWeightedControls();
   }
   if (id === "screen-pullup-workout" && !state.pullupActive) {
+    pullupCamera.ensureDetector().catch(() => {});
     $("pullup-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("pullup-avatar"), state.currentAvatar, "2rem");
   }
   if (id === "screen-situp-workout" && !state.situpActive) {
+    situpCamera.ensureDetector().catch(() => {});
     $("situp-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("situp-avatar"), state.currentAvatar, "2rem");
   }
@@ -5622,16 +5630,18 @@ const squatTestCamera = createCameraController({
 async function startSquatCaptureTest() {
   if (squatTraceState.running) return;
   $("squat-capture-test-status").textContent = "Requesting camera…";
+  const detectorReady = squatTestCamera.ensureDetector();
   let stream;
   try {
     stream = await squatTestCamera.requestStream();
   } catch (e) {
     $("squat-capture-test-status").textContent = "Camera access denied.";
+    detectorReady.catch(() => {});
     return;
   }
   $("squat-capture-test-status").textContent = "Loading face detector…";
   try {
-    await squatTestCamera.ensureDetector();
+    await detectorReady;
   } catch (e) {
     $("squat-capture-test-status").textContent = "Couldn't load the face detection model.";
     stream.getTracks().forEach((t) => t.stop());
@@ -5738,16 +5748,18 @@ const situpTestCamera = createCameraController({
 async function startSitupCaptureTest() {
   if (situpTraceState.running) return;
   $("situp-capture-test-status").textContent = "Requesting camera…";
+  const detectorReady = situpTestCamera.ensureDetector();
   let stream;
   try {
     stream = await situpTestCamera.requestStream();
   } catch (e) {
     $("situp-capture-test-status").textContent = "Camera access denied.";
+    detectorReady.catch(() => {});
     return;
   }
   $("situp-capture-test-status").textContent = "Loading face detector…";
   try {
-    await situpTestCamera.ensureDetector();
+    await detectorReady;
   } catch (e) {
     $("situp-capture-test-status").textContent = "Couldn't load the face detection model.";
     stream.getTracks().forEach((t) => t.stop());
@@ -9712,6 +9724,10 @@ async function startWorkout() {
   } catch (e) { /* best-effort preload */ }
   if (state.pushupMode !== "zen") speak("Let's go");
 
+  // Started in parallel with the permission prompt below instead of after it
+  // — combined with the speculative warmup in showScreen(), this is usually
+  // already resolved by the time we get here, so the await below is instant.
+  const detectorReady = camera.ensureDetector();
   let stream;
   try {
     stream = await camera.requestStream();
@@ -9720,12 +9736,13 @@ async function startWorkout() {
   } catch (e) {
     localStorage.setItem(LS.cameraPermissionIssue, "1");
     toast("Camera access is required to count reps. Please allow camera permission.", 4000);
+    detectorReady.catch(() => {});
     return;
   }
 
   toast("Loading face detector…", 2000);
   try {
-    await camera.ensureDetector();
+    await detectorReady;
   } catch (e) {
     toast("Couldn't load the face detection model. Check your connection and try again.", 4500);
     stream.getTracks().forEach((t) => t.stop());
@@ -11911,16 +11928,18 @@ async function startSquat() {
   if (soundIsEnabled()) unlockVoice();
   state.squatSessionLocation = currentSessionLocationSnapshot();
 
+  const detectorReady = squatCamera.ensureDetector();
   let stream;
   try {
     stream = await squatCamera.requestStream();
   } catch (e) {
     toast("Camera access is required to count squats. Please allow camera permission.", 4000);
+    detectorReady.catch(() => {});
     return;
   }
   toast("Loading body tracker…", 2000);
   try {
-    await squatCamera.ensureDetector();
+    await detectorReady;
   } catch (e) {
     toast("Couldn't load the body tracking model. Check your connection and try again.", 4500);
     stream.getTracks().forEach((t) => t.stop());
@@ -12241,13 +12260,18 @@ const pullupCamera = createCameraController({
 
 async function startPullup() {
   if (soundIsEnabled()) unlockVoice();
+  const detectorReady = pullupCamera.ensureDetector();
   await loadPullupMode();
   state.pullupSessionLocation = currentSessionLocationSnapshot();
   let stream;
   try { stream = await pullupCamera.requestStream(); }
-  catch { toast("Camera access is required to count pull-ups. Please allow camera permission.", 4000); return; }
+  catch {
+    toast("Camera access is required to count pull-ups. Please allow camera permission.", 4000);
+    detectorReady.catch(() => {});
+    return;
+  }
   toast("Loading body tracker…", 2000);
-  try { await pullupCamera.ensureDetector(); }
+  try { await detectorReady; }
   catch {
     toast("Couldn't load the body tracking model. Check your connection and try again.", 4500);
     stream.getTracks().forEach((track) => track.stop());
@@ -12428,8 +12452,9 @@ async function ensureHollandCamera(detectorType) {
     onDetection: detectorType === "pose" ? hollandOnPoseDetection : hollandOnFaceDetection,
     onNoDetection: hollandOnNoDetection,
   });
+  const detectorReady = hollandCamera.ensureDetector();
   const stream = await hollandCamera.requestStream();
-  await hollandCamera.ensureDetector();
+  await detectorReady;
   const video = $("holland-camera-video");
   video.srcObject = stream;
   try { await video.play(); } catch { /* autoplay quirks */ }
@@ -13128,16 +13153,18 @@ async function startSitup() {
   if (soundIsEnabled()) unlockVoice();
   state.situpSessionLocation = currentSessionLocationSnapshot();
 
+  const detectorReady = situpCamera.ensureDetector();
   let stream;
   try {
     stream = await situpCamera.requestStream();
   } catch (e) {
     toast("Camera access is required to count crunches. Please allow camera permission.", 4000);
+    detectorReady.catch(() => {});
     return;
   }
   toast("Loading face detector…", 2000);
   try {
-    await situpCamera.ensureDetector();
+    await detectorReady;
   } catch (e) {
     toast("Couldn't load the face detection model. Check your connection and try again.", 4500);
     stream.getTracks().forEach((t) => t.stop());
