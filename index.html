@@ -767,16 +767,18 @@
     <!-- ============ SCREEN: TUG OF WAR SUMMARY ============ -->
     <section id="screen-tow-summary" class="screen">
       <div id="tow-summary-confetti" class="confetti" aria-hidden="true"></div>
-      <p class="tow-summary-kicker">MATCH OVER</p>
-      <p id="tow-summary-winner" class="tow-summary-winner-name"></p>
-      <div class="tow-rope-wrap">
-        <div class="tow-rope-track">
-          <div id="tow-summary-rope-fill" class="tow-rope-fill"></div>
-          <div id="tow-summary-rope-chevron" class="tow-rope-chevron">➤</div>
+      <div class="tow-summary-content">
+        <p class="tow-summary-kicker">MATCH OVER</p>
+        <p id="tow-summary-winner" class="tow-summary-winner-name"></p>
+        <div class="tow-rope-wrap">
+          <div class="tow-rope-track">
+            <div id="tow-summary-rope-fill" class="tow-rope-fill"></div>
+            <div id="tow-summary-rope-chevron" class="tow-rope-chevron">➤</div>
+          </div>
         </div>
+        <div id="tow-summary-teams" class="tow-summary-teams"></div>
       </div>
-      <div id="tow-summary-teams" class="tow-summary-teams"></div>
-      <div class="horse-summary-actions">
+      <div class="horse-summary-actions tow-summary-actions">
         <button id="btn-tow-share" type="button" class="btn btn-giant btn-secondary btn-with-icon">Share <span class="icon-share" aria-hidden="true"></span></button>
         <button id="btn-tow-rematch" type="button" class="btn btn-giant btn-primary btn-with-icon">New game <span class="icon-arrow-right" aria-hidden="true"></span></button>
       </div>

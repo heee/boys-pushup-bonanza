@@ -2534,7 +2534,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-summary-kicker { margin: 0 0 0.3rem; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em; color: var(--text-tertiary); text-align: center; }
 .tow-summary-winner-name { margin: 0 auto 1.2rem; font-size: 1.7rem; font-weight: 800; line-height: 1.25; color: var(--primary); text-align: center; }
 
-.tow-summary-teams { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 0.8rem; }
+.tow-summary-content { display: flex; flex-direction: column; flex: 1; justify-content: center; }
+.tow-summary-teams { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 0.8rem; padding: 0 0.9rem; }
 .tow-summary-team-block { position: relative; }
 .tow-summary-team-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
 .tow-summary-team-name { font-weight: 800; }
@@ -2545,7 +2546,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-summary-player-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0; }
 .tow-summary-player-row .avatar-circle { width: 1.8rem; height: 1.8rem; font-size: 1rem; flex-shrink: 0; }
 .tow-summary-player-row .tow-player-name { font-weight: 400; color: var(--text-dim); }
-.tow-summary-player-row .tow-player-reps { font-weight: 600; color: var(--text-dim); margin-left: auto; }
+.tow-summary-player-row .tow-player-reps { font-weight: 400; color: var(--text-dim); margin-left: auto; }
+.tow-summary-actions { margin-top: 1.6rem; }
+
+@keyframes tow-rope-chevron-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-30%, -50%) scale(1.18); }
+}
+#screen-tow-summary .tow-rope-chevron { animation: tow-rope-chevron-pulse 1.1s ease-in-out infinite; }
 
 .tow-bell-avatar { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 
