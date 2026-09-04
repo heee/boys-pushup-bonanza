@@ -2644,6 +2644,29 @@ export function pickTowInviteMessage(ctx) {
   return (ctx.teamAPlayers || ctx.teamBPlayers) ? `${flavor} ${towLobbyStatusLine(ctx)}` : flavor;
 }
 
+// Nudge copy for the match screen's "Remind" button — c.name is whoever's
+// burst it is, c.teamName their team, c.remaining a pre-formatted "N to go".
+const SHARE_MESSAGES_TOW_REMINDER = [
+  (c) => `${c.name}, ${c.teamName} is standing around waiting on your burst. ${c.remaining}. 🪢`,
+  (c) => `Yo ${c.name}, the rope hasn't moved in a while. ${c.teamName} needs your burst — ${c.remaining}. ⏰`,
+  (c) => `${c.name}, everyone's just staring at a rope that isn't moving. Your burst, ${c.remaining}. 👀`,
+  (c) => `PSA: ${c.name} is the entire holdup on this tug of war. ${c.teamName} · ${c.remaining}. 📢`,
+  (c) => `${c.name}, ${c.teamName} is dying out here. Take your burst — ${c.remaining}. 🚨`,
+  (c) => `Boys are asking where ${c.name} went. The rope isn't going to pull itself — ${c.remaining}. 🔔`,
+  (c) => `${c.name}, we've all aged a little waiting on your burst. ${c.teamName} needs it — ${c.remaining}.`,
+  (c) => `${c.name}, this match has ground to a complete halt. Get up here and pull — ${c.remaining}. 🪢`,
+];
+
+let lastTowReminderTemplate = null;
+export function pickTowReminderMessage(ctx) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(SHARE_MESSAGES_TOW_REMINDER); guard++; }
+  while (template === lastTowReminderTemplate && SHARE_MESSAGES_TOW_REMINDER.length > 1 && guard < 10);
+  lastTowReminderTemplate = template;
+  return template(ctx);
+}
+
 // Share copy for an individual session-detail screen's share button.
 // c.user, c.countText ("65 pushups"), c.modeLabel ("Classic"), c.dateText
 // ("Aug 28, 5:51 AM") always present; c.modifierLabel and c.statLine

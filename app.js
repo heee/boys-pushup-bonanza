@@ -3820,7 +3820,11 @@ function renderTowTeamsUI() {
   $("tow-session-type-section").classList.toggle("hidden", inLobby);
   $("btn-tow-invite-more").classList.toggle("hidden", inLobby || isOpenSetup);
   $("tow-invite-candidates").classList.add("hidden");
-  $("tow-team-actions").classList.toggle("hidden", inLobby || isOpenSetup);
+  // Open setup has no assigned players yet, so shuffling teams makes no
+  // sense — but the auto-generated team names still can (and should) be
+  // reroll-able before sharing the join link.
+  $("tow-team-actions").classList.toggle("hidden", inLobby);
+  $("btn-tow-shuffle-teams").classList.toggle("hidden", inLobby || isOpenSetup);
   $("tow-shuffle-hint").classList.toggle("hidden", inLobby || isOpenSetup);
   $("tow-open-hint").classList.toggle("hidden", !(isOpenSetup || inLobby));
 
@@ -4197,6 +4201,12 @@ function renderTowMatch() {
   if (status.cta) $("btn-tow-take-burst").textContent = status.cta;
   $("tow-match-status").textContent = status.waiting || "";
   $("tow-match-status").classList.toggle("hidden", !status.waiting);
+
+  // Reminding only makes sense for async games where someone else is
+  // dragging their feet — same rule as Horse's btn-horse-remind.
+  const isRemote = game.sessionType === "online" || game.sessionType === "open";
+  const upNow = towCurrentTurnPlayer(game);
+  $("btn-tow-remind").classList.toggle("hidden", !isRemote || game.status !== "active" || upNow === state.currentUser);
 }
 
 // Central re-render + navigation after any Tug of War state change — same
@@ -4235,6 +4245,30 @@ $("btn-tow-take-burst").addEventListener("click", () => {
     beginTowBurst(state.currentUser);
   }
 });
+
+async function shareTowReminder() {
+  const { pickTowReminderMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+  const game = state.towGame;
+  const name = towCurrentTurnPlayer(game);
+  const team = towCurrentTurnTeam(game);
+  const message = pickTowReminderMessage({ name, teamName: game.teams[team].name, remaining: towRemainingLabel(game, team) });
+  const url = game.sessionType === "open" ? towInviteUrl(game.id) : location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — go nag them!");
+  } catch (e) {
+    toast("Couldn't share automatically — copy your reminder manually.", 4000);
+  }
+}
+$("btn-tow-remind").addEventListener("click", shareTowReminder);
 
 // ---- Live handoff (pass-the-phone) ----
 
@@ -11211,7 +11245,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=144").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=145").then((module) => {
       workoutShareMessages = module;
       return module;
     });
