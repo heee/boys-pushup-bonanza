@@ -8519,6 +8519,23 @@ function updateHorseMeter(count) {
   meter.innerHTML = buildProgressThermometer(count, target, true);
 }
 
+// Tug of War's live-burst meter — same rope bar and pulsing-chevron
+// animation as the match/summary screens (see .tow-rope-live in style.css),
+// projected forward by this burst's not-yet-submitted count so the rope
+// visibly creeps toward the current player's own side as they count reps.
+function updateTowRopeMeter(count) {
+  const wrap = $("tow-rope-meter-wrap");
+  const game = state.towGame;
+  const team = game ? towTeamOfPlayer(game, state.currentUser) : null;
+  if (!game || !team) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const projected = { ...game, scores: { ...game.scores, [team]: game.scores[team] + count } };
+  renderTowRopeInto("tow-rope-meter-fill", "tow-rope-meter-chevron", projected);
+}
+
 function getHighScore(name) {
   // Pulse's `count` is seconds held in band, not reps — it has to be
   // excluded here or a long Pulse run could masquerade as a huge Classic
@@ -9495,6 +9512,7 @@ function onRepCounted(count) {
     maybePlayRecurringGhostCue(repState, count, "reps", "pushup-ghost-transition", ghostJustPassed);
     updateHighscoreMessage(count);
     updateThermometer(count);
+    if (state.pushupMode === "tow") updateTowRopeMeter(count);
 
     let spoken = null;
     let mustSpeak = false;
@@ -9882,6 +9900,7 @@ async function setupWorkoutModeState() {
       ? `Sudden death · Round ${state.towGame.round}`
       : `Round ${state.towGame.round}/${state.towGame.rounds}`;
   }
+  if (isTow) updateTowRopeMeter(0); else $("tow-rope-meter-wrap").classList.add("hidden");
 
   // Pulse's band was already computed and locked in on the setup screen
   // (state.pulseBandLow/High/Width) — this just starts the live run's

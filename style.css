@@ -2523,14 +2523,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-rope-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--border); overflow: hidden; }
 .tow-rope-fill.tow-rope-fill-a { background: var(--primary); }
 .tow-rope-fill.tow-rope-fill-b { background: var(--text-dim); }
-#screen-tow-summary .tow-rope-fill.tow-rope-fill-a,
-#screen-tow-summary .tow-rope-fill.tow-rope-fill-b {
+:is(#screen-tow-summary, .tow-rope-live) .tow-rope-fill.tow-rope-fill-a,
+:is(#screen-tow-summary, .tow-rope-live) .tow-rope-fill.tow-rope-fill-b {
   background-repeat: repeat;
   background-size: 6rem 100%;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
-#screen-tow-summary .tow-rope-fill.tow-rope-fill-a {
+:is(#screen-tow-summary, .tow-rope-live) .tow-rope-fill.tow-rope-fill-a {
   background-image: repeating-linear-gradient(
     100deg,
     var(--primary) 0%,
@@ -2542,7 +2542,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   animation-name: tow-rope-flow-a;
   animation-duration: 1.6s;
 }
-#screen-tow-summary .tow-rope-fill.tow-rope-fill-b {
+:is(#screen-tow-summary, .tow-rope-live) .tow-rope-fill.tow-rope-fill-b {
   background-image: repeating-linear-gradient(
     100deg,
     var(--text-dim) 0%,
@@ -2591,6 +2591,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-burst-kicker { margin: 0 0 0.3rem; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); }
 .tow-burst-added { margin: 0 0 0.3rem; font-size: 3.5rem; font-weight: 900; color: var(--primary); line-height: 1.05; }
 .tow-burst-complete-screen .tow-rope-wrap { width: 100%; max-width: 22rem; }
+.tow-rope-live { width: 100%; max-width: 22rem; margin: 0.7rem auto 0; }
 
 .tow-summary-kicker { margin: 0 0 0.3rem; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em; color: var(--text-tertiary); text-align: center; }
 .tow-summary-winner-name { margin: 0 auto 1.2rem; font-size: 1.7rem; font-weight: 800; line-height: 1.25; color: var(--primary); text-align: center; }
@@ -2618,12 +2619,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
   50% { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
 }
-#screen-tow-summary .tow-rope-chevron {
+:is(#screen-tow-summary, .tow-rope-live) .tow-rope-chevron {
   text-shadow: 0 0 0.7rem currentColor, 0 0 1.3rem currentColor;
   animation: tow-rope-chevron-pulse-a 0.85s ease-in-out infinite;
 }
-#screen-tow-summary .tow-rope-chevron.tow-rope-chevron-a { transform-origin: right center; }
-#screen-tow-summary .tow-rope-chevron.tow-rope-chevron-b { transform-origin: left center; animation-name: tow-rope-chevron-pulse-b; }
+:is(#screen-tow-summary, .tow-rope-live) .tow-rope-chevron.tow-rope-chevron-a { transform-origin: right center; }
+:is(#screen-tow-summary, .tow-rope-live) .tow-rope-chevron.tow-rope-chevron-b { transform-origin: left center; animation-name: tow-rope-chevron-pulse-b; }
 
 .tow-bell-avatar { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 
