@@ -3183,13 +3183,31 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .games-row:last-child { border-bottom: 0; }
 .games-row:active { background: var(--bg-elevated-2); }
 .games-row-icon { display: flex; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; font-size: 1.3rem; }
-.games-row-icon .avatar-circle { width: 2.2rem; height: 2.2rem; font-size: 1.1rem; }
 .games-row-info { min-width: 0; display: flex; flex-direction: column; gap: 0.12rem; }
 .games-row-title { color: var(--text); font-size: 0.9rem; font-weight: 650; line-height: 1.3; }
 .games-row-title .games-recent-result { font-weight: 400; color: var(--text-dim); }
 .games-row-subtitle { color: var(--text-tertiary); font-size: 0.68rem; line-height: 1.3; }
 .games-row-status-waiting .games-row-title { color: var(--text-tertiary); font-weight: 500; }
 .games-row-actions { display: flex; align-items: center; gap: 0.4rem; }
+/* Right-aligned, slightly-overlapping avatar stack — who else is in this
+   game, same overlap technique as .tow-avatar-pair. */
+.games-row-people { display: flex; align-items: center; flex-shrink: 0; }
+.games-row-people .avatar-circle { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; border: 2px solid var(--bg); }
+.games-row-people .avatar-circle + .avatar-circle,
+.games-row-people-extra { margin-left: -0.5rem; }
+.games-row-people-extra {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: var(--bg-elevated-2);
+  border: 2px solid var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
 /* "A turn due" (turn/choosing — it's literally your move right now) gets a
    bordered highlight box, same treatment Horse uses for the active player. */
 .games-row.highlight { position: relative; }
