@@ -2352,7 +2352,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-icon-tab:active { transform: scale(0.97); }
 
 .tow-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.4rem; }
-.tow-stat-card { background: var(--bg-elevated); border-radius: 14px; padding: 0.7rem 0.8rem; }
+.tow-stat-card { border-radius: 14px; padding: 0.7rem 0.8rem; }
 .tow-stat-card-label { display: block; margin-bottom: 0.3rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
 .tow-stat-card-row { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
 .tow-stat-card-value { font-size: 1.5rem; font-weight: 900; color: var(--text); }
@@ -2376,6 +2376,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-stepper-sm:active { transform: scale(0.92); }
 
 #tow-shuffle-hint, #tow-session-note, #tow-open-hint { font-style: italic; }
+#tow-shuffle-hint, #tow-session-note { font-size: 0.8rem; color: var(--text-tertiary); }
 
 .tow-team-actions-row { display: flex; gap: 0.6rem; margin: 0.6rem 0; }
 .tow-labeled-btn {
@@ -2507,7 +2508,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 #screen-tow-summary .tow-rope-fill.tow-rope-fill-a,
 #screen-tow-summary .tow-rope-fill.tow-rope-fill-b {
   background-repeat: repeat;
-  background-size: 2.4rem 100%;
+  background-size: 6rem 100%;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
@@ -2515,28 +2516,28 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   background-image: repeating-linear-gradient(
     100deg,
     var(--primary) 0%,
-    var(--primary) 28%,
-    color-mix(in srgb, var(--primary) 45%, #fff) 50%,
-    var(--primary) 72%,
+    var(--primary) 30%,
+    color-mix(in srgb, var(--primary) 20%, #fff) 50%,
+    var(--primary) 70%,
     var(--primary) 100%
   );
   animation-name: tow-rope-flow-a;
-  animation-duration: 0.8s;
+  animation-duration: 1.6s;
 }
 #screen-tow-summary .tow-rope-fill.tow-rope-fill-b {
   background-image: repeating-linear-gradient(
     100deg,
     var(--text-dim) 0%,
-    var(--text-dim) 28%,
-    color-mix(in srgb, var(--text-dim) 45%, #fff) 50%,
-    var(--text-dim) 72%,
+    var(--text-dim) 30%,
+    color-mix(in srgb, var(--text-dim) 20%, #fff) 50%,
+    var(--text-dim) 70%,
     var(--text-dim) 100%
   );
   animation-name: tow-rope-flow-b;
-  animation-duration: 0.8s;
+  animation-duration: 1.6s;
 }
-@keyframes tow-rope-flow-a { from { background-position: 0 0; } to { background-position: -2.4rem 0; } }
-@keyframes tow-rope-flow-b { from { background-position: 0 0; } to { background-position: 2.4rem 0; } }
+@keyframes tow-rope-flow-a { from { background-position: 0 0; } to { background-position: -6rem 0; } }
+@keyframes tow-rope-flow-b { from { background-position: 0 0; } to { background-position: 6rem 0; } }
 .tow-rope-chevron {
   position: absolute;
   top: 50%;
@@ -2593,17 +2594,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 @keyframes tow-rope-chevron-pulse-a {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
-  50% { transform: translate(-150%, -50%) scale(1.6); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
 }
 @keyframes tow-rope-chevron-pulse-b {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
-  50% { transform: translate(50%, -50%) scale(1.6); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
 }
 #screen-tow-summary .tow-rope-chevron {
   text-shadow: 0 0 0.7rem currentColor, 0 0 1.3rem currentColor;
   animation: tow-rope-chevron-pulse-a 0.85s ease-in-out infinite;
 }
-#screen-tow-summary .tow-rope-chevron.tow-rope-chevron-b { animation-name: tow-rope-chevron-pulse-b; }
+#screen-tow-summary .tow-rope-chevron.tow-rope-chevron-a { transform-origin: right center; }
+#screen-tow-summary .tow-rope-chevron.tow-rope-chevron-b { transform-origin: left center; animation-name: tow-rope-chevron-pulse-b; }
 
 .tow-bell-avatar { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 
