@@ -3147,7 +3147,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 /* Games list rows — the same card/row structure as Roadtrip's ranked list
    (.roadtrip-ranked-list/.roadtrip-row), reused here so the app's list
    screens read as one consistent component instead of two different ones. */
-.games-ranked-list { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--bg-elevated); }
+.games-ranked-list { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; }
 .games-row {
   width: 100%;
   display: grid;
