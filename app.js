@@ -7094,16 +7094,15 @@ function timeAgoLabel(timestampMs) {
   return months < 12 ? `${months} month${months === 1 ? "" : "s"} ago` : `${Math.floor(months / 12)} year${months < 24 ? "" : "s"} ago`;
 }
 
-// "a classic push-up session" / "a plank session" / "a Holland Mode session" —
-// the standalone activities' MODE_META label already names the activity, so
-// folding it into "a {mode} {activity} session" would repeat it.
+// Short and catchy: "a classic" / "a plank" / "a Holland round" — no
+// "session"/"push-up" filler, so the Latest feed reads fast.
 function sessionActivityPhrase(s) {
   const modeId = sessionModeId(s);
-  if (modeId === "holland") return "a Holland Mode session";
+  if (modeId === "holland") return "a Holland round";
   if (["planks", "squats", "pullups", "situps"].includes(modeId)) {
-    return `a ${activityLabel(sessionActivity(s), true)} session`;
+    return `a ${activityLabel(sessionActivity(s), true)}`;
   }
-  return `a ${sessionModeLabel(s).toLowerCase()} push-up session`;
+  return `a ${sessionModeLabel(s).toLowerCase()}`;
 }
 
 function renderRecentList(sessions) {
@@ -7464,6 +7463,26 @@ async function renderChallengesScreen() {
   paintChallengeList();
 }
 
+// How many ended challenges (any activity/goal type) the current user has
+// outright won — ties count, same as the per-card winner chip.
+function challengesWonCount(user, now = new Date()) {
+  let count = 0;
+  for (const c of challengeDefs) {
+    if (challengeStatus(c, now) !== "past") continue;
+    if (challengeWinners(c).includes(user)) count++;
+  }
+  return count;
+}
+
+// Standing summary entry pinned above the tab-filtered list, so the win
+// count stays visible no matter which tab (Active/Upcoming/Past) is open.
+function buildChallengesWonSummaryEntry(count) {
+  const el = document.createElement("div");
+  el.className = "challenge-wins-summary";
+  el.innerHTML = `<span class="challenge-wins-summary-icon" aria-hidden="true">🏆</span><span>${count} challenge${count === 1 ? "" : "s"} won</span>`;
+  return el;
+}
+
 function paintChallengeList() {
   const now = new Date();
   const tab = state.challengeTab;
@@ -7474,13 +7493,15 @@ function paintChallengeList() {
 
   const el = $("challenge-list");
   el.innerHTML = "";
+  const wonCount = challengesWonCount(state.currentUser, now);
+  if (wonCount > 0) el.appendChild(buildChallengesWonSummaryEntry(wonCount));
   if (!list.length) {
     const msg = tab === "active"
       ? "No challenge running right now — check Upcoming."
       : tab === "upcoming"
         ? "Nothing on the calendar yet. Tell Henning."
         : "No completed challenges yet.";
-    el.innerHTML = `<p class="leaderboard-empty">${msg}</p>`;
+    el.insertAdjacentHTML("beforeend", `<p class="leaderboard-empty">${msg}</p>`);
     return;
   }
   for (const c of list) {
@@ -8241,9 +8262,12 @@ function paintChallengeRecent(sessions) {
     row.className = "recent-row compare-clickable";
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
-      <div class="recent-name">${escapeHtml(s.user)}</div>
-      <div class="recent-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</div>
-      <div class="recent-time">${formatDateTime(s.timestamp)}</div>
+      <div class="recent-statement">
+        <span class="recent-name">${escapeHtml(s.user)}</span> completed ${sessionActivityPhrase(s)} ${timeAgoLabel(sessionTimestamp(s))}
+      </div>
+      <div class="recent-count-col">
+        <span class="recent-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
+      </div>
     `;
     row.addEventListener("click", () => openSessionDetail(s, "screen-challenge-detail"));
     el.appendChild(row);
