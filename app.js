@@ -4415,8 +4415,13 @@ function pendingHorseItems() {
     // not "take another set" — so it gets its own "joined" item below.
     const hostWaitingToStart = game.sessionType === "open" && user === game.createdBy
       && game.startedAt == null && game.target != null;
-    if (hostWaitingToStart && game.turnOrder.length === 1) continue;
-    if (isTimeUp(game)) {
+    // Solo host, nobody's joined the open lobby yet — no notification-worthy
+    // "come review and start" moment, but the Games tab is a hub for every
+    // game you're in, not just a notifier, so the lobby still needs to show
+    // up somewhere (to share the invite again, or just confirm it exists).
+    if (hostWaitingToStart && game.turnOrder.length === 1) {
+      items.push({ kind: "hosting", gameId: game.id, opponents });
+    } else if (isTimeUp(game)) {
       items.push({ kind: "expired", gameId: game.id, opponents });
     } else if (game.pendingChoice && game.pendingChoice.user === user) {
       // currentTurnPlayer still resolves to the shooter while their choice
@@ -4465,8 +4470,15 @@ function pendingTowItems() {
       // dropdown, just not clamoring for attention).
       const viewingThisLobby = state.screen === "screen-tow-setup" && state.towGame?.id === game.id && state.towGame?.status === "lobby";
       if (user === game.createdBy) {
-        if (allPlayers.length === 1) continue; // nobody's joined yet — nothing to show
-        items.push({ mode: "tow", kind: "ready", gameId: game.id, creator: game.createdBy, opponents, muted: viewingThisLobby });
+        // Solo host, nobody's joined yet — no notification-worthy "come
+        // start" moment, but the Games tab is a hub for every game you're
+        // in, not just a notifier, so the lobby still needs to show up
+        // somewhere (to share the invite again, or just confirm it exists).
+        if (allPlayers.length === 1) {
+          items.push({ mode: "tow", kind: "hosting", gameId: game.id, creator: game.createdBy, opponents, muted: viewingThisLobby });
+        } else {
+          items.push({ mode: "tow", kind: "ready", gameId: game.id, creator: game.createdBy, opponents, muted: viewingThisLobby });
+        }
       } else {
         items.push({ mode: "tow", kind: "waiting", gameId: game.id, creator: game.createdBy, upNow: game.createdBy, opponents });
       }
@@ -4538,6 +4550,12 @@ function towGamesRowHTML(item) {
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
   }
+  if (item.kind === "hosting") {
+    return `<button type="button" class="games-row" data-bell-tow-view="${item.gameId}">
+        <span class="games-row-icon" aria-hidden="true">🪢</span>
+        <span class="games-row-info"><span class="games-row-title">Your Open Tug of war lobby — waiting for players to join</span></span>
+      </button>`;
+  }
   return `<button type="button" class="games-row${gamesRowWaitingClass(item)}" data-bell-tow-view="${item.gameId}">
         <span class="games-row-icon" aria-hidden="true">🪢</span>
         <span class="games-row-info"><span class="games-row-title">Waiting on ${escapeHtml(item.upNow)} in Tug of war</span></span>
@@ -4589,6 +4607,12 @@ function horseGamesRowHTML(item) {
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
     }
+    if (item.kind === "hosting") {
+      return `<button type="button" class="games-row" data-bell-view="${item.gameId}">
+        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-info"><span class="games-row-title">Your Open Horse lobby — waiting for players to join</span></span>
+      </button>`;
+    }
     const otherWaiting = item.opponents.split(", ").filter((name) => name && name !== item.upNow).join(", ");
     return `<button type="button" class="games-row${gamesRowWaitingClass(item)}" data-bell-view="${item.gameId}">
         <span class="games-row-icon" aria-hidden="true">🐴</span>
@@ -4614,7 +4638,7 @@ function gamesOpenItems() {
 // highlight box (see gamesHighlightClass); a startable lobby (ready/joined)
 // comes next, then an expired match waiting to be tallied, then anyone just
 // passively waiting on someone else.
-const GAMES_ACTIVE_SORT_PRIORITY = { turn: 0, choosing: 0, ready: 1, joined: 1, expired: 2, waiting: 3 };
+const GAMES_ACTIVE_SORT_PRIORITY = { turn: 0, choosing: 0, ready: 1, joined: 1, expired: 2, waiting: 3, hosting: 4 };
 
 function gamesActiveItems() {
   return pendingGamesItems()
