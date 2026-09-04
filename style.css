@@ -3014,7 +3014,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .roadtrip-tier-select { margin-bottom: 1rem; border-radius: 999px; }
 .roadtrip-tier-select .segment { border-radius: 999px; font-weight: 400; }
 .roadtrip-tier-select .segment.active { font-weight: 700; }
-.roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--bg-elevated); }
+.roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; }
 .roadtrip-row {
   width: 100%;
   display: grid;
