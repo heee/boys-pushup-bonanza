@@ -9381,6 +9381,26 @@ function pulseSharpshooterTarget() {
   target.classList.add("rep-hit");
 }
 
+// One hole per rep, placed uniformly over the target's disk (sqrt(random)
+// radius, not plain random, so hits don't bunch up toward the center).
+function addSharpshooterShot() {
+  const container = $("sharpshooter-shots");
+  if (!container) return;
+  const maxR = 42;
+  const r = maxR * Math.sqrt(Math.random());
+  const theta = Math.random() * Math.PI * 2;
+  const shot = document.createElement("div");
+  shot.className = "sharpshooter-shot";
+  shot.style.left = `${50 + r * Math.cos(theta)}%`;
+  shot.style.top = `${50 + r * Math.sin(theta)}%`;
+  shot.style.setProperty("--shot-rot", `${Math.random() * 40 - 20}deg`);
+  container.appendChild(shot);
+}
+
+function clearSharpshooterShots() {
+  $("sharpshooter-shots")?.replaceChildren();
+}
+
 function celebrateSharpshooterHit() {
   const target = $("sharpshooter-target");
   clearTimeout(state.sharpshooterAnimationTimer);
@@ -9393,6 +9413,7 @@ function celebrateSharpshooterHit() {
   vibrate(120);
   state.sharpshooterAnimationTimer = setTimeout(() => {
     target.classList.remove("shatter");
+    clearSharpshooterShots();
     void target.offsetWidth;
     target.classList.add("rebuild");
     const remaining = Math.max(0, state.sharpshooterTarget - state.sharpshooterRepsDone);
@@ -9447,6 +9468,7 @@ function onRepCounted(count) {
     }
   } else if (state.pushupMode === "sharpshooter") {
     state.sharpshooterRepsDone += 1;
+    addSharpshooterShot();
     if (state.sharpshooterRepsDone >= state.sharpshooterTarget) {
       state.sharpshooterTargetsDestroyed += 1;
       state.sharpshooterLongestShot = Math.max(state.sharpshooterLongestShot, state.sharpshooterTarget);
@@ -9831,6 +9853,7 @@ async function setupWorkoutModeState() {
     state.sharpshooterRepsDone = 0;
   }
   $("sharpshooter-target").classList.remove("rep-hit", "shatter", "rebuild");
+  clearSharpshooterShots();
   $("sharpshooter-hud").classList.toggle("hidden", !isSharpshooter);
   $("workout-active").classList.toggle("mode-sharpshooter", isSharpshooter);
 

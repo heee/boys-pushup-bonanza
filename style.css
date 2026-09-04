@@ -1785,6 +1785,27 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .sharpshooter-target.rep-hit { animation: sharpshooter-rep-hit 240ms ease-out; }
 .sharpshooter-target.shatter .sharpshooter-impact { animation: sharpshooter-impact 650ms ease-out; }
+
+/* One hole punched per rep, placed at a random point on the target by JS
+   (inline left/top) and cleared quietly (no fly-apart) when the target
+   shatters, along with the rings/crosshair/count. */
+.sharpshooter-shots { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.sharpshooter-shot {
+  position: absolute;
+  width: 7%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #3a3330 0%, #1c1815 55%, #0d0b0a 100%);
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35), inset 0 0 3px rgba(0, 0, 0, 0.65);
+  transform: translate(-50%, -50%) scale(0) rotate(var(--shot-rot, 0deg));
+  animation: sharpshooter-shot-pop 220ms ease-out forwards;
+}
+@keyframes sharpshooter-shot-pop {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(var(--shot-rot, 0deg)); opacity: 0; }
+  60% { transform: translate(-50%, -50%) scale(1.15) rotate(var(--shot-rot, 0deg)); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(var(--shot-rot, 0deg)); opacity: 1; }
+}
+.sharpshooter-target.shatter .sharpshooter-shots { opacity: 0; transition: opacity 70ms ease-out; }
 @keyframes sharpshooter-rep-hit {
   0% { transform: scale(1); }
   45% { transform: scale(0.965); filter: brightness(1.16); }
@@ -1867,6 +1888,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   .sharpshooter-target { width: min(55vw, 15rem); }
 }
 @media (prefers-reduced-motion: reduce) {
+  .sharpshooter-shot,
   .sharpshooter-target.rep-hit,
   .sharpshooter-target.shatter .sharpshooter-impact,
   .sharpshooter-target.shatter .ss-wedge,
