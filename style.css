@@ -4174,20 +4174,6 @@ body:has(#screen-challenges.active) #app {
   scrollbar-gutter: stable;
 }
 
-.challenge-wins-summary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 14px;
-  padding: 0.65rem 1rem;
-  background: var(--bg-elevated);
-  color: var(--text);
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-.challenge-wins-summary-icon { font-size: 1.05rem; line-height: 1; }
-
 .challenge-card {
   position: relative;
   border-radius: 18px;

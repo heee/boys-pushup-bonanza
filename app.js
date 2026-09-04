@@ -7463,26 +7463,6 @@ async function renderChallengesScreen() {
   paintChallengeList();
 }
 
-// How many ended challenges (any activity/goal type) the current user has
-// outright won — ties count, same as the per-card winner chip.
-function challengesWonCount(user, now = new Date()) {
-  let count = 0;
-  for (const c of challengeDefs) {
-    if (challengeStatus(c, now) !== "past") continue;
-    if (challengeWinners(c).includes(user)) count++;
-  }
-  return count;
-}
-
-// Standing summary entry pinned above the tab-filtered list, so the win
-// count stays visible no matter which tab (Active/Upcoming/Past) is open.
-function buildChallengesWonSummaryEntry(count) {
-  const el = document.createElement("div");
-  el.className = "challenge-wins-summary";
-  el.innerHTML = `<span class="challenge-wins-summary-icon" aria-hidden="true">🏆</span><span>${count} challenge${count === 1 ? "" : "s"} won</span>`;
-  return el;
-}
-
 function paintChallengeList() {
   const now = new Date();
   const tab = state.challengeTab;
@@ -7493,15 +7473,13 @@ function paintChallengeList() {
 
   const el = $("challenge-list");
   el.innerHTML = "";
-  const wonCount = challengesWonCount(state.currentUser, now);
-  if (wonCount > 0) el.appendChild(buildChallengesWonSummaryEntry(wonCount));
   if (!list.length) {
     const msg = tab === "active"
       ? "No challenge running right now — check Upcoming."
       : tab === "upcoming"
         ? "Nothing on the calendar yet. Tell Henning."
         : "No completed challenges yet.";
-    el.insertAdjacentHTML("beforeend", `<p class="leaderboard-empty">${msg}</p>`);
+    el.innerHTML = `<p class="leaderboard-empty">${msg}</p>`;
     return;
   }
   for (const c of list) {
