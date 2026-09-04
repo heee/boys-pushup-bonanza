@@ -4355,7 +4355,7 @@ function renderTowSummary() {
       </div>
       <div class="tow-summary-players">
         ${t.players.map((p) => `
-        <div class="tier1-row tow-player-row">
+        <div class="tow-summary-player-row">
           <span class="avatar-circle tow-avatar" data-avatar="${avatarForUser(p.name).id}"></span>
           <span class="tow-player-name">${escapeHtml(p.name)}</span>
           <span class="tow-player-reps">${p.reps}</span>
