@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=254">
+<link rel="stylesheet" href="style.css?v=255">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -594,6 +594,7 @@
       </div>
 
       <div id="tow-session-type-section">
+        <p class="pyramid-setup-section-label">Session type</p>
         <div id="tow-session-select" class="tow-icon-tabs" role="tablist">
           <button type="button" class="tow-icon-tab active" data-tow-session="live" role="tab" aria-selected="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg>
@@ -601,7 +602,7 @@
           </button>
           <button type="button" class="tow-icon-tab" data-tow-session="online" role="tab" aria-selected="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16.1a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg>
-            Online
+            Pick team
           </button>
           <button type="button" class="tow-icon-tab" data-tow-session="open" role="tab" aria-selected="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
@@ -618,62 +619,62 @@
           <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           Target &amp; max rounds
         </p>
-        <div id="tow-stat-list" class="tier1-list tow-stat-list">
-          <div class="tier1-row tow-stat-row">
-            <span>Target reps</span>
-            <div class="tow-stepper-row">
-              <button type="button" id="btn-tow-target-dec" class="tow-stepper-sm" aria-label="Decrease target">−</button>
-              <span id="tow-target-value" class="tow-stepper-value-sm">300</span>
-              <button type="button" id="btn-tow-target-inc" class="tow-stepper-sm" aria-label="Increase target">+</button>
+        <div class="tow-stat-grid">
+          <div class="tow-stat-card tow-stat-card-target">
+            <span class="tow-stat-card-label">Target</span>
+            <div class="tow-stat-card-row">
+              <span id="tow-target-value" class="tow-stat-card-value">300</span>
+              <div class="tow-stepper-row">
+                <button type="button" id="btn-tow-target-dec" class="tow-stepper-sm" aria-label="Decrease target">−</button>
+                <button type="button" id="btn-tow-target-inc" class="tow-stepper-sm" aria-label="Increase target">+</button>
+              </div>
             </div>
           </div>
-          <div class="tier1-row tow-stat-row">
-            <span>Max rounds</span>
-            <div class="tow-stepper-row">
-              <button type="button" id="btn-tow-rounds-dec" class="tow-stepper-sm" aria-label="Decrease rounds">−</button>
-              <span id="tow-rounds-value" class="tow-stepper-value-sm">5</span>
-              <button type="button" id="btn-tow-rounds-inc" class="tow-stepper-sm" aria-label="Increase rounds">+</button>
+          <div class="tow-stat-card">
+            <span class="tow-stat-card-label">Rounds</span>
+            <div class="tow-stat-card-row">
+              <span id="tow-rounds-value" class="tow-stat-card-value">5</span>
+              <div class="tow-stepper-row">
+                <button type="button" id="btn-tow-rounds-dec" class="tow-stepper-sm" aria-label="Decrease rounds">−</button>
+                <button type="button" id="btn-tow-rounds-inc" class="tow-stepper-sm" aria-label="Increase rounds">+</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div id="tow-teams-label-row" class="tow-teams-label-row">
-        <p class="pyramid-setup-section-label horse-section-label">
-          <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
-          Teams
-        </p>
-        <div id="tow-team-actions" class="tow-team-actions">
-          <button type="button" id="btn-tow-reroll-names" class="tow-icon-btn-sm" aria-label="Reroll team names">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
-          </button>
-          <button type="button" id="btn-tow-shuffle-teams" class="tow-icon-btn-sm" aria-label="Shuffle teams">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-          </button>
-        </div>
-      </div>
-      <p id="tow-shuffle-hint" class="screen-sub">Tap a team to switch players around</p>
-      <p id="tow-name-note" class="screen-sub tow-name-note">Team names are auto-generated from the app's own vocabulary — reroll for two new ones before you start.</p>
+      <p id="tow-teams-label" class="pyramid-setup-section-label horse-section-label">
+        <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
+        Teams
+      </p>
+      <p id="tow-shuffle-hint" class="screen-sub">Auto-generated names · tap a name to switch sides</p>
       <button id="btn-tow-invite-more" type="button" class="horse-dashed-invite">+ Add player</button>
       <div id="tow-invite-candidates" class="tier1-list hidden"></div>
 
-      <div id="tow-teams-list" class="tier1-list tow-teams-list">
-        <div id="tow-team-a-summary" class="tier1-row tow-team-summary-row" data-tow-team-toggle="a" role="button" tabindex="0" aria-expanded="false">
-          <div id="tow-team-a-avatars" class="tow-avatar-pair"></div>
+      <div id="tow-teams-list" class="tow-teams-grid">
+        <div id="tow-team-a-summary" class="tow-team-summary-row">
           <p id="tow-team-a-name" class="tow-team-name"></p>
           <p id="tow-team-a-count" class="tow-team-count hidden"></p>
-          <svg class="tow-team-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div id="tow-team-a-list" class="tow-team-player-list hidden"></div>
-        <div id="tow-team-b-summary" class="tier1-row tow-team-summary-row" data-tow-team-toggle="b" role="button" tabindex="0" aria-expanded="false">
-          <div id="tow-team-b-avatars" class="tow-avatar-pair"></div>
+        <div id="tow-team-a-list" class="tow-team-player-list"></div>
+        <div id="tow-team-b-summary" class="tow-team-summary-row">
           <p id="tow-team-b-name" class="tow-team-name"></p>
           <p id="tow-team-b-count" class="tow-team-count hidden"></p>
-          <svg class="tow-team-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div id="tow-team-b-list" class="tow-team-player-list hidden"></div>
+        <div id="tow-team-b-list" class="tow-team-player-list"></div>
       </div>
       <p id="tow-open-hint" class="screen-sub hidden">Joiners tap a link and land in whichever team has room</p>
+
+      <div id="tow-team-actions" class="tow-team-actions-row">
+        <button type="button" id="btn-tow-reroll-names" class="tow-labeled-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+          Reroll names
+        </button>
+        <button type="button" id="btn-tow-shuffle-teams" class="tow-labeled-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          Shuffle teams
+        </button>
+      </div>
 
       <div id="tow-setup-actions" class="tow-setup-actions">
         <button id="btn-tow-abort" type="button" class="btn btn-giant btn-secondary horse-start-btn hidden">Abort</button>

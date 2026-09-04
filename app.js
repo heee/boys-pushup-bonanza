@@ -3734,21 +3734,9 @@ $("btn-horse-share").addEventListener("click", async () => {
 // design doc for the full 7-screen spec.
 
 let towInviteExpanded = false;
-let towTeamExpanded = { a: false, b: false };
 
 function towAllSetupPlayers() {
   return [...state.towSetupTeams.a, ...state.towSetupTeams.b];
-}
-
-// Up to 2 overlapping avatars for a team's compact summary row, plus a
-// "+N" badge for any players beyond that — mirrors towTeamRowHTML's avatar
-// markup but without the full per-player row.
-function towAvatarPairHTML(players) {
-  if (!players.length) return `<span class="tow-avatar-pair-empty" aria-hidden="true"></span>`;
-  const shown = players.slice(0, 2);
-  const extra = players.length - shown.length;
-  const circles = shown.map((n) => `<span class="avatar-circle tow-avatar" data-avatar="${avatarForUser(n).id}"></span>`).join("");
-  return circles + (extra > 0 ? `<span class="tow-avatar-extra">+${extra}</span>` : "");
 }
 
 function towTeamRowHTML(name, readOnly) {
@@ -3813,11 +3801,6 @@ function renderTowTeamsUI() {
   $("tow-team-a-summary").classList.toggle("tow-team-summary-mine", mineA);
   $("tow-team-b-summary").classList.toggle("tow-team-summary-mine", mineB);
 
-  $("tow-team-a-avatars").innerHTML = towAvatarPairHTML(playersA);
-  $("tow-team-b-avatars").innerHTML = towAvatarPairHTML(playersB);
-  $("tow-team-a-avatars").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
-  $("tow-team-b-avatars").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
-
   const perSide = inLobby ? Math.ceil(game.rosterSize / 2) : 0;
   $("tow-team-a-count").classList.toggle("hidden", !inLobby);
   $("tow-team-b-count").classList.toggle("hidden", !inLobby);
@@ -3833,21 +3816,8 @@ function renderTowTeamsUI() {
   $("tow-team-a-list").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
   $("tow-team-b-list").querySelectorAll(".tow-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
 
-  // The live Open lobby always shows full rosters (watching slots fill
-  // matters more there than tidiness); everywhere else, collapsed unless
-  // the host tapped a team row open.
-  const expandedA = inLobby || towTeamExpanded.a;
-  const expandedB = inLobby || towTeamExpanded.b;
-  $("tow-team-a-list").classList.toggle("hidden", !expandedA);
-  $("tow-team-b-list").classList.toggle("hidden", !expandedB);
-  $("tow-team-a-summary").setAttribute("aria-expanded", String(expandedA));
-  $("tow-team-b-summary").setAttribute("aria-expanded", String(expandedB));
-  $("tow-team-a-summary").classList.toggle("tow-team-summary-expanded", expandedA);
-  $("tow-team-b-summary").classList.toggle("tow-team-summary-expanded", expandedB);
-
   $("btn-tow-setup-share").classList.toggle("hidden", !(inLobby && isHost));
   $("tow-session-type-section").classList.toggle("hidden", inLobby);
-  $("tow-name-note").classList.toggle("hidden", inLobby);
   $("btn-tow-invite-more").classList.toggle("hidden", inLobby || isOpenSetup);
   $("tow-invite-candidates").classList.add("hidden");
   $("tow-team-actions").classList.toggle("hidden", inLobby || isOpenSetup);
@@ -3856,14 +3826,13 @@ function renderTowTeamsUI() {
 
   // In the lobby, target/rounds are locked in — show them as a plain
   // stated line instead of the editable stepper section, and drop the
-  // "Teams" label row since the two team cards speak for themselves.
+  // "Teams" label since the two team cards speak for themselves.
   $("tow-stat-section").classList.toggle("hidden", inLobby);
   $("tow-lobby-stats").classList.toggle("hidden", !inLobby);
   if (inLobby) {
     $("tow-lobby-stats").textContent = `Target ${game.target} · ${game.rounds} round${game.rounds === 1 ? "" : "s"}`;
   }
-  $("tow-teams-label-row").classList.toggle("hidden", inLobby);
-  $("tow-teams-list").classList.toggle("tow-teams-list-lobby", inLobby);
+  $("tow-teams-label").classList.toggle("hidden", inLobby);
   if (isOpenSetup || inLobby) {
     $("tow-open-hint").textContent = !inLobby || isHost
       ? "Joiners tap a link and land in whichever team has room"
@@ -3909,7 +3878,6 @@ function renderTowSetup(mode = "reset") {
     state.towGame = null;
   }
   towInviteExpanded = false;
-  towTeamExpanded = { a: false, b: false };
   renderTowStatUI();
   renderTowSessionUI();
   renderTowTeamsUI();
@@ -3984,29 +3952,6 @@ function towTeamListClick(e) {
 }
 $("tow-team-a-list").addEventListener("click", towTeamListClick);
 $("tow-team-b-list").addEventListener("click", towTeamListClick);
-
-// Tapping a team's compact summary row expands/collapses its player list —
-// except in the live Open lobby, which always stays expanded (see
-// renderTowTeamsUI) so there's nothing to toggle.
-function toggleTowTeamExpanded(side) {
-  const game = state.towGame;
-  const inLobby = !!(game && game.sessionType === "open" && game.status === "lobby");
-  if (inLobby) return;
-  towTeamExpanded[side] = !towTeamExpanded[side];
-  renderTowTeamsUI();
-}
-$("tow-teams-list").addEventListener("click", (e) => {
-  const toggle = e.target.closest("[data-tow-team-toggle]");
-  if (!toggle) return;
-  toggleTowTeamExpanded(toggle.dataset.towTeamToggle);
-});
-$("tow-teams-list").addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" && e.key !== " ") return;
-  const toggle = e.target.closest("[data-tow-team-toggle]");
-  if (!toggle) return;
-  e.preventDefault();
-  toggleTowTeamExpanded(toggle.dataset.towTeamToggle);
-});
 
 $("btn-tow-reroll-names").addEventListener("click", () => {
   state.towTeamNames = randomTowTeamNames();

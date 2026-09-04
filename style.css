@@ -2351,17 +2351,22 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-icon-tab.active { background: var(--primary); border-color: var(--primary); color: var(--text-on-accent); font-weight: 800; }
 .tow-icon-tab:active { transform: scale(0.97); }
 
-.tow-stat-list { margin-bottom: 0.4rem; }
-.tow-stepper-row { display: flex; align-items: center; gap: 0.6rem; }
+.tow-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.4rem; }
+.tow-stat-card { background: var(--bg-elevated); border-radius: 14px; padding: 0.7rem 0.8rem; }
+.tow-stat-card-label { display: block; margin-bottom: 0.3rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+.tow-stat-card-row { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.tow-stat-card-value { font-size: 1.5rem; font-weight: 900; color: var(--text); }
+.tow-stat-card-target .tow-stat-card-value { color: var(--primary); }
+.tow-stepper-row { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; }
 .tow-stepper-sm {
   flex-shrink: 0;
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 50%;
-  border: 1px solid var(--border);
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 8px;
+  border: none;
   background: var(--bg-elevated-2);
   color: var(--text);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -2369,29 +2374,28 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   cursor: pointer;
 }
 .tow-stepper-sm:active { transform: scale(0.92); }
-.tow-stepper-value-sm { min-width: 2.3rem; text-align: center; font-size: 1.05rem; font-weight: 900; }
 
-.tow-name-note { margin-top: -0.2rem; }
-#tow-shuffle-hint, #tow-name-note, #tow-session-note, #tow-open-hint { font-style: italic; }
+#tow-shuffle-hint, #tow-session-note, #tow-open-hint { font-style: italic; }
 
-.tow-teams-label-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
-.tow-teams-label-row .horse-section-label { margin-bottom: 0; }
-.tow-team-actions { display: flex; gap: 0.4rem; }
-.tow-icon-btn-sm {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: none;
-  background: var(--bg-elevated-2);
-  color: var(--text-dim);
+.tow-team-actions-row { display: flex; gap: 0.6rem; margin: 0.6rem 0; }
+.tow-labeled-btn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.6rem;
+  border-radius: 12px;
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
 }
-.tow-icon-btn-sm svg { width: 1rem; height: 1rem; }
-.tow-icon-btn-sm:active { transform: scale(0.9); }
+.tow-labeled-btn svg { width: 1rem; height: 1rem; }
+.tow-labeled-btn:active { transform: scale(0.97); }
 
 /* Still used by the Join-via-link screen (screen-tow-join), which keeps the
    original two-card layout — only the host setup screen above got the
@@ -2406,120 +2410,65 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   position: relative;
 }
 
-.tow-teams-list { margin-top: 0.6rem; }
-/* Same gradient fill as the giant CTA buttons (.btn-primary) — makes the
-   team header row read as a distinct control, clearly separate from the
-   plain player rows it expands into underneath. */
-.tow-team-summary-row {
-  cursor: pointer;
-  background: linear-gradient(155deg, var(--primary-dim), var(--primary-deep));
-}
-.tow-team-summary-row:active { filter: brightness(0.92); }
-.tow-team-summary-row .tow-team-name,
-.tow-team-summary-row .tow-team-name.tow-team-name-mine,
-.tow-team-summary-row .tow-team-count,
-.tow-team-summary-row .tow-team-chevron { color: var(--text-on-accent); }
-/* Left accent bar marks "your team" — needs a color that still reads
-   against the row's own accent fill, so it's the on-accent text color
-   rather than --primary (which would blend right in). */
-.tow-team-summary-row.tow-team-summary-mine { border-left: 3px solid var(--text-on-accent); }
-.tow-avatar-pair { display: flex; align-items: center; flex-shrink: 0; }
-.tow-avatar-pair .avatar-circle { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; border: 2px solid var(--bg-elevated); }
-.tow-avatar-pair .avatar-circle + .avatar-circle { margin-left: -0.55rem; }
-.tow-avatar-extra {
-  margin-left: -0.4rem;
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: 50%;
-  background: var(--bg-elevated-2);
-  border: 2px solid var(--bg-elevated);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-.tow-avatar-pair-empty { width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 1.5px dashed var(--border); flex-shrink: 0; }
-.tow-team-summary-row .tow-team-name { flex: 1; min-width: 0; margin: 0; text-align: left; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tow-team-summary-row .tow-team-count { margin: 0; }
-.tow-team-chevron { display: block; width: 1.1rem; height: 1.1rem; flex-shrink: 0; color: var(--text-tertiary); transition: transform 0.18s ease; }
-.tow-team-summary-row.tow-team-summary-expanded .tow-team-chevron { transform: rotate(180deg); }
-
-.tow-team-count { margin: 0 0 0.2rem; font-size: 0.72rem; font-weight: 700; color: var(--text-tertiary); text-align: right; }
-.tow-team-name { margin: 0 0 0.5rem; font-weight: 800; color: var(--text); text-align: center; }
-.tow-team-name.tow-team-name-mine { color: var(--primary); }
-.tow-team-player-list { display: flex; flex-direction: column; gap: 0.4rem; padding: 0 16px 10px; background: var(--bg-elevated); }
-.tow-player-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.2rem; }
-.tow-player-row .avatar-circle { width: 1.8rem; height: 1.8rem; font-size: 1rem; flex-shrink: 0; }
-.tow-player-name { flex: 1; min-width: 0; font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tow-player-reps { font-weight: 700; color: var(--text-dim); }
-.tow-swap-icon { color: var(--text-tertiary); font-size: 0.85rem; }
-.tow-row-self .tow-player-name { color: var(--primary); }
-.tow-waiting-row { border: 1.5px dashed var(--border); border-radius: 10px; color: var(--text-tertiary); }
-.tow-waiting-icon { width: 1.8rem; text-align: center; font-size: 1.1rem; flex-shrink: 0; }
-.tow-waiting-label { font-weight: 400; }
 .tow-open-hint { margin-top: 1.2rem; text-align: center; font-size: 0.85rem; }
 
 .tow-lobby-stats { text-align: center; font-size: 0.85rem; margin: 0.7rem 0 1rem; }
 
-/* Open-lobby "filling up" layout: the same team summary/list markup used
-   for setup, but laid out as two side-by-side cards instead of a stacked
-   accordion — see renderTowTeamsUI's inLobby branch. */
-#tow-teams-list.tow-teams-list-lobby {
+/* Two side-by-side team cards — used both for normal setup (Live/Pick
+   team) and the Open "filling up" lobby, see renderTowTeamsUI. Grid with
+   explicit placement (rather than nesting) keeps the header+list pair for
+   each side stacked in its own column despite being flat siblings in the
+   DOM (needed for towTeamListClick's plain event-delegation on each list). */
+.tow-teams-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 0.6rem;
-  background: none;
-  border-radius: 0;
-  overflow: visible;
+  margin-top: 0.6rem;
 }
-#tow-teams-list.tow-teams-list-lobby #tow-team-a-summary { grid-column: 1; grid-row: 1; }
-#tow-teams-list.tow-teams-list-lobby #tow-team-a-list { grid-column: 1; grid-row: 2; }
-#tow-teams-list.tow-teams-list-lobby #tow-team-b-summary { grid-column: 2; grid-row: 1; }
-#tow-teams-list.tow-teams-list-lobby #tow-team-b-list { grid-column: 2; grid-row: 2; }
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-row {
-  cursor: default;
-  background: none;
+.tow-teams-grid #tow-team-a-summary { grid-column: 1; grid-row: 1; }
+.tow-teams-grid #tow-team-a-list { grid-column: 1; grid-row: 2; }
+.tow-teams-grid #tow-team-b-summary { grid-column: 2; grid-row: 1; }
+.tow-teams-grid #tow-team-b-list { grid-column: 2; grid-row: 2; }
+.tow-team-summary-row {
   border: 1.5px solid transparent;
   border-bottom: none;
   border-radius: 14px 14px 0 0;
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.15rem;
   padding: 0.7rem 0.7rem 0.3rem;
 }
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-row .tow-team-name,
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-row .tow-team-name.tow-team-name-mine { color: var(--text); }
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-row.tow-team-summary-mine .tow-team-name { color: var(--primary); }
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-row.tow-team-summary-mine { border-left: 1.5px solid transparent; }
-#tow-teams-list.tow-teams-list-lobby .tow-avatar-pair,
-#tow-teams-list.tow-teams-list-lobby .tow-team-chevron,
-#tow-teams-list.tow-teams-list-lobby .tow-team-count { display: none; }
-#tow-teams-list.tow-teams-list-lobby .tow-team-name { flex: none; white-space: normal; font-size: 0.95rem; }
-#tow-teams-list.tow-teams-list-lobby .tow-team-player-list {
-  background: none;
+.tow-team-name { margin: 0; font-weight: 800; color: var(--text); white-space: normal; font-size: 0.95rem; }
+.tow-team-name.tow-team-name-mine { color: var(--primary); }
+.tow-team-count { display: none; }
+.tow-team-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
   border: 1.5px solid transparent;
   border-top: none;
   border-radius: 0 0 14px 14px;
   padding: 0 0.7rem 0.7rem;
-  gap: 0.55rem;
 }
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-row.tow-team-summary-mine,
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-mine + .tow-team-player-list { border-color: var(--primary); }
-#tow-teams-list.tow-teams-list-lobby .tow-team-summary-row,
-#tow-teams-list.tow-teams-list-lobby .tow-player-row { border-bottom: none; }
-#tow-teams-list.tow-teams-list-lobby .tow-player-row { padding: 0; }
-#tow-teams-list.tow-teams-list-lobby .tow-player-name { font-size: 0.85rem; font-weight: 400; white-space: normal; }
-#tow-teams-list.tow-teams-list-lobby .tow-waiting-row { border: none; }
-#tow-teams-list.tow-teams-list-lobby .tow-waiting-icon {
+.tow-team-summary-row.tow-team-summary-mine,
+.tow-team-summary-mine + .tow-team-player-list { border-color: var(--primary); }
+.tow-player-row { display: flex; align-items: center; gap: 0.5rem; padding: 0; }
+.tow-player-row .avatar-circle { width: 1.8rem; height: 1.8rem; font-size: 1rem; flex-shrink: 0; }
+.tow-player-name { flex: 1; min-width: 0; font-weight: 400; font-size: 0.85rem; white-space: normal; overflow: hidden; text-overflow: ellipsis; }
+.tow-player-reps { font-weight: 700; color: var(--text-dim); }
+.tow-swap-icon { color: var(--text-tertiary); font-size: 0.85rem; }
+.tow-row-self .tow-player-name { color: var(--primary); }
+.tow-waiting-row { border: none; }
+.tow-waiting-icon {
   width: 1.7rem;
   height: 1.7rem;
   border-radius: 50%;
   border: 1.5px dashed var(--border);
   color: transparent;
+  flex-shrink: 0;
 }
+.tow-waiting-label { font-weight: 400; }
 
 .tow-round-pill {
   display: inline-flex;
@@ -2552,9 +2501,42 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   border-radius: 999px;
   overflow: visible;
 }
-.tow-rope-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--border); }
+.tow-rope-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--border); overflow: hidden; }
 .tow-rope-fill.tow-rope-fill-a { background: var(--primary); }
 .tow-rope-fill.tow-rope-fill-b { background: var(--text-dim); }
+#screen-tow-summary .tow-rope-fill.tow-rope-fill-a,
+#screen-tow-summary .tow-rope-fill.tow-rope-fill-b {
+  background-repeat: repeat;
+  background-size: 2.4rem 100%;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+#screen-tow-summary .tow-rope-fill.tow-rope-fill-a {
+  background-image: repeating-linear-gradient(
+    100deg,
+    var(--primary) 0%,
+    var(--primary) 28%,
+    color-mix(in srgb, var(--primary) 45%, #fff) 50%,
+    var(--primary) 72%,
+    var(--primary) 100%
+  );
+  animation-name: tow-rope-flow-a;
+  animation-duration: 0.8s;
+}
+#screen-tow-summary .tow-rope-fill.tow-rope-fill-b {
+  background-image: repeating-linear-gradient(
+    100deg,
+    var(--text-dim) 0%,
+    var(--text-dim) 28%,
+    color-mix(in srgb, var(--text-dim) 45%, #fff) 50%,
+    var(--text-dim) 72%,
+    var(--text-dim) 100%
+  );
+  animation-name: tow-rope-flow-b;
+  animation-duration: 0.8s;
+}
+@keyframes tow-rope-flow-a { from { background-position: 0 0; } to { background-position: -2.4rem 0; } }
+@keyframes tow-rope-flow-b { from { background-position: 0 0; } to { background-position: 2.4rem 0; } }
 .tow-rope-chevron {
   position: absolute;
   top: 50%;
@@ -2609,11 +2591,19 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-summary-player-row .tow-player-reps { font-weight: 400; color: var(--text-dim); margin-left: auto; }
 .tow-summary-actions { margin-top: 1.6rem; }
 
-@keyframes tow-rope-chevron-pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-30%, -50%) scale(1.18); }
+@keyframes tow-rope-chevron-pulse-a {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
+  50% { transform: translate(-150%, -50%) scale(1.6); opacity: 1; }
 }
-#screen-tow-summary .tow-rope-chevron { animation: tow-rope-chevron-pulse 1.1s ease-in-out infinite; }
+@keyframes tow-rope-chevron-pulse-b {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
+  50% { transform: translate(50%, -50%) scale(1.6); opacity: 1; }
+}
+#screen-tow-summary .tow-rope-chevron {
+  text-shadow: 0 0 0.7rem currentColor, 0 0 1.3rem currentColor;
+  animation: tow-rope-chevron-pulse-a 0.85s ease-in-out infinite;
+}
+#screen-tow-summary .tow-rope-chevron.tow-rope-chevron-b { animation-name: tow-rope-chevron-pulse-b; }
 
 .tow-bell-avatar { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 
@@ -3279,7 +3269,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .games-row-status-waiting .games-row-title { color: var(--text-tertiary); font-weight: 500; }
 .games-row-actions { display: flex; align-items: center; gap: 0.4rem; }
 /* Right-aligned, slightly-overlapping avatar stack — who else is in this
-   game, same overlap technique as .tow-avatar-pair. */
+   game. */
 .games-row-people { display: flex; align-items: center; flex-shrink: 0; }
 .games-row-people .avatar-circle { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; border: 2px solid var(--bg); }
 .games-row-people .avatar-circle + .avatar-circle,
