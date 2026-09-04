@@ -4635,7 +4635,7 @@ function finishedGameRowHTML(entry) {
     const statement = won
       ? `Horse · won${opponents ? ` vs. ${escapeHtml(opponents)}` : ""}`
       : `Horse · lost to ${escapeHtml((game.winner || []).join(" & ") || "?")}`;
-    return `<button type="button" class="tier1-row horse-player-row" data-games-recent-horse="${game.id}">
+    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-games-recent-horse="${game.id}">
         <span aria-hidden="true">🐴</span>
         <span class="horse-summary-name-col">
           <span class="horse-summary-name">${statement}</span>
@@ -4649,7 +4649,7 @@ function finishedGameRowHTML(entry) {
   const statement = (game.status === "voided" || !side)
     ? "Tug of war · voided"
     : `Tug of war · ${game.winner === side ? "won" : "lost"} ${game.scores[side]}-${game.scores[side === "a" ? "b" : "a"]}`;
-  return `<button type="button" class="tier1-row horse-player-row" data-games-recent-tow="${game.id}">
+  return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-games-recent-tow="${game.id}">
         <span class="avatar-circle games-recent-avatar" data-avatar="${avatar}"></span>
         <span class="horse-summary-name-col">
           <span class="horse-summary-name">${statement}</span>
