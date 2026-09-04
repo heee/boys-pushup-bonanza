@@ -2579,7 +2579,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-summary-content { display: flex; flex-direction: column; flex: 1; justify-content: center; }
 .tow-summary-teams { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 0.8rem; padding: 0 0.9rem; }
 .tow-summary-team-block { position: relative; }
-.tow-summary-team-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.tow-summary-team-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
 .tow-summary-team-name { font-weight: 800; }
 .tow-summary-team-total { font-weight: 800; color: var(--text-dim); }
 .tow-summary-team-winner .tow-summary-team-name,
@@ -2589,7 +2589,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-summary-player-row .avatar-circle { width: 1.8rem; height: 1.8rem; font-size: 1rem; flex-shrink: 0; }
 .tow-summary-player-row .tow-player-name { font-weight: 400; color: var(--text-dim); }
 .tow-summary-player-row .tow-player-reps { font-weight: 400; color: var(--text-dim); margin-left: auto; }
-.tow-summary-actions { margin-top: 1.6rem; }
+.tow-summary-actions { margin-top: 1.6rem; margin-bottom: 1.4rem; }
 
 @keyframes tow-rope-chevron-pulse-a {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
