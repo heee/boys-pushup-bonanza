@@ -3133,6 +3133,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .roadtrip-row:active { background: var(--bg-elevated-2); }
 .roadtrip-row.rank-1 .leaderboard-rank { background: var(--gold); color: var(--text-on-accent); }
 .roadtrip-row.rank-1 .roadtrip-score { color: var(--gold); }
+.roadtrip-row.current:not(.pinned) { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.roadtrip-current-tag { margin-left: 0.35rem; padding: 0.08rem 0.4rem; border-radius: 999px; background: var(--primary); color: var(--text-on-accent); font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; vertical-align: middle; }
 .roadtrip-place { min-width: 0; display: flex; flex-direction: column; gap: 0.12rem; }
 .roadtrip-place-name { overflow: hidden; color: var(--text); font-size: 0.95rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .roadtrip-parent { overflow: hidden; color: var(--text-tertiary); font-size: 0.65rem; text-overflow: ellipsis; white-space: nowrap; }

@@ -99,7 +99,10 @@ export function roadtripOverviewRows(territories, selectedLocation, tier, limit 
   const pinned = selected && !top.some((row) => row.id === selected)
     ? territories.find((row) => row.id === selected) || null
     : null;
-  return { top, pinned };
+  return {
+    top: top.map((row) => (row.id === selected ? { ...row, current: true } : row)),
+    pinned: pinned ? { ...pinned, current: true } : null,
+  };
 }
 
 export function roadtripDetailRows(territory, currentUser, limit = 10) {

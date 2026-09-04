@@ -5275,11 +5275,11 @@ function roadtripPlaceLabel(row) {
 function roadtripOverviewRow(row, { pinned = false } = {}) {
   const button = document.createElement("button");
   button.type = "button";
-  button.className = `roadtrip-row${row.rank === 1 ? " rank-1" : ""}${pinned ? " pinned" : ""}`;
+  button.className = `roadtrip-row${row.rank === 1 ? " rank-1" : ""}${pinned ? " pinned" : ""}${row.current ? " current" : ""}`;
   button.innerHTML = `
     <span class="leaderboard-rank">${row.rank}</span>
     <span class="roadtrip-place">
-      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}${row.rank === 1 ? " 👑" : ""}</span>
+      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}${row.rank === 1 ? " 👑" : ""}${row.current && !pinned ? " <span class=\"roadtrip-current-tag\">Current</span>" : ""}</span>
       ${row.parent ? `<span class="roadtrip-parent">${escapeHtml(row.parent)}</span>` : ""}
     </span>
     ${state.roadtripTier === "neighborhood" ? "" : `<span class="roadtrip-users">${formatNumber(row.contributorCount)} ${row.contributorCount === 1 ? "user" : "users"}</span>`}
