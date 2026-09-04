@@ -278,77 +278,23 @@ button, input {
 }
 .icon-btn:active { transform: scale(0.92); }
 
-.horse-bell-wrap { position: relative; }
-.horse-bell-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: none;
-  background: var(--bg-elevated);
-  font-size: 0.95rem;
+/* Bare stroke cogwheel — a destination visited rarely, not a tab you need
+   thumb-reach to, so it lives in the header instead of the bottom nav. */
+.header-settings-btn {
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-tertiary);
   cursor: pointer;
-  position: relative;
-  /* Default state — something Horse-related exists (so the bell shows at
-     all) but there's nothing for THIS user to act on right now (e.g.
-     "Waiting on Phil"). Dimmed, passive — a quiet reminder, not a call
-     to action. */
-  opacity: 0.45;
-  transition: opacity 0.2s ease;
 }
-.horse-bell-btn:active { transform: scale(0.92); }
-/* "It's your turn" state — fully opaque, plus a ringing wiggle so it's
-   impossible to miss, distinct from the dimmed passive state above
-   ("something's pending, but not you"). */
-.horse-bell-btn.urgent {
-  opacity: 1;
-  animation: horse-bell-wiggle 2.4s ease-in-out infinite;
-}
-@keyframes horse-bell-wiggle {
-  0%, 55%, 100% { transform: rotate(0deg); }
-  5% { transform: rotate(-15deg); }
-  10% { transform: rotate(13deg); }
-  15% { transform: rotate(-11deg); }
-  20% { transform: rotate(9deg); }
-  25% { transform: rotate(-7deg); }
-  30% { transform: rotate(5deg); }
-  35% { transform: rotate(-3deg); }
-  40% { transform: rotate(0deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .horse-bell-btn.urgent { animation: none; }
-}
-.horse-bell-dot {
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 0 2px var(--bg);
-}
-.horse-bell-dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  z-index: 600;
-  width: 17rem;
-  max-width: 80vw;
-  background: var(--bg-elevated);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  padding: 0.6rem 0;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-.horse-bell-title { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0.9rem 0.4rem; }
-/* .tier1-row/.horse-player-name are bold by default everywhere else they're
-   used, but that reads too heavy in this compact dropdown — unbold
-   everything here except the "Horse" title above, which keeps its weight. */
-.horse-bell-dropdown .tier1-row, .horse-bell-dropdown .horse-player-name { font-weight: 500; }
+.header-settings-btn svg { width: 19px; height: 19px; display: block; }
+.header-settings-btn:active { transform: scale(0.92); }
+
 .horse-bell-row {
   appearance: none;
   -webkit-appearance: none;
@@ -437,11 +383,24 @@ button, input {
   cursor: pointer;
 }
 .tab-item:active { transform: scale(0.94); }
-.tab-item-icon { display: flex; }
+.tab-item-icon { display: flex; position: relative; }
 .tab-item-icon svg { width: 18px; height: 18px; display: block; }
 .tab-item-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.01em; }
 .tab-item.active { color: var(--primary); }
 .tab-item.active .tab-item-label { font-weight: 700; }
+/* Games tab's badge dot — carries the notification role the bell used to,
+   lit only when a turn (or the async equivalent: a lobby ready to start, a
+   new invite to join) is actually waiting on you. */
+.tab-item-dot {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 2px var(--bg-elevated);
+}
 
 /* ---------------- Main / screens ---------------- */
 
@@ -3105,6 +3064,22 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-weight: 700;
   border-bottom-color: var(--primary);
 }
+
+/* Games tab toggle — Open/Active each carry their own dot, lit only when
+   that specific category needs attention (a pending invite, a turn due). */
+.games-tab-dot {
+  display: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+.games-tab-dot:not(.hidden) { display: inline-block; }
+.games-start-btn { margin-bottom: 1.2rem; }
+.games-recent-section { margin-top: 1.4rem; }
+.games-recent-section .tier1-eyebrow { margin-bottom: 0.4rem; }
 
 .leaderboard-list {
   display: flex;

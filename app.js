@@ -1420,6 +1420,7 @@ const state = {
   sessionProgression: null,
   challengeTab: "active",
   openChallengeId: null,
+  gamesTab: null,
   leaderboardMode: savedLeaderboardMode(),
   activityType: leaderboardActivity(savedLeaderboardMode()),
   lastSessionType: "pushup",
@@ -1790,6 +1791,7 @@ const TAB_FOR_SCREEN = {
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
   "screen-user-compare": "btn-nav-dashboard",
+  "screen-games": "btn-nav-games",
   "screen-challenges": "btn-nav-challenges",
   "screen-challenge-detail": "btn-nav-challenges",
   "screen-challenge-create": "btn-nav-challenges",
@@ -1838,7 +1840,7 @@ function showScreen(id) {
   syncAccessibilityState();
   renderStreakBadge();
   renderGoalProgressCard();
-  renderHorseBellDropdown();
+  renderGamesNavDot();
 
   if (id === "screen-user") {
     userSelectionExpanded = false;
@@ -1858,6 +1860,7 @@ function showScreen(id) {
   }
   if (id === "screen-dashboard") renderDashboard();
   if (id === "screen-session-detail") renderSessionDetail();
+  if (id === "screen-games") renderGamesScreen();
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") renderRoadtrip();
   if (id === "screen-roadtrip-detail") renderRoadtripDetail();
@@ -1949,8 +1952,9 @@ $("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(() => showSc
 $("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
 $("btn-nav-challenges").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-challenges")));
 $("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("boys")));
+$("btn-nav-games").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-games")));
 $("btn-nav-roadtrip").addEventListener("click", () => guardLeaveWorkout(openRoadtrip));
-$("btn-nav-settings").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-settings")));
+$("btn-header-settings").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-settings")));
 
 // ------------------- user select screen -------------------
 
@@ -4381,13 +4385,13 @@ $("btn-tow-share").addEventListener("click", async () => {
   }
 });
 
-// ------------------- Horse mode: Home bell (async invite notifications) -------------------
-// Only invite/async games ever need a bell entry — Live pass-the-phone games
+// ------------------- Horse mode: Games tab (async invite notifications) -------------------
+// Only invite/async games ever need an entry here — Live pass-the-phone games
 // are entirely resolved within the single active session they're started in.
 // Every active invite game this user is part of — "turn"/"invite" are
 // actionable (light the dot badge), "waiting" just means they're in a game
-// that's progressing without them right now. The bell itself only shows at
-// all when this list is non-empty (see renderHorseBellDropdown).
+// that's progressing without them right now. See renderGamesScreen below for
+// how this feeds the Open/Active/Recent toggle.
 // Other players in the game besides `user` — appended to bell rows so two
 // concurrent games (identical "Your turn in Horse" text otherwise) read as
 // distinguishable at a glance instead of two copies of the same line.
@@ -4484,10 +4488,16 @@ function pendingTowItems() {
   return items;
 }
 
-function towBellRowHTML(item) {
+// "A turn due" (turn/choosing — it's literally your move right now) gets the
+// bordered highlight box; everything else in the Games list sits plain.
+function gamesHighlightClass(item) {
+  return item.kind === "turn" || item.kind === "choosing" ? " horse-row-active" : "";
+}
+
+function towGamesRowHTML(item) {
   const avatar = avatarForUser(item.creator).id;
   if (item.kind === "turn") {
-    return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-tow-turn="${item.gameId}">
+    return `<button type="button" class="tier1-row horse-player-row horse-bell-row${gamesHighlightClass(item)}" data-bell-tow-turn="${item.gameId}">
         <span class="avatar-circle tow-bell-avatar" data-avatar="${avatar}"></span>
         <span class="horse-player-name">Your turn · Tug of war · Round ${item.round} of ${item.rounds} · ${escapeHtml(item.trailLabel)}</span>
       </button>`;
@@ -4513,10 +4523,10 @@ function towBellRowHTML(item) {
       </button>`;
 }
 
-function horseBellRowHTML(item) {
+function horseGamesRowHTML(item) {
   {
     if (item.kind === "turn") {
-      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
+      return `<button type="button" class="tier1-row horse-player-row horse-bell-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
         <span aria-hidden="true">🐴</span>
         <span class="horse-player-name">Your turn in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : " · set the opening bar"}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span>
       </button>`;
@@ -4534,7 +4544,7 @@ function horseBellRowHTML(item) {
       </div>`;
     }
     if (item.kind === "choosing") {
-      return `<button type="button" class="tier1-row horse-player-row horse-bell-row" data-bell-view="${item.gameId}">
+      return `<button type="button" class="tier1-row horse-player-row horse-bell-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
         <span aria-hidden="true">🐴</span>
         <span class="horse-player-name">Your turn to set the target in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""}</span>
       </button>`;
@@ -4559,49 +4569,182 @@ function horseBellRowHTML(item) {
   }
 }
 
-// Both Horse and Tug of War render into this same dropdown/list, per the
-// spec ("reuse the same list/dropdown component Horse already renders
-// into"). Individual unread dots already exist on rows, so there's no
-// "mark all read" control here.
-function renderHorseBellDropdown() {
-  const items = [...pendingHorseItems(), ...pendingTowItems()];
-  $("btn-horse-bell").classList.toggle("hidden", items.length === 0);
-  // "turn"/"choosing" (your move right now) get the full urgent treatment —
-  // opaque + wiggling. "invite"/"waiting" still light the dot, but stay calm.
-  // A "muted" item (already sitting on the very screen the bell would send
-  // you to) counts as neither — it's in the list but doesn't clamor.
-  $("btn-horse-bell").classList.toggle("urgent", items.some((item) => !item.muted && (item.kind === "turn" || item.kind === "choosing" || item.kind === "ready")));
-  $("horse-bell-dot").classList.toggle("hidden", !items.some((item) => !item.muted && item.kind !== "waiting"));
-  const list = $("horse-bell-list");
-  list.innerHTML = items.length
-    ? items.map((item) => (item.mode === "tow" ? towBellRowHTML(item) : horseBellRowHTML(item))).join("")
-    : `<p class="screen-sub horse-bell-empty">Nothing pending.</p>`;
-  list.querySelectorAll(".tow-bell-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+// ---- Games tab (Open / Active / Recent) — replaces the old header bell.
+// Horse and Tug of War still render into the same list/row components the
+// bell used, just relocated onto their own screen off the bottom nav.
+
+function pendingGamesItems() {
+  return [...pendingHorseItems(), ...pendingTowItems()];
 }
 
-$("btn-horse-bell").addEventListener("click", async () => {
-  const dropdown = $("horse-bell-dropdown");
-  const opening = dropdown.classList.contains("hidden");
-  dropdown.classList.toggle("hidden", !opening);
-  if (opening) {
-    await refreshFromRemote();
-    renderHorseBellDropdown();
+function gamesOpenItems() {
+  return pendingGamesItems().filter((item) => item.kind === "invite");
+}
+
+// "A turn due" (turn/choosing) sorts first within Active and keeps the
+// highlight box (see gamesHighlightClass); a startable lobby (ready/joined)
+// comes next, then an expired match waiting to be tallied, then anyone just
+// passively waiting on someone else.
+const GAMES_ACTIVE_SORT_PRIORITY = { turn: 0, choosing: 0, ready: 1, joined: 1, expired: 2, waiting: 3 };
+
+function gamesActiveItems() {
+  return pendingGamesItems()
+    .filter((item) => item.kind !== "invite")
+    .sort((a, b) => (GAMES_ACTIVE_SORT_PRIORITY[a.kind] ?? 9) - (GAMES_ACTIVE_SORT_PRIORITY[b.kind] ?? 9));
+}
+
+// Games tab's bottom-nav dot (and the Open/Active tab dots) — lit for
+// anything that's actually your move right now (turn/choosing), a lobby you
+// can start (ready/joined), or a new invite waiting to be joined. "Waiting
+// on someone else" and "expired, needs tallying" both stay quiet.
+function gamesNeedsAttention(items) {
+  return items.some((item) => !item.muted && ["turn", "choosing", "ready", "joined", "invite"].includes(item.kind));
+}
+
+function lastArrayActivityAt(arr) {
+  return arr && arr.length ? arr[arr.length - 1].at : null;
+}
+
+function finishedGamesItems(limit = 10) {
+  const user = state.currentUser;
+  if (!user) return [];
+  const cached = getCachedData();
+  const items = [];
+  for (const game of cached.horseGames || []) {
+    if (game.status !== "complete" || !game.turnOrder.includes(user)) continue;
+    const at = lastArrayActivityAt(game.sets) ?? game.startedAt ?? game.createdAt ?? 0;
+    items.push({ mode: "horse", game, at });
   }
+  for (const game of cached.towGames || []) {
+    if (!game.teams || (game.status !== "complete" && game.status !== "voided")) continue;
+    if (!game.teams.a.players.includes(user) && !game.teams.b.players.includes(user)) continue;
+    const at = lastArrayActivityAt(game.bursts) ?? game.startedAt ?? game.createdAt ?? 0;
+    items.push({ mode: "tow", game, at });
+  }
+  items.sort((a, b) => b.at - a.at);
+  return items.slice(0, limit);
+}
+
+function finishedGameRowHTML(entry) {
+  const user = state.currentUser;
+  const timeLabel = timeAgoLabel(entry.at);
+  if (entry.mode === "horse") {
+    const game = entry.game;
+    const won = (game.winner || []).includes(user);
+    const opponents = otherHorsePlayers(game, user);
+    const statement = won
+      ? `Horse · won${opponents ? ` vs. ${escapeHtml(opponents)}` : ""}`
+      : `Horse · lost to ${escapeHtml((game.winner || []).join(" & ") || "?")}`;
+    return `<button type="button" class="tier1-row horse-player-row" data-games-recent-horse="${game.id}">
+        <span aria-hidden="true">🐴</span>
+        <span class="horse-summary-name-col">
+          <span class="horse-summary-name">${statement}</span>
+          <span class="horse-summary-subtitle">${timeLabel}</span>
+        </span>
+      </button>`;
+  }
+  const game = entry.game;
+  const side = towTeamOfPlayer(game, user);
+  const avatar = avatarForUser(user).id;
+  const statement = (game.status === "voided" || !side)
+    ? "Tug of war · voided"
+    : `Tug of war · ${game.winner === side ? "won" : "lost"} ${game.scores[side]}-${game.scores[side === "a" ? "b" : "a"]}`;
+  return `<button type="button" class="tier1-row horse-player-row" data-games-recent-tow="${game.id}">
+        <span class="avatar-circle games-recent-avatar" data-avatar="${avatar}"></span>
+        <span class="horse-summary-name-col">
+          <span class="horse-summary-name">${statement}</span>
+          <span class="horse-summary-subtitle">${timeLabel}</span>
+        </span>
+      </button>`;
+}
+
+function viewFinishedHorseGame(game) {
+  state.horseGame = game;
+  renderHorseSummary();
+  showScreen("screen-horse-summary");
+}
+
+function viewFinishedTowGame(game) {
+  state.towGame = game;
+  renderTowSummary();
+  showScreen("screen-tow-summary");
+}
+
+// Cheap refresh for the nav dot alone — runs on every showScreen (any
+// screen, not just Games) so the badge stays current without repainting the
+// full list each time.
+function renderGamesNavDot() {
+  $("games-nav-dot").classList.toggle("hidden", !gamesNeedsAttention(pendingGamesItems()));
+}
+
+function renderGamesScreen() {
+  const openItems = gamesOpenItems();
+  const activeItems = gamesActiveItems();
+  const hasOpen = openItems.length > 0;
+  const hasActive = activeItems.length > 0;
+  const finished = finishedGamesItems();
+
+  renderGamesNavDot();
+
+  const toggleEl = $("games-tab-select");
+  const startBtn = $("btn-games-start");
+  const listEl = $("games-list");
+  const recentSection = $("games-recent-section");
+  const recentListEl = $("games-recent-list");
+
+  // Nothing Open or Active — a lone "Recent" option isn't a toggle, so
+  // collapse it and promote "Start a new challenge" to where it would sit.
+  if (!hasOpen && !hasActive) {
+    toggleEl.classList.add("hidden");
+    startBtn.classList.remove("hidden");
+    listEl.innerHTML = "";
+    recentSection.classList.remove("hidden");
+    recentListEl.innerHTML = finished.length
+      ? finished.map(finishedGameRowHTML).join("")
+      : `<p class="screen-sub horse-bell-empty">No completed games yet.</p>`;
+    recentListEl.querySelectorAll(".games-recent-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+    return;
+  }
+
+  startBtn.classList.add("hidden");
+  recentSection.classList.add("hidden");
+  toggleEl.classList.remove("hidden");
+  toggleEl.querySelector('[data-gtab="open"]').classList.toggle("hidden", !hasOpen);
+  toggleEl.querySelector('[data-gtab="active"]').classList.toggle("hidden", !hasActive);
+  toggleEl.querySelector('[data-gtab="open"] .games-tab-dot').classList.toggle("hidden", !hasOpen);
+  toggleEl.querySelector('[data-gtab="active"] .games-tab-dot').classList.toggle("hidden", !gamesNeedsAttention(activeItems));
+
+  if (!state.gamesTab || (state.gamesTab === "open" && !hasOpen) || (state.gamesTab === "active" && !hasActive)) {
+    state.gamesTab = hasActive ? "active" : hasOpen ? "open" : "recent";
+  }
+  toggleEl.querySelectorAll(".segment").forEach((s) => s.classList.toggle("active", s.dataset.gtab === state.gamesTab));
+
+  const html = state.gamesTab === "open"
+    ? openItems.map((item) => (item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item))).join("")
+    : state.gamesTab === "active"
+      ? activeItems.map((item) => (item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item))).join("")
+      : finished.length ? finished.map(finishedGameRowHTML).join("") : `<p class="screen-sub horse-bell-empty">No completed games yet.</p>`;
+  listEl.innerHTML = html;
+  listEl.querySelectorAll(".tow-bell-avatar, .games-recent-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+}
+
+$("games-tab-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn || btn.classList.contains("hidden")) return;
+  state.gamesTab = btn.dataset.gtab;
+  renderGamesScreen();
 });
 
-document.addEventListener("click", (e) => {
-  if (!$("horse-bell-dropdown").classList.contains("hidden") && !e.target.closest(".horse-bell-wrap")) {
-    $("horse-bell-dropdown").classList.add("hidden");
-  }
+$("btn-games-start").addEventListener("click", () => {
+  guardLeaveWorkout(() => showScreen("screen-explore-modes"));
 });
 
-$("horse-bell-list").addEventListener("click", async (e) => {
+async function handleGamesListClick(e) {
   const joinBtn = e.target.closest("[data-bell-join]");
   if (joinBtn) {
     const game = getCachedData().horseGames.find((g) => g.id === joinBtn.dataset.bellJoin);
     if (game) {
       state.horseGame = game;
-      $("horse-bell-dropdown").classList.add("hidden");
       await openHorseTurnOrder();
     }
     return;
@@ -4611,7 +4754,6 @@ $("horse-bell-list").addEventListener("click", async (e) => {
     const game = getCachedData().horseGames.find((g) => g.id === viewBtn.dataset.bellView);
     if (game) {
       state.horseGame = game;
-      $("horse-bell-dropdown").classList.add("hidden");
       await openHorseTurnOrder();
     }
     return;
@@ -4622,7 +4764,7 @@ $("horse-bell-list").addEventListener("click", async (e) => {
     try {
       const res = await workerDeclineHorseInvite(declineBtn.dataset.bellDecline, state.currentUser);
       upsertLocalHorseGame(res.game);
-      renderHorseBellDropdown();
+      renderGamesScreen();
     } catch (err) {
       toast("Couldn't decline — check your connection.", 3500);
       declineBtn.disabled = false;
@@ -4634,7 +4776,6 @@ $("horse-bell-list").addEventListener("click", async (e) => {
     const game = getCachedData().towGames.find((g) => g.id === towTurnBtn.dataset.bellTowTurn);
     if (game) {
       state.towGame = game;
-      $("horse-bell-dropdown").classList.add("hidden");
       beginTowBurst(state.currentUser);
     }
     return;
@@ -4644,7 +4785,6 @@ $("horse-bell-list").addEventListener("click", async (e) => {
     const game = getCachedData().towGames.find((g) => g.id === towViewBtn.dataset.bellTowView);
     if (game) {
       state.towGame = game;
-      $("horse-bell-dropdown").classList.add("hidden");
       await openTowMatch();
     }
     return;
@@ -4655,17 +4795,31 @@ $("horse-bell-list").addEventListener("click", async (e) => {
     try {
       const res = await workerDeclineTowInvite(towDeclineBtn.dataset.bellTowDecline, state.currentUser);
       upsertLocalTowGame(res.game);
-      renderHorseBellDropdown();
+      renderGamesScreen();
     } catch (err) {
       toast("Couldn't decline — check your connection.", 3500);
       towDeclineBtn.disabled = false;
     }
+    return;
   }
-});
+  const recentHorseBtn = e.target.closest("[data-games-recent-horse]");
+  if (recentHorseBtn) {
+    const game = getCachedData().horseGames.find((g) => g.id === recentHorseBtn.dataset.gamesRecentHorse);
+    if (game) viewFinishedHorseGame(game);
+    return;
+  }
+  const recentTowBtn = e.target.closest("[data-games-recent-tow]");
+  if (recentTowBtn) {
+    const game = getCachedData().towGames.find((g) => g.id === recentTowBtn.dataset.gamesRecentTow);
+    if (game) viewFinishedTowGame(game);
+  }
+}
+$("games-list").addEventListener("click", handleGamesListClick);
+$("games-recent-list").addEventListener("click", handleGamesListClick);
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && state.currentUser) {
-    refreshFromRemote().then(() => renderHorseBellDropdown());
+    refreshFromRemote().then(() => renderGamesNavDot());
   }
 });
 
@@ -13184,7 +13338,7 @@ async function init() {
       renderUserList();
       renderStreakBadge();
       renderGoalProgressCard();
-      renderHorseBellDropdown();
+      renderGamesNavDot();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }
