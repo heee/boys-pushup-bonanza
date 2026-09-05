@@ -2523,14 +2523,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-rope-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--border); overflow: hidden; }
 .tow-rope-fill.tow-rope-fill-a { background: var(--primary); }
 .tow-rope-fill.tow-rope-fill-b { background: var(--text-dim); }
-:is(#screen-tow-summary, .tow-rope-live) .tow-rope-fill.tow-rope-fill-a,
-:is(#screen-tow-summary, .tow-rope-live) .tow-rope-fill.tow-rope-fill-b {
+:is(#screen-tow-summary, #screen-tow-burst-complete, .tow-rope-live) .tow-rope-fill.tow-rope-fill-a,
+:is(#screen-tow-summary, #screen-tow-burst-complete, .tow-rope-live) .tow-rope-fill.tow-rope-fill-b {
   background-repeat: repeat;
   background-size: 6rem 100%;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
-:is(#screen-tow-summary, .tow-rope-live) .tow-rope-fill.tow-rope-fill-a {
+:is(#screen-tow-summary, #screen-tow-burst-complete, .tow-rope-live) .tow-rope-fill.tow-rope-fill-a {
   background-image: repeating-linear-gradient(
     100deg,
     var(--primary) 0%,
@@ -2587,11 +2587,30 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-handoff-round { margin: 0 0 1rem; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); }
 .tow-handoff-avatar { width: 4.5rem; height: 4.5rem; font-size: 2rem; margin-bottom: 1rem; }
 
-.tow-burst-complete-screen { text-align: center; align-items: center; justify-content: center; }
+.tow-burst-complete-screen { position: relative; text-align: center; align-items: center; justify-content: center; }
 .tow-burst-kicker { margin: 0 0 0.3rem; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); }
 .tow-burst-added { margin: 0 0 0.3rem; font-size: 3.5rem; font-weight: 900; color: var(--primary); line-height: 1.05; }
 .tow-burst-complete-screen .tow-rope-wrap { width: 100%; max-width: 22rem; }
 .tow-rope-live { width: 100%; max-width: 22rem; margin: 0.7rem auto 0; }
+
+.tow-upnext-card {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--bg-elevated-2);
+  border-radius: 14px;
+  padding: 0.55rem 0.7rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+.tow-upnext-label { font-size: 0.55rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); }
+.tow-upnext-avatar { width: 2rem; height: 2rem; font-size: 1.05rem; }
+.tow-upnext-name { font-size: 0.72rem; font-weight: 700; max-width: 5.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tow-upnext-team { font-size: 0.62rem; color: var(--text-tertiary); }
 
 .tow-summary-kicker { margin: 0 0 0.3rem; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em; color: var(--text-tertiary); text-align: center; }
 .tow-summary-winner-name { margin: 0 auto 1.2rem; font-size: 1.7rem; font-weight: 800; line-height: 1.25; color: var(--primary); text-align: center; }
@@ -2619,12 +2638,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
   50% { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
 }
-:is(#screen-tow-summary, .tow-rope-live) .tow-rope-chevron {
+:is(#screen-tow-summary, #screen-tow-burst-complete, .tow-rope-live) .tow-rope-chevron {
   text-shadow: 0 0 0.7rem currentColor, 0 0 1.3rem currentColor;
   animation: tow-rope-chevron-pulse-a 0.85s ease-in-out infinite;
 }
-:is(#screen-tow-summary, .tow-rope-live) .tow-rope-chevron.tow-rope-chevron-a { transform-origin: right center; }
-:is(#screen-tow-summary, .tow-rope-live) .tow-rope-chevron.tow-rope-chevron-b { transform-origin: left center; animation-name: tow-rope-chevron-pulse-b; }
+:is(#screen-tow-summary, #screen-tow-burst-complete, .tow-rope-live) .tow-rope-chevron.tow-rope-chevron-a { transform-origin: right center; }
+:is(#screen-tow-summary, #screen-tow-burst-complete, .tow-rope-live) .tow-rope-chevron.tow-rope-chevron-b { transform-origin: left center; animation-name: tow-rope-chevron-pulse-b; }
 
 .tow-bell-avatar { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 
@@ -3465,7 +3484,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  height: 9rem;
+  height: 7.2rem;
 }
 .week-bar-col {
   flex: 1;

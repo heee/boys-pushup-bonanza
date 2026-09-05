@@ -4322,7 +4322,52 @@ function renderTowBurstComplete() {
   $("tow-burst-team-line").textContent = `added to ${game.teams[evt.team].name}`;
   renderTowRopeInto("tow-burst-rope-fill", "tow-burst-rope-chevron", game);
   $("tow-burst-status").textContent = towBurstResultCopy(game, evt.team);
+
+  const nextName = game.status === "active" ? towCurrentTurnPlayer(game) : null;
+  const nextTeam = nextName ? towCurrentTurnTeam(game) : null;
+  $("tow-burst-upnext").classList.toggle("hidden", !nextName);
+  if (nextName) {
+    setAvatarEl($("tow-upnext-avatar"), avatarForUser(nextName).id);
+    $("tow-upnext-name").textContent = nextName;
+    $("tow-upnext-team").textContent = game.teams[nextTeam].name;
+  }
 }
+
+async function shareTowBurstBrag() {
+  const { pickTowBurstBragMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+  const game = state.towGame;
+  const evt = state.towBurstEvent;
+  if (!game || !evt) return;
+  const nextName = game.status === "active" ? towCurrentTurnPlayer(game) : null;
+  const nextTeam = nextName ? towCurrentTurnTeam(game) : null;
+  const message = pickTowBurstBragMessage({
+    name: evt.user,
+    teamName: game.teams[evt.team].name,
+    delta: evt.delta,
+    score: game.scores[evt.team],
+    remaining: towRemainingLabel(game, evt.team),
+    isGameOver: game.status === "complete",
+    won: game.status === "complete" && game.winner === evt.team,
+    nextName,
+    nextTeamName: nextTeam ? game.teams[nextTeam].name : null,
+  });
+  const url = location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+    } catch (e) {
+      // user cancelled the share sheet — not an error
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${message} ${url}`);
+    toast("Copied to clipboard — go brag.");
+  } catch (e) {
+    toast("Couldn't share automatically — copy your brag manually.", 4000);
+  }
+}
+$("btn-tow-burst-brag").addEventListener("click", shareTowBurstBrag);
 
 $("btn-tow-burst-continue").addEventListener("click", async () => {
   const game = state.towGame;
@@ -6308,6 +6353,10 @@ function navigateChartDay(scope, direction) {
   const next = state[key] + direction;
   if (next > 0) return;
   state[key] = next;
+  // Keep the front-face day bucket selection (paintDashboard re-derives
+  // boysChartDayOffset from it) in step with the back-face arrows, so
+  // navigating hours here doesn't get immediately overwritten back to today.
+  if (scope === "boys" && state.dashboardPeriod === "day") state.dashboardBucketOffset = next === 0 ? null : next;
   paintActiveBonanzaView();
   syncChartFlipHeight(scope);
 }
@@ -6977,6 +7026,12 @@ function paintDashboard(sessions) {
       paintDashboard(sessions);
     },
   });
+  // The hourly flip view drills into a single day, so it only tracks the
+  // clicked bucket when the leaderboard is already sliced by day — a
+  // selected week/month bucket has no single matching hour-chart day.
+  state.boysChartDayOffset = (state.dashboardPeriod === "day" && state.dashboardBucketOffset !== null)
+    ? state.dashboardBucketOffset
+    : 0;
   renderChartBackFace("boys", sessions, isPlank || isPulse, isHolland);
   syncChartFlipHeight("boys");
 

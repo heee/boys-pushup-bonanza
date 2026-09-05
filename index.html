@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=263">
+<link rel="stylesheet" href="style.css?v=264">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -772,6 +772,12 @@
     <!-- ============ SCREEN: TUG OF WAR BURST COMPLETE ============ -->
     <section id="screen-tow-burst-complete" class="screen tow-burst-complete-screen">
       <div id="tow-burst-confetti" class="confetti" aria-hidden="true"></div>
+      <div id="tow-burst-upnext" class="tow-upnext-card hidden">
+        <span class="tow-upnext-label">UP NEXT</span>
+        <span id="tow-upnext-avatar" class="avatar-circle tow-upnext-avatar"></span>
+        <span id="tow-upnext-name" class="tow-upnext-name"></span>
+        <span id="tow-upnext-team" class="tow-upnext-team"></span>
+      </div>
       <p class="tow-burst-kicker">NICE WORK</p>
       <h1 id="tow-burst-added" class="tow-burst-added"></h1>
       <p id="tow-burst-team-line" class="screen-sub"></p>
@@ -782,7 +788,10 @@
         </div>
       </div>
       <p id="tow-burst-status" class="screen-sub"></p>
-      <button id="btn-tow-burst-continue" type="button" class="btn btn-giant btn-primary horse-start-btn">Continue</button>
+      <div class="horse-summary-actions">
+        <button id="btn-tow-burst-brag" type="button" class="btn btn-giant btn-secondary btn-with-icon">Brag <span class="icon-share" aria-hidden="true"></span></button>
+        <button id="btn-tow-burst-continue" type="button" class="btn btn-giant btn-primary btn-with-icon">Continue <span class="icon-arrow-right" aria-hidden="true"></span></button>
+      </div>
     </section>
 
     <!-- ============ SCREEN: TUG OF WAR SUMMARY ============ -->
@@ -1934,6 +1943,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=274"></script>
+<script type="module" src="app.js?v=275"></script>
 </body>
 </html>
