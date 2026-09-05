@@ -1,4 +1,4 @@
-import { modeStatsModel } from "./mode-stats.js?v=133";
+import { modeStatsModel } from "./mode-stats.js?v=138";
 import { computeStreakCore, filterByMode } from "../stats.js";
 
 function total(sessions) {

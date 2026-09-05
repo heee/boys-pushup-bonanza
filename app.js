@@ -105,9 +105,9 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat } from "./screens/mode-stats.js?v=137";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=138";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
-import { comparisonModel } from "./screens/comparison.js?v=132";
+import { comparisonModel } from "./screens/comparison.js?v=138";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=144";
@@ -6896,6 +6896,8 @@ function paintMyBonanza(sessions) {
   const periodStartTime = periodStart(state.dashboardPeriod).getTime();
   const periodMine = mine.filter((s) => sessionTimestamp(s) >= periodStartTime);
   const secondary = modeStatsModel(periodMine, state.leaderboardMode);
+  const timeStat = totalTimeStat(periodMine, state.leaderboardMode);
+  if (timeStat?.available) secondary.push(timeStat);
   const pokerAchievements = state.leaderboardMode === "poker"
     ? pokerAchievementsFromSessions(mine)
     : [];
@@ -6994,6 +6996,8 @@ function formatModeMetric(metric, value = metric.value) {
 function renderBoysModeStats(sessions, allModeSessions = sessions) {
   const el = $("boys-mode-stats");
   const metrics = modeStatsModel(sessions, state.leaderboardMode);
+  const timeStat = totalTimeStat(sessions, state.leaderboardMode);
+  if (timeStat?.available) metrics.push(timeStat);
   const modifiersUsed = modifiersUsedStat(sessions);
   metrics.push(...(modifiersUsed.available ? [modifiersUsed] : []), modesUsedStat(allModeSessions));
   el.innerHTML = metrics.map((metric) => {

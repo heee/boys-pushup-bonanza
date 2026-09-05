@@ -138,6 +138,32 @@ export function modeStatsModel(sessions, mode) {
   });
 }
 
+// Modes that already surface their own time-based row (classic's session
+// duration, planks'/pulse's held time) — skipped here to avoid a near-
+// duplicate second "time" row for those.
+const MODES_WITH_TIME_METRIC = new Set(["classic", "planks", "pulse"]);
+
+// Cross-mode: total wall-clock time spent across the already period+mode
+// filtered `sessions` passed in, so it reframes with whatever time horizon
+// (day/week/month/quarter/year) and leaderboard mode are on screen —
+// same period-scoping the rest of the stats table already gets from its
+// caller. Returns null (not a stat object) for modes that already have
+// their own time row, so callers can skip it with `stat?.available`.
+export function totalTimeStat(sessions, mode) {
+  if (MODES_WITH_TIME_METRIC.has(mode)) return null;
+  const timed = sessions.map((s) => [s, durationMs(s)]).filter(([, ms]) => ms != null);
+  const total = timed.length ? sum(timed, ([, ms]) => ms) : null;
+  const byUser = new Map();
+  for (const [s, ms] of timed) {
+    if (!s.user) continue;
+    byUser.set(s.user, (byUser.get(s.user) || 0) + ms);
+  }
+  return {
+    id: "totalTime", label: "Total time", format: "duration", qualifier: "total",
+    value: total, leaders: topByCount(byUser), available: total != null,
+  };
+}
+
 function topByCount(counts) {
   const entries = Array.from(counts, ([user, value]) => ({ user, value }));
   const best = entries.length ? Math.max(...entries.map((e) => e.value)) : null;
