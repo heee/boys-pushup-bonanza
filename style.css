@@ -149,9 +149,14 @@ html, body {
    raw body background below it until the next layout (e.g. a screen change)
    recalculates it. This layer always matches the tab bar's surface color and
    guarantees at least the typical home-indicator height, so that gap can
-   never show a mismatched color even if the timing glitch happens. */
+   never show a mismatched color even if the timing glitch happens.
+   html itself must stay the same shade as body (not the tab bar's elevated
+   shade) — iOS's rubber-band overscroll isn't fully stopped by
+   overscroll-behavior:none at the document's own scroll boundaries, and any
+   mismatch there paints as a seam that visibly scrolls with the bounce
+   (seen at the bottom of Leaderboard's History list). */
 html {
-  background: var(--bg-elevated);
+  background: var(--bg);
 }
 body::after {
   content: "";
