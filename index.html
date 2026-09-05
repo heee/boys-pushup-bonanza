@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=266">
+<link rel="stylesheet" href="style.css?v=267">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -587,10 +587,12 @@
     <!-- ============ SCREEN: HORSE SUMMARY ============ -->
     <section id="screen-horse-summary" class="screen">
       <div id="horse-summary-confetti" class="confetti" aria-hidden="true"></div>
-      <h1 class="screen-title" style="text-align:center">Horse — complete</h1>
-      <div id="horse-summary-crown" class="horse-crown-pill"></div>
-      <p id="horse-summary-stats" class="screen-sub horse-summary-stats"></p>
-      <div id="horse-summary-list" class="tier1-list"></div>
+      <div class="horse-summary-content">
+        <h1 class="screen-title" style="text-align:center">Horse — complete</h1>
+        <div id="horse-summary-crown" class="horse-crown-pill"></div>
+        <p id="horse-summary-stats" class="screen-sub horse-summary-stats"></p>
+        <div id="horse-summary-list" class="tier1-list"></div>
+      </div>
       <div class="horse-summary-actions">
         <button id="btn-horse-rematch" type="button" class="btn btn-giant btn-primary">Rematch</button>
         <button id="btn-horse-share" type="button" class="btn btn-giant btn-secondary btn-with-icon">Share <span class="icon-share" aria-hidden="true"></span></button>
@@ -1943,6 +1945,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=278"></script>
+<script type="module" src="app.js?v=279"></script>
 </body>
 </html>

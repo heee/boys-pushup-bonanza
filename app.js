@@ -113,7 +113,7 @@ import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=144";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=8";
+import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=9";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=152";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -6170,7 +6170,10 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     const heightPct = bucket.total > 0 ? Math.max(6, Math.round((bucket.total / maxTotal) * 100)) : 3;
     const valueDisplay = bucket.total > 0 ? (isPlank ? formatDuration(bucket.total * 1000) : isHolland ? bucket.total.toFixed(1) : formatNumber(bucket.total)) : "";
     const classes = ["week-bar-col"];
-    if (isCurrent) classes.push("week-bar-col-today");
+    // Today only keeps its own highlight while it's also the highlighted
+    // bucket (nothing selected, or today explicitly selected) — picking a
+    // different bar moves the highlight there instead of leaving both lit.
+    if (isCurrent && (selectedOffset === null || selectedOffset === 0)) classes.push("week-bar-col-today");
     if (onBucketSelect) classes.push("week-bar-col-clickable");
     if (isSelected) classes.push("week-bar-col-selected");
     return `

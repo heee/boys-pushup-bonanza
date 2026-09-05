@@ -22,6 +22,7 @@ export const MODE_META = {
   pullups: { label: "Pull-ups", icon: "💪" },
   situps: { label: "Crunches", icon: "🙇" },
   holland: { label: "Holland Mode", icon: "🇳🇱" },
+  tow: { label: "Tug of War", icon: "🪢" },
 };
 
 export function sessionModeId(session) {

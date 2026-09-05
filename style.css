@@ -2337,6 +2337,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .horse-summary-row-winner .horse-summary-subtitle { color: var(--gold); }
 .horse-summary-total { font-weight: 700; color: var(--text-dim); }
 .horse-summary-stats { text-align: center; margin: 0 0 1.2rem; }
+.horse-summary-content { display: flex; flex-direction: column; flex: 1; justify-content: center; }
 .horse-summary-actions { display: flex; gap: 0.7rem; margin-top: 1.4rem; }
 .horse-summary-actions .btn { flex: 1; width: auto; max-width: none; margin-top: 0; }
 

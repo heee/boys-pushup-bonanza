@@ -341,6 +341,20 @@ test("tallyGame crowns whoever has the fewest letters once the timer expires, ti
   assert.deepEqual(tallyGame(tied, 10 + DAY).winner, ["You", "Mia"]);
 });
 
+test("tallyGame breaks a zero-letter tie by total pushups instead of crowning everyone", () => {
+  const DAY = HORSE_TIME_LIMITS["24h"];
+  let g = createHorseGame({ id: "g1", word: "horse", sessionType: "live", createdBy: "You", players: ["You", "Mia", "Dev"], timeLimit: DAY, now: 0 });
+  g = applyTurn(g, { user: "You", reps: 20, now: 0 });
+  g = applyTurn(g, { user: "Mia", reps: 25, now: 10 }); // beats the bar — pending on her choice
+  g = chooseHorseTarget(g, { user: "Mia", mode: "match", now: 10 }); // starts the clock at 10
+  g = applyTurn(g, { user: "Dev", reps: 40, now: 20 }); // beats it again — Dev logs the most reps
+  g = chooseHorseTarget(g, { user: "Dev", mode: "match", now: 20 });
+  // Nobody ever missed, so everyone still has zero letters at the buzzer.
+  assert.deepEqual(Object.values(g.players).map((p) => p.letters), [0, 0, 0]);
+  const tallied = tallyGame(g, 20 + DAY);
+  assert.deepEqual(tallied.winner, ["Dev"]);
+});
+
 test("declining before a first set removes the player from turn order", () => {
   let g = game3();
   g = declinePlayer(g, { user: "Dev", now: 5 });

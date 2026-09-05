@@ -221,11 +221,20 @@ export function isTimeUp(game, now = Date.now()) {
 }
 
 // Match deadline hit: whoever has collected the fewest letters wins, ties
-// share the win. Replaces the old per-turn 48h stall-skip.
+// share the win. The exception is a tie at zero letters — with nobody ever
+// spelled a letter, "fewest letters" can't distinguish anyone, so it falls
+// back to whoever logged the most total pushups instead of crowning
+// everyone.
 export function tallyGame(game, now = Date.now()) {
   if (!isTimeUp(game, now)) throw new Error("Timer has not expired yet");
   const minLetters = Math.min(...game.turnOrder.map((name) => game.players[name].letters));
-  const winner = game.turnOrder.filter((name) => game.players[name].letters === minLetters);
+  const tied = game.turnOrder.filter((name) => game.players[name].letters === minLetters);
+  let winner = tied;
+  if (tied.length > 1 && minLetters === 0) {
+    const totalRepsOf = (name) => game.sets.filter((s) => s.user === name).reduce((sum, s) => sum + (Number(s.reps) || 0), 0);
+    const maxReps = Math.max(...tied.map(totalRepsOf));
+    winner = tied.filter((name) => totalRepsOf(name) === maxReps);
+  }
   return { ...game, status: "complete", winner, turnStartedAt: null };
 }
 
