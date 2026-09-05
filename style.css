@@ -3747,7 +3747,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    separating, matching the Last-flexers list and every other grouped list
    in the app, instead of each group floating as its own gapped box. */
 .history-list {
-  background: var(--bg-elevated);
   border-radius: 16px;
   overflow: hidden;
 }
