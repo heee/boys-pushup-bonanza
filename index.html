@@ -73,10 +73,6 @@
           <button id="new-user-cancel" type="button" class="btn btn-secondary new-user-cancel">Cancel</button>
         </form>
       </div>
-      <button id="device-location-row" type="button" class="device-location-row" aria-haspopup="dialog">
-        <span aria-hidden="true">&#x1F4CD;</span>
-        <span id="device-location-label">Unknown location</span>
-      </button>
     </section>
 
     <!-- ============ SCREEN: WORKOUT ============ -->
@@ -121,6 +117,11 @@
             <p id="goal-progress-label" class="goal-progress-label"></p>
           </div>
         </div>
+
+        <button id="device-location-row" type="button" class="device-location-row" aria-haspopup="dialog">
+          <span aria-hidden="true">&#x1F4CD;</span>
+          <span id="device-location-label">Unknown location</span>
+        </button>
       </div>
 
       <div id="workout-active" class="workout-active hidden">
@@ -1508,6 +1509,11 @@
       <h1 class="screen-title screen-title-with-icon"><span class="screen-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37c1 .608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg></span>Settings</h1>
 
       <div class="settings-block settings-category-list" id="settings-category-list">
+        <button id="btn-settings-switch-user" type="button" class="settings-category-row">
+          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+          <span class="settings-category-title">Switch user</span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
         <button type="button" class="settings-category-row" data-settings-category="profile">
           <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>
           <span class="settings-category-title">Profile &amp; users</span>
@@ -1945,6 +1951,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=279"></script>
+<script type="module" src="app.js?v=280"></script>
 </body>
 </html>

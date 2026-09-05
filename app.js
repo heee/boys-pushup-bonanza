@@ -1852,7 +1852,6 @@ function showScreen(id) {
     userSelectionExpanded = false;
     userCreationOpen = false;
     renderUserList();
-    renderDeviceLocation();
   }
   if (id === "screen-summary" && state.lastSessionType !== "holland") {
     $("summary-holland-result")?.classList.add("hidden");
@@ -1886,6 +1885,7 @@ function showScreen(id) {
     renderWeightedQuickToggle();
     renderWorkoutInstructionLine();
     renderGoalProgressCard();
+    renderDeviceLocation();
     // Fresh Home visits always reset to Classic; arriving pre-selected from
     // Explore Modes (openPushupModeFromExplore) skips this exactly once.
     if (!preserveNextModeSelection) state.pushupMode = "classic";
@@ -1961,8 +1961,11 @@ function goToDashboard(mode) {
   showScreen("screen-dashboard");
 }
 
-$("btn-home").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
-$("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
+function goHome() {
+  showScreen(state.currentUser ? "screen-workout" : "screen-user");
+}
+$("btn-home").addEventListener("click", () => guardLeaveWorkout(goHome));
+$("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(goHome));
 $("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
 $("btn-nav-challenges").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-challenges")));
 $("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("boys")));
@@ -2128,7 +2131,7 @@ function openLocationSheet() {
 function closeLocationSheet() {
   $("location-sheet-backdrop").classList.add("hidden");
   resetLocationSearch();
-  if (state.screen === "screen-user") $("device-location-row").focus();
+  if (state.screen === "screen-workout") $("device-location-row").focus();
   else if (state.screen === "screen-roadtrip") $("btn-roadtrip-location").focus();
 }
 
@@ -2296,6 +2299,7 @@ $("settings-category-list").addEventListener("click", (e) => {
   if (!row || !row.dataset.settingsCategory) return;
   showScreen(`screen-settings-${row.dataset.settingsCategory}`);
 });
+$("btn-settings-switch-user").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
 $("btn-settings-profile-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-mysessions-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-workout-back").addEventListener("click", () => showScreen("screen-settings"));
@@ -13579,7 +13583,7 @@ async function init() {
   initTheme();
   lockPortraitOrientation();
   initVoice().then((ok) => { if (ok) preloadCommonVoice(); });
-  showScreen(state.currentUser ? "screen-user" : "screen-user");
+  showScreen(state.currentUser ? "screen-workout" : "screen-user");
   refreshAutomaticDeviceLocation();
   await flushQueue().catch(() => {});
   await loadChallenges();
