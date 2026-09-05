@@ -10250,7 +10250,7 @@ async function completeTowBurst(rawCount) {
 
   speak(pickFrom(updated.status === "complete" && updated.winner === team ? TOW_WIN_LINES : TOW_PULL_LINES));
 
-  state.towBurstEvent = { team, delta: rawCount };
+  state.towBurstEvent = { team, delta: rawCount, user };
   renderTowBurstComplete();
   showScreen("screen-tow-burst-complete");
   if (updated.status === "complete" && updated.winner === team) launchConfetti("tow-burst-confetti");
