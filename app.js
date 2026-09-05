@@ -72,6 +72,7 @@ import {
   initVoice,
   preloadCountingRange,
   preloadVoice,
+  playGhostBoo,
   playZenGong,
   playPulseTick,
   playSharpshooterHit,
@@ -80,7 +81,7 @@ import {
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=150";
+} from "./voice.js?v=151";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
@@ -9576,7 +9577,7 @@ function onRepCounted(count) {
     if (repState.ghostActive && !repState.ghostPassed && count > state.pushupLast) {
       repState.ghostPassed = true;
       ghostJustPassed = true;
-      playGhostSurpassEffect($("pushup-ghost-transition"), { sound: soundIsEnabled() });
+      playGhostSurpassEffect($("pushup-ghost-transition"), { sound: soundIsEnabled(), playSound: playGhostBoo });
     }
     maybePlayRecurringGhostCue(repState, count, "reps", "pushup-ghost-transition", ghostJustPassed);
     updateHighscoreMessage(count);
@@ -11480,14 +11481,14 @@ function updatePlankHighscoreMessage(seconds) {
 }
 
 function playPlankGhostTransition() {
-  playGhostSurpassEffect($("plank-ghost-transition"), { sound: soundIsEnabled() });
+  playGhostSurpassEffect($("plank-ghost-transition"), { sound: soundIsEnabled(), playSound: playGhostBoo });
 }
 
 function maybePlayRecurringGhostCue(modeState, progress, unit, containerId, skipEffect = false) {
   if (!modeState.ghostActive || progress < modeState.nextGhostCueAt) return;
   modeState.nextGhostCueAt = nextGhostCueAt(progress, unit);
   if (!skipEffect) {
-    playSingleGhostEffect($(containerId), { sound: soundIsEnabled() });
+    playSingleGhostEffect($(containerId), { sound: soundIsEnabled(), playSound: playGhostBoo });
   }
 }
 
@@ -11732,7 +11733,7 @@ function updateSquatHighscoreMessage(count) {
 }
 
 function playSquatGhostTransition() {
-  playGhostSurpassEffect($("squat-ghost-transition"), { sound: soundIsEnabled() });
+  playGhostSurpassEffect($("squat-ghost-transition"), { sound: soundIsEnabled(), playSound: playGhostBoo });
 }
 
 // Same shape as maybeEncourage/maybeEncouragePlank, but for squat reps.
@@ -12199,7 +12200,7 @@ function updatePullupHighscoreMessage(count) {
 }
 
 function playPullupGhostTransition() {
-  playGhostSurpassEffect($("pullup-ghost-transition"), { sound: soundIsEnabled() });
+  playGhostSurpassEffect($("pullup-ghost-transition"), { sound: soundIsEnabled(), playSound: playGhostBoo });
 }
 
 function maybeEncouragePullup(count) {
@@ -13025,7 +13026,7 @@ function updateSitupHighscoreMessage(count) {
 }
 
 function playSitupGhostTransition() {
-  playGhostSurpassEffect($("situp-ghost-transition"), { sound: soundIsEnabled() });
+  playGhostSurpassEffect($("situp-ghost-transition"), { sound: soundIsEnabled(), playSound: playGhostBoo });
 }
 
 // Same shape as maybeEncourageSquat, but for situp reps.

@@ -749,3 +749,51 @@ export function playSharpshooterHit() {
     return 0;
   }
 }
+
+// Ghost mode's "boo" clip. A plain `new Audio(...).play()` (the original
+// implementation) is silently dropped by autoplay policy here: ghost cues
+// fire from the camera rep-detection loop, not a click/tap handler, so the
+// browser never sees it as a user gesture. Routing it through the same
+// shared AudioContext the rest of the workout audio uses means it inherits
+// that graph's unlock (already claimed by a real tap earlier in the
+// workout) and actually plays.
+let ghostBooBuffer = null;
+let ghostBooPromise = null;
+const GHOST_BOO_URL = "./assets/sounds/boo-laugh.mp3";
+
+function loadGhostBoo() {
+  if (ghostBooBuffer) return Promise.resolve(ghostBooBuffer);
+  if (ghostBooPromise) return ghostBooPromise;
+  ghostBooPromise = fetch(GHOST_BOO_URL)
+    .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(`fetch ${res.status} for boo-laugh.mp3`))))
+    .then((bytes) => ctx.decodeAudioData(bytes))
+    .then((buf) => {
+      ghostBooBuffer = buf;
+      return buf;
+    })
+    .catch(() => {
+      ghostBooPromise = null; // let a later attempt retry
+      return null;
+    });
+  return ghostBooPromise;
+}
+
+export function playGhostBoo() {
+  if (!ctx || !masterGain) return false;
+  unlockVoice();
+  loadGhostBoo().then((buf) => {
+    if (!buf || !unlocked) return;
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.8;
+      src.connect(gain);
+      gain.connect(masterGain);
+      src.start(0);
+      activeSources.push(src);
+      scheduleRouteRelease(buf.duration * 1000);
+    } catch (e) { /* best effort */ }
+  });
+  return true;
+}

@@ -46,7 +46,7 @@ export function playGhostSound() {
   return true;
 }
 
-function playGhostEffect(container, ghosts, sound) {
+function playGhostEffect(container, ghosts, sound, playSound) {
   container.classList.remove("playing");
   container.replaceChildren(...ghosts.map((ghost) => {
     const el = document.createElement("span");
@@ -61,7 +61,7 @@ function playGhostEffect(container, ghosts, sound) {
   }));
   void container.offsetWidth;
   container.classList.add("playing");
-  if (sound) playGhostSound();
+  if (sound) playSound();
   setTimeout(() => {
     container.classList.remove("playing");
     container.replaceChildren();
@@ -69,11 +69,11 @@ function playGhostEffect(container, ghosts, sound) {
   return ghosts;
 }
 
-export function playGhostSurpassEffect(container, { sound = true, random = Math.random } = {}) {
-  return playGhostEffect(container, createGhostSwarm(random), sound);
+export function playGhostSurpassEffect(container, { sound = true, random = Math.random, playSound = playGhostSound } = {}) {
+  return playGhostEffect(container, createGhostSwarm(random), sound, playSound);
 }
 
-export function playSingleGhostEffect(container, { sound = true, random = Math.random } = {}) {
+export function playSingleGhostEffect(container, { sound = true, random = Math.random, playSound = playGhostSound } = {}) {
   const [ghost] = createGhostSwarm(random);
-  return playGhostEffect(container, [{ ...ghost, index: 0, delayMs: 0 }], sound);
+  return playGhostEffect(container, [{ ...ghost, index: 0, delayMs: 0 }], sound, playSound);
 }
