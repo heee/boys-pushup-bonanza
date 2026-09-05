@@ -2932,67 +2932,67 @@ export function pickHorseCompleteMessage(ctx) {
 // c.createdBy is the host, c.teamA/c.teamB the two auto-generated (or
 // renamed) team names, c.target the rep goal, c.rounds the round cap.
 const SHARE_MESSAGES_TOW_INVITE = [
-  (c) => `🪢 ${c.createdBy} tied a rope to two teams of pushups and is daring the universe to intervene. ${c.teamA} vs. ${c.teamB}. Pick a side or get dragged into one.`,
-  (c) => `${c.teamA} and ${c.teamB} are about to enter a rope-based blood feud courtesy of ${c.createdBy}. First to ${c.target} wins. Get in here before a side gets chosen for you.`,
-  (c) => `BREAKING: ${c.createdBy} has declared war between ${c.teamA} and ${c.teamB} and the weapon is repeated pushups. Join before the rope stops caring who's holding it.`,
-  (c) => `${c.createdBy} started Tug of War. ${c.teamA} sounds tougher than ${c.teamB} but nobody has actually done anything yet. Prove it or disprove it, either works.`,
-  (c) => `Somebody tell ${c.teamB} that ${c.teamA} is already talking trash and the match hasn't even started. Thanks, ${c.createdBy}. Get in here and defend your honor.`,
-  (c) => `${c.createdBy} just turned pushups into a hostage situation between ${c.teamA} and ${c.teamB}. Target's ${c.target}. Nobody's free until someone hits it.`,
-  (c) => `Rope's out. ${c.teamA} on one end, ${c.teamB} on the other, ${c.createdBy} refereeing like this is a normal thing adults do. Join a team before the elbows start.`,
-  (c) => `${c.teamA} vs. ${c.teamB}: a rivalry ${c.createdBy} invented forty seconds ago and is now treating as ancient and sacred. First to ${c.target} gets bragging rights nobody asked for.`,
-  (c) => `${c.createdBy} opened a Tug of War lobby and named the teams ${c.teamA} and ${c.teamB} like it's a boxing card. It's pushups. It's just pushups. Join anyway.`,
-  (c) => `Public service announcement: ${c.teamA} and ${c.teamB} exist now, they hate each other, and ${c.createdBy} is the reason. Slots are open, dignity is not guaranteed.`,
-  (c) => `${c.createdBy} is out here recruiting soldiers for a rope war nobody consented to. ${c.teamA} needs bodies, ${c.teamB} needs bodies, everybody needs a chiropractor eventually.`,
-  (c) => `Two teams. One rope. Zero survivors. ${c.teamA} and ${c.teamB} are live, courtesy of ${c.createdBy}, and the target is a very rude ${c.target} reps.`,
-  (c) => `${c.createdBy} just weaponized team spirit for something that is, medically speaking, just pushups in sequence. ${c.teamA} or ${c.teamB} — pick your regret.`,
-  (c) => `Tug of War is live. ${c.teamA} is currently 0 reps of tough talk, ${c.teamB} is currently 0 reps of tough talk. ${c.createdBy} set it up and is watching from a safe distance.`,
-  (c) => `${c.createdBy} has entered ${c.teamA} and ${c.teamB} into a conflict that will be settled the only way that matters: repetitive floor-based suffering. Join up.`,
-  (c) => `Everyone's forearms are about to have strong opinions. ${c.teamA} vs. ${c.teamB}, ${c.target} to win, ${c.createdBy} lit the match and is not sorry.`,
-  (c) => `${c.teamA} just found out ${c.teamB} exists and, per ${c.createdBy}'s rules, now has to fight them with pushups. This is fine. This is normal. Join a side.`,
-  (c) => `${c.createdBy} built a whole rope-pulling metaphor out of an exercise app. ${c.teamA} and ${c.teamB} need players. The metaphor needs bodies. Get in here.`,
-  (c) => `Rope tension: currently zero, about to be everything. ${c.teamA} vs. ${c.teamB}, hosted by ${c.createdBy}, first to ${c.target} drags the other side into the mud (figuratively, the floor is fine).`,
-  (c) => `${c.createdBy} split the group chat into ${c.teamA} and ${c.teamB} without asking anyone's permission. Historic behavior. Join a team before it's decided for you.`,
-  (c) => `Nobody asked for a rope war but ${c.createdBy} started one anyway: ${c.teamA} versus ${c.teamB}, ${c.rounds ? `${c.rounds} rounds` : "no limits"}, all dignity on the line.`,
-  (c) => `${c.teamA} has a name that sounds like it wins. ${c.teamB} has a name that sounds like it's trying too hard. ${c.createdBy} made both of them up. Join whichever insults you less.`,
-  (c) => `Live now: ${c.teamA} vs. ${c.teamB}, a grudge match with zero actual grudge, entirely manufactured by ${c.createdBy} for content purposes. Get in here and manufacture some reps.`,
-  (c) => `${c.createdBy} is standing in the middle holding an invisible rope screaming "PICK A SIDE." The sides are ${c.teamA} and ${c.teamB}. First to ${c.target} ends the screaming.`,
-  (c) => `${c.teamA} and ${c.teamB} were born seconds ago and already owe each other a beating. Thank ${c.createdBy}. Join before the roster fills and history is written without you.`,
-  (c) => `Breaking news out of the group chat: ${c.createdBy} has started a two-team pushup war and somebody's forearms are not going to recover. ${c.teamA} or ${c.teamB}. Choose fast.`,
-  (c) => `${c.createdBy} needs bodies for ${c.teamA} and ${c.teamB} and is not being subtle about it. This is a recruitment drive disguised as a friendly game. It is not friendly.`,
-  (c) => `The rope doesn't care about your feelings, it cares about reps. ${c.teamA} vs. ${c.teamB}, ${c.target} to win, ${c.createdBy} is the reason this is happening to you.`,
-  (c) => `${c.createdBy} just declared that ${c.teamA} and ${c.teamB} cannot coexist peacefully and must settle it via pushups. Sure. Fine. Whatever. Join a team.`,
-  (c) => `Tug of War lobby is open. ${c.teamA} sounds like the underdog, ${c.teamB} sounds like the favorite, and ${c.createdBy} definitely just made both of those names up on the spot.`,
-  (c) => `${c.teamA} vs. ${c.teamB} is now a real thing that is happening because ${c.createdBy} said so. The target is ${c.target}. The stakes are imaginary but everyone's taking it personally already.`,
-  (c) => `${c.createdBy} has convened ${c.teamA} and ${c.teamB} for a conflict resolution method that involves zero conflict resolution and a lot of pushups. Join before the good spots go.`,
-  (c) => `Somewhere, a rope is being metaphorically strained. ${c.teamA} and ${c.teamB} are pulling, ${c.createdBy} is scoring, and the winner gets to be smug in the group chat forever.`,
-  (c) => `${c.createdBy} opened Tug of War and immediately made it personal by naming the teams ${c.teamA} and ${c.teamB}. Somebody's ego is about to take real damage. Join a side.`,
-  (c) => `${c.teamA} thinks it's winning already. ${c.teamB} disagrees violently. ${c.createdBy} started this and refuses to take responsibility. Get in there and settle it.`,
-  (c) => `Rope war, ${c.target} reps to end it, hosted by ${c.createdBy}. ${c.teamA} and ${c.teamB} both think they're the good guys. Neither of them is.`,
-  (c) => `${c.createdBy} has assembled ${c.teamA} and ${c.teamB} like it's a draft night, except the prize is bragging rights and the punishment is sore triceps.`,
-  (c) => `The tug of war between ${c.teamA} and ${c.teamB} starts the moment somebody joins. ${c.createdBy} is standing by with the whistle and zero neutrality.`,
-  (c) => `${c.createdBy} decided the group chat needed more drama and invented a rivalry out of thin air: ${c.teamA} vs. ${c.teamB}. Get in here and make it real.`,
-  (c) => `Two teams enter, one rope leaves satisfied. ${c.teamA} vs. ${c.teamB}, ${c.target} reps, courtesy of ${c.createdBy}'s deep need for organized chaos.`,
-  (c) => `${c.createdBy} just recruited an entire imaginary army for ${c.teamA} and an equally imaginary army for ${c.teamB}. Time to make one of those armies real. Join up.`,
-  (c) => `Nobody consented to this rivalry but here we are: ${c.teamA} versus ${c.teamB}, hosted by ${c.createdBy}, first to ${c.target} wins and never lets anyone forget it.`,
-  (c) => `${c.createdBy} lit a fire under ${c.teamA} and ${c.teamB} that didn't need to exist and now everybody has to deal with it. Join before the rope picks a winner without you.`,
-  (c) => `The rope is loaded, the teams are ${c.teamA} and ${c.teamB}, and ${c.createdBy} is grinning like this wasn't just supposed to be a workout app. Join in.`,
+  (c) => `🪢 ${c.createdBy} tied a rope to two teams of pushups and is daring 😈 the universe to intervene.\n\n${c.teamA} vs. ${c.teamB}. Pick a side or get dragged into one 💀.`,
+  (c) => `${c.teamA} and ${c.teamB} are about to enter a rope-based blood feud 🩸 courtesy of ${c.createdBy}.\n\nFirst to ${c.target} wins 🏆. Get in here before a side gets chosen for you 😬.`,
+  (c) => `BREAKING 📣: ${c.createdBy} has declared war between ${c.teamA} and ${c.teamB}, and the weapon is repeated pushups 💪🔥.\n\nJoin before the rope stops caring who's holding it.`,
+  (c) => `${c.createdBy} started Tug of War 🧵.\n\n${c.teamA} sounds tougher than ${c.teamB} 👀 but nobody has actually done anything yet. Prove it or disprove it 😤, either works.`,
+  (c) => `Somebody tell ${c.teamB} that ${c.teamA} is already talking trash 🗣️ and the match hasn't even started.\n\nThanks, ${c.createdBy} 🙃. Get in here and defend your honor ⚔️.`,
+  (c) => `${c.createdBy} just turned pushups into a hostage situation 🔫 between ${c.teamA} and ${c.teamB}.\n\nTarget's ${c.target} 🎯. Nobody's free until someone hits it.`,
+  (c) => `Rope's out 🪢. ${c.teamA} on one end, ${c.teamB} on the other 🫸🫷, ${c.createdBy} refereeing like this is a normal thing adults do.\n\nJoin a team before the elbows start 👊.`,
+  (c) => `${c.teamA} vs. ${c.teamB}: a rivalry ${c.createdBy} invented forty seconds ago 🕐 and is now treating as ancient and sacred 🏛️.\n\nFirst to ${c.target} gets bragging rights nobody asked for.`,
+  (c) => `${c.createdBy} opened a Tug of War lobby 🎪 and named the teams ${c.teamA} and ${c.teamB} like it's a boxing card 🥊.\n\nIt's pushups. It's just pushups. Join anyway 😐.`,
+  (c) => `Public service announcement 📣: ${c.teamA} and ${c.teamB} exist now, they hate each other 😈, and ${c.createdBy} is the reason.\n\nSlots are open 🎟️, dignity is not guaranteed.`,
+  (c) => `${c.createdBy} is out here recruiting soldiers 🪖 for a rope war nobody consented to.\n\n${c.teamA} needs bodies, ${c.teamB} needs bodies, everybody needs a chiropractor eventually 🦴.`,
+  (c) => `Two teams. One rope. Zero survivors ☠️.\n\n${c.teamA} and ${c.teamB} are live, courtesy of ${c.createdBy}, and the target is a very rude ${c.target} reps 😤.`,
+  (c) => `${c.createdBy} just weaponized team spirit 🎽 for something that is, medically speaking, just pushups in sequence.\n\n${c.teamA} or ${c.teamB} — pick your regret 🙃.`,
+  (c) => `Tug of War is live 🔴. ${c.teamA} is currently 0 reps of tough talk, ${c.teamB} is currently 0 reps of tough talk.\n\n${c.createdBy} set it up and is watching from a safe distance 👀.`,
+  (c) => `${c.createdBy} has entered ${c.teamA} and ${c.teamB} into a conflict that will be settled the only way that matters: repetitive floor-based suffering 💪😫.\n\nJoin up.`,
+  (c) => `Everyone's forearms are about to have strong opinions 🦾.\n\n${c.teamA} vs. ${c.teamB}, ${c.target} to win, ${c.createdBy} lit the match 🔥 and is not sorry.`,
+  (c) => `${c.teamA} just found out ${c.teamB} exists 😳 and, per ${c.createdBy}'s rules, now has to fight them with pushups.\n\nThis is fine. This is normal 🙂. Join a side.`,
+  (c) => `${c.createdBy} built a whole rope-pulling metaphor 🪢 out of an exercise app.\n\n${c.teamA} and ${c.teamB} need players. The metaphor needs bodies 🧍. Get in here.`,
+  (c) => `Rope tension: currently zero, about to be everything ⚡️.\n\n${c.teamA} vs. ${c.teamB}, hosted by ${c.createdBy}, first to ${c.target} drags the other side into the mud (figuratively, the floor is fine 😅).`,
+  (c) => `${c.createdBy} split the group chat into ${c.teamA} and ${c.teamB} without asking anyone's permission 😤.\n\nHistoric behavior 📜. Join a team before it's decided for you.`,
+  (c) => `Nobody asked for a rope war 🪢 but ${c.createdBy} started one anyway:\n\n${c.teamA} versus ${c.teamB}, ${c.rounds ? `${c.rounds} rounds` : "no limits"}, all dignity on the line 🫡.`,
+  (c) => `${c.teamA} has a name that sounds like it wins 🏆. ${c.teamB} has a name that sounds like it's trying too hard 😬.\n\n${c.createdBy} made both of them up. Join whichever insults you less.`,
+  (c) => `Live now 🔴: ${c.teamA} vs. ${c.teamB}, a grudge match with zero actual grudge, entirely manufactured by ${c.createdBy} for content purposes 🎬.\n\nGet in here and manufacture some reps 💪.`,
+  (c) => `${c.createdBy} is standing in the middle holding an invisible rope screaming "PICK A SIDE 🗣️."\n\nThe sides are ${c.teamA} and ${c.teamB}. First to ${c.target} ends the screaming.`,
+  (c) => `${c.teamA} and ${c.teamB} were born seconds ago and already owe each other a beating 👊.\n\nThank ${c.createdBy} 🙃. Join before the roster fills and history is written without you 📜.`,
+  (c) => `Breaking news out of the group chat 📱: ${c.createdBy} has started a two-team pushup war and somebody's forearms are not going to recover 🦾.\n\n${c.teamA} or ${c.teamB}. Choose fast ⏱️.`,
+  (c) => `${c.createdBy} needs bodies for ${c.teamA} and ${c.teamB} and is not being subtle about it 😅.\n\nThis is a recruitment drive disguised as a friendly game. It is not friendly 😈.`,
+  (c) => `The rope doesn't care about your feelings 🪢, it cares about reps 💯.\n\n${c.teamA} vs. ${c.teamB}, ${c.target} to win, ${c.createdBy} is the reason this is happening to you.`,
+  (c) => `${c.createdBy} just declared that ${c.teamA} and ${c.teamB} cannot coexist peacefully 🕊️❌ and must settle it via pushups.\n\nSure. Fine. Whatever 🙄. Join a team.`,
+  (c) => `Tug of War lobby is open 🚪.\n\n${c.teamA} sounds like the underdog, ${c.teamB} sounds like the favorite, and ${c.createdBy} definitely just made both of those names up on the spot 😂.`,
+  (c) => `${c.teamA} vs. ${c.teamB} is now a real thing that is happening because ${c.createdBy} said so 👑.\n\nThe target is ${c.target}. The stakes are imaginary 🎭 but everyone's taking it personally already.`,
+  (c) => `${c.createdBy} has convened ${c.teamA} and ${c.teamB} for a conflict resolution method that involves zero conflict resolution 🚫🕊️ and a lot of pushups.\n\nJoin before the good spots go.`,
+  (c) => `Somewhere, a rope is being metaphorically strained 🪢😖.\n\n${c.teamA} and ${c.teamB} are pulling, ${c.createdBy} is scoring, and the winner gets to be smug in the group chat forever 😏.`,
+  (c) => `${c.createdBy} opened Tug of War and immediately made it personal 😤 by naming the teams ${c.teamA} and ${c.teamB}.\n\nSomebody's ego is about to take real damage 💥. Join a side.`,
+  (c) => `${c.teamA} thinks it's winning already 😏. ${c.teamB} disagrees violently 😤.\n\n${c.createdBy} started this and refuses to take responsibility 🙅. Get in there and settle it.`,
+  (c) => `Rope war 🪢, ${c.target} reps to end it, hosted by ${c.createdBy}.\n\n${c.teamA} and ${c.teamB} both think they're the good guys 😇. Neither of them is 😈.`,
+  (c) => `${c.createdBy} has assembled ${c.teamA} and ${c.teamB} like it's a draft night 🏈, except the prize is bragging rights and the punishment is sore triceps 💀.`,
+  (c) => `The tug of war between ${c.teamA} and ${c.teamB} starts the moment somebody joins ⏱️.\n\n${c.createdBy} is standing by with the whistle 🎺 and zero neutrality.`,
+  (c) => `${c.createdBy} decided the group chat needed more drama 🎭 and invented a rivalry out of thin air:\n\n${c.teamA} vs. ${c.teamB}. Get in here and make it real 🔥.`,
+  (c) => `Two teams enter, one rope leaves satisfied 🪢😌.\n\n${c.teamA} vs. ${c.teamB}, ${c.target} reps, courtesy of ${c.createdBy}'s deep need for organized chaos 🌪️.`,
+  (c) => `${c.createdBy} just recruited an entire imaginary army 🪖 for ${c.teamA} and an equally imaginary army for ${c.teamB}.\n\nTime to make one of those armies real 💪. Join up.`,
+  (c) => `Nobody consented to this rivalry 😅 but here we are:\n\n${c.teamA} versus ${c.teamB}, hosted by ${c.createdBy}, first to ${c.target} wins and never lets anyone forget it 🏆.`,
+  (c) => `${c.createdBy} lit a fire 🔥 under ${c.teamA} and ${c.teamB} that didn't need to exist and now everybody has to deal with it.\n\nJoin before the rope picks a winner without you ⚡️.`,
+  (c) => `The rope is loaded 🪢, the teams are ${c.teamA} and ${c.teamB}, and ${c.createdBy} is grinning 😈 like this wasn't just supposed to be a workout app.\n\nJoin in.`,
 ];
 
 // Rallying cry appended for whichever team currently has fewer players —
 // team is a team *name* string, not a side key.
 const TOW_LOBBY_RALLY_LINES = [
-  (team) => `${team} needs bodies. Don't make them beg.`,
-  (team) => `${team} is one player away from respectability. Be that player.`,
-  (team) => `${team} is currently a cry for help. Fix that.`,
-  (team) => `${team} is understaffed and it shows. Step up.`,
-  (team) => `${team} needs reinforcements before this gets embarrassing.`,
-  (team) => `${team} is thin and everyone can tell. Join ${team}.`,
-  (team) => `${team} is recruiting. The bar is on the floor, literally.`,
-  (team) => `${team} needs a body, any body. Yours works.`,
-  (team) => `${team} is down a player and down on morale. Save them.`,
-  (team) => `${team} could really use you right now.`,
-  (team) => `${team} is one signature away from forfeiting by embarrassment. Sign up.`,
-  (team) => `${team} is standing there alone doing the math on how bad this looks. Help them out.`,
+  (team) => `🪖 ${team} needs bodies. Don't make them beg.`,
+  (team) => `😅 ${team} is one player away from respectability. Be that player.`,
+  (team) => `😩 ${team} is currently a cry for help. Fix that.`,
+  (team) => `📉 ${team} is understaffed and it shows. Step up.`,
+  (team) => `🚨 ${team} needs reinforcements before this gets embarrassing.`,
+  (team) => `👀 ${team} is thin and everyone can tell. Join ${team}.`,
+  (team) => `📣 ${team} is recruiting. The bar is on the floor, literally.`,
+  (team) => `🙋 ${team} needs a body, any body. Yours works.`,
+  (team) => `😔 ${team} is down a player and down on morale. Save them.`,
+  (team) => `🥺 ${team} could really use you right now.`,
+  (team) => `😳 ${team} is one signature away from forfeiting by embarrassment. Sign up.`,
+  (team) => `🧮 ${team} is standing there alone doing the math on how bad this looks. Help them out.`,
 ];
 
 let lastTowRallyTemplate = null;
@@ -3015,11 +3015,11 @@ function towLobbyStatusLine(ctx) {
   const filled = teamAPlayers.length + teamBPlayers.length;
   const rosterSize = ctx.rosterSize || filled;
   const slotsLeft = Math.max(0, rosterSize - filled);
-  const rosterLine = `${ctx.teamA} (${teamAPlayers.length ? teamAPlayers.join(", ") : "nobody yet"}) vs. ${ctx.teamB} (${teamBPlayers.length ? teamBPlayers.join(", ") : "nobody yet"}).`;
-  const slotsLine = `${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} left.`;
+  const rosterLine = `⚔️ ${ctx.teamA} (${teamAPlayers.length ? teamAPlayers.join(", ") : "nobody yet"}) vs. ${ctx.teamB} (${teamBPlayers.length ? teamBPlayers.join(", ") : "nobody yet"}).`;
+  const slotsLine = `🎟️ ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} left.`;
   const neededTeam = teamAPlayers.length <= teamBPlayers.length ? ctx.teamA : ctx.teamB;
   const rally = pickTowRallyLine(neededTeam);
-  return `${slotsLine} ${rosterLine} ${rally}`;
+  return `${rosterLine}\n\n${slotsLine}\n${rally}`;
 }
 
 let lastTowInviteTemplate = null;
@@ -3030,7 +3030,7 @@ export function pickTowInviteMessage(ctx) {
   while (template === lastTowInviteTemplate && SHARE_MESSAGES_TOW_INVITE.length > 1 && guard < 10);
   lastTowInviteTemplate = template;
   const flavor = template(ctx);
-  return (ctx.teamAPlayers || ctx.teamBPlayers) ? `${flavor} ${towLobbyStatusLine(ctx)}` : flavor;
+  return (ctx.teamAPlayers || ctx.teamBPlayers) ? `${flavor}\n\n${towLobbyStatusLine(ctx)}` : flavor;
 }
 
 // Nudge copy for the match screen's "Remind" button — c.name is whoever's
@@ -3054,6 +3054,73 @@ export function pickTowReminderMessage(ctx) {
   while (template === lastTowReminderTemplate && SHARE_MESSAGES_TOW_REMINDER.length > 1 && guard < 10);
   lastTowReminderTemplate = template;
   return template(ctx);
+}
+
+// Brag copy for the "burst complete" payoff screen's Brag button. c.name is
+// whoever just pushed, c.teamName/c.score their team + new total, c.delta
+// the reps just added, c.remaining a pre-formatted "N to go" for their team.
+const SHARE_MESSAGES_TOW_BURST_BRAG = [
+  (c) => `${c.name} just slammed ${c.delta} reps onto ${c.teamName} and the rope FELT that. ${c.teamName}'s sitting at ${c.score} now.`,
+  (c) => `The rope just got violently relocated by ${c.name}'s ${c.delta} reps. ${c.teamName}: ${c.score}. Somebody check on the other end.`,
+  (c) => `${c.name} took a burst personally and turned it into ${c.delta} reps for ${c.teamName}, now at ${c.score}. The other team should be nervous.`,
+  (c) => `${c.delta} reps. That's what ${c.name} just did to that rope on behalf of ${c.teamName}. New total: ${c.score}. You're welcome.`,
+  (c) => `${c.name} showed up, added ${c.delta} reps to ${c.teamName}, and left the rope with an identity crisis. ${c.teamName}'s now at ${c.score}.`,
+  (c) => `Rope status: aggressively yanked. ${c.name} is responsible, ${c.delta} reps is the weapon, ${c.teamName} is now at ${c.score}.`,
+  (c) => `${c.name} just donated ${c.delta} reps of pure violence to ${c.teamName}'s cause. Scoreboard now reads ${c.score}. The floor is still recovering.`,
+  (c) => `Everybody stop what you're doing — ${c.name} put up ${c.delta} reps for ${c.teamName} and the rope is now emotionally compromised. ${c.teamName}: ${c.score}.`,
+  (c) => `${c.name} treated that burst like a personal vendetta: ${c.delta} reps, ${c.teamName} now at ${c.score}. The rope did not consent to this.`,
+  (c) => `${c.teamName} just got a ${c.delta}-rep gift from ${c.name} and is now sitting pretty at ${c.score}. The other side is quietly recalculating their life choices.`,
+  (c) => `${c.name} pulled ${c.delta} reps out of thin air and handed them to ${c.teamName}, now at ${c.score}. This is what dedication to rope-based warfare looks like.`,
+  (c) => `${c.delta} reps just happened because ${c.name} decided the rope needed a lesson. ${c.teamName} is now at ${c.score} and feeling good about it.`,
+  (c) => `${c.name} walked in, dropped ${c.delta} reps on ${c.teamName}'s side, and walked out like it was nothing. Score: ${c.score}. Iconic behavior.`,
+  (c) => `Somebody tell the rope that ${c.name} isn't done — ${c.delta} more reps for ${c.teamName}, now sitting at ${c.score} and gaining confidence by the second.`,
+  (c) => `${c.name}'s burst just added ${c.delta} reps to ${c.teamName}'s pile, bringing them to ${c.score}. The rope has filed for emotional damages.`,
+];
+
+// Appended flavor naming who's up next — nextName/nextTeamName always
+// present when appended (caller omits this line entirely otherwise).
+const TOW_BURST_NEXT_LINES = [
+  (c) => `Up next: ${c.nextName} (${c.nextTeamName}), who has no idea what they're walking into.`,
+  (c) => `${c.nextName} is on deck for ${c.nextTeamName} next. Hope they stretched.`,
+  (c) => `${c.nextName} of ${c.nextTeamName} is up next and the pressure is now entirely theirs.`,
+  (c) => `Next up: ${c.nextName}, representing ${c.nextTeamName}. No pressure, all pressure.`,
+  (c) => `${c.nextTeamName} is sending ${c.nextName} up next. Godspeed.`,
+  (c) => `On deck for ${c.nextTeamName}: ${c.nextName}. The rope remembers everything.`,
+  (c) => `${c.nextName} is up next for ${c.nextTeamName} and about to learn what this rope is made of.`,
+  (c) => `${c.nextTeamName}'s turn is coming courtesy of ${c.nextName}. Somebody hand them a towel.`,
+];
+
+// Appended when the burst just ended the match.
+const TOW_BURST_WIN_LINES = [
+  (c) => `And that's the match — ${c.teamName} just dragged that rope all the way home.`,
+  (c) => `Game over. ${c.teamName} wins. The rope has nothing left to give.`,
+  (c) => `${c.teamName} just closed it out. The other side can hear it from here.`,
+  (c) => `That's the ballgame — ${c.teamName} took the whole rope and didn't share.`,
+];
+const TOW_BURST_LOSS_LINES = [
+  (c) => `Match's over though — the other side got there first. ${c.teamName} fought hard anyway.`,
+  (c) => `Game's done. Not ${c.teamName}'s side that got the rope, unfortunately.`,
+  (c) => `That's the match — the other team took it. ${c.teamName} left it all out there.`,
+];
+
+let lastTowBurstBragTemplate = null;
+let lastTowBurstSuffixTemplate = null;
+export function pickTowBurstBragMessage(ctx) {
+  let template;
+  let guard = 0;
+  do { template = pickFrom(SHARE_MESSAGES_TOW_BURST_BRAG); guard++; }
+  while (template === lastTowBurstBragTemplate && SHARE_MESSAGES_TOW_BURST_BRAG.length > 1 && guard < 10);
+  lastTowBurstBragTemplate = template;
+  const flavor = template(ctx);
+
+  const suffixPool = ctx.isGameOver ? (ctx.won ? TOW_BURST_WIN_LINES : TOW_BURST_LOSS_LINES) : (ctx.nextName ? TOW_BURST_NEXT_LINES : null);
+  if (!suffixPool) return flavor;
+  let suffixTemplate;
+  guard = 0;
+  do { suffixTemplate = pickFrom(suffixPool); guard++; }
+  while (suffixTemplate === lastTowBurstSuffixTemplate && suffixPool.length > 1 && guard < 10);
+  lastTowBurstSuffixTemplate = suffixTemplate;
+  return `${flavor} ${suffixTemplate(ctx)}`;
 }
 
 // Share copy for an individual session-detail screen's share button.

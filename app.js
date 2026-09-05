@@ -11288,7 +11288,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=145").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=147").then((module) => {
       workoutShareMessages = module;
       return module;
     });
