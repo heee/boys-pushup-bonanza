@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=270">
+<link rel="stylesheet" href="style.css?v=271">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -110,13 +110,7 @@
 
         <button id="btn-start" class="btn btn-giant btn-primary">START</button>
 
-        <div id="goal-progress-card" class="goal-progress-card hidden">
-          <div id="goal-progress-ring" class="goal-ring"></div>
-          <div class="goal-progress-text">
-            <p id="goal-progress-count" class="goal-progress-count"></p>
-            <p id="goal-progress-label" class="goal-progress-label"></p>
-          </div>
-        </div>
+        <div id="goal-thermometers" class="goal-thermometers hidden"></div>
 
         <button id="device-location-row" type="button" class="device-location-row" aria-haspopup="dialog">
           <span aria-hidden="true">&#x1F4CD;</span>
@@ -1760,51 +1754,37 @@
       <h1 class="screen-title">Personal goals</h1>
 
       <div class="settings-section">
-        <div class="tier1-eyebrow">Targets</div>
-        <div class="settings-block settings-category-list" id="goal-target-list">
-          <button type="button" class="settings-category-row" data-goal-key="daily">
-            <span class="settings-category-title">Daily reps</span>
-            <span id="goal-value-daily" class="settings-category-value"></span>
+        <div class="tier1-eyebrow">Show a goal for</div>
+        <p class="settings-hint">Turn on a workout type to track a goal for it and show a progress bar on your start screen.</p>
+        <div class="settings-block settings-category-list" id="goal-type-list">
+          <div class="settings-category-row goal-type-row" data-goal-type="pushups">
+            <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">💪</span>
+            <span class="settings-category-title">Pushups</span>
+            <span id="goal-value-pushups" class="settings-category-value"></span>
+            <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="pushups" aria-label="Track a Pushups goal">
             <span class="settings-category-chevron" aria-hidden="true">›</span>
-          </button>
-          <button type="button" class="settings-category-row" data-goal-key="weekly">
-            <span class="settings-category-title">Weekly reps</span>
-            <span id="goal-value-weekly" class="settings-category-value"></span>
-            <span class="settings-category-chevron" aria-hidden="true">›</span>
-          </button>
-          <button type="button" class="settings-category-row" data-goal-key="monthly">
-            <span class="settings-category-title">Monthly reps</span>
-            <span id="goal-value-monthly" class="settings-category-value"></span>
-            <span class="settings-category-chevron" aria-hidden="true">›</span>
-          </button>
-          <button type="button" class="settings-category-row" data-goal-key="streak">
-            <span class="settings-category-title">Streak</span>
-            <span id="goal-value-streak" class="settings-category-value"></span>
-            <span class="settings-category-chevron" aria-hidden="true">›</span>
-          </button>
-        </div>
-        <div class="settings-block" style="margin-top:0.75rem">
-          <div class="settings-block-row">
-            <label class="field-label" style="margin:0">Count reps from</label>
-            <div id="goal-scope-select" class="segmented theme-select-compact" role="tablist">
-              <button type="button" class="segment active" data-goal-scope="pushups">Pushups only</button>
-              <button type="button" class="segment" data-goal-scope="all">All exercises</button>
-            </div>
           </div>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <div class="tier1-eyebrow">Display</div>
-        <div class="settings-block">
-          <label class="field-label toggle-row goal-display-toggle">
-            <span>Pill in top bar: Small badge next to streak</span>
-            <input id="chk-goal-show-pill" type="checkbox">
-          </label>
-          <label class="field-label toggle-row goal-display-toggle">
-            <span>Ring on start screen: Full progress card between greeting and Start</span>
-            <input id="chk-goal-show-ring" type="checkbox">
-          </label>
+          <div class="settings-category-row goal-type-row" data-goal-type="planks">
+            <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">🪵</span>
+            <span class="settings-category-title">Planks</span>
+            <span id="goal-value-planks" class="settings-category-value"></span>
+            <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="planks" aria-label="Track a Planks goal">
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </div>
+          <div class="settings-category-row goal-type-row" data-goal-type="squats">
+            <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">🦵</span>
+            <span class="settings-category-title">Squats</span>
+            <span id="goal-value-squats" class="settings-category-value"></span>
+            <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="squats" aria-label="Track a Squats goal">
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </div>
+          <div class="settings-category-row goal-type-row" data-goal-type="pullups">
+            <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">💪</span>
+            <span class="settings-category-title">Pull-ups</span>
+            <span id="goal-value-pullups" class="settings-category-value"></span>
+            <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="pullups" aria-label="Track a Pull-ups goal">
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </div>
         </div>
       </div>
     </section>
@@ -1814,14 +1794,17 @@
       <div class="edit-profile-header">
         <button id="btn-settings-goal-edit-back" type="button" class="challenge-detail-back">← Personal goals</button>
       </div>
-      <h1 id="goal-edit-title" class="screen-title">Daily reps</h1>
+      <h1 id="goal-edit-title" class="screen-title">Pushups goal</h1>
 
       <div class="settings-section">
         <div class="settings-block tier2">
-          <label class="field-label toggle-row">
-            <span>Enable this goal</span>
-            <input id="chk-goal-edit-enabled" type="checkbox">
-          </label>
+          <label id="goal-edit-period-label" class="field-label">Track</label>
+          <div id="goal-edit-period-select" class="segmented" role="tablist">
+            <button type="button" class="segment" data-goal-period="daily">Daily</button>
+            <button type="button" class="segment" data-goal-period="weekly">Weekly</button>
+            <button type="button" class="segment" data-goal-period="monthly">Monthly</button>
+            <button type="button" class="segment" data-goal-period="streak">Streak</button>
+          </div>
           <div class="settings-divider"></div>
           <label id="goal-edit-target-label" class="field-label">Target</label>
           <div class="stepper-row">
@@ -1951,6 +1934,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=280"></script>
+<script type="module" src="app.js?v=281"></script>
 </body>
 </html>

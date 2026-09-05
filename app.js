@@ -1663,42 +1663,54 @@ function renderStreakBadge() {
     html = `❄️<span class="streak-num streak-zero">0</span>`;
     el.title = "";
   }
-  const goals = goalsFor(state.currentUser);
-  if (goals.showPill) {
-    const activeGoal = activeGoalFor(state.currentUser);
-    if (activeGoal) {
-      const reached = activeGoal.current >= activeGoal.target;
-      html += `<span class="streak-badge-goal${reached ? " goal-reached" : ""}">🎯${activeGoal.current}/${activeGoal.target}</span>`;
-    }
-  }
   el.innerHTML = html;
 }
 
 // ------------------- personal goals -------------------
 
-const DEFAULT_GOALS = {
-  scope: "pushups",
-  daily: { enabled: false, target: 50 },
-  weekly: { enabled: false, target: 300 },
-  monthly: { enabled: false, target: 1200 },
-  streak: { enabled: false, target: 30 },
-  showPill: false,
-  showRing: true,
+// Per exercise type: which session activity it tracks, its display label/icon,
+// the unit its target is entered in (plank sessions store seconds, not reps),
+// and the default target to seed each period with the first time it's picked.
+const GOAL_TYPE_META = {
+  pushups: { activity: "pushups", label: "Pushups", icon: "💪", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
+  planks: { activity: "planks", label: "Planks", icon: "🪵", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
+  squats: { activity: "squats", label: "Squats", icon: "🦵", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
+  pullups: { activity: "pullups", label: "Pull-ups", icon: "💪", unit: "reps", defaults: { daily: 10, weekly: 50, monthly: 200, streak: 30 } },
 };
-const GOAL_ORDER = ["daily", "weekly", "monthly", "streak"];
-const GOAL_LABELS = { daily: "Daily goal", weekly: "Weekly goal", monthly: "Monthly goal", streak: "Streak goal" };
-const GOAL_COUNT_SUFFIX = { daily: "today", weekly: "this week", monthly: "this month", streak: "days" };
+const GOAL_TYPES = Object.keys(GOAL_TYPE_META);
+const GOAL_PERIODS = ["daily", "weekly", "monthly", "streak"];
+const GOAL_PERIOD_LABELS = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", streak: "Streak" };
+const GOAL_PERIOD_SUFFIX = { daily: "daily", weekly: "weekly", monthly: "monthly", streak: "days" };
+const GOAL_STEP = { reps: { daily: 5, weekly: 25, monthly: 100, streak: 1 }, seconds: { daily: 15, weekly: 60, monthly: 300, streak: 1 } };
+const GOAL_MIN = GOAL_STEP;
+
+function defaultTypeGoal(type) {
+  return { enabled: false, period: "daily", target: GOAL_TYPE_META[type].defaults.daily };
+}
+
+// Reads a goal set saved before goals were organized per exercise type (it
+// used to be a single set of daily/weekly/monthly/streak targets scoped to
+// "pushups" or "all exercises") and carries the first one that was enabled
+// over to the new Pushups goal, so nobody silently loses a goal they'd set up.
+function migrateLegacyPushupGoal(stored) {
+  if (!stored || typeof stored.daily !== "object") return null;
+  for (const period of GOAL_PERIODS) {
+    const g = stored[period];
+    if (g?.enabled && g.target) return { enabled: true, period, target: g.target };
+  }
+  return null;
+}
 
 function goalsFor(user) {
   const stored = getCachedData().goals?.[user];
-  return {
-    ...DEFAULT_GOALS,
-    ...stored,
-    daily: { ...DEFAULT_GOALS.daily, ...stored?.daily },
-    weekly: { ...DEFAULT_GOALS.weekly, ...stored?.weekly },
-    monthly: { ...DEFAULT_GOALS.monthly, ...stored?.monthly },
-    streak: { ...DEFAULT_GOALS.streak, ...stored?.streak },
-  };
+  const legacyPushup = stored && !stored.pushups ? migrateLegacyPushupGoal(stored) : null;
+  const result = {};
+  for (const type of GOAL_TYPES) {
+    const fromStored = stored?.[type];
+    result[type] = { ...defaultTypeGoal(type), ...fromStored };
+    if (type === "pushups" && !fromStored && legacyPushup) result[type] = { ...defaultTypeGoal(type), ...legacyPushup };
+  }
+  return result;
 }
 
 async function changeUserGoals(name, nextGoals) {
@@ -1721,51 +1733,60 @@ async function changeUserGoals(name, nextGoals) {
   return true;
 }
 
-function sumRepsInPeriod(user, period, scope) {
-  const activity = scope === "pushups" ? "pushups" : null;
+function sumForPeriodActivity(user, period, activity) {
   const sessions = indexedSessionsForUser(user, activity);
-  const start = periodStart(period).getTime();
+  const periodKey = period === "daily" ? "day" : period === "weekly" ? "week" : "month";
+  const start = periodStart(periodKey).getTime();
   return sessions.reduce((sum, s) => (sessionTimestamp(s) >= start ? sum + s.count : sum), 0);
 }
 
-function activeGoalFor(user) {
+// Every enabled, targeted goal across all four types — up to one per type —
+// each with its current progress computed, for the start-screen thermometer row.
+function activeGoalsFor(user) {
   const goals = goalsFor(user);
-  for (const key of GOAL_ORDER) {
-    const g = goals[key];
+  const out = [];
+  for (const type of GOAL_TYPES) {
+    const g = goals[type];
     if (!g.enabled || !g.target) continue;
-    let current;
-    if (key === "streak") {
-      current = computeStreakCore(indexedSessionsForUser(user, "pushups")).streak;
-    } else {
-      const period = key === "daily" ? "day" : key === "weekly" ? "week" : "month";
-      current = sumRepsInPeriod(user, period, goals.scope);
-    }
-    return { key, label: GOAL_LABELS[key], current, target: g.target };
+    const meta = GOAL_TYPE_META[type];
+    const current = g.period === "streak"
+      ? computeStreakCore(indexedSessionsForUser(user, meta.activity)).streak
+      : sumForPeriodActivity(user, g.period, meta.activity);
+    out.push({ type, label: meta.label, unit: meta.unit, period: g.period, current, target: g.target });
   }
-  return null;
+  return out;
 }
 
-function renderGoalProgressCard() {
-  const card = $("goal-progress-card");
+function goalCountText(goal) {
+  const suffix = GOAL_PERIOD_SUFFIX[goal.period];
+  const asDuration = goal.unit === "seconds" && goal.period !== "streak";
+  const format = (n) => (asDuration ? formatDuration(n * 1000) : formatNumber(n));
+  return `${format(goal.current)}/${format(goal.target)}${suffix ? ` ${suffix}` : ""}`;
+}
+
+function renderGoalThermometers() {
+  const container = $("goal-thermometers");
   if (!state.currentUser) {
-    card.classList.add("hidden");
+    container.classList.add("hidden");
+    container.innerHTML = "";
     return;
   }
-  const goals = goalsFor(state.currentUser);
-  const activeGoal = goals.showRing ? activeGoalFor(state.currentUser) : null;
-  if (!activeGoal) {
-    card.classList.add("hidden");
+  const goals = activeGoalsFor(state.currentUser);
+  if (!goals.length) {
+    container.classList.add("hidden");
+    container.innerHTML = "";
     return;
   }
-  card.classList.remove("hidden");
-  const reached = activeGoal.current >= activeGoal.target;
-  const pct = Math.min(100, Math.round((activeGoal.current / activeGoal.target) * 100));
-  const ring = $("goal-progress-ring");
-  ring.style.setProperty("--ring-pct", `${pct}%`);
-  ring.classList.toggle("goal-ring-reached", reached);
-  const suffix = GOAL_COUNT_SUFFIX[activeGoal.key];
-  $("goal-progress-count").textContent = `${activeGoal.current} / ${activeGoal.target}${suffix ? ` ${suffix}` : ""}`;
-  $("goal-progress-label").textContent = activeGoal.label;
+  container.classList.remove("hidden");
+  container.innerHTML = goals.map((goal) => {
+    const reached = goal.current >= goal.target;
+    const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+    return `<div class="goal-thermo">
+      <div class="thermometer-wrap"><div class="thermometer-track"><div class="thermometer-fill${reached ? " thermometer-win" : ""}" style="width:${pct}%"></div></div></div>
+      <p class="goal-thermo-count">${escapeHtml(goalCountText(goal))}</p>
+      <p class="goal-thermo-label">${escapeHtml(goal.label)}</p>
+    </div>`;
+  }).join("");
 }
 
 // Which bottom tab lights up for a given screen — every screen not listed
@@ -1845,7 +1866,7 @@ function showScreen(id) {
   });
   syncAccessibilityState();
   renderStreakBadge();
-  renderGoalProgressCard();
+  renderGoalThermometers();
   renderGamesNavDot();
 
   if (id === "screen-user") {
@@ -1884,7 +1905,7 @@ function showScreen(id) {
     setAvatarEl($("workout-avatar"), state.currentAvatar, "2rem");
     renderWeightedQuickToggle();
     renderWorkoutInstructionLine();
-    renderGoalProgressCard();
+    renderGoalThermometers();
     renderDeviceLocation();
     // Fresh Home visits always reset to Classic; arriving pre-selected from
     // Explore Modes (openPushupModeFromExplore) skips this exactly once.
@@ -2290,7 +2311,7 @@ function renderSettingsCategoryValues() {
   $("settings-category-appearance-value").textContent = theme;
   const mySessionCount = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser).length;
   $("settings-category-mysessions-value").textContent = `${mySessionCount} ${mySessionCount === 1 ? "session" : "sessions"}`;
-  const activeGoalCount = GOAL_ORDER.filter((key) => goalsFor(state.currentUser)[key].enabled).length;
+  const activeGoalCount = GOAL_TYPES.filter((type) => goalsFor(state.currentUser)[type].enabled).length;
   $("settings-category-goals-value").textContent = activeGoalCount ? `${activeGoalCount} active` : "Off";
 }
 
@@ -2309,91 +2330,98 @@ $("btn-settings-goal-edit-back").addEventListener("click", () => showScreen("scr
 
 // ------------------- settings > personal goals -------------------
 
-const GOAL_STEP = { daily: 5, weekly: 25, monthly: 100, streak: 1 };
-const GOAL_MIN = { daily: 5, weekly: 25, monthly: 100, streak: 1 };
-const GOAL_UNIT_LABEL = { daily: "Target (reps)", weekly: "Target (reps)", monthly: "Target (reps)", streak: "Target (days)" };
-let goalEditKey = "daily";
+let goalEditType = "pushups";
 
-function goalValueText(key, g) {
+function goalTargetText(type, target, period) {
+  const asDuration = GOAL_TYPE_META[type].unit === "seconds" && period !== "streak";
+  return asDuration ? formatDuration(target * 1000) : String(target);
+}
+
+function goalValueText(type, g) {
   if (!g.enabled) return "Off";
-  return key === "streak" ? `${g.target} days` : `${g.target}`;
+  return `${goalTargetText(type, g.target, g.period)} · ${GOAL_PERIOD_LABELS[g.period]}`;
 }
 
 function renderGoalsSettingsScreen() {
   const goals = goalsFor(state.currentUser);
-  for (const key of GOAL_ORDER) {
-    const el = $(`goal-value-${key}`);
-    el.textContent = goalValueText(key, goals[key]);
-    el.classList.toggle("settings-category-value-active", goals[key].enabled);
+  for (const type of GOAL_TYPES) {
+    const g = goals[type];
+    const el = $(`goal-value-${type}`);
+    el.textContent = goalValueText(type, g);
+    el.classList.toggle("settings-category-value-active", g.enabled);
+    document.querySelector(`[data-goal-type-toggle="${type}"]`).checked = g.enabled;
   }
-  $("goal-scope-select").querySelectorAll(".segment").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.goalScope === goals.scope);
-  });
-  $("chk-goal-show-pill").checked = goals.showPill;
-  $("chk-goal-show-ring").checked = goals.showRing;
 }
 
-$("goal-target-list").addEventListener("click", (e) => {
-  const row = e.target.closest(".settings-category-row");
-  if (!row || !row.dataset.goalKey) return;
-  goalEditKey = row.dataset.goalKey;
+$("goal-type-list").addEventListener("click", (e) => {
+  if (e.target.closest(".goal-type-switch")) return;
+  const row = e.target.closest(".goal-type-row");
+  if (!row) return;
+  goalEditType = row.dataset.goalType;
   showScreen("screen-settings-goal-edit");
 });
 
-$("goal-scope-select").addEventListener("click", (e) => {
-  const btn = e.target.closest(".segment");
-  if (!btn) return;
+$("goal-type-list").addEventListener("change", (e) => {
+  const toggle = e.target.closest(".goal-type-switch");
+  if (!toggle) return;
+  const type = toggle.dataset.goalTypeToggle;
   const goals = goalsFor(state.currentUser);
-  changeUserGoals(state.currentUser, { ...goals, scope: btn.dataset.goalScope });
+  changeUserGoals(state.currentUser, { ...goals, [type]: { ...goals[type], enabled: toggle.checked } });
   renderGoalsSettingsScreen();
-  renderStreakBadge();
-  renderGoalProgressCard();
+  renderGoalThermometers();
 });
-
-$("chk-goal-show-pill").addEventListener("change", (e) => {
-  const goals = goalsFor(state.currentUser);
-  changeUserGoals(state.currentUser, { ...goals, showPill: e.target.checked });
-  renderStreakBadge();
-});
-
-$("chk-goal-show-ring").addEventListener("change", (e) => {
-  const goals = goalsFor(state.currentUser);
-  changeUserGoals(state.currentUser, { ...goals, showRing: e.target.checked });
-  renderGoalProgressCard();
-});
-
-const GOAL_EDIT_TITLE = { daily: "Daily reps", weekly: "Weekly reps", monthly: "Monthly reps", streak: "Streak" };
 
 function renderGoalEditScreen() {
   const goals = goalsFor(state.currentUser);
-  const g = goals[goalEditKey];
-  $("goal-edit-title").textContent = GOAL_EDIT_TITLE[goalEditKey];
-  $("goal-edit-target-label").textContent = GOAL_UNIT_LABEL[goalEditKey];
-  $("chk-goal-edit-enabled").checked = g.enabled;
-  $("goal-edit-amount").textContent = g.target || GOAL_MIN[goalEditKey];
+  const g = goals[goalEditType];
+  const meta = GOAL_TYPE_META[goalEditType];
+  $("goal-edit-title").textContent = `${meta.label} goal`;
+  $("goal-edit-period-select").querySelectorAll(".segment").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.goalPeriod === g.period);
+  });
+  $("goal-edit-target-label").textContent = g.period === "streak" ? "Target (days)" : meta.unit === "seconds" ? "Target" : "Target (reps)";
+  $("goal-edit-amount").textContent = goalTargetText(goalEditType, g.target, g.period);
+  $("goal-edit-amount").dataset.value = g.target;
 }
 
 function saveGoalEdit(patch) {
   const goals = goalsFor(state.currentUser);
-  const nextGoal = { ...goals[goalEditKey], ...patch };
-  changeUserGoals(state.currentUser, { ...goals, [goalEditKey]: nextGoal });
+  const nextGoal = { ...goals[goalEditType], ...patch };
+  changeUserGoals(state.currentUser, { ...goals, [goalEditType]: nextGoal });
   renderGoalsSettingsScreen();
-  renderStreakBadge();
-  renderGoalProgressCard();
+  renderGoalThermometers();
 }
 
-$("chk-goal-edit-enabled").addEventListener("change", (e) => saveGoalEdit({ enabled: e.target.checked }));
+$("goal-edit-period-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  const period = btn.dataset.goalPeriod;
+  const goals = goalsFor(state.currentUser);
+  const meta = GOAL_TYPE_META[goalEditType];
+  // Switching period swaps in that period's default target rather than
+  // keeping e.g. a "300" weekly target as a nonsensical "300" streak-days target.
+  const target = goals[goalEditType].period === period ? goals[goalEditType].target : meta.defaults[period];
+  saveGoalEdit({ period, target });
+  renderGoalEditScreen();
+});
+
 $("btn-goal-edit-minus").addEventListener("click", () => {
-  const current = Number($("goal-edit-amount").textContent) || GOAL_MIN[goalEditKey];
-  const next = Math.max(GOAL_MIN[goalEditKey], current - GOAL_STEP[goalEditKey]);
-  $("goal-edit-amount").textContent = next;
+  const goals = goalsFor(state.currentUser);
+  const period = goals[goalEditType].period;
+  const unit = GOAL_TYPE_META[goalEditType].unit === "seconds" && period !== "streak" ? "seconds" : "reps";
+  const current = Number($("goal-edit-amount").dataset.value) || GOAL_MIN[unit][period];
+  const next = Math.max(GOAL_MIN[unit][period], current - GOAL_STEP[unit][period]);
   saveGoalEdit({ target: next });
+  renderGoalEditScreen();
 });
 $("btn-goal-edit-plus").addEventListener("click", () => {
-  const current = Number($("goal-edit-amount").textContent) || GOAL_MIN[goalEditKey];
-  const next = current + GOAL_STEP[goalEditKey];
-  $("goal-edit-amount").textContent = next;
+  const goals = goalsFor(state.currentUser);
+  const period = goals[goalEditType].period;
+  const unit = GOAL_TYPE_META[goalEditType].unit === "seconds" && period !== "streak" ? "seconds" : "reps";
+  const current = Number($("goal-edit-amount").dataset.value) || GOAL_MIN[unit][period];
+  const next = current + GOAL_STEP[unit][period];
   saveGoalEdit({ target: next });
+  renderGoalEditScreen();
 });
 
 function renderWeightedSettings() {
@@ -5292,7 +5320,7 @@ async function confirmDeleteSession(id) {
   toast("Session deleted.");
   renderMySessions();
   renderStreakBadge();
-  renderGoalProgressCard();
+  renderGoalThermometers();
   return true;
 }
 
@@ -5867,7 +5895,7 @@ async function renderDashboard() {
   syncLeaderboardModeControl();
   paintActiveBonanzaView();
   renderStreakBadge();
-  renderGoalProgressCard();
+  renderGoalThermometers();
 }
 
 // Every leaderboard surface uses the same mode slice. Sessions without a
@@ -13594,7 +13622,7 @@ async function init() {
       cacheData(data);
       renderUserList();
       renderStreakBadge();
-      renderGoalProgressCard();
+      renderGoalThermometers();
       renderGamesNavDot();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
