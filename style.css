@@ -4218,7 +4218,7 @@ body:has(#screen-challenges.active) #app {
   line-height: 1;
 }
 .challenge-card-heading { min-width: 0; }
-.challenge-card-title { font-size: 1.15rem; font-weight: 900; line-height: 1.12; color: var(--text); }
+.challenge-card-title { font-size: 0.95rem; font-weight: 650; line-height: 1.12; color: var(--text); }
 .challenge-card-dates { font-size: 0.82rem; font-weight: 400; opacity: 0.92; margin-top: 0.15rem; color: var(--text-dim); }
 .challenge-card-meta { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 400; margin-top: 0.45rem; color: var(--text-tertiary); }
 .challenge-stat-icon { display: block; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; }
