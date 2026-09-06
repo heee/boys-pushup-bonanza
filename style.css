@@ -750,7 +750,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   max-width: min(92%, 24rem);
   position: absolute;
   left: 50%;
-  bottom: calc(var(--tab-bar-height) + 0.9rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--tab-bar-height) + 0.45rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   margin: 0;
   padding: 0.45rem 0.65rem;
