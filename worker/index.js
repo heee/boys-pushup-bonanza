@@ -1079,26 +1079,24 @@ function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
 
-function validateGoalTarget(value) {
-  if (!value || typeof value !== "object") return { enabled: false, target: 0 };
-  const target = Math.floor(Number(value.target));
+const GOAL_TYPES = ["pushups", "planks", "squats", "pullups"];
+const GOAL_PERIODS = ["daily", "weekly", "monthly", "streak"];
+
+function validateTypeGoal(value) {
+  const period = GOAL_PERIODS.includes(value?.period) ? value.period : "daily";
+  const target = Math.floor(Number(value?.target));
   return {
-    enabled: Boolean(value.enabled),
+    enabled: Boolean(value?.enabled),
+    period,
     target: Number.isFinite(target) && target > 0 && target <= 1000000 ? target : 0,
   };
 }
 
 function validateGoals(body) {
   if (!body || typeof body !== "object") return null;
-  return {
-    scope: body.scope === "all" ? "all" : "pushups",
-    daily: validateGoalTarget(body.daily),
-    weekly: validateGoalTarget(body.weekly),
-    monthly: validateGoalTarget(body.monthly),
-    streak: validateGoalTarget(body.streak),
-    showPill: Boolean(body.showPill),
-    showRing: Boolean(body.showRing),
-  };
+  const result = {};
+  for (const type of GOAL_TYPES) result[type] = validateTypeGoal(body[type]);
+  return result;
 }
 
 function validateChallenge(body) {
