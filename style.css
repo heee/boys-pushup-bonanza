@@ -3066,6 +3066,34 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .dashboard-header .screen-title,
 .challenges-header .screen-title { margin: 0; }
 .challenges-create-btn { flex-shrink: 0; }
+
+/* Frozen pane: same technique as Challenges below — bound #app to the
+   viewport and let only the active bonanza view scroll internally, so the
+   title/mode-toggle/period-select stack above it (My Bonanza/Boys Bonanza
+   toggle and the Day/Week/.../All-time tabs) stays in view. Without this,
+   position:sticky on period-select wouldn't stick at all: #app-main
+   declares its own overflow-y:auto, so it — not the window — becomes the
+   nearest scrolling ancestor for sticky purposes, but #app-main itself
+   never actually scrolls (it just grows with #app on every other screen),
+   leaving a sticky child with nothing to stick against. */
+body:has(#screen-dashboard.active) #app {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+#screen-dashboard { min-height: 0; overflow: hidden; }
+#period-select {
+  flex-shrink: 0;
+  margin: 0.45rem -1.1rem 0.8rem;
+  padding: 0 1.1rem 0.7rem;
+  background: var(--bg);
+  box-shadow: 0 8px 10px -12px rgba(0, 0, 0, 0.75);
+}
+.bonanza-scroll-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 .leaderboard-mode-picker {
   position: relative;
   flex-shrink: 0;
