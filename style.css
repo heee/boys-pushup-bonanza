@@ -4874,6 +4874,70 @@ body:has(#screen-challenges.active) #app {
   margin-top: 0.6rem;
 }
 
+.challenge-winner-line {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: -0.3rem 0 1rem;
+}
+
+/* Reps Bingo — shared 5x5 board. Square taps jump straight to the matching
+   workout screen (navigateToBingoSquare), so cells look and behave like
+   buttons rather than static tiles. */
+.bingo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 1.1rem;
+}
+.bingo-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  padding: 0.25rem 0.15rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.bingo-cell:active { transform: scale(0.95); }
+.bingo-cell-emoji { font-size: 1.25rem; line-height: 1; }
+.bingo-cell-label {
+  font-size: 0.56rem;
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: var(--text-dim);
+}
+.bingo-cell-free {
+  background: var(--bg-elevated-2);
+}
+.bingo-cell-free .bingo-cell-label { color: var(--gold); font-weight: 900; }
+.bingo-cell-done {
+  background: color-mix(in srgb, var(--success) 22%, var(--bg-elevated));
+}
+.bingo-cell-done .bingo-cell-label { color: var(--success); }
+.bingo-cell-badge {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: var(--success);
+}
+.bingo-cell-free .bingo-cell-badge { color: var(--gold); }
+
 .challenge-pr-achieved { text-align: center; }
 .challenge-pr-achieved-title {
   font-size: 1.15rem;

@@ -109,6 +109,7 @@ import { modeStatsModel, modifiersUsedStat, modesUsedStat, totalTimeStat } from 
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=138";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
+import { adjacentBingoCycle, bingoCompletionForUser, bingoCycleById, bingoCycleForDate, bingoLeaderboard, bingoSquaresChecked, bingoWinners, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=1";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=144";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
@@ -7568,7 +7569,8 @@ function paintChallengeList() {
 
   const el = $("challenge-list");
   el.innerHTML = "";
-  if (!list.length) {
+  const bingoCycle = bingoCycleForTab(tab, now);
+  if (!list.length && !bingoCycle) {
     const msg = tab === "active"
       ? "No challenge running right now — check Upcoming."
       : tab === "upcoming"
@@ -7577,6 +7579,9 @@ function paintChallengeList() {
     el.innerHTML = `<p class="leaderboard-empty">${msg}</p>`;
     return;
   }
+  // Bingo is recurring rather than curated, so it always leads whichever tab
+  // its current/next/previous cycle belongs to.
+  if (bingoCycle) el.appendChild(buildBingoCard(bingoCycle, now));
   for (const c of list) {
     el.appendChild(buildChallengeCard(c, now));
   }
@@ -8156,6 +8161,10 @@ function buildProgressThermometer(current, goal, notched = false) {
 }
 
 function renderChallengeDetail() {
+  if (isBingoCycleId(state.openChallengeId)) {
+    renderBingoDetail();
+    return;
+  }
   const c = challengeDefs.find((x) => x.id === state.openChallengeId);
   const body = $("challenge-detail-body");
   if (!c) {
@@ -8378,6 +8387,291 @@ async function joinChallenge(id) {
     paintChallengeList();
     const c = challengeDefs.find((x) => x.id === id);
     if (c) showChallengeJoinToast(c, new Date());
+    else if (isBingoCycleId(id)) toast(queued ? "Joined on this device — waiting to sync." : "You're in — go fill the board! 🧩");
+  }
+}
+
+// ------------------- reps bingo -------------------
+//
+// A recurring 14-day board challenge layered onto the Challenges module (see
+// screens/bingo.js for the pure logic + design rationale). Unlike the
+// curated challenges.json entries, its board is generated on the fly from
+// the cycle id (deterministic, so every device draws the identical shared
+// board) rather than looked up in challengeDefs — so it needs its own small
+// set of render/lookup functions instead of challengeDefs.find(...).
+
+function bingoParticipantsOf(cycleId) {
+  return getCachedData().challengeParticipants[cycleId] || [];
+}
+
+// All sessions (any type/mode) logged by any of the cycle's participants
+// within the cycle window — the shared pool every square/leaderboard/
+// category-point calc below filters down from.
+function bingoSessionsForCycle(cycle, participants) {
+  const startTime = cycle.startDate.getTime();
+  const endTime = cycle.endDate.getTime();
+  const sessions = [];
+  for (const participant of participants) {
+    for (const session of indexedSessionsForUser(participant)) {
+      const t = sessionTimestamp(session);
+      if (t >= startTime && t <= endTime) sessions.push(session);
+    }
+  }
+  return sessions;
+}
+
+// One card per relevant tab: the cycle in progress for Active, the next one
+// for Upcoming, the immediately-preceding one for Past (older cycles are
+// still reachable by id via a share link, just not listed).
+function bingoCycleForTab(tab, now) {
+  const current = bingoCycleForDate(now);
+  if (tab === "active") return current;
+  if (tab === "upcoming") return adjacentBingoCycle(current, 1);
+  if (tab === "past") return adjacentBingoCycle(current, -1);
+  return null;
+}
+
+function buildBingoCard(cycle, now) {
+  const board = generateBingoBoard(cycle.id);
+  const participants = bingoParticipantsOf(cycle.id);
+  const joined = participants.includes(state.currentUser);
+  const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
+
+  const card = document.createElement("div");
+  card.className = "challenge-card";
+  card.style.setProperty("--challenge-color", "#4a2e6b");
+  card.addEventListener("click", () => openBingoDetail(cycle.id));
+
+  let dateLabel;
+  if (status === "active") {
+    const d = Math.max(0, Math.ceil((cycle.endDate - now) / 86400000));
+    dateLabel = `${d} day${d === 1 ? "" : "s"} left`;
+  } else if (status === "upcoming") {
+    const d = Math.max(0, Math.ceil((cycle.startDate - now) / 86400000));
+    dateLabel = `in ${d} day${d === 1 ? "" : "s"}`;
+  }
+
+  const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
+  const showInlineChip = status !== "past" && !joined;
+
+  let metaLine;
+  let winnerChipHTML = "";
+  if (status === "past") {
+    const sessions = bingoSessionsForCycle(cycle, participants);
+    const result = bingoWinners(board, participants, sessions, cycle, sessionTimestamp);
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined`;
+    if (result.winners.length) {
+      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${result.winners.map(escapeHtml).join(" & ")}</span>`;
+    }
+  } else {
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · 5×5 shared board`;
+  }
+
+  let html = `
+    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
+      <div class="challenge-card-emoji">🧩</div>
+      <div class="challenge-card-heading">
+        <div class="challenge-card-title">Reps Bingo</div>
+        <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
+      </div>
+    </div>
+    <div class="challenge-card-meta">${metaLine}</div>
+  `;
+
+  if (joined && status !== "past") {
+    const sessions = bingoSessionsForCycle(cycle, participants);
+    const mySquares = bingoSquaresChecked(bingoCompletionForUser(board, sessions, state.currentUser, cycle, sessionTimestamp));
+    const progressLabel = `${mySquares} of 25 squares`;
+    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="25" aria-valuenow="${mySquares}">${buildProgressThermometer(mySquares, 25)}</div>`;
+  }
+
+  if (status !== "past" && joined) {
+    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
+  } else if (winnerChipHTML) {
+    html += winnerChipHTML;
+  }
+
+  card.innerHTML = html;
+
+  if (status !== "past" && !joined) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary challenge-join-btn";
+    btn.textContent = "JOIN";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      joinChallenge(cycle.id);
+    });
+    card.appendChild(btn);
+  }
+
+  return card;
+}
+
+function openBingoDetail(cycleId) {
+  state.openChallengeId = cycleId;
+  history.replaceState(null, "", `#challenge=${cycleId}`);
+  renderBingoDetail();
+  showScreen("screen-challenge-detail");
+}
+
+// Which existing entry point re-fills a square's mode/type/modifier on the
+// workout start screen. Reuses openPushupModeFromExplore (the same jump
+// Explore Modes uses) for every pushup-family square, and the plain
+// per-exercise workout screens for squats/situps/planks — both already
+// exist and need no new navigation plumbing.
+function navigateToBingoSquare(item) {
+  if (!item) return; // FREE square — nothing to log
+  if (item.kind === "mode") {
+    openPushupModeFromExplore(item.key);
+    return;
+  }
+  if (item.kind === "exercise") {
+    if (item.key === "pushups") {
+      openPushupModeFromExplore("classic");
+      return;
+    }
+    const screenByExercise = { squats: "screen-squat-workout", situps: "screen-situp-workout", planks: "screen-plank-workout" };
+    guardLeaveWorkout(() => showScreen(screenByExercise[item.key]));
+    return;
+  }
+  if (item.kind === "modifier") {
+    if (item.key === "weighted") {
+      const profile = getWeightedProfile(state.currentUser);
+      if (profile.bodyweightLbs) {
+        profile.enabled = true;
+        saveWeightedProfile(state.currentUser, profile);
+      } else {
+        toast("Set your bodyweight in Settings first to log weighted reps.");
+      }
+    }
+    // "location" auto-tags on save whenever location permission is already
+    // granted (see updateFromCurrentLocation) — there's no separate toggle
+    // to pre-set, so it lands on the same classic pushup screen as weighted.
+    openPushupModeFromExplore("classic");
+  }
+}
+
+function bingoCellClassAndBadge(cell) {
+  if (cell.free) return { cls: " bingo-cell-free", badge: "★" };
+  return { cls: cell.done ? " bingo-cell-done" : "", badge: cell.done ? "✓" : "" };
+}
+
+function buildBingoGridHTML(completedBoard) {
+  const cells = completedBoard.map((cell) => {
+    const { cls, badge } = bingoCellClassAndBadge(cell);
+    const emoji = cell.free ? "⭐" : cell.item.emoji;
+    const label = cell.free ? "FREE" : cell.item.label;
+    return `
+      <button type="button" class="bingo-cell${cls}" data-bingo-index="${cell.index}" aria-label="${escapeHtml(label)}${cell.done ? " (done)" : ""}">
+        ${badge ? `<span class="bingo-cell-badge">${badge}</span>` : ""}
+        <span class="bingo-cell-emoji">${emoji}</span>
+        <span class="bingo-cell-label">${escapeHtml(label)}</span>
+      </button>
+    `;
+  }).join("");
+  return `<div class="bingo-grid">${cells}</div>`;
+}
+
+function renderBingoDetail() {
+  const cycle = bingoCycleById(state.openChallengeId);
+  const body = $("challenge-detail-body");
+  if (!cycle) {
+    body.innerHTML = '<p class="leaderboard-empty">Challenge not found.</p>';
+    return;
+  }
+
+  const now = new Date();
+  const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
+  const board = generateBingoBoard(cycle.id);
+  const participants = bingoParticipantsOf(cycle.id);
+  const joined = participants.includes(state.currentUser);
+  const sessions = bingoSessionsForCycle(cycle, participants);
+
+  const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
+  const statusLabel = status === "active"
+    ? `${Math.max(0, Math.ceil((cycle.endDate - now) / 86400000))} days left`
+    : status === "upcoming"
+      ? `starts in ${Math.max(0, Math.ceil((cycle.startDate - now) / 86400000))} days`
+      : "Ended";
+
+  let html = `
+    <div class="challenge-hero" style="background: linear-gradient(135deg, #4a2e6b, #f2c94c)">
+      <div class="challenge-hero-emoji">🧩</div>
+      <div class="challenge-hero-title">Reps Bingo</div>
+      <div class="challenge-hero-tagline">One shared 25-square board every two weeks. Tap a square to go log it — blackout the whole card to be in the running.</div>
+      <div class="challenge-hero-dates">${dateRange} <span class="challenge-status-chip">${statusLabel}</span></div>
+    </div>
+  `;
+
+  if (status !== "past" && !joined) {
+    html += `<button type="button" id="btn-challenge-join" class="btn btn-primary btn-large">JOIN this challenge</button>`;
+  }
+
+  const myCompleted = bingoCompletionForUser(board, sessions, state.currentUser, cycle, sessionTimestamp);
+  if (joined) {
+    const mySquares = bingoSquaresChecked(myCompleted);
+    html += `
+      <div class="challenge-progress-card">
+        <div class="challenge-progress-label">${mySquares} / 25 squares · ${statusLabel}</div>
+        ${buildProgressThermometer(mySquares, 25)}
+      </div>
+    `;
+  }
+
+  html += buildBingoGridHTML(joined ? myCompleted : board.map((c) => ({ ...c, done: c.free })));
+
+  if (status === "past") {
+    const result = bingoWinners(board, participants, sessions, cycle, sessionTimestamp);
+    if (result.winners.length) {
+      const detail = result.mode === "categoryPoints"
+        ? result.winners.map((n) => `${escapeHtml(n)} (${result.categoryPoints[n]} category win${result.categoryPoints[n] === 1 ? "" : "s"})`).join(" & ")
+        : result.mode === "squaresTiebreak"
+          ? result.winners.map((n) => `${escapeHtml(n)} (${result.categoryPoints[n]} category win${result.categoryPoints[n] === 1 ? "" : "s"} on a squares tie)`).join(" & ")
+          : result.winners.map(escapeHtml).join(" & ");
+      html += `<div class="challenge-winner-line">🥇 ${detail}</div>`;
+    } else {
+      html += `<p class="leaderboard-empty">Nobody logged a session this cycle.</p>`;
+    }
+  }
+
+  html += `
+    <h2 class="section-title">Leaderboard</h2>
+    <div id="challenge-leaderboard-list" class="leaderboard-list"></div>
+  `;
+
+  body.innerHTML = html;
+
+  if (status !== "past" && !joined) {
+    $("btn-challenge-join").addEventListener("click", () => joinChallenge(cycle.id));
+  }
+
+  body.querySelectorAll(".bingo-cell").forEach((btn) => {
+    const index = Number(btn.dataset.bingoIndex);
+    const cell = board[index];
+    btn.addEventListener("click", () => navigateToBingoSquare(cell.item));
+  });
+
+  const rows = bingoLeaderboard(board, participants, sessions, cycle, sessionTimestamp);
+  const el = $("challenge-leaderboard-list");
+  el.innerHTML = "";
+  if (!rows.length) {
+    el.innerHTML = '<p class="leaderboard-empty">No participants yet.</p>';
+  } else {
+    rows.forEach((row, index) => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "leaderboard-row" + (index < 3 ? ` rank-${index + 1}` : "");
+      rowEl.innerHTML = `
+        <div class="leaderboard-rank">${index + 1}</div>
+        ${avatarCircleHTML(avatarForUser(row.name), "1.8rem")}
+        <div class="leaderboard-name">${escapeHtml(row.name)}</div>
+        <div class="leaderboard-total">${row.squares}/25${row.fullCard ? " ✓" : ""}</div>
+      `;
+      makeNameCompareClickable(rowEl.querySelector(".leaderboard-name"), row.name);
+      el.appendChild(rowEl);
+    });
   }
 }
 
@@ -13648,6 +13942,8 @@ async function init() {
   const hashMatch = location.hash.match(/^#challenge=([a-z0-9-]+)$/);
   if (hashMatch && state.currentUser && challengeDefs.some((c) => c.id === hashMatch[1])) {
     openChallengeDetail(hashMatch[1]);
+  } else if (hashMatch && state.currentUser && isBingoCycleId(hashMatch[1]) && bingoCycleById(hashMatch[1])) {
+    openBingoDetail(hashMatch[1]);
   }
 
   // A shared head-to-head link (#compare=NameA|NameB) is read-only and names
