@@ -3832,7 +3832,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   padding: 0.8rem 1rem;
   border-bottom: 1px solid var(--border);
 }
-.settings-category-list { padding: 0 1rem; margin-bottom: 1.25rem; }
+.settings-category-list { padding: 0 1rem; margin-bottom: 1.25rem; background: none; }
 .settings-category-row {
   display: flex;
   align-items: center;
