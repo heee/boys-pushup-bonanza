@@ -7029,24 +7029,41 @@ function formatModeMetric(metric, value = metric.value) {
   return formatNumber(Math.round(value));
 }
 
-function renderBoysModeStats(sessions, allModeSessions = sessions) {
-  const el = $("boys-mode-stats");
+function boysModeStatsMetrics(sessions, allModeSessions) {
   const metrics = modeStatsModel(sessions, state.leaderboardMode);
   const timeStat = totalTimeStat(sessions, state.leaderboardMode);
   if (timeStat?.available) metrics.push(timeStat);
   const modifiersUsed = modifiersUsedStat(sessions);
   metrics.push(...(modifiersUsed.available ? [modifiersUsed] : []), modesUsedStat(allModeSessions));
+  return metrics;
+}
+
+function renderBoysModeStats(sessions, allModeSessions = sessions) {
+  const el = $("boys-mode-stats");
+  const metrics = boysModeStatsMetrics(sessions, allModeSessions);
   el.innerHTML = metrics.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
-    if (!metric.available) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
-    const avatars = metric.leaders.slice(0, 3).map((entry) => avatarCircleHTML(avatarForUser(entry.user), "0.95rem")).join("");
-    const leaderValue = metric.leaders.length ? formatModeMetric(metric, metric.leaders[0].value) : "—";
+    const value = metric.available ? formatModeMetric(metric) : "—";
+    return `<div class="boys-mode-stat">
+      <span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span>
+      <span class="boys-mode-stat-value">${value}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
+  const el = $("boys-leader-stats");
+  const metrics = boysModeStatsMetrics(sessions, allModeSessions);
+  el.innerHTML = metrics.map((metric) => {
+    const icon = challengeStatIconHTML(modeStatIcon(metric));
+    if (!metric.available || !metric.leaders.length) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
+    const leader = metric.leaders[0];
+    const avatar = avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
     return `<div class="boys-mode-stat">
       <span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span>
       <span class="boys-mode-stat-values">
-        <span class="boys-mode-stat-value">${formatModeMetric(metric)}</span>
-        <span class="boys-mode-stat-avatars">${avatars}</span>
-        <span class="boys-mode-stat-leader-value">${leaderValue}</span>
+        <span class="boys-mode-stat-avatars">${avatar}</span>
+        <span class="boys-mode-stat-value">${formatModeMetric(metric, leader.value)}</span>
       </span>
     </div>`;
   }).join("");
@@ -7123,6 +7140,7 @@ function paintDashboard(sessions) {
   }
 
   renderBoysModeStats(filtered, allModesInPeriod);
+  renderBoysLeaderStats(filtered, allModesInPeriod);
   renderModeHistory(allModesInPeriod);
   const hasModifiers = renderModifierHistory(allModesInPeriod);
   const modifiersTabBtn = $("modifiers-tab-btn");

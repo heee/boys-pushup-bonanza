@@ -3389,7 +3389,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .boys-mode-stat-value { font-weight: 800; font-size: 1.05rem; color: var(--text); }
 .boys-mode-stat-avatars { display: flex; align-items: center; }
 .boys-mode-stat-avatars .avatar-circle + .avatar-circle { margin-left: -0.4rem; }
-.boys-mode-stat-leader-value { min-width: 2.2rem; text-align: right; color: var(--text-tertiary); font-size: 0.85rem; }
 
 /* Secondary information relative to the main leaderboard above — deliberately
    muted so the ranked leaderboard reads as the primary content. */
@@ -3399,6 +3398,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   opacity: 0.5;
 }
 #history-view-select { margin-top: 1.6rem; }
+#boys-mode-stats, #boys-leader-stats { margin-top: 1.6rem; }
 
 .mybonanza-chart-card {
   margin-bottom: 0.8rem;
@@ -3748,6 +3748,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .leaderboard-name { flex: 1; font-weight: 400; font-size: 1.05rem; }
 .leaderboard-total { font-weight: 800; font-size: 1.1rem; color: var(--text); }
+/* Match the "Group statistics" / "Leader statistics" label size just below it. */
+#leaderboard-list .leaderboard-name, #leaderboard-list .leaderboard-total { font-size: 0.95rem; }
 /* "pr" rows: current best-this-window is plain until it beats the prior
    record, then goes bold gold to match the achiever check + rank-1 color
    language; the prior record stays small/dim as reference context. */
