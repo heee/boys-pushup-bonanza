@@ -2605,18 +2605,14 @@ function renderFortuneIdleUI() {
 // fresh Home visit (reset to Classic) or arriving with a mode pre-selected
 // from Explore Modes (see openPushupModeFromExplore).
 function renderPushupModePicker() {
-  const current = $("pmode-current");
+  const current = $("pmode-mode");
   const selected = state.pushupMode === "classic"
     ? { id: "classic", title: "Classic", icon: "" }
     : EXPLORE_MODES.find((mode) => mode.id === state.pushupMode);
   const compactTitles = { dice: "Dice", wheel: "Wheel", fortune: "Fortune", chase: "Chase", poker: "Poker", zen: "Zen" };
   const selectedTitle = selected ? (compactTitles[selected.id] || selected.title) : "Classic";
-  current.dataset.pmode = selected?.id || "classic";
-  current.textContent = selected ? `${selected.icon ? `${selected.icon} ` : ""}${selectedTitle}` : "Classic";
+  current.textContent = `Mode: ${selected?.icon ? `${selected.icon} ` : ""}${selectedTitle}`;
   current.title = selected?.title || "Classic";
-  document.querySelectorAll("#pushup-mode-select .segment[data-pmode]").forEach((s) => {
-    s.classList.toggle("active", s.dataset.pmode === state.pushupMode);
-  });
 }
 
 // Home's 3rd fixed slot: independent of pushupMode entirely (a Modifier can
@@ -2626,7 +2622,7 @@ function renderPushupModePicker() {
 function renderModifierSlot() {
   const btn = $("pmode-modifier");
   const picked = state.modifier ? MODIFIERS.find((m) => m.id === state.modifier) : null;
-  btn.textContent = picked ? `${picked.icon} ${picked.title}` : "Modifier";
+  btn.textContent = picked ? `Modifier: ${picked.icon} ${picked.title}` : "No modifier";
   btn.classList.toggle("active", !!picked);
   const disabled = state.pushupMode === "zen";
   btn.classList.toggle("segment-disabled", disabled);
@@ -2667,19 +2663,8 @@ $("pmode-modifier").addEventListener("click", () => {
   guardLeaveWorkout(() => showScreen("screen-modifier-picker"));
 });
 
-$("pushup-mode-select").addEventListener("click", (e) => {
-  if (e.target.closest("#pmode-more")) {
-    showScreen("screen-explore-modes");
-    return;
-  }
-  const btn = e.target.closest(".segment[data-pmode]");
-  if (!btn || btn.classList.contains("segment-disabled")) return;
-  document.querySelectorAll("#pushup-mode-select .segment[data-pmode]").forEach((s) => s.classList.remove("active"));
-  btn.classList.add("active");
-  state.pushupMode = btn.dataset.pmode;
-  if (state.pushupMode === "fortune") resetFortuneStage();
-  renderFortuneIdleUI();
-  renderModifierSlot();
+$("pmode-mode").addEventListener("click", () => {
+  showScreen("screen-explore-modes");
 });
 
 // Full mode catalog for the Explore Modes screen — the live modes above plus
@@ -2737,7 +2722,7 @@ function loadPyramidMode() {
 let sharpshooterModePromise = null;
 let sharpshooterMode = null;
 function loadSharpshooterMode() {
-  if (!sharpshooterModePromise) sharpshooterModePromise = import("./modes/sharpshooter.js?v=148").then((module) => (sharpshooterMode = module));
+  if (!sharpshooterModePromise) sharpshooterModePromise = import("./modes/sharpshooter.js?v=149").then((module) => (sharpshooterMode = module));
   return sharpshooterModePromise;
 }
 
