@@ -183,15 +183,17 @@ export function modifiersUsedStat(sessions) {
   };
 }
 
-// Cross-mode diversity: distinct exercise modes (pushup sub-modes, planks,
-// squats, pull-ups, crunches, Holland) touched by the group, independent of
-// whichever single leaderboard mode is currently selected — callers pass the
-// full period-filtered session list (not the mode-filtered one) for this.
+// Pushup sub-mode diversity: distinct pushup modes (Classic, Countdown,
+// Cards, Poker, ...) touched by the group — pushup sessions only, so a group
+// that only ever does planks/squats/etc. correctly reads 0 rather than
+// borrowing diversity from other exercise types (see exerciseTypesUsedStat
+// for that). Callers pass the full period-filtered session list (not the
+// mode-filtered one) for this.
 export function modesUsedStat(sessions) {
   const allModes = new Set();
   const byUser = new Map();
   for (const s of sessions) {
-    if (!s?.user) continue;
+    if (!s?.user || s.type) continue;
     const modeId = sessionModeId(s);
     allModes.add(modeId);
     if (!byUser.has(s.user)) byUser.set(s.user, new Set());
@@ -201,5 +203,28 @@ export function modesUsedStat(sessions) {
   return {
     id: "modesUsed", label: "Modes used", format: "integer", qualifier: "group unique",
     value: allModes.size || null, leaders: topByCount(userCounts), available: allModes.size > 0,
+  };
+}
+
+// Cross-mode diversity: distinct base exercise types (Pushups, Planks,
+// Squats, Pull-ups, Crunches, Holland) touched by the group — every pushup
+// sub-mode collapses into a single "pushups" bucket here, unlike
+// modesUsedStat. Callers pass the full period-filtered session list (not
+// the mode-filtered one) for this.
+export function exerciseTypesUsedStat(sessions) {
+  const typeIdOf = (s) => (s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : "pushups");
+  const allTypes = new Set();
+  const byUser = new Map();
+  for (const s of sessions) {
+    if (!s?.user) continue;
+    const typeId = typeIdOf(s);
+    allTypes.add(typeId);
+    if (!byUser.has(s.user)) byUser.set(s.user, new Set());
+    byUser.get(s.user).add(typeId);
+  }
+  const userCounts = new Map(Array.from(byUser, ([user, set]) => [user, set.size]));
+  return {
+    id: "exerciseTypesUsed", label: "Exercise types used", format: "integer", qualifier: "group unique",
+    value: allTypes.size || null, leaders: topByCount(userCounts), available: allTypes.size > 0,
   };
 }

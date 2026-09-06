@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat } from "../screens/mode-stats.js";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat } from "../screens/mode-stats.js";
 
 const session = (user, count, extra = {}) => ({
   user,
@@ -141,19 +141,39 @@ test("modifiersUsedStat is unavailable when nobody used one", () => {
   assert.equal(stat.value, null);
 });
 
-test("modesUsedStat counts distinct modes across the whole group and per user", () => {
+test("modesUsedStat counts distinct pushup sub-modes, ignoring other exercise types", () => {
   const sessions = [
     session("A", 20, { mode: "classic" }),
+    session("A", 8, { mode: "countdown" }),
     session("A", 10, { type: "plank" }),
     session("A", 5, { type: "squat" }),
     session("B", 15, { mode: "classic" }),
   ];
   const stat = modesUsedStat(sessions);
+  assert.equal(stat.value, 2);
+  assert.deepEqual(stat.leaders.map((x) => x.user), ["A"]);
+  assert.equal(stat.leaders[0].value, 2);
+});
+
+test("modesUsedStat is unavailable with no pushup sessions", () => {
+  assert.equal(modesUsedStat([]).available, false);
+  assert.equal(modesUsedStat([session("A", 10, { type: "plank" })]).available, false);
+});
+
+test("exerciseTypesUsedStat counts distinct base exercise types across the whole group and per user", () => {
+  const sessions = [
+    session("A", 20, { mode: "classic" }),
+    session("A", 8, { mode: "countdown" }),
+    session("A", 10, { type: "plank" }),
+    session("A", 5, { type: "squat" }),
+    session("B", 15, { mode: "classic" }),
+  ];
+  const stat = exerciseTypesUsedStat(sessions);
   assert.equal(stat.value, 3);
   assert.deepEqual(stat.leaders.map((x) => x.user), ["A"]);
   assert.equal(stat.leaders[0].value, 3);
 });
 
-test("modesUsedStat is unavailable with no sessions", () => {
-  assert.equal(modesUsedStat([]).available, false);
+test("exerciseTypesUsedStat is unavailable with no sessions", () => {
+  assert.equal(exerciseTypesUsedStat([]).available, false);
 });

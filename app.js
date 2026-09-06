@@ -105,7 +105,7 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=138";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=139";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
 import { comparisonModel } from "./screens/comparison.js?v=138";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
@@ -7042,7 +7042,7 @@ function boysModeStatsMetrics(sessions, allModeSessions) {
   const timeStat = totalTimeStat(sessions, state.leaderboardMode);
   if (timeStat?.available) metrics.push(timeStat);
   const modifiersUsed = modifiersUsedStat(sessions);
-  metrics.push(...(modifiersUsed.available ? [modifiersUsed] : []), modesUsedStat(allModeSessions));
+  metrics.push(...(modifiersUsed.available ? [modifiersUsed] : []), modesUsedStat(allModeSessions), exerciseTypesUsedStat(allModeSessions));
   return metrics;
 }
 
