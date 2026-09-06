@@ -33,7 +33,7 @@ export const BINGO_POOL = [
   { kind: "mode", key: "dice", label: "Dice", emoji: "🎲" },
   { kind: "mode", key: "wheel", label: "Wheel", emoji: "🎡" },
   { kind: "mode", key: "ladder", label: "Ladder", emoji: "🪜" },
-  { kind: "mode", key: "sharpshooter", label: "Sharpshooter", emoji: "🎯" },
+  { kind: "mode", key: "sharpshooter", label: "Shooter", emoji: "🎯" },
   { kind: "mode", key: "pyramid", label: "Pyramid", emoji: "▲" },
   { kind: "mode", key: "pulse", label: "Pulse", emoji: "❤️‍🔥" },
   { kind: "mode", key: "cock", label: "Cock Mode", emoji: "🐓" },
