@@ -10103,6 +10103,7 @@ function pickFunMessage(n) {
 
 const CONFETTI_EMOJI = ["🎉", "💪", "🔥", "⭐", "🏆", "😤", "🚀", "👑"];
 const PLANK_EMOJI = ["🪵", "🪓", "🧱", "📏", "🪚"];
+const confettiTimers = new WeakMap();
 function launchConfetti(targetId = "confetti", emojiSet = CONFETTI_EMOJI, pieceCount = 24) {
   const el = $(targetId);
   el.innerHTML = "";
@@ -10116,8 +10117,8 @@ function launchConfetti(targetId = "confetti", emojiSet = CONFETTI_EMOJI, pieceC
     span.style.animationDelay = `${Math.random() * 0.4}s`;
     el.appendChild(span);
   }
-  clearTimeout(launchConfetti._t);
-  launchConfetti._t = setTimeout(() => { el.innerHTML = ""; }, 4000);
+  clearTimeout(confettiTimers.get(el));
+  confettiTimers.set(el, setTimeout(() => { el.innerHTML = ""; }, 4000));
 }
 
 // Detects whether the just-logged session is the specific moment a user
