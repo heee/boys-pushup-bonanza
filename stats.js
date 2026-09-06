@@ -6,6 +6,7 @@ export function weightedMultiplier(profile, bonusFactor = 2) {
 }
 
 export function periodStart(period, now = new Date()) {
+  if (period === "all") return new Date(0);
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (period === "week") {
     const day = dayStart.getDay();

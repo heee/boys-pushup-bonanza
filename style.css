@@ -3272,7 +3272,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin-bottom: -1px;
   color: var(--text-tertiary);
   font-weight: 400;
+  white-space: nowrap;
 }
+/* period-select can carry more segments than fit a phone width (Day/Week/
+   Month/Quarter/Year/All-time) — scroll instead of wrapping or squeezing. */
+#period-select.segmented-underline { overflow-x: auto; scrollbar-width: none; }
+#period-select.segmented-underline::-webkit-scrollbar { display: none; }
 .segmented-underline .segment.active {
   background: none;
   color: var(--text);
@@ -4888,12 +4893,14 @@ body:has(#screen-challenges.active) #app {
    buttons rather than static tiles. */
 .bingo-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.4rem;
   margin-bottom: 1.1rem;
+  width: 100%;
 }
 .bingo-cell {
   position: relative;
+  min-width: 0;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
@@ -4911,12 +4918,15 @@ body:has(#screen-challenges.active) #app {
 .bingo-cell:active { transform: scale(0.95); }
 .bingo-cell-emoji { font-size: 1.25rem; line-height: 1; }
 .bingo-cell-label {
+  width: 100%;
+  min-width: 0;
   font-size: 0.56rem;
   font-weight: 700;
   line-height: 1.05;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

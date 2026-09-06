@@ -6124,6 +6124,14 @@ const CHART_PERIOD_BUCKETS = {
   year: { headerLabel: "Last 7 years" },
 };
 
+// The 7-bar trend chart has no natural bucket for "all-time" — it reuses
+// yearly buckets instead, while the ranking/stats below it (driven by
+// periodStart directly, not this mapping) still reflect the true all-time
+// total.
+function chartBucketPeriod(period) {
+  return period === "all" ? "year" : period;
+}
+
 // Start of the calendar unit for `period` that is `offset` units away from
 // the current one (offset 0 = the unit containing `now`, -1 = the previous
 // unit, etc). Built on the same period-start convention used everywhere
@@ -6902,7 +6910,7 @@ function paintMyBonanza(sessions) {
     ? indexedSessionsForUserMode(state.currentUser)
     : sessions.filter((s) => s.user === state.currentUser);
 
-  renderWeekChart(mine, "week-chart", "week-trend", isPlank || isPulse, isHolland, state.dashboardPeriod, "week-header");
+  renderWeekChart(mine, "week-chart", "week-trend", isPlank || isPulse, isHolland, chartBucketPeriod(state.dashboardPeriod), "week-header");
   renderChartBackFace("mine", mine, isPlank || isPulse, isHolland);
   syncChartFlipHeight("mine");
 
@@ -7077,7 +7085,7 @@ function paintDashboard(sessions) {
   const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
   const fmtCount = (n) => ((isPlank || isPulse) ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
 
-  const buckets = renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank || isPulse, isHolland, state.dashboardPeriod, "boys-week-header", {
+  const buckets = renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank || isPulse, isHolland, chartBucketPeriod(state.dashboardPeriod), "boys-week-header", {
     selectedOffset: state.dashboardBucketOffset,
     onBucketSelect: (offset) => {
       state.dashboardBucketOffset = state.dashboardBucketOffset === offset ? null : offset;
@@ -7848,7 +7856,7 @@ function ordinal(n) {
   return `${n}th`;
 }
 
-const PERIOD_LABELS = { day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year" };
+const PERIOD_LABELS = { day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "all-time" };
 
 function computeMyDayWeekTotals() {
   const mine = indexedSessionsForUserMode(state.currentUser);
