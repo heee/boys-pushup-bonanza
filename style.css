@@ -4069,7 +4069,7 @@ body:has(#screen-settings-mysessions.active) #app {
 
 /* ---------------- Explore modes ---------------- */
 
-.explore-modes-list { display: flex; flex-direction: column; }
+.explore-modes-list { display: flex; flex-direction: column; background: none; }
 .explore-mode-section-label { margin: 1.1rem 0 0.3rem; padding: 0 1rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); text-transform: uppercase; }
 .explore-mode-section-label:first-child { margin-top: 0; }
 .explore-mode-row {
