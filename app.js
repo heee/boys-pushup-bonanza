@@ -13531,6 +13531,10 @@ function renderChainOfPainHUD() {
   const cycles = chainOfPainCycles(chainOfPainState.rules);
   $("chainofpain-hud-duration").textContent = `${chainOfPainDurationById(state.chainOfPainDuration).label} segments`;
   $("chainofpain-hud-cycles").textContent = chainOfPainCyclesLabel(cycles);
+  const completedCycles = Math.floor(cycles);
+  const badge = $("chainofpain-cycle-badge");
+  badge.textContent = String(completedCycles);
+  badge.classList.toggle("hidden", completedCycles < 1);
 }
 
 function onChainOfPainRepCounted(count) {
