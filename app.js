@@ -1799,11 +1799,21 @@ function activeGoalsFor(user) {
   return out;
 }
 
-function goalCountText(goal) {
+// Tapping an unmet goal on Home should let you jump straight into that
+// exercise; tapping one already hit should jump to its leaderboard instead
+// — explore-mode ids are singular ("plank"/"squat"/"pullup") while goal
+// types and leaderboard mode ids share the plural GOAL_TYPES spelling.
+const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", squats: "squat", pullups: "pullup" };
+
+// Split so the render side can force a line break after the number rather
+// than letting it wrap wherever the ~90px column happens to run out —
+// otherwise "104/100 daily" wraps but "5/50 daily" doesn't, and the row
+// looks ragged.
+function goalCountParts(goal) {
   const suffix = GOAL_PERIOD_SUFFIX[goal.period];
   const asDuration = goal.unit === "seconds" && goal.period !== "streak";
   const format = (n) => (asDuration ? formatDuration(n * 1000) : formatNumber(n));
-  return `${format(goal.current)}/${format(goal.target)}${suffix ? ` ${suffix}` : ""}`;
+  return { number: `${format(goal.current)}/${format(goal.target)}`, suffix };
 }
 
 function renderGoalThermometers() {
@@ -1823,13 +1833,28 @@ function renderGoalThermometers() {
   container.innerHTML = goals.map((goal) => {
     const reached = goal.current >= goal.target;
     const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
-    return `<div class="goal-thermo">
+    const count = goalCountParts(goal);
+    return `<button type="button" class="goal-thermo" data-goal-type="${goal.type}" data-goal-reached="${reached ? "1" : "0"}">
       <div class="thermometer-wrap"><div class="thermometer-track"><div class="thermometer-fill${reached ? " thermometer-win" : ""}" style="width:${pct}%"></div></div></div>
-      <p class="goal-thermo-count">${escapeHtml(goalCountText(goal))}</p>
+      <p class="goal-thermo-count">${escapeHtml(count.number)}${count.suffix ? `<br>${escapeHtml(count.suffix)}` : ""}</p>
       <p class="goal-thermo-label">${escapeHtml(goal.label)}</p>
-    </div>`;
+    </button>`;
   }).join("");
 }
+
+// Not-yet-met goal -> pre-select that exercise on Home so Start is one tap
+// away; already-met goal -> jump to its leaderboard, pre-filtered to it.
+$("goal-thermometers").addEventListener("click", (e) => {
+  const card = e.target.closest(".goal-thermo");
+  if (!card) return;
+  const type = card.dataset.goalType;
+  if (card.dataset.goalReached === "1") {
+    selectLeaderboardMode(type);
+    showScreen("screen-dashboard");
+  } else {
+    openPushupModeFromExplore(GOAL_TYPE_EXPLORE_ID[type]);
+  }
+});
 
 // Which bottom tab lights up for a given screen — every screen not listed
 // here (workout, summary, challenge detail, etc.) is reached BY tapping a
@@ -13638,6 +13663,9 @@ async function beginChainOfPainSegment(exercise) {
     return true;
   }
   $("chainofpain-camera-wrap").classList.remove("hidden");
+  // Squat reuses the full-size squat camera view; pushup keeps the small
+  // shared confidence thumbnail, matching each exercise's standalone mode.
+  $("chainofpain-camera-wrap").classList.toggle("chainofpain-camera-wrap-large", exercise === "squat");
   const detectorType = exercise === "squat" ? "pose" : "face";
   try {
     await ensureChainOfPainCamera(detectorType);

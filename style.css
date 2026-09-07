@@ -1110,7 +1110,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   background: rgba(31, 107, 84, 0.86);
   box-shadow: 0 6px 18px rgba(16, 56, 45, 0.28);
 }
-#camera-video {
+#camera-video,
+#chainofpain-camera-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1140,6 +1141,20 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Chain of Pain's squat segment reuses the exact squat camera-counting UI
+   (see docs/chain-of-pain-mode-plan.md), so while squatting it needs the
+   same full-size, auto-framing camera view — not the tiny shared
+   .camera-wrap thumbnail other modes (including this one's own pushup
+   segment) use. beginChainOfPainSegment() toggles this class per exercise.
+   Keeps the HUD chips (duration/cycles/segment-timer) above it rather than
+   centering the whole .workout-active column, since that chrome is
+   Chain-of-Pain-specific and has no squat-screen equivalent. */
+#chainofpain-camera-wrap.chainofpain-camera-wrap-large {
+  width: min(80vw, 24rem);
+  height: min(40dvh, 26rem);
+  border-radius: 16px;
 }
 .face-box {
   position: absolute;
@@ -4652,6 +4667,12 @@ body:has(#screen-challenge-detail.active) #app {
   align-items: center;
   gap: 0.3rem;
   width: 5.6rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 .goal-thermo .thermometer-wrap { max-width: none; margin: 0; }
 .goal-thermo .thermometer-track { height: 7px; background: var(--bg-elevated-2); }
@@ -5120,6 +5141,31 @@ body:has(#screen-challenge-detail.active) #app {
 .holland-hud-chip:empty { display: none; }
 
 .holland-correction-row { justify-content: center; margin-top: 0.6rem; }
+
+/* Chain of Pain completed-cycle count — a small circular badge sitting to
+   the left of the fixed FINISH WORKOUT FAB (.workout-active .btn-complete,
+   60px circle bottom-right). White fill so it reads as its own distinct
+   chip offset from the flame-colored button, not part of it. Hidden until
+   at least one full squat->pushup->plank cycle is completed (see
+   renderChainOfPainHUD in app.js), matching this screen's .hidden
+   convention for other conditional chrome. */
+.chainofpain-cycle-badge {
+  position: fixed;
+  right: calc(1.25rem + 60px + 0.6rem);
+  bottom: calc(1.5rem + env(safe-area-inset-bottom) + 3px);
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: rgba(250, 250, 248, 0.95);
+  color: #16181d;
+  font-size: 1.1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.5rem 1.1rem rgba(0, 0, 0, 0.4);
+  z-index: 4;
+}
 
 .holland-transition-stage {
   display: flex;
