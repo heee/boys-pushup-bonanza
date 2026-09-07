@@ -13496,12 +13496,22 @@ async function ensureChainOfPainCamera(detectorType) {
     onDetection: detectorType === "pose" ? chainOfPainOnPoseDetection : chainOfPainOnFaceDetection,
     onNoDetection: chainOfPainOnNoDetection,
   });
+  // Order matters here — matches startSquat() exactly: wait for the model
+  // to fully finish loading BEFORE attaching the stream/calling play(),
+  // rather than starting playback first and only then awaiting the model.
+  // Model load (WASM + a fresh model fetch) can take several seconds, and
+  // starting the video early left it "playing" with zero consumers (no
+  // requestVideoFrameCallback registered yet, since startDetection() only
+  // runs once the detector is ready) for that whole window — a real-device
+  // report matched this exactly: a couple of frames render, then the
+  // decode pipeline goes idle and never resumes even once detection
+  // finally starts asking for frames. See docs/chain-of-pain-mode-plan.md.
   const detectorReady = chainOfPainCamera.ensureDetector();
   const stream = await chainOfPainCamera.requestStream();
+  await detectorReady;
   const video = $("chainofpain-camera-video");
   video.srcObject = stream;
   try { await video.play(); } catch { /* autoplay quirks */ }
-  await detectorReady;
   chainOfPainState.detectorType = detectorType;
   chainOfPainCamera.startDetection();
   return chainOfPainCamera;
