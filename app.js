@@ -5,6 +5,9 @@
 
 import {
   CARD_RANK_SPOKEN,
+  CHAINOFPAIN_START_LINES,
+  CHAINOFPAIN_CHEER_LINES,
+  CHAINOFPAIN_RECORD_LINE,
   CHASE_CHAOS_LINES,
   CHASE_FINISH_AHEAD_LINE,
   CHASE_FINISH_BEHIND_LINE,
@@ -220,7 +223,9 @@ import {
   chainOfPainIsPlankSegment,
   chainOfPainRecordReps,
   chainOfPainRestExpired,
+  chainOfPainRestDurationMs,
   chainOfPainSegmentExpired,
+  chainOfPainSegmentDurationMs,
   chainOfPainTickPlank,
 } from "./modes/chain-of-pain.js";
 
@@ -13451,12 +13456,7 @@ $("holland-difficulty-cards").addEventListener("click", (e) => {
 const CHAINOFPAIN_WARMUP_MIN_MS = 1200;
 const CHAINOFPAIN_WARMUP_MIN_SAMPLES = 10;
 const CHAINOFPAIN_WARMUP_MAX_SAMPLES = 300;
-// Deliberately much shorter than standalone Squat's own SQUAT_WARMUP_HINT_MS
-// (8000ms) — this is currently also serving as a live diagnostic while
-// tracking down a real-device report of calibration never completing, so
-// fast feedback matters more here than avoiding a flash of hint text for
-// someone who calibrates quickly.
-const CHAINOFPAIN_WARMUP_HINT_MS = 2000;
+const CHAINOFPAIN_WARMUP_HINT_MS = 8000;
 const CHAINOFPAIN_TICK_MS = 200;
 
 const CHAINOFPAIN_LABELS = { squat: "SQUATS", pushup: "PUSHUPS", plank: "PLANK HOLD" };
@@ -13627,63 +13627,32 @@ function renderChainOfPainWarmup() {
   $("chainofpain-cal-error").classList.add("hidden");
 }
 
-// TEMPORARY diagnostic ticker (see docs/chain-of-pain-mode-plan.md follow-up
-// notes) for a real-device report of calibration hanging on "Get your
-// range" indefinitely. Runs on a plain setInterval — deliberately NOT
-// driven by the pose-detection callback chain itself — so it keeps
-// reporting live even if that chain silently stalls, which is exactly the
-// failure mode under suspicion: if this readout freezes too, detection
-// callbacks have genuinely stopped; if it keeps updating but calibration
-// still never completes, the callbacks are fine and it's a data/threshold
-// issue instead. Remove once the real bug is found and fixed.
-let chainOfPainWarmupDiagId = null;
-function startChainOfPainWarmupDiag() {
-  stopChainOfPainWarmupDiag();
-  chainOfPainWarmupDiagId = setInterval(() => {
-    if (chainOfPainState.stage !== "warmup") { stopChainOfPainWarmupDiag(); return; }
-    const n = chainOfPainState.calSamples.length;
-    const sinceLastDetection = chainOfPainState.lastDetectionAt
-      ? ((performance.now() - chainOfPainState.lastDetectionAt) / 1000).toFixed(1)
-      : "never";
-    let swingText = "n/a";
-    if (n >= 2) {
-      const { standY, squatY } = estimateSquatRange(chainOfPainState.calSamples);
-      const pct = Math.min(999, Math.round((squatSwing(standY, squatY) / SQUAT_MIN_SWING) * 100));
-      swingText = `${pct}%`;
-    }
-    $("chainofpain-cal-error").textContent = `[diag] frames: ${n} | last detection: ${sinceLastDetection}s ago | swing: ${swingText}`;
-    $("chainofpain-cal-error").classList.remove("hidden");
-  }, 400);
-}
-function stopChainOfPainWarmupDiag() {
-  if (chainOfPainWarmupDiagId) { clearInterval(chainOfPainWarmupDiagId); chainOfPainWarmupDiagId = null; }
-}
-
 function beginChainOfPainWarmup() {
   chainOfPainState.stage = "warmup";
   chainOfPainState.calSamples = [];
   chainOfPainState.warmupStartedAt = performance.now();
-  chainOfPainState.lastDetectionAt = 0;
   $("chainofpain-cal-stage").classList.remove("hidden");
   $("chainofpain-count-stage").classList.add("hidden");
   hideChainOfPainStatusBanner();
   renderChainOfPainWarmup();
-  startChainOfPainWarmupDiag();
 }
 
 function tickChainOfPainWarmup() {
-  chainOfPainState.lastDetectionAt = performance.now();
   const elapsed = performance.now() - chainOfPainState.warmupStartedAt;
   if (elapsed < CHAINOFPAIN_WARMUP_MIN_MS || chainOfPainState.calSamples.length < CHAINOFPAIN_WARMUP_MIN_SAMPLES) return;
   const { standY, squatY } = estimateSquatRange(chainOfPainState.calSamples);
   if (squatCalibrationValid(standY, squatY)) {
-    stopChainOfPainWarmupDiag();
     $("chainofpain-cal-error").classList.add("hidden");
     const thresholds = deriveSquatThresholds(standY, squatY);
     chainOfPainState.calibratedThresholds.squat = thresholds;
     speak(pickFrom(CHAINOFPAIN_START_LINES));
     beginChainOfPainCounting(thresholds, chainOfPainState.calSamples);
     return;
+  }
+  if (elapsed > CHAINOFPAIN_WARMUP_HINT_MS) {
+    const pct = Math.min(99, Math.round((squatSwing(standY, squatY) / SQUAT_MIN_SWING) * 100));
+    $("chainofpain-cal-error").textContent = `Still watching (${pct}%) — squat a little deeper, or step back so your whole body is in frame.`;
+    $("chainofpain-cal-error").classList.remove("hidden");
   }
 }
 
