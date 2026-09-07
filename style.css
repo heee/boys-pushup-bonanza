@@ -944,8 +944,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   margin: 0;
 }
 /* Some bold fonts render a wide left-bearing on "?", making it look like a
-   stray space after the preceding name — pull it back in. */
-.tight-q { margin-left: -0.4em; }
+   stray space after the preceding name — pull it back in. Kept gentle
+   (not the -0.4em this started at): when the username+"?" wraps onto its
+   own line alone (long lead-in text, e.g. "Ready for Chain of Pain,
+   Henning?"), a larger pull drags the "?" left far enough to overlap the
+   name's last letter instead of just tightening the gap. */
+.tight-q { margin-left: -0.15em; }
 /* Avatar already lives on the user-picker screen; the greeting itself is
    just eyebrow + headline per the redesign, so this stays in the DOM
    (setAvatarEl still populates it harmlessly) but isn't shown here. */

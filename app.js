@@ -13610,7 +13610,18 @@ function beginChainOfPainWarmup() {
 
 function tickChainOfPainWarmup() {
   const elapsed = performance.now() - chainOfPainState.warmupStartedAt;
-  if (elapsed < CHAINOFPAIN_WARMUP_MIN_MS || chainOfPainState.calSamples.length < CHAINOFPAIN_WARMUP_MIN_SAMPLES) return;
+  if (elapsed < CHAINOFPAIN_WARMUP_MIN_MS || chainOfPainState.calSamples.length < CHAINOFPAIN_WARMUP_MIN_SAMPLES) {
+    // Distinguishes "not enough valid body detections yet" from the normal
+    // "detected, still watching the swing" hint below — without this, a
+    // body that's never confidently detected (hips out of frame, bad
+    // angle/lighting) looks identical to a silent hang, with zero on-screen
+    // feedback about why. See docs/chain-of-pain-mode-plan.md follow-up notes.
+    if (elapsed > CHAINOFPAIN_WARMUP_HINT_MS) {
+      $("chainofpain-cal-error").textContent = `Body not detected yet (${chainOfPainState.calSamples.length} good frame(s)) — step back so your whole body, especially your hips, is in frame.`;
+      $("chainofpain-cal-error").classList.remove("hidden");
+    }
+    return;
+  }
   const { standY, squatY } = estimateSquatRange(chainOfPainState.calSamples);
   if (squatCalibrationValid(standY, squatY)) {
     $("chainofpain-cal-error").classList.add("hidden");
