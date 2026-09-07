@@ -13,6 +13,7 @@ import {
   chainOfPainCurrentExercise,
   chainOfPainNextExercise,
   chainOfPainCountdown,
+  chainOfPainSetupRemainingSeconds,
   chainOfPainCycles,
   chainOfPainCyclesLabel,
   chainOfPainDurationById,
@@ -57,6 +58,12 @@ test("duration catalog has the four fixed picker options", () => {
 
 test("rest buffer is a fixed 10 seconds", () => {
   assert.equal(CHAIN_OF_PAIN_REST_SECONDS, 10);
+});
+
+test("setup countdown waits five complete seconds and clamps delayed callbacks", () => {
+  for (const [elapsed, remaining] of [[0, 5], [999, 5], [1000, 4], [4999, 1], [5000, 0], [7000, 0]]) {
+    assert.equal(chainOfPainSetupRemainingSeconds(elapsed), remaining);
+  }
 });
 
 test("chainOfPainCreateState starts on squat with zeroed totals", () => {

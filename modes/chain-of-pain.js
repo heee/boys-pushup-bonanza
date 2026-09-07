@@ -20,6 +20,10 @@ export const CHAIN_OF_PAIN_DURATIONS = [
 // from plank back to squat, so the boy can reposition the phone.
 export const CHAIN_OF_PAIN_REST_SECONDS = 10;
 
+export function chainOfPainSetupRemainingSeconds(elapsedMs) {
+  return Math.max(0, Math.ceil((5000 - Math.max(0, elapsedMs)) / 1000));
+}
+
 export function chainOfPainDurationOptions() {
   return CHAIN_OF_PAIN_DURATIONS;
 }

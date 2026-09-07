@@ -8,6 +8,7 @@
 //   node scripts/generate-voice.js --preset drill-de        # generate the German drill instructor preset
 //   node scripts/generate-voice.js --preset sultry          # generate the sultry drill instructor preset
 //   node scripts/generate-voice.js --preset sultry --sample # generate only a small preview batch
+//   node scripts/generate-voice.js --match "chain|forge"    # only matching lines; preserve other clips
 //
 // Clip filenames are hashed over preset + voice + model + instructions + text,
 // so changing any of those produces new filenames; stale ones are pruned.
@@ -411,6 +412,7 @@ function parseArgs(argv) {
     else if (arg === "--keep-orphans") opts.keepOrphans = true;
     else if (arg === "--sample") opts.sample = true;
     else if (arg === "--preset") opts.preset = argv[++i];
+    else if (arg === "--match") opts.match = new RegExp(argv[++i], "i");
     else if (arg === "--voice") opts.voice = argv[++i];
     else if (arg === "--model") opts.model = argv[++i];
     else if (arg === "--speed") opts.speed = Number(argv[++i]);
@@ -581,7 +583,8 @@ async function main() {
     corpus.push({ key, text: name, tone: "name" });
   }
 
-  const activeCorpus = opts.sample ? sampleCorpus(corpus) : corpus;
+  const selectedCorpus = opts.match ? corpus.filter((entry) => opts.match.test(entry.text)) : corpus;
+  const activeCorpus = opts.sample ? sampleCorpus(selectedCorpus) : selectedCorpus;
   const totalChars = activeCorpus.reduce((sum, c) => sum + c.text.length, 0);
 
   console.log(`Preset: ${preset.label} (${opts.preset})`);

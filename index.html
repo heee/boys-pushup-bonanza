@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=297">
+<link rel="stylesheet" href="style.css?v=298">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1052,7 +1052,7 @@
           </button>
         </div>
         <p id="chainofpain-personal-best" class="highscore-message"></p>
-        <button id="btn-chainofpain-start" class="btn btn-giant btn-primary btn-with-icon"><span class="icon-biceps" aria-hidden="true"></span>Bring it</button>
+        <button id="btn-chainofpain-start" class="btn btn-giant btn-primary btn-with-icon">Bring it<svg class="chainofpain-start-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="4" height="14" rx="1"/><rect x="16" y="5" width="4" height="14" rx="1"/><path d="M8 12h8M2 9v6M22 9v6M2 12h2M20 12h2"/></svg></button>
         <p class="workout-hint">10 seconds to reposition the phone between each exercise. Squats and pushups calibrate once, planks are just a hold.</p>
       </div>
 
@@ -1063,6 +1063,12 @@
         </div>
 
         <div id="chainofpain-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — get back in frame</div>
+
+        <div id="chainofpain-setup-stage" class="rep-count-wrap hidden">
+          <h2 class="squat-cal-title">Get into position</h2>
+          <div id="chainofpain-setup-countdown" class="rep-count" role="timer">5</div>
+          <p class="workout-instructions">Set the phone down and stand back. We’ll watch your squats after the countdown.</p>
+        </div>
 
         <div id="chainofpain-cal-stage" class="squat-cal-stage hidden">
           <h2 id="chainofpain-cal-title" class="squat-cal-title">Get your range</h2>
@@ -1176,22 +1182,6 @@
         <div id="summary-chainofpain-result" class="summary-holland-result hidden">
           <div id="summary-chainofpain-breakdown" class="holland-summary-breakdown"></div>
           <div id="summary-chainofpain-pb" class="holland-27-badge hidden"></div>
-          <div class="missed-reps-wrap">
-            <div class="missed-reps-label">Missed squats, or too many counted?</div>
-            <div class="stepper-row">
-              <button id="btn-chainofpain-missed-squats-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
-              <div id="chainofpain-missed-squats-count" class="stepper-value">0</div>
-              <button id="btn-chainofpain-missed-squats-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
-            </div>
-          </div>
-          <div class="missed-reps-wrap">
-            <div class="missed-reps-label">Missed pushups, or too many counted?</div>
-            <div class="stepper-row">
-              <button id="btn-chainofpain-missed-pushups-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
-              <div id="chainofpain-missed-pushups-count" class="stepper-value">0</div>
-              <button id="btn-chainofpain-missed-pushups-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
-            </div>
-          </div>
         </div>
         <div id="summary-weighted-note" class="weighted-note hidden"></div>
         <div id="summary-chase-result" class="summary-chase-result hidden"></div>
@@ -2033,6 +2023,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=306"></script>
+<script type="module" src="app.js?v=307"></script>
 </body>
 </html>

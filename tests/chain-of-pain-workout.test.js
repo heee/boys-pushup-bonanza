@@ -61,8 +61,10 @@ test("Chain of Pain calibration enters counting, keeps processing poses, and sta
   assert.equal(w.$("chainofpain-cal-stage").classList.contains("hidden"), true);
   assert.equal(w.$("chainofpain-count-stage").classList.contains("hidden"), false);
   assert.ok(w.spoken.length > 0);
+  assert.equal(w.run("chainOfPainState.rules.segmentReps"), 0, "calibration movement is not workout reps");
   w.frame(0.25, 2200);
-  w.frame(0.25, 2400);
+  w.frame(0.65, 2350);
+  w.frame(0.25, 2500);
   assert.ok(w.run("chainOfPainState.rules.segmentReps") > 0);
   w.run("tickChainOfPain()");
   assert.equal(w.$("chainofpain-timer").textContent, "0:30");
@@ -75,6 +77,24 @@ test("Chain of Pain calibration enters counting, keeps processing poses, and sta
   w.setTime(34000);
   w.run("tickChainOfPain()");
   assert.equal(w.$("chainofpain-rest-countdown").textContent, "9");
+});
+
+test("phone setup ignores motion, speaks five through one, then starts fresh calibration", () => {
+  const w = workout();
+  w.run("beginChainOfPainSetup()");
+  for (let i = 0; i < 5; i++) {
+    w.frame(i % 2 ? 0.7 : 0.2, i * 1000);
+    w.run("tickChainOfPain()");
+    assert.equal(w.run("chainOfPainState.stage"), "setup");
+    assert.equal(w.run("chainOfPainState.calSamples.length"), 0);
+    assert.equal(w.run("chainOfPainState.rules.segmentReps"), 0);
+  }
+  w.setTime(5000);
+  w.run("tickChainOfPain()");
+  assert.equal(w.run("chainOfPainState.stage"), "warmup");
+  assert.deepEqual(w.spoken, ["five", "four", "three", "two", "one", "Start!"]);
+  assert.equal(w.$("chainofpain-setup-stage").classList.contains("hidden"), true);
+  assert.equal(w.run("chainOfPainState.segmentStartedAt"), 0);
 });
 
 test("pushups use the countdown and rep overlay; plank counts down without a rep overlay", () => {

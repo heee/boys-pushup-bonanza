@@ -8,6 +8,9 @@ import {
   CHAINOFPAIN_START_LINES,
   CHAINOFPAIN_CHEER_LINES,
   CHAINOFPAIN_RECORD_LINE,
+  CHAINOFPAIN_GO_LINE,
+  CHAINOFPAIN_FINISH_LINE,
+  CHAINOFPAIN_TRANSITION_LINES,
   CHASE_CHAOS_LINES,
   CHASE_FINISH_AHEAD_LINE,
   CHASE_FINISH_BEHIND_LINE,
@@ -68,7 +71,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=144";
+} from "./voice-lines.js?v=145";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -84,7 +87,7 @@ import {
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=152";
+} from "./voice.js?v=153";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
@@ -217,6 +220,7 @@ import {
   chainOfPainCurrentExercise,
   chainOfPainNextExercise,
   chainOfPainCountdown,
+  chainOfPainSetupRemainingSeconds,
   chainOfPainCycles,
   chainOfPainCyclesLabel,
   chainOfPainDurationById,
@@ -13627,7 +13631,21 @@ function renderChainOfPainWarmup() {
   $("chainofpain-cal-error").classList.add("hidden");
 }
 
+function beginChainOfPainSetup() {
+  chainOfPainState.stage = "setup";
+  chainOfPainState.setupStartedAt = performance.now();
+  chainOfPainState.setupSeconds = null;
+  chainOfPainState.calSamples = [];
+  $("chainofpain-setup-stage").classList.remove("hidden");
+  $("chainofpain-cal-stage").classList.add("hidden");
+  $("chainofpain-count-stage").classList.add("hidden");
+  $("btn-chainofpain-cancel").classList.remove("hidden");
+  tickChainOfPain();
+  startChainOfPainTicker();
+}
+
 function beginChainOfPainWarmup() {
+  $("chainofpain-setup-stage").classList.add("hidden");
   $("btn-chainofpain-cancel").classList.remove("hidden");
   chainOfPainState.stage = "warmup";
   chainOfPainState.calSamples = [];
@@ -13647,7 +13665,7 @@ function tickChainOfPainWarmup() {
     const thresholds = deriveSquatThresholds(standY, squatY);
     chainOfPainState.calibratedThresholds.squat = thresholds;
     speak(pickFrom(CHAINOFPAIN_START_LINES));
-    beginChainOfPainCounting(thresholds, chainOfPainState.calSamples);
+    beginChainOfPainCounting(thresholds);
     return;
   }
   if (elapsed > CHAINOFPAIN_WARMUP_HINT_MS) {
@@ -13657,10 +13675,9 @@ function tickChainOfPainWarmup() {
   }
 }
 
-function beginChainOfPainCounting(thresholds, calSamples = null) {
-  chainOfPainState.counter = calSamples
-    ? replaySquatCalibration(calSamples, (config) => createRepCounter(config), thresholds)
-    : createRepCounter(thresholds);
+function beginChainOfPainCounting(thresholds) {
+  // Calibration frames establish range only; the timed workout starts at zero.
+  chainOfPainState.counter = createRepCounter(thresholds);
   chainOfPainState.down = thresholds.down;
   chainOfPainState.up = thresholds.up;
   chainOfPainState.stage = "counting";
@@ -13715,7 +13732,7 @@ async function beginChainOfPainSegment(exercise) {
   } else {
     const cached = chainOfPainState.calibratedThresholds.squat;
     if (cached) beginChainOfPainCounting(cached);
-    else beginChainOfPainWarmup();
+    else beginChainOfPainSetup();
   }
   return true;
 }
@@ -13736,6 +13753,16 @@ function formatChainOfPainCountdown(msRemaining) {
 function tickChainOfPain() {
   if (!chainOfPainState.rules) return;
   const now = performance.now();
+  if (chainOfPainState.stage === "setup") {
+    const seconds = chainOfPainSetupRemainingSeconds(now - chainOfPainState.setupStartedAt);
+    if (seconds !== chainOfPainState.setupSeconds) {
+      chainOfPainState.setupSeconds = seconds;
+      $("chainofpain-setup-countdown").textContent = String(seconds);
+      if (seconds > 0) speak(numberToWords(seconds));
+      else { stopChainOfPainTicker(); beginChainOfPainWarmup(); speak(CHAINOFPAIN_GO_LINE); }
+    }
+    return;
+  }
   if (chainOfPainState.stage === "counting" && chainOfPainState.rules.phase === "segment") {
     const elapsed = now - chainOfPainState.segmentStartedAt;
     const remainingMs = chainOfPainSegmentDurationMs(chainOfPainState.rules) - elapsed;
@@ -13780,7 +13807,7 @@ function triggerChainOfPainRest() {
   renderChainOfPainHUD();
   chainOfPainState.restStartedAt = performance.now();
   $("chainofpain-rest-countdown").textContent = formatChainOfPainCountdown(chainOfPainRestDurationMs());
-  if (soundIsEnabled()) speak(`${CHAINOFPAIN_LABELS[nextExercise]} next. Ten seconds to reposition.`);
+  speak(CHAINOFPAIN_TRANSITION_LINES[nextExercise]);
   startChainOfPainTicker();
 }
 
@@ -13812,6 +13839,10 @@ function renderChainOfPainIdle() {
 
 async function startChainOfPain() {
   if (soundIsEnabled()) unlockVoice();
+  const voiceReady = soundIsEnabled() ? initVoice().then(() => Promise.all([
+    preloadCountingRange(60),
+    preloadVoice([...CHAINOFPAIN_START_LINES, ...CHAINOFPAIN_CHEER_LINES, CHAINOFPAIN_GO_LINE, CHAINOFPAIN_FINISH_LINE, CHAINOFPAIN_RECORD_LINE, ...Object.values(CHAINOFPAIN_TRANSITION_LINES)]),
+  ])).catch(() => {}) : Promise.resolve();
   state.chainOfPainSessionLocation = currentSessionLocationSnapshot();
   const duration = chainOfPainDurationById(state.chainOfPainDuration);
   chainOfPainState.rules = chainOfPainCreateState(duration.seconds);
@@ -13834,6 +13865,7 @@ async function startChainOfPain() {
   // still setting up the phone after pressing Start.
   await acquireWakeLock();
 
+  await voiceReady;
   const ok = await beginChainOfPainSegment(chainOfPainCurrentExercise(chainOfPainState.rules));
   if (!ok) return;
 
@@ -13843,7 +13875,6 @@ async function startChainOfPain() {
   $("chainofpain-rest-stage").classList.add("hidden");
   setChromeMinimized(true);
   renderChainOfPainHUD();
-  if (soundIsEnabled() && chainOfPainState.stage !== "warmup") speak(pickFrom(CHAINOFPAIN_START_LINES));
 }
 
 function stopChainOfPainHard() {
@@ -13871,8 +13902,6 @@ function renderSummaryChainOfPainResult(session, isPB) {
   const pbEl = $("summary-chainofpain-pb");
   pbEl.classList.toggle("hidden", !isPB);
   if (isPB) pbEl.textContent = "⛓️ New personal best!";
-  $("chainofpain-missed-squats-count").textContent = "0";
-  $("chainofpain-missed-pushups-count").textContent = "0";
   el.classList.remove("hidden");
 }
 
@@ -13919,7 +13948,7 @@ async function completeChainOfPain() {
   preloadWorkoutShareMessages();
   showScreen("screen-summary");
   launchConfetti("confetti", CONFETTI_EMOJI);
-  speak(isPB ? CHAINOFPAIN_RECORD_LINE : `Session complete. ${chainOfPainCyclesLabel(cycles)}.`);
+  speak(isPB ? CHAINOFPAIN_RECORD_LINE : CHAINOFPAIN_FINISH_LINE);
   try { await commitSession(session); }
   catch {
     enqueueSession(session);
@@ -13935,50 +13964,6 @@ async function confirmFinishChainOfPain() {
   }
   if (!confirm("Finish this Chain of Pain workout? Your completed and partial progress will be saved.")) return;
   await completeChainOfPain();
-}
-
-// Missed-reps adjuster for the two rep-counted exercises (squats/pushups) —
-// planks have nothing to miscount. Patches the already-committed session
-// (delete + recreate on the Worker, since /session only inserts) the same
-// way the generic missed-reps adjuster does for Classic/Squat/Situp.
-let chainOfPainReconcileTimer = null;
-function adjustChainOfPainMissed(exercise, delta) {
-  if (!state.summarySessionId) return;
-  const cached = getCachedData();
-  const session = cached.sessions.find((s) => s.id === state.summarySessionId);
-  if (!session || session.type !== "chainofpain") return;
-  const field = exercise === "squat" ? "chainOfPainSquats" : "chainOfPainPushups";
-  const countEl = exercise === "squat" ? $("chainofpain-missed-squats-count") : $("chainofpain-missed-pushups-count");
-  const next = Math.max(0, (session[field] || 0) + delta);
-  const appliedDelta = next - (session[field] || 0);
-  if (!appliedDelta) return;
-  session[field] = next;
-  session.count = (session.chainOfPainSquats || 0) + (session.chainOfPainPushups || 0);
-  countEl.textContent = String((Number(countEl.textContent) || 0) + appliedDelta);
-  cacheData(cached);
-  renderSummaryChainOfPainResult(session, session.chainOfPainCycles > getChainOfPainBest(state.currentUser));
-  clearTimeout(chainOfPainReconcileTimer);
-  chainOfPainReconcileTimer = setTimeout(() => reconcileChainOfPainSession(session.id), 900);
-}
-
-async function reconcileChainOfPainSession(oldId) {
-  const cached = getCachedData();
-  const idx = cached.sessions.findIndex((s) => s.id === oldId);
-  const existing = idx !== -1 ? cached.sessions[idx] : null;
-  if (!existing) return;
-  const queue = getQueue();
-  const queuedIdx = queue.findIndex((operation) => operation.type === "session" && operation.payload?.id === oldId);
-  if (queuedIdx !== -1) {
-    queue[queuedIdx] = { ...queue[queuedIdx], payload: { ...queue[queuedIdx].payload, ...existing } };
-    setQueue(queue);
-    return;
-  }
-  const newSession = { ...existing, id: uuid() };
-  cached.sessions[idx] = newSession;
-  cacheData(cached);
-  state.summarySessionId = newSession.id;
-  try { await deleteSessionRemote(oldId); } catch (e) { /* best effort */ }
-  try { await commitSession(newSession); } catch (e) { enqueueSession(newSession); }
 }
 
 $("btn-chainofpain-start").addEventListener("click", startChainOfPain);
@@ -14004,10 +13989,6 @@ $("chainofpain-duration-cards").addEventListener("click", (e) => {
   if (!card) return;
   selectChainOfPainDuration(card.dataset.duration);
 });
-$("btn-chainofpain-missed-squats-minus").addEventListener("click", () => adjustChainOfPainMissed("squat", -1));
-$("btn-chainofpain-missed-squats-plus").addEventListener("click", () => adjustChainOfPainMissed("squat", 1));
-$("btn-chainofpain-missed-pushups-minus").addEventListener("click", () => adjustChainOfPainMissed("pushup", -1));
-$("btn-chainofpain-missed-pushups-plus").addEventListener("click", () => adjustChainOfPainMissed("pushup", 1));
 
 // ------------------- situp mode -------------------
 // Camera-counted free set, own screen (see docs/situp-mode-plan.md): phone
