@@ -7894,12 +7894,7 @@ const CHALLENGE_INVITE_MESSAGES = [
     : `${ctx.titleWithEmoji} just opened, boys 🎯 ${ctx.goalAmountText} by ${ctx.deadlineText}${ctx.hasLeader ? `, ${ctx.leaderName} already moving at ${ctx.leaderPct}%` : ""}.`,
 ];
 
-async function shareChallengeInvite() {
-  const c = challengeDefs.find((x) => x.id === state.openChallengeId);
-  if (!c) return;
-  const ctx = buildChallengeShareContext(c);
-  const message = pickFrom(CHALLENGE_INVITE_MESSAGES)(ctx);
-  const url = `${location.origin}${location.pathname}#challenge=${c.id}`;
+async function shareViaSheetOrClipboard(message, url) {
   if (navigator.share) {
     try {
       await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
@@ -7914,6 +7909,28 @@ async function shareChallengeInvite() {
   } catch (e) {
     toast("Couldn't share automatically — copy the link manually.", 4000);
   }
+}
+
+async function shareBingoInvite(cycleId) {
+  const cycle = bingoCycleById(cycleId);
+  if (!cycle) return;
+  const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const message = `Reps Bingo is live 🧩 Blackout the 5x5 board by ${fmt(cycle.endDate)} — join the boys!`;
+  const url = `${location.origin}${location.pathname}#challenge=${cycle.id}`;
+  await shareViaSheetOrClipboard(message, url);
+}
+
+async function shareChallengeInvite() {
+  if (isBingoCycleId(state.openChallengeId)) {
+    await shareBingoInvite(state.openChallengeId);
+    return;
+  }
+  const c = challengeDefs.find((x) => x.id === state.openChallengeId);
+  if (!c) return;
+  const ctx = buildChallengeShareContext(c);
+  const message = pickFrom(CHALLENGE_INVITE_MESSAGES)(ctx);
+  const url = `${location.origin}${location.pathname}#challenge=${c.id}`;
+  await shareViaSheetOrClipboard(message, url);
 }
 
 $("btn-challenge-share").addEventListener("click", shareChallengeInvite);
