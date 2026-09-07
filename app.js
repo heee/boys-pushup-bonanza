@@ -11689,6 +11689,17 @@ function buildPyramidShareContext() {
   };
 }
 
+function buildChainOfPainShareContext() {
+  const cached = getCachedData();
+  const session = cached.sessions.find((s) => s.id === state.summarySessionId);
+  return {
+    squats: session?.chainOfPainSquats || 0,
+    pushups: session?.chainOfPainPushups || 0,
+    plankSeconds: session?.chainOfPainPlankSeconds || 0,
+    segments: session?.chainOfPainSegments || 0,
+  };
+}
+
 function renderSummaryRoadtripResult() {
   const cue = $("summary-roadtrip-cue");
   const wins = state.summaryRoadtripConquests || [];
@@ -11725,8 +11736,9 @@ function buildShareContext(adjustedCount) {
   const isSquat = state.lastSessionType === "squat";
   const isSitup = state.lastSessionType === "situp";
   const isHolland = state.lastSessionType === "holland";
+  const isChainOfPain = state.lastSessionType === "chainofpain";
   const isPulse = state.lastSessionType === "pulse";
-  const isPushup = !isPlank && !isPullup && !isSquat && !isSitup && !isHolland;
+  const isPushup = !isPlank && !isPullup && !isSquat && !isSitup && !isHolland && !isChainOfPain;
   // Pulse's `count` is seconds, not reps — filtered out of the generic
   // pushups aggregate the same way plank/pullup/squat/situp already live in
   // their own activity buckets, so a week total never mixes units.
@@ -11738,12 +11750,14 @@ function buildShareContext(adjustedCount) {
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : state.pushupMode,
+    mode: isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : state.pushupMode,
     isPlank,
     isPullup,
     isSquat,
     isSitup,
+    isChainOfPain,
     isZen: isPushup && state.pushupMode === "zen",
+    chainOfPainCtx: isChainOfPain ? buildChainOfPainShareContext() : null,
     streak: computeStreak(mine),
     todayRaw: adjustedCount,
     weekTotalRaw,
@@ -11782,7 +11796,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=147").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=148").then((module) => {
       workoutShareMessages = module;
       return module;
     });

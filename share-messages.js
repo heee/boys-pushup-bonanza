@@ -1292,6 +1292,36 @@ const SHARE_MESSAGES_SITUP = [
   (n) => `${n} crunches banked, zero mercy. Somebody screenshot this before I brag myself. 🙇`,
 ];
 
+// Chain of Pain — squat/pushup/plank circuit share copy. `n` is the full
+// cycles readout (e.g. "3.7 cycles", mirroring the plank pool's full-phrase
+// `t`), `c` is the optional per-exercise breakdown (chainOfPainCtx: squats,
+// pushups, plankSeconds, segments) for templates that want to name numbers.
+// Chain/link/forge/anvil/circuit imagery matches CHAINOFPAIN_CHEER_LINES in
+// voice-lines.js. Deliberately much larger than FUN_MESSAGES_CHAINOFPAIN
+// (that pool is a separate, small summary-screen line set — left untouched).
+const SHARE_MESSAGES_CHAINOFPAIN = [
+  (n) => `${n} through the chain today. Squats, pushups, planks — welded link by link, no weak spots. ⛓️`,
+  (n, c) => `Forged ${n}: ${c.squats} squats, ${c.pushups} pushups, and a ${c.plankSeconds}-second plank holding the whole thing together.`,
+  (n) => `The circuit ran and I ran with it — ${n} on the board. The chairs are still filing paperwork.`,
+  (n) => `${n} logged. Every link is squat-shaped, pushup-shaped, or plank-shaped, and none of them were optional.`,
+  (n) => `Chain of Pain, ${n} deep. My legs, chest, and core all got separate invoices.`,
+  (n, c) => `${c.segments} segments hammered into ${n}. The anvil's still warm. 🔥`,
+  (n) => `${n} and the forge never cooled once. Squat, push, plank, repeat — no link left glowing unfinished.`,
+  (n) => `Ran the whole relentless circuit for ${n}. The clock lost every single round.`,
+  (n) => `${n} of squats bleeding into pushups bleeding into planks. The chain doesn't care how you feel about it.`,
+  (n, c) => `${c.squats} squats, ${c.pushups} pushups, ${c.plankSeconds} seconds of plank — all melted down into ${n}. ⛓️`,
+  (n) => `Just chained together ${n}. The floor filed a restraining order, the anvil filed a compliment.`,
+  (n) => `${n} through the forge and not a single link came out cold.`,
+  (n) => `Logged ${n} on the circuit. Somewhere a recliner and a bridge inspector are comparing notes.`,
+  (n) => `${n}. Three exercises, one unbroken chain, zero mercy from the clock.`,
+  (n, c) => `Put up ${c.squats} squats and ${c.pushups} pushups with a ${c.plankSeconds}-second plank welded on top — ${n}, all forged today.`,
+  (n) => `The chain grew again — ${n} and counting. It doesn't break, it just gets heavier.`,
+  (n) => `${n} of squat-pushup-plank punishment, delivered on a loop with no off switch.`,
+  (n) => `Every link forged clean: ${n} through the circuit, and the anvil is taking names. ⚒️`,
+  (n) => `${n} today. The chain's only as strong as the last rep, and the last rep didn't quit.`,
+  (n) => `Ran the gauntlet for ${n}. Squats groaned, pushups screamed, planks just silently suffered.`,
+];
+
 const SHARE_MESSAGES_STREAK = [
   (n, ctx) => `${n} pushups and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
   (n, ctx) => `${ctx.streak} days straight, ${n} pushups today 😤 Consistency is the cheat code.`,
@@ -2561,7 +2591,12 @@ function decorateShareMessage(message, ctx, displayCount) {
 
   // Streak/week trivia — only when it's actually notable, and only one of the
   // two (a long streak is the more impressive brag when both are true).
-  if (ctx.streak >= 3) {
+  // Chain of Pain (like Holland) has no dedicated streak/week copy — its
+  // `displayCount` is a "X.X cycles" phrase, not a bare rep number, so it
+  // can't slot into the generic pushup-flavored pools without reading oddly.
+  if (ctx.isChainOfPain) {
+    // no streak/week bonus line for this mode
+  } else if (ctx.streak >= 3) {
     const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK
       : ctx.isSquat ? SHARE_MESSAGES_SQUAT_STREAK
       : ctx.isPullup ? SHARE_MESSAGES_PULLUP_STREAK
@@ -2691,6 +2726,9 @@ export function pickShareMessage(count, ctx) {
     pool = SHARE_MESSAGES_SQUAT;
   } else if (mode === "situp") {
     pool = SHARE_MESSAGES_SITUP;
+  } else if (mode === "chainofpain") {
+    modeCtx = ctx.chainOfPainCtx || {};
+    pool = SHARE_MESSAGES_CHAINOFPAIN;
   } else {
     pool = SHARE_MESSAGES_CLASSIC_UNHINGED;
   }

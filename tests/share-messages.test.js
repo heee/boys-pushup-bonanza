@@ -28,12 +28,39 @@ test("every completed workout mode keeps its own unhinged share theme", async ()
       ["pullup", 8, { mode: "pullup", isPullup: true }, /8 pull-ups.*Gravity.*meeting/],
       ["squat", 15, { mode: "squat", isSquat: true }, /15 squats.*recliner.*unemployment/],
       ["situp", 15, { mode: "situp", isSitup: true }, /15 crunches.*ceiling.*inspected/],
+      ["chainofpain", "3.7 cycles", { mode: "chainofpain", isChainOfPain: true, chainOfPainCtx: { squats: 40, pushups: 30, plankSeconds: 90, segments: 11 } }, /3\.7 cycles.*chain.*link/],
     ];
 
     for (const [mode, count, ctx, expected] of cases) {
       assert.match(pickShareMessage(count, ctx), expected, mode);
     }
   }, "all-mode-themes");
+});
+
+test("Chain of Pain share pool is large, non-repeating, and interpolates cycles + breakdown", async () => {
+  const originalRandom = Math.random;
+  try {
+    const { pickShareMessage } = await import("../share-messages.js?chainofpain-pool");
+    const ctx = {
+      mode: "chainofpain",
+      isChainOfPain: true,
+      chainOfPainCtx: { squats: 12, pushups: 8, plankSeconds: 45, segments: 7 },
+    };
+    // Sweep Math.random across enough evenly-spaced buckets to visit every
+    // pool entry exactly once (offset by 0.1/N to stay clear of float-floor
+    // edge cases), collecting the resulting messages into a set.
+    const buckets = 24;
+    const seen = new Set();
+    for (let i = 0; i < buckets; i++) {
+      Math.random = () => Math.min(0.999999, (i + 0.1) / buckets);
+      seen.add(pickShareMessage("5.3 cycles", ctx));
+    }
+    assert.ok(seen.size >= 15, `expected at least 15 distinct Chain of Pain share messages, got ${seen.size}`);
+    assert.ok([...seen].every((m) => m.includes("5.3 cycles")), "every message should interpolate the cycles readout");
+    assert.ok([...seen].some((m) => m.includes("12") && m.includes("8")), "at least one message should interpolate the squats/pushups breakdown");
+  } finally {
+    Math.random = originalRandom;
+  }
 });
 
 test("unfinished special-mode sessions never fall back to Classic copy", async () => {
