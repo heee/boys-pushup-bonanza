@@ -1444,9 +1444,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 .cards-hud {
   display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   width: 100%;
 }
+.workout-active.mode-cards .rep-count-wrap { display: none; }
+.workout-active.mode-cards .cards-session-total { margin-top: 0.35rem; }
 .card-flip-scene {
   /* The card is the focal point of this mode: target ~40-45vh tall, but
      never wider than ~60vw. aspect-ratio keeps it exactly matched to the
@@ -1550,12 +1555,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* Completed-cards fan — floats bottom-left of the screen (fixed, out of the
    .workout-active flow, same idea as #btn-complete's own fixed FAB) so it
-   never shifts the main card/HUD layout. Shows up to the 3 most-recently
+   never shifts the main card/HUD layout. Shows up to the 5 most-recently
    completed cards in a small fanned stack, reusing the poker-hand
    translate+rotate technique at a much smaller scale; a new completed card
-   is pushed on top and the oldest of the visible three drops off. The count
+   is pushed on top and the oldest of the visible five drops off. The count
    badge always shows the running total for the whole session, not just the
-   3 visible. */
+   5 visible. */
 .cards-completed-stack {
   position: fixed;
   left: 1.25rem;
