@@ -6949,7 +6949,7 @@ async function shareSessionDetail() {
   const isChainOfPain = session.type === "chainofpain";
   const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const modifierBadge = sessionBadges(session).find((b) => b.id === "modifier");
   const rings = sessionRings(session, getAllSessionsForDisplay());
   const statRing = [rings.find((r) => r.id === "vsPrior"), rings.find((r) => r.id === "vsAvg")].find((r) => r?.hasData && r.diffPct != null);
@@ -7304,6 +7304,9 @@ function timeAgoLabel(timestampMs) {
 // Short and catchy: "a classic" / "a plank" / "a Holland round" — no
 // "session"/"push-up" filler, so the Latest feed reads fast.
 function sessionActivityPhrase(s) {
+  if (s.chainOfPainSourceId) {
+    return `${s.type === "plank" ? "a plank" : s.type === "squat" ? "squats" : "pushups"} in Chain of Pain`;
+  }
   const modeId = sessionModeId(s);
   if (modeId === "holland") return "a Holland round";
   if (["planks", "squats", "pullups", "situps"].includes(modeId)) {
@@ -11752,6 +11755,7 @@ function buildChainOfPainShareContext() {
     pushups: session?.chainOfPainPushups || 0,
     plankSeconds: session?.chainOfPainPlankSeconds || 0,
     segments: session?.chainOfPainSegments || 0,
+    durationSeconds: session?.chainOfPainDurationSeconds,
   };
 }
 
@@ -11851,7 +11855,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=149").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=150").then((module) => {
       workoutShareMessages = module;
       return module;
     });

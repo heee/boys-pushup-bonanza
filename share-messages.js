@@ -2743,7 +2743,11 @@ export function pickShareMessage(count, ctx) {
     guard++;
   } while (template === lastShareTemplate && pool.length > 1 && guard < 10);
   lastShareTemplate = template;
-  return decorateShareMessage(template(count, modeCtx || {}), ctx, count);
+  let message = template(count, modeCtx || {});
+  if (mode === "chainofpain" && [30, 60, 150, 300].includes(modeCtx.durationSeconds)) {
+    message += ` ⏱️ ${modeCtx.durationSeconds} seconds per exercise.`;
+  }
+  return decorateShareMessage(message, ctx, count);
 }
 
 // Nag messages for the Horse turn-order screen's "Remind" button — calls out

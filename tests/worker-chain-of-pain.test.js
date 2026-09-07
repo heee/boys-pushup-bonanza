@@ -63,6 +63,7 @@ test("app leaderboard and recent-history buckets include Chain components exactl
   const activityFunction = source.slice(source.indexOf("function sessionActivity("));
   vm.runInContext(activityFunction.slice(0, activityFunction.indexOf("\n}") + 2), context);
   vm.runInContext(source.slice(source.indexOf("function buildSessionIndex("), source.indexOf("function indexSessions(")), context);
+  vm.runInContext(source.slice(source.indexOf("function sessionActivityPhrase("), source.indexOf("function renderRecentList(")), context);
   context.sessions = [{ id: "chain", user: "Test athlete", type: "chainofpain", count: 31,
     timestamp: "2026-09-07T15:00:00.000Z", chainOfPainSquats: 19, chainOfPainPushups: 12,
     chainOfPainPlankSeconds: 42, chainOfPainSegments: 4 }];
@@ -74,5 +75,9 @@ test("app leaderboard and recent-history buckets include Chain components exactl
     assert.equal(bucket[0].count, count, mode);
     assert.equal(bucket[0].timestamp, context.sessions[0].timestamp, "recent history date survives projection");
     assert.equal(index.byUserLeaderboardMode.get(`${mode}\0Test athlete`)[0], bucket[0]);
+    context.projected = bucket[0];
+    const label = vm.runInContext("sessionActivityPhrase(projected)", context);
+    assert.match(label, /in Chain of Pain$/);
+    assert.match(label, mode === "planks" ? /a plank/ : mode === "squats" ? /squats/ : /pushups/);
   }
 });
