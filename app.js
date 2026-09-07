@@ -1467,7 +1467,7 @@ const state = {
   chaseMultiplier: 1,
   summaryChaseResult: null,
   summaryRoadtripConquests: [],
-  roadtripPeriod: ["day", "week", "month", "year", "all"].includes(localStorage.getItem(LS.roadtripPeriod)) ? localStorage.getItem(LS.roadtripPeriod) : "week",
+  roadtripPeriod: ["day", "week", "month", "quarter", "year", "all"].includes(localStorage.getItem(LS.roadtripPeriod)) ? localStorage.getItem(LS.roadtripPeriod) : "week",
   roadtripTier: ["neighborhood", "city", "country"].includes(localStorage.getItem(LS.roadtripTier)) ? localStorage.getItem(LS.roadtripTier) : "city",
   roadtripTerritories: [],
   roadtripDetailId: null,
@@ -5332,7 +5332,7 @@ $("chk-sound-enabled").addEventListener("change", (e) => {
 
 // ------------------- Roadtrip -------------------
 
-const ROADTRIP_PERIOD_LABELS = { day: "Day", week: "Week", month: "Month", year: "Year", all: "All-time" };
+const ROADTRIP_PERIOD_LABELS = { day: "Day", week: "Week", month: "Month", quarter: "Quarter", year: "Year", all: "All-time" };
 const ROADTRIP_TIER_LABELS = { neighborhood: "Neighborhood", city: "City", country: "Country" };
 
 // Words swapped into the roadtrip share templates below so the same joke
@@ -5390,7 +5390,7 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
   button.innerHTML = `
     <span class="leaderboard-rank">${row.rank}</span>
     <span class="roadtrip-place">
-      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}${row.rank === 1 ? " 👑" : ""}${row.current && !pinned ? " <span class=\"roadtrip-current-tag\">Current</span>" : ""}</span>
+      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}${row.rank === 1 ? " 👑" : ""}</span>
       ${row.parent ? `<span class="roadtrip-parent">${escapeHtml(row.parent)}</span>` : ""}
     </span>
     ${state.roadtripTier === "neighborhood" ? "" : `<span class="roadtrip-users">${formatNumber(row.contributorCount)} ${row.contributorCount === 1 ? "user" : "users"}</span>`}

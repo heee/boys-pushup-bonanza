@@ -2,7 +2,7 @@ import { periodStart } from "./stats.js";
 import { normalizeTerritoryLocation } from "./territory-location.js";
 
 export const ROADTRIP_TIERS = ["neighborhood", "city", "country"];
-export const ROADTRIP_PERIODS = ["day", "week", "month", "year", "all"];
+export const ROADTRIP_PERIODS = ["day", "week", "month", "quarter", "year", "all"];
 
 const flagEmoji = (code = "") => /^[A-Z]{2}$/.test(code)
   ? [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("")
