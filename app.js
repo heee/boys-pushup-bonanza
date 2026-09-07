@@ -13481,6 +13481,7 @@ async function ensureChainOfPainCamera(detectorType) {
   const stream = await chainOfPainCamera.requestStream();
   const video = $("chainofpain-camera-video");
   video.srcObject = stream;
+  try { await video.play(); } catch { /* autoplay quirks */ }
   await detectorReady;
   chainOfPainState.detectorType = detectorType;
   chainOfPainCamera.startDetection();
