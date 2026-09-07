@@ -750,7 +750,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   max-width: min(92%, 24rem);
   position: absolute;
   left: 50%;
-  bottom: calc(var(--tab-bar-height) + 0.45rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--tab-bar-height) + 0.225rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   margin: 0;
   padding: 0.45rem 0.65rem;
@@ -3254,7 +3254,7 @@ body:has(#screen-dashboard.active) #app {
 
 .roadtrip-header { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
 .roadtrip-header .screen-title { margin: 0; }
-.roadtrip-subtitle { margin: 0.45rem 0 1rem; color: var(--text-dim); font-size: 0.8rem; line-height: 1.4; }
+#roadtrip-tier-select { margin-top: 0.8rem; }
 .roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; }
 .roadtrip-row {
   width: 100%;
@@ -3764,6 +3764,9 @@ body:has(#screen-dashboard.active) #app {
   margin-top: 0.1rem;
 }
 
+/* My Bonanza's secondary stats (Sessions logged, etc.) — no fill, matching
+   the unfilled row list Boys Bonanza's group/leader stats use (.boys-mode-stats). */
+#personal-stats.tier1-list { background: none; }
 .stats-table {
   overflow: hidden;
 }
