@@ -950,7 +950,13 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    just eyebrow + headline per the redesign, so this stays in the DOM
    (setAvatarEl still populates it harmlessly) but isn't shown here. */
 .workout-hello .avatar-circle { display: none; }
-#screen-pullup-workout .workout-hello {
+/* Both greetings are long enough to wrap on narrow screens; flex's
+   row layout would then wrap only the leading text run (its own anonymous
+   flex item) while the username span stays a separate, non-wrapping item
+   vertically centered beside it — text and name visibly split apart. Block
+   layout lets it wrap as one normal paragraph instead. */
+#screen-pullup-workout .workout-hello,
+#screen-holland-workout .workout-hello {
   display: block;
   max-width: 22rem;
   line-height: 1.15;
