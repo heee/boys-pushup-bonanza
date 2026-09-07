@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=298">
+<link rel="stylesheet" href="style.css?v=299">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1060,6 +1060,7 @@
         <div id="chainofpain-camera-wrap" class="camera-wrap">
           <video id="chainofpain-camera-video" playsinline muted autoplay></video>
           <div id="chainofpain-face-box" class="face-box hidden"></div>
+          <div id="chainofpain-camera-overlay" class="chainofpain-camera-overlay"></div>
         </div>
 
         <div id="chainofpain-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — get back in frame</div>
@@ -1074,10 +1075,11 @@
           <h2 id="chainofpain-cal-title" class="squat-cal-title">Get your range</h2>
           <p id="chainofpain-cal-instructions" class="workout-instructions"></p>
           <p id="chainofpain-cal-error" class="settings-status err hidden"></p>
+          <button id="btn-chainofpain-face-tracker" type="button" class="btn btn-secondary hidden">Use close-up face tracking instead</button>
         </div>
 
         <div id="chainofpain-count-stage" class="rep-count-wrap hidden">
-          <div class="chainofpain-timer-scene">
+          <div id="chainofpain-timer-scene" class="chainofpain-timer-scene">
             <div id="chainofpain-timer" class="rep-count" role="timer" aria-label="Time remaining">0:30</div>
             <div id="chainofpain-counter-badge" class="mode-counter-badge" aria-label="Reps completed"></div>
           </div>
@@ -2023,6 +2025,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=307"></script>
+<script type="module" src="app.js?v=308"></script>
 </body>
 </html>

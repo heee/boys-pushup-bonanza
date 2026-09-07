@@ -116,3 +116,11 @@ test("pushups use the countdown and rep overlay; plank counts down without a rep
   assert.equal(w.run("chainOfPainState.rules.totals.plankSeconds"), 30);
   assert.match(w.$("chainofpain-rest-body").textContent, /^Next up: SQUATS/);
 });
+
+test("plank cues play once per milestone without bursts on delayed callbacks", () => {
+  const w = workout();
+  w.run("chainOfPainState.rules.segmentIndex=2; beginChainOfPainPlankHold()");
+  for(const time of [7500,7600,15000,15100,22500,22600]) {w.setTime(time);w.run("tickChainOfPain()");}
+  assert.equal(w.spoken.length,3);
+  assert.match(w.spoken[0],/Brace/); assert.match(w.spoken[1],/Halfway/); assert.match(w.spoken[2],/Last stretch/);
+});

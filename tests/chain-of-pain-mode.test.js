@@ -14,6 +14,8 @@ import {
   chainOfPainNextExercise,
   chainOfPainCountdown,
   chainOfPainSetupRemainingSeconds,
+  chainOfPainPushupVoiceCue,
+  chainOfPainPlankCueIndex,
   chainOfPainCycles,
   chainOfPainCyclesLabel,
   chainOfPainDurationById,
@@ -63,6 +65,27 @@ test("rest buffer is a fixed 10 seconds", () => {
 test("setup countdown waits five complete seconds and clamps delayed callbacks", () => {
   for (const [elapsed, remaining] of [[0, 5], [999, 5], [1000, 4], [4999, 1], [5000, 0], [7000, 0]]) {
     assert.equal(chainOfPainSetupRemainingSeconds(elapsed), remaining);
+  }
+});
+
+test("pushup speech counts every fifth rep, limits cheers, and protects the quiet window", () => {
+  const args = {durationMs:60000, elapsedMs:10000};
+  assert.equal(chainOfPainPushupVoiceCue({...args,count:4}),null);
+  assert.equal(chainOfPainPushupVoiceCue({...args,count:5}),"number");
+  assert.equal(chainOfPainPushupVoiceCue({...args,count:8,elapsedMs:20000}),"cheer");
+  assert.equal(chainOfPainPushupVoiceCue({...args,count:10,elapsedMs:22000,quietUntilMs:24500,lastCheerMs:20000}),null);
+  assert.equal(chainOfPainPushupVoiceCue({...args,count:15,elapsedMs:26000,lastCheerMs:20000}),"number");
+  assert.equal(chainOfPainPushupVoiceCue({...args,count:20,elapsedMs:59000,lastCheerMs:20000}),"number");
+});
+
+test("every plank duration schedules three evenly spaced cues and none after expiry", () => {
+  for(const {seconds} of CHAIN_OF_PAIN_DURATIONS) {
+    const duration = seconds*1000;
+    assert.equal(chainOfPainPlankCueIndex(duration,0),-1);
+    assert.equal(chainOfPainPlankCueIndex(duration,duration*0.25),0);
+    assert.equal(chainOfPainPlankCueIndex(duration,duration*0.5),1);
+    assert.equal(chainOfPainPlankCueIndex(duration,duration*0.75),2);
+    assert.equal(chainOfPainPlankCueIndex(duration,duration),-1);
   }
 });
 

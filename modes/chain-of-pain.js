@@ -24,6 +24,18 @@ export function chainOfPainSetupRemainingSeconds(elapsedMs) {
   return Math.max(0, Math.ceil((5000 - Math.max(0, elapsedMs)) / 1000));
 }
 
+export function chainOfPainPushupVoiceCue({ count, elapsedMs, durationMs, lastCheerMs = 0, lastNumberMs = 0, quietUntilMs = 0 }) {
+  if (elapsedMs < quietUntilMs) return null;
+  if (count >= 8 && elapsedMs - lastCheerMs >= 20000 && durationMs - elapsedMs > 6000) return "cheer";
+  if (count > 0 && count % 5 === 0 && elapsedMs - lastNumberMs >= 2500) return "number";
+  return null;
+}
+
+export function chainOfPainPlankCueIndex(durationMs, elapsedMs) {
+  if (elapsedMs < durationMs / 4 || elapsedMs >= durationMs) return -1;
+  return Math.min(2, Math.floor(elapsedMs * 4 / durationMs) - 1);
+}
+
 export function chainOfPainDurationOptions() {
   return CHAIN_OF_PAIN_DURATIONS;
 }

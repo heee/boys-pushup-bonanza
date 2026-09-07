@@ -5802,3 +5802,6 @@ body:has(#screen-challenge-detail.active) #app {
 #chainofpain-setup-stage { gap: 0.4rem; text-align: center; }
 #chainofpain-setup-countdown { font-size: min(24vw, 7rem); }
 #btn-chainofpain-cancel { flex: 0 0 auto; width: min(100%, 14rem); }
+.chainofpain-camera-overlay { position: absolute; inset: 0; transform: scaleX(-1); pointer-events: none; z-index: 5; }
+#chainofpain-camera-wrap.chainofpain-camera-wrap-pushup { width: min(48vw, 12rem); height: min(22dvh, 10rem); flex-shrink: 0; }
+#screen-summary:has(#summary-chainofpain-result:not(.hidden)) :is(#btn-summary-different-mode, #btn-summary-share) { font-weight: 400; }

@@ -522,10 +522,20 @@ export const CHAINOFPAIN_CHEER_LINES = [
 export const CHAINOFPAIN_RECORD_LINE = "New Chain of Pain record! The whole circuit is forged in legend now!";
 
 export const CHAINOFPAIN_GO_LINE = "Start!";
+export const CHAINOFPAIN_PUSHUP_CHEER_LINES = [
+  "Clean reps! Keep the chain moving!",
+  "Strong push! Forge the next link!",
+  "Steady reps! You've got this!",
+];
+export const CHAINOFPAIN_PLANK_LINES = [
+  "Brace that core. You're the steel beam!",
+  "Halfway! Hold your shape. Own this plank!",
+  "Last stretch! Keep that chain unbroken!",
+];
 export const CHAINOFPAIN_FINISH_LINE = "Chain complete! You brought the pain and forged every link. Outstanding work!";
 export const CHAINOFPAIN_TRANSITION_LINES = {
   squat: "Squats next! Ten seconds to stand up and get your whole body in frame. Back to the forge!",
-  pushup: "Pushups next! Ten seconds to get the phone down and take your position. The floor wants a rematch!",
+  pushup: "Pushups next! Leave the phone standing. Face it, plant your hands, and get into position!",
   plank: "Plank next! Ten seconds to get down and brace. Become the steel beam!",
 };
 
@@ -685,6 +695,7 @@ export function buildCorpus() {
   for (const line of CHAINOFPAIN_START_LINES) add(line, "hype");
   for (const line of CHAINOFPAIN_CHEER_LINES) add(line, "hype");
   add(CHAINOFPAIN_GO_LINE, "hype");
+  for (const line of [...CHAINOFPAIN_PUSHUP_CHEER_LINES, ...CHAINOFPAIN_PLANK_LINES]) add(line, "hype");
   add(CHAINOFPAIN_FINISH_LINE, "hype");
   for (const line of Object.values(CHAINOFPAIN_TRANSITION_LINES)) add(line, "hype");
   for (const line of PULSE_START_LINES) add(line, "hype");
