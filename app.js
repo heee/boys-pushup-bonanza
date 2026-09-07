@@ -9626,6 +9626,29 @@ function preloadCard(card) {
   img.src = cardImageUrl(card);
 }
 
+// Floating bottom-left fan of the most-recently completed cards (up to 3 —
+// see .cards-completed-stack in style.css). Called after every card clears;
+// state.cardsCleared already holds the full session history, so this just
+// slices the tail and re-renders. The count badge always reflects the full
+// session total, not just the 3 cards currently shown.
+const CARDS_STACK_OFFSETS = [
+  { x: "0rem", y: "0rem", rotate: "-6deg" },
+  { x: "0.5rem", y: "-0.35rem", rotate: "2deg" },
+  { x: "1rem", y: "-0.7rem", rotate: "9deg" },
+];
+function renderCardsCompletedStack() {
+  const stack = $("cards-completed-stack");
+  const cleared = state.cardsCleared || [];
+  stack.classList.toggle("hidden", cleared.length === 0);
+  if (!cleared.length) return;
+  const visible = cleared.slice(-3);
+  $("cards-completed-fan").innerHTML = visible.map((card, i) => {
+    const offset = CARDS_STACK_OFFSETS[i];
+    return `<div class="cards-completed-card" style="--stack-x:${offset.x};--stack-y:${offset.y};--stack-rotate:${offset.rotate};z-index:${i + 1};background-image:url('${cardImageUrl(card)}')" aria-label="${card.label} of ${card.suit}, completed"></div>`;
+  }).join("");
+  $("cards-completed-count").textContent = formatNumber(cleared.length);
+}
+
 function peekNextCard() {
   const deck = getPersistedDeck();
   if (!deck.length) return null;
@@ -9775,7 +9798,10 @@ function playCardFlip(outgoing, incoming) {
 function advanceToNextCard() {
   const next = drawNextCard();
   // The outgoing card was just cleared — record it for the end-of-session share.
-  if (state.currentCard) state.cardsCleared.push(state.currentCard);
+  if (state.currentCard) {
+    state.cardsCleared.push(state.currentCard);
+    renderCardsCompletedStack();
+  }
   preloadCard(peekNextCard());
   playCardFlip(state.currentCard, next);
   state.currentCard = next;
@@ -10190,6 +10216,7 @@ async function setupWorkoutModeState() {
   state.countdownTarget = state.pushupMode === "countdown" ? state.highScore + 1 : 0;
   state.cardRepsDone = 0;
   state.cardsCleared = [];
+  renderCardsCompletedStack();
   const isCards = state.pushupMode === "cards";
   if (isCards) {
     const first = drawNextCard();
