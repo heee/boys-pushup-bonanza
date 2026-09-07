@@ -32,17 +32,19 @@ export function createUprightPushupTracker(savedRange = null) {
       if (phase === "positioning") {
         const ratio = (frame.shoulderY - frame.wristY) / frame.scale;
         if (ratio > -0.35) { resetPosition(); return { status: "positioning" }; }
-        if (!reference || handsMoved(frame, reference) || (samples.length && Math.abs(ratio - samples[0]) > 0.08)) {
+        if (!reference || handsMoved(frame, reference)) {
           reference = frame; steadyAt = now; samples = [];
         }
         samples.push(ratio);
-        if (now - steadyAt < 800 || samples.length < 8) return { status: "positioning" };
-        top = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+        // Acquire a few frames while the athlete starts moving. No static
+        // hold or uncounted practice rep is required.
+        if (now - steadyAt < 80 || samples.length < 3) return { status: "positioning" };
+        top = Math.min(...samples);
         bottom = top; lowerAt = now; deepSamples = [];
         if (range != null) {
           thresholds = { down: top + range * 0.65, up: top + range * 0.35 };
           phase = "tracking";
-          return { status: "ready", thresholds };
+          return { status: "ready", thresholds, counted: false };
         }
         phase = "lower";
         return { status: "lower" };
@@ -59,17 +61,18 @@ export function createUprightPushupTracker(savedRange = null) {
         const reacquired = lost; lost = false;
         return { status: "tracking", ratio, thresholds, reacquired };
       }
+      if (phase === "lower") top = Math.min(top, ratio);
       if (ratio - top >= 0.22) {
         deepSamples.push(ratio);
         if (deepSamples.length > 3) deepSamples.shift();
         if (deepSamples.length === 3) bottom = Math.max(bottom, Math.min(...deepSamples));
       } else if (phase === "lower") deepSamples = [];
       if (bottom - top >= 0.22 && now - lowerAt >= 300) phase = "return";
-      if (phase === "return" && ratio <= top + (bottom - top) * 0.25 && now - lowerAt >= 1000) {
+      if (phase === "return" && ratio <= top + (bottom - top) * 0.25 && now - lowerAt >= 450) {
         range = bottom - top;
         thresholds = { down: top + range * 0.65, up: top + range * 0.35 };
         phase = "tracking";
-        return { status: "ready", thresholds };
+        return { status: "ready", thresholds, counted: true };
       }
       return { status: phase };
     },

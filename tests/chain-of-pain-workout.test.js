@@ -105,6 +105,9 @@ test("pushups use the countdown and rep overlay; plank counts down without a rep
   w.run("onChainOfPainRepCounted(1); tickChainOfPain()");
   assert.equal(w.$("chainofpain-timer").textContent, "0:29");
   assert.equal(w.$("chainofpain-counter-badge").textContent, "1");
+  assert.equal(w.spoken.at(-1), "one");
+  w.run("onChainOfPainRepCounted(2)");
+  assert.equal(w.spoken.at(-1), "two");
   w.run("triggerChainOfPainRest()");
   assert.match(w.$("chainofpain-rest-body").textContent, /^Next up: PLANK HOLD/);
   w.run("chainOfPainAdvanceFromRest(chainOfPainState.rules); beginChainOfPainPlankHold()");

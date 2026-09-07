@@ -1,21 +1,23 @@
 import { createUprightPushupTracker } from "../modes/upright-pushup.js";
 
 const HINTS = {
-  positioning: "Leave the phone upright. Face it in a high plank with both shoulders and hands visible. Hold still briefly.",
-  lower: "Lower your chest for one slow practice pushup. The workout timer is waiting.",
-  return: "Push back up to finish calibration. This practice rep won’t count.",
+  positioning: "Start pushing. Keep both shoulders and hands in view.",
+  lower: "Lower your chest — your first complete pushup counts.",
+  return: "Push back up to complete your first rep.",
   lost: "Keep both shoulders and hands in view, and keep your hands planted. Move yourself to fit the frame.",
   recovering: "Return to the top of your pushup to resume tracking.",
 };
 
-export function createChainPushupScreen({ $, savedRange, onReady, onRatio, onLost, onReacquired }) {
+export function createChainPushupScreen({ $, savedRange, onReady, onFirstRep, onRatio, onLost, onReacquired }) {
   const tracker = createUprightPushupTracker(savedRange);
   let ready = false;
-  $("chainofpain-cal-stage").classList.remove("hidden");
-  $("chainofpain-count-stage").classList.add("hidden");
-  $("chainofpain-cal-title").textContent = "Find your pushup range";
-  $("chainofpain-cal-instructions").textContent = HINTS.positioning;
+  $("chainofpain-cal-stage").classList.add("hidden");
+  $("chainofpain-count-stage").classList.remove("hidden");
+  $("chainofpain-status-banner").textContent = HINTS.positioning;
+  $("chainofpain-status-banner").classList.remove("hidden");
+  $("chainofpain-status-banner").classList.add("chainofpain-learning");
   $("chainofpain-cal-error").classList.add("hidden");
+  $("chainofpain-camera-overlay").appendChild($("btn-chainofpain-face-tracker"));
   $("btn-chainofpain-face-tracker").classList.remove("hidden");
   return {
     sample(landmarks, now, aspect) {
@@ -24,11 +26,14 @@ export function createChainPushupScreen({ $, savedRange, onReady, onRatio, onLos
         ready = true;
         $("btn-chainofpain-face-tracker").classList.add("hidden");
         onReady(result.thresholds, tracker.range);
+        $("chainofpain-status-banner").classList.add("hidden");
+        $("chainofpain-status-banner").classList.remove("chainofpain-learning");
+        if (result.counted) onFirstRep?.();
       } else if (result.status === "tracking") {
         if (result.reacquired) onReacquired(result.thresholds);
         onRatio(result.ratio);
       } else {
-        if (!ready) $("chainofpain-cal-instructions").textContent = HINTS[result.status];
+        if (!ready) $("chainofpain-status-banner").textContent = HINTS[result.status];
         else onLost(HINTS[result.status]);
       }
       return result;

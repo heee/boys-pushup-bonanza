@@ -68,14 +68,9 @@ test("setup countdown waits five complete seconds and clamps delayed callbacks",
   }
 });
 
-test("pushup speech counts every fifth rep, limits cheers, and protects the quiet window", () => {
-  const args = {durationMs:60000, elapsedMs:10000};
-  assert.equal(chainOfPainPushupVoiceCue({...args,count:4}),null);
-  assert.equal(chainOfPainPushupVoiceCue({...args,count:5}),"number");
-  assert.equal(chainOfPainPushupVoiceCue({...args,count:8,elapsedMs:20000}),"cheer");
-  assert.equal(chainOfPainPushupVoiceCue({...args,count:10,elapsedMs:22000,quietUntilMs:24500,lastCheerMs:20000}),null);
-  assert.equal(chainOfPainPushupVoiceCue({...args,count:15,elapsedMs:26000,lastCheerMs:20000}),"number");
-  assert.equal(chainOfPainPushupVoiceCue({...args,count:20,elapsedMs:59000,lastCheerMs:20000}),"number");
+test("pushup speech announces every rep even during the former cheer window", () => {
+  for (let count = 1; count <= 30; count++) assert.equal(chainOfPainPushupVoiceCue({count, elapsedMs: 22000, quietUntilMs: 24500}), "number");
+  assert.equal(chainOfPainPushupVoiceCue({count: 0}), null);
 });
 
 test("every plank duration schedules three evenly spaced cues and none after expiry", () => {

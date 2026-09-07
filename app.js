@@ -13588,15 +13588,8 @@ function onChainOfPainRepCounted(count) {
   updateModeCounterBadge("chainofpain-counter-badge", chainOfPainState.rules.segmentReps);
   const now = performance.now();
   if (chainOfPainCurrentExercise(chainOfPainState.rules) === "pushup") {
-    const elapsedMs = now - chainOfPainState.segmentStartedAt;
-    const cue = chainOfPainPushupVoiceCue({ count: chainOfPainState.rules.segmentReps, elapsedMs, durationMs: chainOfPainSegmentDurationMs(chainOfPainState.rules), ...chainOfPainState.pushupVoice });
-    if (cue === "cheer") {
-      speak(pickFrom(CHAINOFPAIN_PUSHUP_CHEER_LINES));
-      chainOfPainState.pushupVoice.lastCheerMs = elapsedMs;
-      chainOfPainState.pushupVoice.quietUntilMs = elapsedMs + 4500;
-    } else if (cue === "number") {
+    if (chainOfPainPushupVoiceCue({ count: chainOfPainState.rules.segmentReps }) === "number") {
       speak(numberToWords(chainOfPainState.rules.segmentReps));
-      chainOfPainState.pushupVoice.lastNumberMs = elapsedMs;
     }
     vibrate(45);
     return;
@@ -13634,6 +13627,7 @@ function chainOfPainOnFaceDetection(bbox) {
 function chainOfPainOnPoseDetection(landmarks) {
   const video = $("chainofpain-camera-video");
   if (chainOfPainCurrentExercise(chainOfPainState.rules) === "pushup" && chainPushupScreen) {
+    if (chainOfPainState.stage !== "counting") return;
     const bbox = squatBodyBBox(landmarks, video);
     if (bbox) updateChainOfPainBox(bbox);
     chainPushupScreen.sample(landmarks, performance.now(), video.videoWidth / video.videoHeight || 1);
@@ -13708,12 +13702,11 @@ function tickChainOfPainWarmup() {
   }
 }
 
-function beginChainOfPainCounting(thresholds) {
-  chainOfPainState.pushupVoice = { lastCheerMs: 0, lastNumberMs: 0, quietUntilMs: 0 };
-  // Calibration frames establish range only; the timed workout starts at zero.
-  chainOfPainState.counter = createRepCounter(thresholds);
-  chainOfPainState.down = thresholds.down;
-  chainOfPainState.up = thresholds.up;
+function beginChainOfPainCounting(thresholds = null) {
+  // Upright pushups learn thresholds during the timed opening rep.
+  chainOfPainState.counter = thresholds ? createRepCounter(thresholds) : null;
+  chainOfPainState.down = thresholds?.down;
+  chainOfPainState.up = thresholds?.up;
   chainOfPainState.stage = "counting";
   chainOfPainState.lastSeenAt = performance.now();
   chainOfPainState.paused = false;
@@ -13721,7 +13714,7 @@ function beginChainOfPainCounting(thresholds) {
   $("chainofpain-cal-stage").classList.add("hidden");
   $("chainofpain-count-stage").classList.remove("hidden");
   hideChainOfPainStatusBanner();
-  if (chainOfPainState.counter.count > 0) chainOfPainRecordReps(chainOfPainState.rules, chainOfPainState.counter.count);
+  if (chainOfPainState.counter?.count > 0) chainOfPainRecordReps(chainOfPainState.rules, chainOfPainState.counter.count);
   renderChainOfPainCountStage();
   startChainOfPainTicker();
 }
@@ -13742,12 +13735,12 @@ function beginChainOfPainPlankHold() {
 // The optional close-up fallback uses Settings thresholds; plank is timed.
 async function beginChainOfPainSegment(exercise) {
   chainPushupScreen = null;
+  $("chainofpain-status-banner").classList.remove("chainofpain-learning");
   $("btn-chainofpain-face-tracker").classList.add("hidden");
   $(exercise === "squat" ? "chainofpain-camera-overlay" : "chainofpain-timer-scene").appendChild($("chainofpain-counter-badge"));
   $("chainofpain-counter-badge").classList.remove("pop");
   const uprightPushup = exercise === "pushup" && !chainOfPainState.useFaceTracker;
   $("chainofpain-camera-wrap").classList.toggle("preview-hidden", exercise === "pushup" && !uprightPushup && localStorage.getItem(LS.showCameraPreview) !== "1");
-  $("chainofpain-camera-wrap").classList.toggle("chainofpain-camera-wrap-pushup", uprightPushup);
   if (exercise === "plank") {
     chainOfPainCamera?.stop();
     chainOfPainState.detectorType = null;
@@ -13756,9 +13749,8 @@ async function beginChainOfPainSegment(exercise) {
     return true;
   }
   $("chainofpain-camera-wrap").classList.remove("hidden");
-  // Squat reuses the full-size squat camera view; pushup keeps the small
-  // shared confidence thumbnail, matching each exercise's standalone mode.
-  $("chainofpain-camera-wrap").classList.toggle("chainofpain-camera-wrap-large", exercise === "squat");
+  // Keep the camera window stable across both camera-counted exercises.
+  $("chainofpain-camera-wrap").classList.add("chainofpain-camera-wrap-large");
   const detectorType = exercise === "squat" || uprightPushup ? "pose" : "face";
   try {
     if (uprightPushup) await loadChainPushupScreen();
@@ -13769,10 +13761,16 @@ async function beginChainOfPainSegment(exercise) {
   }
   if (exercise === "pushup") {
     if (uprightPushup) {
-      chainOfPainState.stage = "pushup-calibration";
+      beginChainOfPainCounting();
       const { createChainPushupScreen } = await loadChainPushupScreen();
       chainPushupScreen = createChainPushupScreen({ $, savedRange: chainOfPainState.pushupRange,
-        onReady: (thresholds, range) => { chainOfPainState.pushupRange = range; beginChainOfPainCounting(thresholds); },
+        onReady: (thresholds, range) => {
+          chainOfPainState.pushupRange = range;
+          chainOfPainState.counter = createRepCounter(thresholds);
+          chainOfPainState.lastSeenAt = performance.now();
+          chainOfPainState.paused = false;
+        },
+        onFirstRep: () => onChainOfPainRepCounted(1),
         onRatio: processChainOfPainRatio,
         onLost: (hint) => { chainOfPainState.paused = true; hideChainOfPainBox(); showChainOfPainStatusBanner(hint); },
         onReacquired: (thresholds) => { chainOfPainState.counter = createRepCounter(thresholds); },
@@ -14023,8 +14021,10 @@ $("btn-chainofpain-cancel").addEventListener("click", stopChainOfPainHard);
 $("btn-chainofpain-finish").addEventListener("click", finishChainOfPain);
 $("btn-chainofpain-ready").addEventListener("click", chainOfPainReadyForNextSegment);
 $("btn-chainofpain-face-tracker").addEventListener("click", async () => {
+  const startedAt = chainOfPainState.segmentStartedAt;
   chainOfPainState.useFaceTracker = true;
   await beginChainOfPainSegment("pushup");
+  chainOfPainState.segmentStartedAt = startedAt;
 });
 $("btn-chainofpain-minus").addEventListener("click", () => {
   const exercise = chainOfPainCurrentExercise(chainOfPainState.rules);

@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=299">
+<link rel="stylesheet" href="style.css?v=300">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1053,17 +1053,18 @@
         </div>
         <p id="chainofpain-personal-best" class="highscore-message"></p>
         <button id="btn-chainofpain-start" class="btn btn-giant btn-primary btn-with-icon">Bring it<svg class="chainofpain-start-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="4" height="14" rx="1"/><rect x="16" y="5" width="4" height="14" rx="1"/><path d="M8 12h8M2 9v6M22 9v6M2 12h2M20 12h2"/></svg></button>
-        <p class="workout-hint">10 seconds to reposition the phone between each exercise. Squats and pushups calibrate once, planks are just a hold.</p>
+        <p class="workout-hint">10 seconds between exercises. Squats calibrate once; pushups learn as you go. Planks are a timed hold.</p>
       </div>
 
       <div id="chainofpain-in-progress" class="workout-active hidden">
         <div id="chainofpain-camera-wrap" class="camera-wrap">
           <video id="chainofpain-camera-video" playsinline muted autoplay></video>
           <div id="chainofpain-face-box" class="face-box hidden"></div>
-          <div id="chainofpain-camera-overlay" class="chainofpain-camera-overlay"></div>
+          <div id="chainofpain-camera-overlay" class="chainofpain-camera-overlay">
+            <div id="chainofpain-status-banner" class="status-banner hidden" role="status" aria-live="polite">PAUSED — get back in frame</div>
+          </div>
         </div>
 
-        <div id="chainofpain-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — get back in frame</div>
 
         <div id="chainofpain-setup-stage" class="rep-count-wrap hidden">
           <h2 class="squat-cal-title">Get into position</h2>
@@ -2025,6 +2026,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=310"></script>
+<script type="module" src="app.js?v=311"></script>
 </body>
 </html>

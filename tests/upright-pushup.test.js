@@ -34,10 +34,11 @@ test("stationary setup and a single noisy frame cannot calibrate a pushup", () =
   for(let t=5200;t<=6500;t+=100) assert.notEqual(tracker.sample(pose(),t).status,"ready");
 });
 
-test("one practice down/up establishes range without a rep; later full movements use the shared counter", () => {
+test("the first full pushup establishes range and earns a rep; later movements use the shared counter", () => {
   const tracker = createUprightPushupTracker();
   const result = calibrate(tracker);
   assert.equal(result.status,"ready");
+  assert.equal(result.counted,true);
   assert.ok(tracker.range >= 0.22);
   const counter = createRepCounter(result.thresholds);
   assert.equal(counter.count,0);
@@ -62,25 +63,34 @@ test("moving hands during calibration resets it; losing tracking rearms only at 
   assert.equal(tracker.sample(pose(),2500).reacquired,false);
 });
 
+test("continuous opening movement learns the range without a standing-still delay", () => {
+  const tracker = createUprightPushupTracker();
+  const frames = [[0,.4],[50,.42],[100,.44],[200,.5],[300,.6],[400,.65],[500,.65],[600,.65],[700,.5],[800,.4]];
+  const results = frames.map(([t,y]) => tracker.sample(pose(y),t));
+  assert.equal(results.filter(r => r.counted).length, 1);
+  assert.equal(results.at(-1).status,"ready");
+  for(let t=900;t<=1400;t+=100) assert.notEqual(tracker.sample(pose(),t).counted,true);
+});
+
 test("later circuits reuse calibrated range after reacquiring a stable high plank", () => {
   const original = createUprightPushupTracker(); calibrate(original);
   const reused = createUprightPushupTracker(original.range);
   let last;
-  for(let t=0;t<=800;t+=100) last = reused.sample(pose(),t);
+  for(let t=0;t<=200;t+=100) last = reused.sample(pose(),t);
   assert.equal(last.status,"ready");
   assert.equal(reused.range,original.range);
 });
 
-test("pushup screen waits for calibration, then reports motion and loss without restarting the timer", () => {
+test("pushup screen learns during active movement, credits the first rep once, and recovers tracking", () => {
   const els = new Map();
-  const $ = id => { if(!els.has(id)) els.set(id,{textContent:"",classList:{add(){},remove(){}}});return els.get(id); };
-  let ready=0, samples=0, lost=0, reacquired=0;
-  const screen = createChainPushupScreen({$,onReady:()=>ready++,onRatio:()=>samples++,onLost:()=>lost++,onReacquired:()=>reacquired++});
+  const $ = id => { if(!els.has(id)) els.set(id,{textContent:"",appendChild(){},classList:{add(){},remove(){}}});return els.get(id); };
+  let ready=0, samples=0, lost=0, reacquired=0, firstReps=0;
+  const screen = createChainPushupScreen({$,onReady:()=>ready++,onFirstRep:()=>firstReps++,onRatio:()=>samples++,onLost:()=>lost++,onReacquired:()=>reacquired++});
   for(let t=0;t<=800;t+=100) screen.sample(pose(),t,1);
-  assert.match($("chainofpain-cal-instructions").textContent,/Lower your chest/);
+  assert.match($("chainofpain-status-banner").textContent,/Lower your chest/);
   for(const t of [1100,1300,1500]) screen.sample(pose(0.65),t,1);
   screen.sample(pose(),1900,1);
-  assert.equal(ready,1); assert.equal(samples,0);
+  assert.equal(ready,1); assert.equal(samples,0); assert.equal(firstReps,1);
   screen.sample(pose(),2000,1); screen.sample(null,2100,1); screen.sample(pose(),2400,1);
-  assert.equal(ready,1); assert.equal(lost,1); assert.equal(reacquired,1); assert.equal(samples,2);
+  assert.equal(firstReps,1); assert.equal(ready,1); assert.equal(lost,1); assert.equal(reacquired,1); assert.equal(samples,2);
 });
