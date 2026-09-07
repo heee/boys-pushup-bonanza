@@ -8,7 +8,7 @@ export const EXPLORE_MODES = [
   { id: "pullup", icon: "💪", title: "Pull-ups", tagline: "Camera-counted pull-ups, own your reps", live: true },
   { id: "situp", icon: "🙇", title: "Crunch", tagline: "Camera-counted crunches, own your reps", live: true },
   { id: "holland", icon: "🇳🇱", title: "Holland Mode", tagline: "Pull-ups, pushups, squats — nonstop", live: true },
-  { id: "chainofpain", icon: "⛓️", title: "Chain of Pain", tagline: "Squats, pushups, planks — timed and relentless", live: true },
+  { id: "chainofpain", icon: "⛓️", title: "Chain of Pain", tagline: "Squats, pushups, planks — nonstop", live: true },
   { id: "ladder", icon: "🪜", title: "Ladder", tagline: "Climb the ladder, cash out anytime", live: true },
   { id: "fortune", icon: "🥠", title: "Fortune cookie", tagline: "One set, one revealed challenge", live: true },
   { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Hunt the first board you don't already lead", live: true },

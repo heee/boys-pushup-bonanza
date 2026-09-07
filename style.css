@@ -956,7 +956,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    vertically centered beside it — text and name visibly split apart. Block
    layout lets it wrap as one normal paragraph instead. */
 #screen-pullup-workout .workout-hello,
-#screen-holland-workout .workout-hello {
+#screen-holland-workout .workout-hello,
+#screen-chainofpain-workout .workout-hello {
   display: block;
   max-width: 22rem;
   line-height: 1.15;
