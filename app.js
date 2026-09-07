@@ -381,7 +381,7 @@ function savedHollandDifficulty() {
 
 function savedChainOfPainDuration() {
   const saved = localStorage.getItem(LS.chainOfPainDuration);
-  return CHAIN_OF_PAIN_DURATIONS.some((d) => d.id === saved) ? saved : "1min";
+  return CHAIN_OF_PAIN_DURATIONS.some((d) => d.id === saved) ? saved : "30s";
 }
 
 const AVATARS = [

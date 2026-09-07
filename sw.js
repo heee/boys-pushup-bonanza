@@ -4,7 +4,7 @@ const CACHE_NAME = "bpb-shell-v420";
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=294",
+  "./style.css?v=296",
   "./app.js?v=305",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",
