@@ -118,6 +118,11 @@ const SPECS = {
     { id: "bestCycles", label: "Best Holland cycles", format: "decimal", qualifier: "group best", value: (s) => s.length ? Math.max(...s.map((x) => Number(x.hollandCycles) || 0)) : null },
     { id: "holland27", label: "Holland 27 unlocked", format: "integer", qualifier: "total", value: (s) => s.filter((x) => x.hollandAchievement === "holland27").length },
   ],
+  chainofpain: [
+    { id: "workouts", label: "Chain of Pain workouts", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalCycles", label: "Total cycles", format: "decimal", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.chainOfPainCycles) || 0) : null },
+    { id: "bestCycles", label: "Best cycles", format: "decimal", qualifier: "group best", value: (s) => s.length ? Math.max(...s.map((x) => Number(x.chainOfPainCycles) || 0)) : null },
+  ],
 };
 
 export function modeStatsModel(sessions, mode) {
@@ -212,7 +217,7 @@ export function modesUsedStat(sessions) {
 // modesUsedStat. Callers pass the full period-filtered session list (not
 // the mode-filtered one) for this.
 export function exerciseTypesUsedStat(sessions) {
-  const typeIdOf = (s) => (s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : "pushups");
+  const typeIdOf = (s) => (s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : "pushups");
   const allTypes = new Set();
   const byUser = new Map();
   for (const s of sessions) {

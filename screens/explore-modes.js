@@ -8,6 +8,7 @@ export const EXPLORE_MODES = [
   { id: "pullup", icon: "💪", title: "Pull-ups", tagline: "Camera-counted pull-ups, own your reps", live: true },
   { id: "situp", icon: "🙇", title: "Crunch", tagline: "Camera-counted crunches, own your reps", live: true },
   { id: "holland", icon: "🇳🇱", title: "Holland Mode", tagline: "Pull-ups, pushups, squats — nonstop", live: true },
+  { id: "chainofpain", icon: "⛓️", title: "Chain of Pain", tagline: "Squats, pushups, planks — timed and relentless", live: true },
   { id: "ladder", icon: "🪜", title: "Ladder", tagline: "Climb the ladder, cash out anytime", live: true },
   { id: "fortune", icon: "🥠", title: "Fortune cookie", tagline: "One set, one revealed challenge", live: true },
   { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Hunt the first board you don't already lead", live: true },
@@ -26,7 +27,7 @@ export const EXPLORE_MODES = [
 function usageByMode(sessions) {
   const counts = new Map();
   for (const session of sessions) {
-    const id = session.type === "plank" ? "plank" : session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : session.type === "holland" ? "holland" : (session.mode || "classic");
+    const id = session.type === "plank" ? "plank" : session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : session.type === "holland" ? "holland" : session.type === "chainofpain" ? "chainofpain" : (session.mode || "classic");
     if (id) counts.set(id, (counts.get(id) || 0) + 1);
   }
   return counts;
@@ -34,7 +35,7 @@ function usageByMode(sessions) {
 
 // Plank, Pull-ups, Squat, and Situp are separate activities, not pushup modes —
 // they get their own "Other exercises" bucket below the "Pushups" bucket.
-const OTHER_EXERCISE_IDS = new Set(["plank", "pullup", "squat", "situp", "holland"]);
+const OTHER_EXERCISE_IDS = new Set(["plank", "pullup", "squat", "situp", "holland", "chainofpain"]);
 
 function orderBucket(bucket) {
   const playable = bucket.filter((item) => item.playable).sort((a, b) => {

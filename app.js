@@ -65,7 +65,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=143";
+} from "./voice-lines.js?v=144";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -81,7 +81,7 @@ import {
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=151";
+} from "./voice.js?v=152";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
@@ -105,16 +105,16 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=139";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=4";
-import { comparisonModel } from "./screens/comparison.js?v=138";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=140";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=5";
+import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { adjacentBingoCycle, bingoCompletionForUser, bingoCycleById, bingoCycleForDate, bingoLeaderboard, bingoSquaresChecked, bingoWinners, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=3";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=144";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=145";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=9";
+import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=10";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=152";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -201,6 +201,28 @@ import {
   hollandSegmentTarget,
   hollandTotalReps,
 } from "./modes/holland.js";
+import {
+  CHAIN_OF_PAIN_DURATIONS,
+  CHAIN_OF_PAIN_EXERCISE_ORDER,
+  CHAIN_OF_PAIN_REST_SECONDS,
+  chainOfPainAdvanceFromRest,
+  chainOfPainApplyCorrection,
+  chainOfPainBuildSession,
+  chainOfPainCompleteSegment,
+  chainOfPainComponentSessions,
+  chainOfPainCreateState,
+  chainOfPainCurrentExercise,
+  chainOfPainCycles,
+  chainOfPainCyclesLabel,
+  chainOfPainDurationById,
+  chainOfPainFinish,
+  chainOfPainFormatCycles,
+  chainOfPainIsPlankSegment,
+  chainOfPainRecordReps,
+  chainOfPainRestExpired,
+  chainOfPainSegmentExpired,
+  chainOfPainTickPlank,
+} from "./modes/chain-of-pain.js";
 
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -254,6 +276,7 @@ const LS = {
   roadtripTier: "bpb-roadtrip-tier",
   roadtripPrompted: "bpb-roadtrip-location-prompted",
   hollandDifficulty: "bpb-holland-difficulty",
+  chainOfPainDuration: "bpb-chainofpain-duration",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -289,6 +312,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "situps", label: "Crunches" },
   { id: "planks", label: "Planks" },
   { id: "holland", label: "Holland" },
+  { id: "chainofpain", label: "Chain of Pain" },
 ];
 const LEADERBOARD_MODE_IDS = new Set(LEADERBOARD_MODE_OPTIONS.map((option) => option.id));
 
@@ -300,14 +324,15 @@ const MY_SESSIONS_MODE_OPTIONS = [
   { id: "squats", label: "Squats" },
   { id: "planks", label: "Planks" },
   { id: "holland", label: "Holland" },
+  { id: "chainofpain", label: "Chain of Pain" },
 ];
 
 function sessionActivity(s) {
-  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : "pushups";
+  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : "pushups";
 }
 
 function leaderboardActivity(mode) {
-  return ["planks", "pullups", "squats", "situps", "holland"].includes(mode) ? mode : "pushups";
+  return ["planks", "pullups", "squats", "situps", "holland", "chainofpain"].includes(mode) ? mode : "pushups";
 }
 
 function activityLabel(activity, singular = false) {
@@ -318,6 +343,7 @@ function activityLabel(activity, singular = false) {
     situps: singular ? "crunch" : "crunches",
     planks: singular ? "plank" : "planks",
     holland: singular ? "Holland cycle" : "Holland cycles",
+    chainofpain: singular ? "Chain of Pain cycle" : "Chain of Pain cycles",
   };
   return words[activity] || words.pushups;
 }
@@ -333,6 +359,7 @@ function activityEmoji(activity) {
     situps: "🙇",
     planks: "🪵",
     holland: "🇳🇱",
+    chainofpain: "⛓️",
   };
   return icons[activity] || icons.pushups;
 }
@@ -345,6 +372,11 @@ function savedLeaderboardMode() {
 function savedHollandDifficulty() {
   const saved = localStorage.getItem(LS.hollandDifficulty);
   return HOLLAND_TARGETS[saved] ? saved : "normal";
+}
+
+function savedChainOfPainDuration() {
+  const saved = localStorage.getItem(LS.chainOfPainDuration);
+  return CHAIN_OF_PAIN_DURATIONS.some((d) => d.id === saved) ? saved : "1min";
 }
 
 const AVATARS = [
@@ -779,7 +811,7 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [], holland: [] };
+  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
@@ -824,6 +856,11 @@ function buildSessionIndex(sessions) {
 
     if (session.type === "holland") {
       for (const projected of hollandComponentSessions(session)) {
+        indexActivityAndLeaderboard(projected, sessionActivity(projected));
+      }
+    }
+    if (session.type === "chainofpain") {
+      for (const projected of chainOfPainComponentSessions(session)) {
         indexActivityAndLeaderboard(projected, sessionActivity(projected));
       }
     }
@@ -1453,6 +1490,10 @@ const state = {
   hollandBest: 0,
   hollandDifficulty: savedHollandDifficulty(),
   hollandSessionLocation: null,
+  chainOfPainActive: false,
+  chainOfPainBest: 0,
+  chainOfPainDuration: savedChainOfPainDuration(),
+  chainOfPainSessionLocation: null,
   summarySessionId: null,
   summaryBaseCount: 0,
   summaryExtra: 0,
@@ -1816,6 +1857,7 @@ const TAB_FOR_SCREEN = {
   "screen-pullup-workout": "btn-nav-home",
   "screen-situp-workout": "btn-nav-home",
   "screen-holland-workout": "btn-nav-home",
+  "screen-chainofpain-workout": "btn-nav-home",
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
   "screen-user-compare": "btn-nav-dashboard",
@@ -1857,7 +1899,8 @@ function showScreen(id) {
     (id === "screen-squat-workout" && state.squatActive) ||
     (id === "screen-pullup-workout" && state.pullupActive) ||
     (id === "screen-situp-workout" && state.situpActive) ||
-    (id === "screen-holland-workout" && state.hollandActive);
+    (id === "screen-holland-workout" && state.hollandActive) ||
+    (id === "screen-chainofpain-workout" && state.chainOfPainActive);
   setChromeMinimized(minimized);
   const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
   document.querySelectorAll("#tab-bar .tab-item").forEach((btn) => {
@@ -1877,6 +1920,9 @@ function showScreen(id) {
   }
   if (id === "screen-summary" && state.lastSessionType !== "holland") {
     $("summary-holland-result")?.classList.add("hidden");
+  }
+  if (id === "screen-summary" && state.lastSessionType !== "chainofpain") {
+    $("summary-chainofpain-result")?.classList.add("hidden");
   }
   if (id === "screen-summary" && state.lastSessionType !== "pulse") {
     $("summary-pulse-result")?.classList.add("hidden");
@@ -1942,6 +1988,11 @@ function showScreen(id) {
     setAvatarEl($("holland-avatar"), state.currentAvatar, "2rem");
     renderHollandIdle();
   }
+  if (id === "screen-chainofpain-workout" && !state.chainOfPainActive) {
+    $("chainofpain-username").textContent = state.currentUser || "Friend";
+    setAvatarEl($("chainofpain-avatar"), state.currentAvatar, "2rem");
+    renderChainOfPainIdle();
+  }
 }
 
 function guardLeaveWorkout(next) {
@@ -1969,6 +2020,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this Holland workout? Your in-progress circuit won't be saved.");
     if (!ok) return;
     stopHollandHard();
+  } else if (state.screen === "screen-chainofpain-workout" && state.chainOfPainActive) {
+    const ok = confirm("Leave this Chain of Pain workout? Your in-progress circuit won't be saved.");
+    if (!ok) return;
+    stopChainOfPainHard();
   }
   next();
 }
@@ -2985,6 +3040,10 @@ async function openExploreMode(modeId, { onChaseIneligible } = {}) {
   }
   if (modeId === "holland") {
     guardLeaveWorkout(() => showScreen("screen-holland-workout"));
+    return;
+  }
+  if (modeId === "chainofpain") {
+    guardLeaveWorkout(() => showScreen("screen-chainofpain-workout"));
     return;
   }
   openPushupModeFromExplore(modeId);
@@ -6782,14 +6841,16 @@ function renderSessionDetail() {
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
   const isHolland = session.type === "holland";
+  const isChainOfPain = session.type === "chainofpain";
   const isPulse = session.mode === "pulse";
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
   $("session-detail-count").textContent = (isPlank || isPulse) ? formatDuration(session.count * 1000)
     : isHolland ? hollandFormatCycles(Number(session.hollandCycles) || 0)
+    : isChainOfPain ? chainOfPainFormatCycles(Number(session.chainOfPainCycles) || 0)
     : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
 
   const badgeHTML = (badge) => `<span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>`;
   const allBadges = sessionBadges(session);
@@ -6847,9 +6908,10 @@ async function shareSessionDetail() {
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
   const isHolland = session.type === "holland";
+  const isChainOfPain = session.type === "chainofpain";
   const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const modifierBadge = sessionBadges(session).find((b) => b.id === "modifier");
   const rings = sessionRings(session, getAllSessionsForDisplay());
   const statRing = [rings.find((r) => r.id === "vsPrior"), rings.find((r) => r.id === "vsAvg")].find((r) => r?.hasData && r.diffPct != null);
@@ -6863,7 +6925,7 @@ async function shareSessionDetail() {
     dateText: formatDateTime(session.timestamp),
     statLine,
   });
-  const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isPulse ? "pulse" : (session.mode || "classic");
+  const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isPulse ? "pulse" : (session.mode || "classic");
   const url = modeShareUrl(modeId);
   if (navigator.share) {
     try { await navigator.share({ title: "Boys Pushup Bonanza", text: message, url }); } catch (e) { /* cancelled */ }
@@ -9063,6 +9125,10 @@ function getPullupLast(name) {
 
 function getHollandBest(name) {
   return bestFor(indexedSessionsForUser(name, "holland"), name, () => true, "hollandCycles");
+}
+
+function getChainOfPainBest(name) {
+  return bestFor(indexedSessionsForUser(name, "chainofpain"), name, () => true, "chainOfPainCycles");
 }
 
 function getSitupBest(name) {
@@ -11780,7 +11846,7 @@ $("btn-summary-again").addEventListener("click", () => {
     showScreen("screen-cock-setup");
     return;
   }
-  const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout" };
+  const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout", holland: "screen-holland-workout", chainofpain: "screen-chainofpain-workout" };
   const screen = screenByType[state.lastSessionType];
   if (!screen) preserveNextModeSelection = true;
   showScreen(screen || "screen-workout");
@@ -13318,6 +13384,536 @@ $("holland-difficulty-cards").addEventListener("click", (e) => {
   if (!card) return;
   selectHollandDifficulty(card.dataset.difficulty);
 });
+
+// ------------------- Chain of Pain mode -------------------
+// Continuous squat/pushup/plank circuit, TIME-driven per segment (unlike
+// Holland's rep-target segments) — see docs/chain-of-pain-mode-plan.md and
+// modes/chain-of-pain.js for the pure state machine. Squats reuse the same
+// pose-tracking pipeline the standalone Squat screen uses (squatHipY/
+// squatBodyBBox, defined above), pushups reuse the app's own face-tracking
+// pipeline and already-calibrated Settings thresholds (no per-session
+// warmup), and planks need no camera at all — just a per-second timer, same
+// as Plank mode itself.
+
+const CHAINOFPAIN_WARMUP_MIN_MS = 1200;
+const CHAINOFPAIN_WARMUP_MIN_SAMPLES = 10;
+const CHAINOFPAIN_WARMUP_MAX_SAMPLES = 300;
+const CHAINOFPAIN_WARMUP_HINT_MS = 8000;
+const CHAINOFPAIN_TICK_MS = 200;
+
+const CHAINOFPAIN_LABELS = { squat: "SQUATS", pushup: "PUSHUPS", plank: "PLANK HOLD" };
+const CHAINOFPAIN_REPOSITION_HINTS = {
+  squat: "Prop the phone against a wall, stand back, get your whole body in frame.",
+  pushup: "Set the phone up facing you at pushup-plank height.",
+  plank: "Get into plank position — no camera needed, just hold.",
+};
+
+const chainOfPainState = {
+  rules: null,
+  stage: "idle", // "warmup" | "counting" | "resting"
+  detectorType: null, // "pose" | "face" | null (plank has no camera)
+  counter: null,
+  calSamples: [],
+  calibratedThresholds: { squat: null }, // squat calibrates once, reused every later cycle
+  warmupStartedAt: 0,
+  segmentStartedAt: 0,
+  restStartedAt: 0,
+  paused: false,
+  lastSeenAt: 0,
+  lastRepSpokenAt: 0,
+  plankSecondsTicked: 0,
+  startedAt: null,
+};
+
+let chainOfPainCamera = null;
+async function ensureChainOfPainCamera(detectorType) {
+  if (chainOfPainCamera && chainOfPainState.detectorType === detectorType) return chainOfPainCamera;
+  if (chainOfPainCamera) chainOfPainCamera.stop();
+  chainOfPainCamera = createCameraController({
+    moduleUrl: FACE_DETECTOR_MODULE_URL,
+    wasmUrl: FACE_DETECTOR_WASM_URL,
+    modelUrl: detectorType === "pose" ? POSE_LANDMARKER_MODEL_URL : FACE_DETECTOR_MODEL_URL,
+    detectorType,
+    getVideo: () => $("chainofpain-camera-video"),
+    onDetection: detectorType === "pose" ? chainOfPainOnPoseDetection : chainOfPainOnFaceDetection,
+    onNoDetection: chainOfPainOnNoDetection,
+  });
+  const detectorReady = chainOfPainCamera.ensureDetector();
+  const stream = await chainOfPainCamera.requestStream();
+  const video = $("chainofpain-camera-video");
+  video.srcObject = stream;
+  await detectorReady;
+  chainOfPainState.detectorType = detectorType;
+  chainOfPainCamera.startDetection();
+  return chainOfPainCamera;
+}
+
+function updateChainOfPainBox(bbox) {
+  const video = $("chainofpain-camera-video");
+  const container = document.querySelector("#screen-chainofpain-workout .camera-wrap");
+  if (!video.videoWidth || !container) return;
+  const scaleX = container.clientWidth / video.videoWidth;
+  const scaleY = container.clientHeight / video.videoHeight;
+  const box = $("chainofpain-face-box");
+  box.style.left = `${bbox.originX * scaleX}px`;
+  box.style.top = `${bbox.originY * scaleY}px`;
+  box.style.width = `${bbox.width * scaleX}px`;
+  box.style.height = `${bbox.height * scaleY}px`;
+  box.classList.remove("hidden");
+}
+function hideChainOfPainBox() { $("chainofpain-face-box").classList.add("hidden"); }
+function hideChainOfPainStatusBanner() { $("chainofpain-status-banner").classList.add("hidden"); }
+function showChainOfPainStatusBanner(text) {
+  $("chainofpain-status-banner").textContent = text;
+  $("chainofpain-status-banner").classList.remove("hidden");
+}
+
+function checkChainOfPainLostTimeout() {
+  if (chainOfPainState.paused || chainOfPainState.stage !== "counting") return;
+  const now = performance.now();
+  if (now - chainOfPainState.lastSeenAt > FACE_LOST_TIMEOUT_MS) {
+    chainOfPainState.paused = true;
+    showChainOfPainStatusBanner("PAUSED — get back in frame");
+  }
+}
+
+function renderChainOfPainCountStage() {
+  const exercise = chainOfPainCurrentExercise(chainOfPainState.rules);
+  $("chainofpain-rep-label").textContent = CHAINOFPAIN_LABELS[exercise];
+  $("chainofpain-rep-count").textContent = exercise === "plank"
+    ? formatDuration(chainOfPainState.rules.segmentReps * 1000)
+    : String(chainOfPainState.rules.segmentReps);
+  $("chainofpain-phase-indicator").classList.toggle("hidden", exercise !== "squat");
+  $("chainofpain-correction-row").classList.toggle("hidden", exercise === "plank");
+  renderChainOfPainHUD();
+}
+
+function renderChainOfPainHUD() {
+  const cycles = chainOfPainCycles(chainOfPainState.rules);
+  $("chainofpain-hud-duration").textContent = `${chainOfPainDurationById(state.chainOfPainDuration).label} segments`;
+  $("chainofpain-hud-cycles").textContent = chainOfPainCyclesLabel(cycles);
+}
+
+function onChainOfPainRepCounted(count) {
+  chainOfPainRecordReps(chainOfPainState.rules, 1);
+  renderChainOfPainCountStage();
+  const now = performance.now();
+  const fastPace = now - chainOfPainState.lastRepSpokenAt < REP_SPEECH_MIN_GAP_MS;
+  let spoken = null;
+  if (Math.random() < cheerProbability(Math.min(1, count / 20))) spoken = pickFrom(CHAINOFPAIN_CHEER_LINES);
+  if (!fastPace || spoken || count % 5 === 0) {
+    chainOfPainState.lastRepSpokenAt = now;
+    speak(spoken || numberToWords(count));
+  }
+  vibrate(45);
+}
+
+function processChainOfPainRatio(ratio) {
+  const now = performance.now();
+  chainOfPainState.lastSeenAt = now;
+  if (chainOfPainState.paused) {
+    chainOfPainState.paused = false;
+    hideChainOfPainStatusBanner();
+    speak("Back to it");
+  }
+  if (!chainOfPainState.counter) chainOfPainState.counter = createRepCounter({ down: chainOfPainState.down, up: chainOfPainState.up });
+  const result = chainOfPainState.counter.advance(ratio, now);
+  if (result.counted) onChainOfPainRepCounted(result.count);
+}
+
+function chainOfPainOnFaceDetection(bbox) {
+  const video = $("chainofpain-camera-video");
+  updateChainOfPainBox(bbox);
+  const ratio = bbox.height / video.videoHeight;
+  if (chainOfPainState.stage === "counting") processChainOfPainRatio(ratio);
+}
+
+function chainOfPainOnPoseDetection(landmarks) {
+  const video = $("chainofpain-camera-video");
+  const hipY = squatHipY(landmarks);
+  if (hipY == null) { hideChainOfPainBox(); checkChainOfPainLostTimeout(); return; }
+  const bbox = squatBodyBBox(landmarks, video);
+  if (bbox) updateChainOfPainBox(bbox);
+  if (chainOfPainState.stage === "warmup") {
+    chainOfPainState.calSamples.push({ ratio: hipY, t: performance.now() });
+    if (chainOfPainState.calSamples.length > CHAINOFPAIN_WARMUP_MAX_SAMPLES) chainOfPainState.calSamples.shift();
+    tickChainOfPainWarmup();
+  } else if (chainOfPainState.stage === "counting") {
+    processChainOfPainRatio(hipY);
+  }
+}
+
+function chainOfPainOnNoDetection() {
+  hideChainOfPainBox();
+  checkChainOfPainLostTimeout();
+}
+
+function renderChainOfPainWarmup() {
+  $("chainofpain-cal-title").textContent = "Get your range";
+  $("chainofpain-cal-instructions").textContent = "Squat up and down a couple of times — we'll start counting automatically.";
+  $("chainofpain-cal-error").classList.add("hidden");
+}
+
+function beginChainOfPainWarmup() {
+  chainOfPainState.stage = "warmup";
+  chainOfPainState.calSamples = [];
+  chainOfPainState.warmupStartedAt = performance.now();
+  $("chainofpain-cal-stage").classList.remove("hidden");
+  $("chainofpain-count-stage").classList.add("hidden");
+  hideChainOfPainStatusBanner();
+  renderChainOfPainWarmup();
+}
+
+function tickChainOfPainWarmup() {
+  const elapsed = performance.now() - chainOfPainState.warmupStartedAt;
+  if (elapsed < CHAINOFPAIN_WARMUP_MIN_MS || chainOfPainState.calSamples.length < CHAINOFPAIN_WARMUP_MIN_SAMPLES) return;
+  const { standY, squatY } = estimateSquatRange(chainOfPainState.calSamples);
+  if (squatCalibrationValid(standY, squatY)) {
+    $("chainofpain-cal-error").classList.add("hidden");
+    const thresholds = deriveSquatThresholds(standY, squatY);
+    chainOfPainState.calibratedThresholds.squat = thresholds;
+    speak(pickFrom(CHAINOFPAIN_START_LINES));
+    beginChainOfPainCounting(thresholds, chainOfPainState.calSamples);
+    return;
+  }
+  if (elapsed > CHAINOFPAIN_WARMUP_HINT_MS) {
+    const pct = Math.min(99, Math.round((squatSwing(standY, squatY) / SQUAT_MIN_SWING) * 100));
+    $("chainofpain-cal-error").textContent = `Still watching (${pct}%) — squat a little deeper, or step back so your whole body is in frame.`;
+    $("chainofpain-cal-error").classList.remove("hidden");
+  }
+}
+
+function beginChainOfPainCounting(thresholds, calSamples = null) {
+  chainOfPainState.counter = calSamples
+    ? replaySquatCalibration(calSamples, (config) => createRepCounter(config), thresholds)
+    : createRepCounter(thresholds);
+  chainOfPainState.down = thresholds.down;
+  chainOfPainState.up = thresholds.up;
+  chainOfPainState.stage = "counting";
+  chainOfPainState.lastSeenAt = performance.now();
+  chainOfPainState.paused = false;
+  chainOfPainState.segmentStartedAt = performance.now();
+  $("chainofpain-cal-stage").classList.add("hidden");
+  $("chainofpain-count-stage").classList.remove("hidden");
+  hideChainOfPainStatusBanner();
+  if (chainOfPainState.counter.count > 0) chainOfPainRecordReps(chainOfPainState.rules, chainOfPainState.counter.count);
+  renderChainOfPainCountStage();
+  startChainOfPainTicker();
+}
+
+function beginChainOfPainPlankHold() {
+  chainOfPainState.stage = "counting";
+  chainOfPainState.plankSecondsTicked = 0;
+  chainOfPainState.segmentStartedAt = performance.now();
+  $("chainofpain-cal-stage").classList.add("hidden");
+  $("chainofpain-count-stage").classList.remove("hidden");
+  hideChainOfPainStatusBanner();
+  renderChainOfPainCountStage();
+  startChainOfPainTicker();
+}
+
+// Only warms up the squat's first appearance in this workout — later cycles
+// reuse the thresholds captured then. Pushup has no warmup at all; it reuses
+// whatever's already calibrated in Settings. Plank needs no camera at all.
+async function beginChainOfPainSegment(exercise) {
+  if (exercise === "plank") {
+    chainOfPainCamera?.stop();
+    chainOfPainState.detectorType = null;
+    $("chainofpain-camera-wrap").classList.add("hidden");
+    beginChainOfPainPlankHold();
+    return true;
+  }
+  $("chainofpain-camera-wrap").classList.remove("hidden");
+  const detectorType = exercise === "squat" ? "pose" : "face";
+  try {
+    await ensureChainOfPainCamera(detectorType);
+  } catch {
+    toast("Camera error — check camera permission and try again.", 4500);
+    return false;
+  }
+  if (exercise === "pushup") {
+    beginChainOfPainCounting({ down: getThresholdDown(), up: getThresholdUp() });
+  } else {
+    const cached = chainOfPainState.calibratedThresholds.squat;
+    if (cached) beginChainOfPainCounting(cached);
+    else beginChainOfPainWarmup();
+  }
+  return true;
+}
+
+let chainOfPainTickerId = null;
+function startChainOfPainTicker() {
+  stopChainOfPainTicker();
+  chainOfPainTickerId = setInterval(tickChainOfPain, CHAINOFPAIN_TICK_MS);
+}
+function stopChainOfPainTicker() {
+  if (chainOfPainTickerId) { clearInterval(chainOfPainTickerId); chainOfPainTickerId = null; }
+}
+
+function formatChainOfPainCountdown(msRemaining) {
+  return String(Math.max(0, Math.ceil(msRemaining / 1000)));
+}
+
+function tickChainOfPain() {
+  if (!chainOfPainState.rules) return;
+  const now = performance.now();
+  if (chainOfPainState.stage === "counting" && chainOfPainState.rules.phase === "segment") {
+    const elapsed = now - chainOfPainState.segmentStartedAt;
+    const remainingMs = chainOfPainSegmentDurationMs(chainOfPainState.rules) - elapsed;
+    $("chainofpain-hud-segment-timer").textContent = `${formatChainOfPainCountdown(remainingMs)}s left`;
+    if (chainOfPainCurrentExercise(chainOfPainState.rules) === "plank") {
+      const wholeSeconds = Math.floor(elapsed / 1000);
+      if (wholeSeconds > chainOfPainState.plankSecondsTicked) {
+        chainOfPainTickPlank(chainOfPainState.rules, wholeSeconds - chainOfPainState.plankSecondsTicked);
+        chainOfPainState.plankSecondsTicked = wholeSeconds;
+        renderChainOfPainCountStage();
+      }
+    }
+    if (chainOfPainSegmentExpired(chainOfPainState.rules, elapsed)) triggerChainOfPainRest();
+  } else if (chainOfPainState.stage === "resting") {
+    const elapsed = now - chainOfPainState.restStartedAt;
+    const remainingMs = chainOfPainRestDurationMs() - elapsed;
+    $("chainofpain-hud-segment-timer").textContent = `${formatChainOfPainCountdown(remainingMs)}s rest`;
+    $("chainofpain-rest-countdown").textContent = formatChainOfPainCountdown(remainingMs);
+    if (chainOfPainRestExpired(chainOfPainState.rules, elapsed)) chainOfPainReadyForNextSegment();
+  }
+}
+
+function triggerChainOfPainRest() {
+  stopChainOfPainTicker();
+  chainOfPainState.stage = "resting";
+  chainOfPainCamera?.stop();
+  chainOfPainState.detectorType = null;
+  const completedExercise = chainOfPainCurrentExercise(chainOfPainState.rules);
+  const completedCount = chainOfPainState.rules.segmentReps;
+  chainOfPainCompleteSegment(chainOfPainState.rules);
+  const nextExercise = chainOfPainCurrentExercise(chainOfPainState.rules);
+  const cycles = chainOfPainCycles(chainOfPainState.rules);
+  const completedLabel = completedExercise === "plank" ? formatDuration(completedCount * 1000) : `${completedCount} ${CHAINOFPAIN_LABELS[completedExercise].toLowerCase()}`;
+  $("chainofpain-rest-title").textContent = `${completedLabel} done!`;
+  $("chainofpain-rest-body").textContent = `Next up: ${CHAINOFPAIN_LABELS[nextExercise]}. ${CHAINOFPAIN_REPOSITION_HINTS[nextExercise]}`;
+  $("chainofpain-rest-cycles").textContent = chainOfPainCyclesLabel(cycles);
+  $("chainofpain-cal-stage").classList.add("hidden");
+  $("chainofpain-count-stage").classList.add("hidden");
+  $("chainofpain-rest-stage").classList.remove("hidden");
+  $("chainofpain-camera-wrap").classList.add("hidden");
+  hideChainOfPainStatusBanner();
+  renderChainOfPainHUD();
+  chainOfPainState.restStartedAt = performance.now();
+  if (soundIsEnabled()) speak(`${CHAINOFPAIN_LABELS[nextExercise]} next. Ten seconds to reposition.`);
+  startChainOfPainTicker();
+}
+
+async function chainOfPainReadyForNextSegment() {
+  stopChainOfPainTicker();
+  $("chainofpain-rest-stage").classList.add("hidden");
+  chainOfPainAdvanceFromRest(chainOfPainState.rules);
+  await beginChainOfPainSegment(chainOfPainCurrentExercise(chainOfPainState.rules));
+}
+
+function selectChainOfPainDuration(id) {
+  const duration = chainOfPainDurationById(id);
+  state.chainOfPainDuration = duration.id;
+  localStorage.setItem(LS.chainOfPainDuration, duration.id);
+  renderChainOfPainIdle();
+}
+
+function renderChainOfPainIdle() {
+  document.querySelectorAll("#chainofpain-duration-cards .holland-difficulty-card").forEach((card) => {
+    card.classList.toggle("selected", card.dataset.duration === state.chainOfPainDuration);
+  });
+  state.chainOfPainBest = getChainOfPainBest(state.currentUser);
+  $("chainofpain-personal-best").textContent = state.chainOfPainBest > 0
+    ? `Personal best: ${chainOfPainFormatCycles(state.chainOfPainBest)} cycles`
+    : "";
+}
+
+async function startChainOfPain() {
+  if (soundIsEnabled()) unlockVoice();
+  state.chainOfPainSessionLocation = currentSessionLocationSnapshot();
+  const duration = chainOfPainDurationById(state.chainOfPainDuration);
+  chainOfPainState.rules = chainOfPainCreateState(duration.seconds);
+  chainOfPainState.rules.startedAt = new Date();
+  chainOfPainState.startedAt = new Date();
+  chainOfPainState.calibratedThresholds = { squat: null };
+  chainOfPainState.paused = false;
+  chainOfPainState.lastRepSpokenAt = 0;
+  chainOfPainState.detectorType = null;
+  chainOfPainState.counter = null;
+
+  const ok = await beginChainOfPainSegment(chainOfPainCurrentExercise(chainOfPainState.rules));
+  if (!ok) return;
+
+  await acquireWakeLock();
+  state.chainOfPainActive = true;
+  $("chainofpain-idle").classList.add("hidden");
+  $("chainofpain-in-progress").classList.remove("hidden");
+  $("chainofpain-rest-stage").classList.add("hidden");
+  setChromeMinimized(true);
+  renderChainOfPainHUD();
+  if (soundIsEnabled() && chainOfPainState.stage !== "warmup") speak(pickFrom(CHAINOFPAIN_START_LINES));
+}
+
+function stopChainOfPainHard() {
+  stopChainOfPainTicker();
+  chainOfPainCamera?.stop();
+  releaseWakeLock();
+  state.chainOfPainActive = false;
+  chainOfPainState.stage = "idle";
+  chainOfPainState.counter = null;
+  hideChainOfPainStatusBanner();
+  $("chainofpain-in-progress").classList.add("hidden");
+  $("chainofpain-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+function renderSummaryChainOfPainResult(session, isPB) {
+  const el = $("summary-chainofpain-result");
+  if (!el) return;
+  if (!session || session.type !== "chainofpain") {
+    el.classList.add("hidden");
+    return;
+  }
+  $("summary-chainofpain-breakdown").textContent =
+    `${session.chainOfPainSquats} squats · ${session.chainOfPainPushups} pushups · ${formatDuration(session.chainOfPainPlankSeconds * 1000)} plank`;
+  const pbEl = $("summary-chainofpain-pb");
+  pbEl.classList.toggle("hidden", !isPB);
+  if (isPB) pbEl.textContent = "⛓️ New personal best!";
+  $("chainofpain-missed-squats-count").textContent = "0";
+  $("chainofpain-missed-pushups-count").textContent = "0";
+  el.classList.remove("hidden");
+}
+
+async function completeChainOfPain() {
+  stopChainOfPainTicker();
+  chainOfPainCamera?.stop();
+  await releaseWakeLock();
+  state.chainOfPainActive = false;
+  chainOfPainState.stage = "idle";
+  hideChainOfPainStatusBanner();
+  $("chainofpain-in-progress").classList.add("hidden");
+  $("chainofpain-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+
+  chainOfPainFinish(chainOfPainState.rules, new Date());
+  const cycles = chainOfPainCycles(chainOfPainState.rules);
+  const priorBest = getChainOfPainBest(state.currentUser);
+  const isPB = cycles > priorBest;
+  const session = chainOfPainBuildSession(chainOfPainState.rules, {
+    id: uuid(),
+    user: state.currentUser,
+    avatar: state.currentAvatar,
+    location: state.chainOfPainSessionLocation,
+  });
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+  state.lastSessionType = "chainofpain";
+  state.summarySessionId = session.id;
+  state.summaryBaseCount = session.count;
+  state.summaryExtra = 0;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = chainOfPainCyclesLabel(cycles);
+  $("missed-reps-wrap").classList.add("hidden");
+  renderSummaryWeightedNote(0, 0);
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  renderSummaryChainOfPainResult(session, isPB);
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", CONFETTI_EMOJI);
+  speak(isPB ? CHAINOFPAIN_RECORD_LINE : `Session complete. ${chainOfPainCyclesLabel(cycles)}.`);
+  try { await commitSession(session); }
+  catch {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+async function confirmFinishChainOfPain() {
+  const totals = chainOfPainState.rules?.totals;
+  if (!totals || (totals.squat + totals.pushup + totals.plankSeconds) <= 0) {
+    toast("Complete at least one rep before finishing.", 3000);
+    return;
+  }
+  if (!confirm("Finish this Chain of Pain workout? Your completed and partial progress will be saved.")) return;
+  await completeChainOfPain();
+}
+
+// Missed-reps adjuster for the two rep-counted exercises (squats/pushups) —
+// planks have nothing to miscount. Patches the already-committed session
+// (delete + recreate on the Worker, since /session only inserts) the same
+// way the generic missed-reps adjuster does for Classic/Squat/Situp.
+let chainOfPainReconcileTimer = null;
+function adjustChainOfPainMissed(exercise, delta) {
+  if (!state.summarySessionId) return;
+  const cached = getCachedData();
+  const session = cached.sessions.find((s) => s.id === state.summarySessionId);
+  if (!session || session.type !== "chainofpain") return;
+  const field = exercise === "squat" ? "chainOfPainSquats" : "chainOfPainPushups";
+  const countEl = exercise === "squat" ? $("chainofpain-missed-squats-count") : $("chainofpain-missed-pushups-count");
+  const next = Math.max(0, (session[field] || 0) + delta);
+  const appliedDelta = next - (session[field] || 0);
+  if (!appliedDelta) return;
+  session[field] = next;
+  session.count = (session.chainOfPainSquats || 0) + (session.chainOfPainPushups || 0);
+  countEl.textContent = String((Number(countEl.textContent) || 0) + appliedDelta);
+  cacheData(cached);
+  renderSummaryChainOfPainResult(session, session.chainOfPainCycles > getChainOfPainBest(state.currentUser));
+  clearTimeout(chainOfPainReconcileTimer);
+  chainOfPainReconcileTimer = setTimeout(() => reconcileChainOfPainSession(session.id), 900);
+}
+
+async function reconcileChainOfPainSession(oldId) {
+  const cached = getCachedData();
+  const idx = cached.sessions.findIndex((s) => s.id === oldId);
+  const existing = idx !== -1 ? cached.sessions[idx] : null;
+  if (!existing) return;
+  const queue = getQueue();
+  const queuedIdx = queue.findIndex((operation) => operation.type === "session" && operation.payload?.id === oldId);
+  if (queuedIdx !== -1) {
+    queue[queuedIdx] = { ...queue[queuedIdx], payload: { ...queue[queuedIdx].payload, ...existing } };
+    setQueue(queue);
+    return;
+  }
+  const newSession = { ...existing, id: uuid() };
+  cached.sessions[idx] = newSession;
+  cacheData(cached);
+  state.summarySessionId = newSession.id;
+  try { await deleteSessionRemote(oldId); } catch (e) { /* best effort */ }
+  try { await commitSession(newSession); } catch (e) { enqueueSession(newSession); }
+}
+
+$("btn-chainofpain-start").addEventListener("click", startChainOfPain);
+$("btn-chainofpain-cancel").addEventListener("click", stopChainOfPainHard);
+$("btn-chainofpain-finish").addEventListener("click", confirmFinishChainOfPain);
+$("btn-chainofpain-ready").addEventListener("click", chainOfPainReadyForNextSegment);
+$("btn-chainofpain-minus").addEventListener("click", () => {
+  const exercise = chainOfPainCurrentExercise(chainOfPainState.rules);
+  if (exercise === "plank") return;
+  chainOfPainApplyCorrection(chainOfPainState.rules, -1);
+  renderChainOfPainCountStage();
+});
+$("btn-chainofpain-plus").addEventListener("click", () => {
+  const exercise = chainOfPainCurrentExercise(chainOfPainState.rules);
+  if (exercise === "plank") return;
+  chainOfPainApplyCorrection(chainOfPainState.rules, 1);
+  renderChainOfPainCountStage();
+});
+$("chainofpain-duration-cards").addEventListener("click", (e) => {
+  const card = e.target.closest(".holland-difficulty-card");
+  if (!card) return;
+  selectChainOfPainDuration(card.dataset.duration);
+});
+$("btn-chainofpain-missed-squats-minus").addEventListener("click", () => adjustChainOfPainMissed("squat", -1));
+$("btn-chainofpain-missed-squats-plus").addEventListener("click", () => adjustChainOfPainMissed("squat", 1));
+$("btn-chainofpain-missed-pushups-minus").addEventListener("click", () => adjustChainOfPainMissed("pushup", -1));
+$("btn-chainofpain-missed-pushups-plus").addEventListener("click", () => adjustChainOfPainMissed("pushup", 1));
 
 // ------------------- situp mode -------------------
 // Camera-counted free set, own screen (see docs/situp-mode-plan.md): phone

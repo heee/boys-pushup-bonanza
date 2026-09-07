@@ -497,6 +497,39 @@ export const HOLLAND_TO_SQUAT_LINES = [
 export const HOLLAND_CIRCUIT_COMPLETE_LINE = "Circuit complete! One more web slung clean across the city!";
 export const HOLLAND_27_LINE = "Holland 27! Legend of the circuit — the city owes you one!";
 
+// Chain of Pain — continuous TIME-driven squat/pushup/plank circuit (see
+// docs/chain-of-pain-mode-plan.md). Same unhinged drill-instructor register
+// as CHASE_CHAOS_LINES/SQUAT_CHEER_LINES/HOLLAND lines, but leaning on
+// chain/link/forge/relentless-circuit imagery since it's three exercises
+// welded together, on top of the usual squat/pushup/plank targets.
+export const CHAINOFPAIN_START_LINES = [
+  "Chain's forged and the circuit never stops! Squats, pushups, planks — link by link!",
+  "Lock in! Every rep welds another link onto this chain!",
+  "The forge is hot and the clock's already running! Let's chain some pain!",
+];
+
+export const CHAINOFPAIN_CHEER_LINES = [
+  "Another link forged! The chain doesn't break, it grows!",
+  "Squats, pushups, planks — the anvil doesn't care which one's next! Keep going!",
+  "That chair's filing grievances and the floor's taking notes! Push!",
+  "Every second on the clock is another link glowing red-hot! Don't drop it!",
+  "The chain's only as strong as this rep! Forge it!",
+  "Plank, push, squat — the circuit is relentless and so are you!",
+  "That's forged steel, not flesh, moving right now! Again!",
+  "The clock doesn't blink and neither do you! Keep the chain unbroken!",
+];
+
+export const CHAINOFPAIN_RECORD_LINE = "New Chain of Pain record! The whole circuit is forged in legend now!";
+
+export const FUN_MESSAGES_CHAINOFPAIN = [
+  (c) => `${c} cycles through the chain. The forge is proud and the chairs are terrified.`,
+  (c) => `${c} cycles of squats, pushups, and planks welded together without a single dropped link.`,
+  (c) => `${c} cycles logged. Somewhere, an anvil is taking notes.`,
+  (c) => `${c} trips around the circuit. Certified chain-forged behavior.`,
+  (c) => `${c} cycles down. The clock never won a single second of that.`,
+  (c) => `${c} cycles. Squats, pushups, and planks all filed the same complaint: you.`,
+];
+
 // Pulse mode — solo pacing endurance mode (see docs/pulse-mode-plan.md). Reps
 // aren't the score here, so unlike the other modes there's no cheer pack or
 // rep-number emphasis — just a start line and a record line. Tone leans into
@@ -573,6 +606,7 @@ export const FIXED_PHRASES = [
   PULLUP_RECORD_LINE,
   SQUAT_RECORD_LINE,
   SITUP_RECORD_LINE,
+  CHAINOFPAIN_RECORD_LINE,
   PULSE_RECORD_LINE,
   "New rung record!",
   "Hidden plank mode unlocked!",
@@ -640,6 +674,8 @@ export function buildCorpus() {
   for (const line of HOLLAND_TO_SQUAT_LINES) add(line, "hype");
   add(HOLLAND_CIRCUIT_COMPLETE_LINE, "hype");
   add(HOLLAND_27_LINE, "hype");
+  for (const line of CHAINOFPAIN_START_LINES) add(line, "hype");
+  for (const line of CHAINOFPAIN_CHEER_LINES) add(line, "hype");
   for (const line of PULSE_START_LINES) add(line, "hype");
   for (const line of PULSE_HOT_LINES) add(line, "hype");
   for (const line of PULSE_COLD_LINES) add(line, "hype");
@@ -672,6 +708,7 @@ export function buildCorpus() {
   for (const fn of FUN_MESSAGES_PULLUP) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SQUAT) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SITUP) for (const frag of templateFragments(fn)) add(frag, "hype");
+  for (const fn of FUN_MESSAGES_CHAINOFPAIN) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of CHASE_GAP_LINES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const frag of templateFragments(CHASE_TOOK_LEAD_LINE)) add(frag, "hype");
   for (const frag of templateFragments(CHASE_LEAD_MARGIN_LINE)) add(frag, "hype");

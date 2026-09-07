@@ -33,7 +33,7 @@ export function modeBreakdownModel(sessions) {
     // neither shares the reps unit this breakdown bars by. Holland's own reps
     // still land here via its projected pullup/pushup/squat component
     // sessions above, so nothing is lost, just kept in the right unit.
-    if (session.type === "plank" || session.type === "holland") continue;
+    if (session.type === "plank" || session.type === "holland" || session.type === "chainofpain") continue;
     const id = session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : (session.mode || "classic");
     if (!LABEL_BY_ID.has(id)) continue;
     if (!byMode.has(id)) byMode.set(id, { reps: 0, sessions: 0, users: new Set() });

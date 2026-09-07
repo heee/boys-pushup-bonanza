@@ -9,16 +9,24 @@
 //   POST /session      -> validates and stores a completed session in D1
 //                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session,
 //                          "squat" for a camera-counted squat set, "situp" for a camera-counted situp set,
-//                          "holland" for a continuous pull-up/pushup/squat circuit (see AGENTS.md);
+//                          "holland" for a continuous pull-up/pushup/squat circuit, "chainofpain" for a
+//                          continuous TIME-driven squat/pushup/plank circuit (see AGENTS.md);
 //                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks,
-//                          total raw reps across all three exercises for Holland, seconds held in band for
-//                          Pulse (mode: "pulse" — the actual rep count lives in pulseReps instead);
+//                          total raw reps across all three exercises for Holland, squats+pushups for Chain of
+//                          Pain (plank has its own chainOfPainPlankSeconds field instead), seconds held in
+//                          band for Pulse (mode: "pulse" — the actual rep count lives in pulseReps instead);
 //                          hollandDifficulty/hollandPullups/hollandPushups/hollandSquats: Holland-mode-only —
 //                          "normal"/"medium"/"hard" and the nonnegative-integer per-exercise component reps,
 //                          which must sum to `count` (aggregate consistency, enforced server-side);
 //                          hollandCycles/hollandCircuits/hollandAchievement: Holland-mode-only — normalized
 //                          cycles (server-derived from count, not client-trusted), full physical circuits
 //                          completed, and "holland27" once 27.0 normalized cycles is reached;
+//                          chainOfPainSquats/chainOfPainPushups/chainOfPainPlankSeconds: Chain of Pain-only —
+//                          nonnegative-integer per-exercise totals; squats+pushups must sum to `count`
+//                          (same aggregate-consistency rule as Holland); chainOfPainSegments is the raw count
+//                          of fully-completed (timer-expired) segments, chainOfPainCycles is that divided by
+//                          3 (server-derived, not client-trusted) — a segment-granular fractional cycle value;
+//                          chainOfPainDurationSeconds is the fixed per-segment duration picked (30/60/150/300);
 //                          rawCount/weightLbs are optional weighted-mode transparency fields — the actual
 //                          physical reps and added weight behind an already-scaled-up `count`;
 //                          mode: omit for Classic, "countdown", "cards", "dice", "ladder", "fortune", "chase",
@@ -836,7 +844,7 @@ export function validateSession(body) {
   if (typeof body.startedAt === "string" && !isNaN(new Date(body.startedAt).getTime())) {
     session.startedAt = body.startedAt;
   }
-  if (body.type === "plank" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland") {
+  if (body.type === "plank" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland" || body.type === "chainofpain") {
     session.type = body.type;
   }
   // Holland mode's own fields: difficulty catalog + per-exercise component
@@ -862,6 +870,29 @@ export function validateSession(body) {
     const circuits = Math.floor(Number(body.hollandCircuits));
     if (Number.isFinite(circuits) && circuits >= 0 && circuits <= 100000) session.hollandCircuits = circuits;
     if (body.hollandAchievement === "holland27") session.hollandAchievement = "holland27";
+  }
+  // Chain of Pain's own fields: same aggregate-consistency shape as Holland
+  // (component reps must sum to `count`) but time-driven — segments/cycles
+  // are derived server-side from the completed-segment count, not trusted
+  // from the client, and the duration must be one of the fixed picker values.
+  if (body.type === "chainofpain") {
+    const validComponent = (n) => Number.isFinite(n) && n >= 0 && n <= 100000;
+    const squats = Math.floor(Number(body.chainOfPainSquats));
+    const pushups = Math.floor(Number(body.chainOfPainPushups));
+    const plankSeconds = Math.floor(Number(body.chainOfPainPlankSeconds));
+    if (!validComponent(squats) || !validComponent(pushups) || !validComponent(plankSeconds)) return null;
+    if (squats + pushups !== count) return null;
+    const segments = Math.floor(Number(body.chainOfPainSegments));
+    if (!Number.isFinite(segments) || segments < 0 || segments > 100000) return null;
+    const VALID_CHAIN_OF_PAIN_DURATIONS = [30, 60, 150, 300];
+    const durationSeconds = Math.floor(Number(body.chainOfPainDurationSeconds));
+    if (!VALID_CHAIN_OF_PAIN_DURATIONS.includes(durationSeconds)) return null;
+    session.chainOfPainSquats = squats;
+    session.chainOfPainPushups = pushups;
+    session.chainOfPainPlankSeconds = plankSeconds;
+    session.chainOfPainSegments = segments;
+    session.chainOfPainCycles = segments / 3;
+    session.chainOfPainDurationSeconds = durationSeconds;
   }
   // Weighted-mode transparency fields: the raw physical rep count and the
   // added weight used to scale it up into `count`. Optional and pushup-only.

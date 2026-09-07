@@ -22,6 +22,7 @@ export const MODE_META = {
   pullups: { label: "Pull-ups", icon: "💪" },
   situps: { label: "Crunches", icon: "🙇" },
   holland: { label: "Holland Mode", icon: "🇳🇱" },
+  chainofpain: { label: "Chain of Pain", icon: "⛓️" },
   tow: { label: "Tug of War", icon: "🪢" },
 };
 
@@ -31,6 +32,7 @@ export function sessionModeId(session) {
   if (session?.type === "pullup") return "pullups";
   if (session?.type === "situp") return "situps";
   if (session?.type === "holland") return "holland";
+  if (session?.type === "chainofpain") return "chainofpain";
   return session?.mode || "classic";
 }
 
@@ -73,6 +75,11 @@ export function sessionBadges(session) {
   if (modeId === "holland" && session.hollandAchievement === "holland27") {
     badges.push({ id: "holland-27", icon: "🕷️", label: "Holland 27", tone: "achievement" });
   }
+  if (modeId === "chainofpain" && session.chainOfPainDurationSeconds) {
+    const secs = session.chainOfPainDurationSeconds;
+    const label = secs < 60 ? `${secs} sec` : `${(secs / 60).toFixed(secs % 60 ? 1 : 0)} min`;
+    badges.push({ id: "chainofpain-duration", icon: "⏱️", label: `${label} segments` });
+  }
   if (session.modifier) {
     const modifierMeta = MODIFIERS_BY_ID[session.modifier];
     badges.push({ id: "modifier", icon: modifierMeta?.icon || "🤲", label: modifierMeta?.title || session.modifier, tone: "modifier" });
@@ -91,7 +98,7 @@ export function sessionKeyMetrics(session) {
 
   if (modeId !== "planks" && modeId !== "pulse") {
     metrics.push({ id: "duration", label: "Duration", format: "duration", value: sessionDurationMs(session) });
-    if (modeId !== "holland") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
+    if (modeId !== "holland" && modeId !== "chainofpain") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
   }
 
   // Pulse's `count` is seconds held in band, not reps — the generic
@@ -141,6 +148,12 @@ export function sessionKeyMetrics(session) {
     if (session.hollandPullups != null) metrics.push({ id: "hollandPullups", label: "Pull-ups", format: "integer", value: session.hollandPullups });
     if (session.hollandPushups != null) metrics.push({ id: "hollandPushups", label: "Pushups", format: "integer", value: session.hollandPushups });
     if (session.hollandSquats != null) metrics.push({ id: "hollandSquats", label: "Squats", format: "integer", value: session.hollandSquats });
+  }
+  if (modeId === "chainofpain") {
+    if (session.chainOfPainCycles != null) metrics.push({ id: "chainOfPainCycles", label: "Cycles", format: "text", value: `${(Number(session.chainOfPainCycles) || 0).toFixed(1)}` });
+    if (session.chainOfPainSquats != null) metrics.push({ id: "chainOfPainSquats", label: "Squats", format: "integer", value: session.chainOfPainSquats });
+    if (session.chainOfPainPushups != null) metrics.push({ id: "chainOfPainPushups", label: "Pushups", format: "integer", value: session.chainOfPainPushups });
+    if (session.chainOfPainPlankSeconds != null) metrics.push({ id: "chainOfPainPlankSeconds", label: "Plank hold", format: "duration", value: session.chainOfPainPlankSeconds * 1000 });
   }
   if (modeId === "chase") {
     metrics.push({ id: "chaseResult", label: session.chaseOvertaken ? "Overtook" : "Chasing", format: "text", value: session.chaseRival || "rival" });

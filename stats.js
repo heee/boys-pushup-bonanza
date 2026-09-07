@@ -1,4 +1,5 @@
 import { hollandComponentSessions } from "./modes/holland.js";
+import { chainOfPainComponentSessions } from "./modes/chain-of-pain.js";
 
 export function weightedMultiplier(profile, bonusFactor = 2) {
   if (!profile?.bodyweightLbs || profile.bodyweightLbs <= 0) return 1;
@@ -22,17 +23,22 @@ export function periodStart(period, now = new Date()) {
 // every mode-scoped aggregation below, alongside (never instead of) the
 // canonical Holland session itself, so Holland reps are never omitted from
 // the existing per-exercise totals/leaderboards nor double counted.
+// Same idea for Chain of Pain's squat/pushup/plank component reps (see
+// modes/chain-of-pain.js's chainOfPainComponentSessions) — kept alongside
+// (never instead of) the canonical Chain of Pain session.
 export function expandHollandProjections(sessions) {
   const expanded = [];
   for (const session of sessions) {
     expanded.push(session);
     if (session.type === "holland") expanded.push(...hollandComponentSessions(session));
+    if (session.type === "chainofpain") expanded.push(...chainOfPainComponentSessions(session));
   }
   return expanded;
 }
 
 export function filterByMode(sessions, mode) {
   if (mode === "holland") return sessions.filter((session) => session.type === "holland");
+  if (mode === "chainofpain") return sessions.filter((session) => session.type === "chainofpain");
   const pool = expandHollandProjections(sessions);
   if (mode === "planks") return pool.filter((session) => session.type === "plank");
   if (mode === "pullups") return pool.filter((session) => session.type === "pullup");
