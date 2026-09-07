@@ -906,14 +906,13 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Workout screen ---------------- */
 
-/* Reserve room for the floating device-location-row (anchored above the tab
-   bar) so a tall idle screen — e.g. with goal thermometers showing — never
-   centers its content low enough to collide with it. */
+/* The location control is fixed and intentionally does not reserve layout
+   space here. The normal #app-main tab-bar clearance defines the idle
+   screen's available height, so its other contents center independently. */
 #screen-workout {
   position: relative;
   justify-content: center;
   align-items: stretch;
-  padding-bottom: calc(var(--tab-bar-height) + 2.75rem + env(safe-area-inset-bottom));
 }
 #screen-plank-workout { position: relative; justify-content: center; align-items: stretch; }
 
@@ -1159,9 +1158,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    same full-size, auto-framing camera view — not the tiny shared
    .camera-wrap thumbnail other modes (including this one's own pushup
    segment) use. beginChainOfPainSegment() toggles this class per exercise.
-   Keeps the HUD chips (duration/cycles/segment-timer) above it rather than
-   centering the whole .workout-active column, since that chrome is
-   Chain-of-Pain-specific and has no squat-screen equivalent. */
+   The rest of the workout uses Classic's shared camera/hero/FAB layout. */
 #chainofpain-camera-wrap.chainofpain-camera-wrap-large {
   width: min(80vw, 24rem);
   height: min(40dvh, 26rem);
@@ -1233,6 +1230,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 /* The plank timer shows "M:SS" (wider than a bare rep count), so it needs a
    smaller cap than .rep-count's default or it overflows the screen width. */
 #plank-timer { font-size: min(24vw, 7rem); }
+
+/* Shared Classic hero layout, with a timer and the existing rep-pop overlay. */
+.chainofpain-timer-scene { position: relative; }
+#chainofpain-timer { font-size: min(28vw, 9rem); }
 
 /* Squat/Situp auto-warmup — same workout-active/camera-wrap shell as the
    live count; no buttons, just watches for a stand<->squat (or

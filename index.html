@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=296">
+<link rel="stylesheet" href="style.css?v=297">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1064,12 +1064,6 @@
 
         <div id="chainofpain-status-banner" class="status-banner hidden" role="status" aria-live="assertive">PAUSED — get back in frame</div>
 
-        <div id="chainofpain-hud" class="holland-hud">
-          <span id="chainofpain-hud-duration" class="holland-hud-chip"></span>
-          <span id="chainofpain-hud-cycles" class="holland-hud-chip"></span>
-          <span id="chainofpain-hud-segment-timer" class="holland-hud-chip"></span>
-        </div>
-
         <div id="chainofpain-cal-stage" class="squat-cal-stage hidden">
           <h2 id="chainofpain-cal-title" class="squat-cal-title">Get your range</h2>
           <p id="chainofpain-cal-instructions" class="workout-instructions"></p>
@@ -1077,9 +1071,11 @@
         </div>
 
         <div id="chainofpain-count-stage" class="rep-count-wrap hidden">
-          <div id="chainofpain-rep-count" class="rep-count">0</div>
+          <div class="chainofpain-timer-scene">
+            <div id="chainofpain-timer" class="rep-count" role="timer" aria-label="Time remaining">0:30</div>
+            <div id="chainofpain-counter-badge" class="mode-counter-badge" aria-label="Reps completed"></div>
+          </div>
           <div id="chainofpain-rep-label" class="rep-label">SQUATS</div>
-          <div id="chainofpain-phase-indicator" class="squat-phase-indicator hidden">STANDING</div>
           <div id="chainofpain-correction-row" class="stepper-row holland-correction-row">
             <button id="btn-chainofpain-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
             <button id="btn-chainofpain-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
@@ -2037,6 +2033,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=305"></script>
+<script type="module" src="app.js?v=306"></script>
 </body>
 </html>

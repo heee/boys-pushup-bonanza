@@ -40,6 +40,7 @@ function workout() {
     squatHipY: (landmarks) => landmarks.hipY, squatBodyBBox: () => null,
     cheerProbability: () => 1, REP_SPEECH_MIN_GAP_MS: 0,
     vibrate: () => {},
+    updateModeCounterBadge: (id, count) => { $(id).textContent = String(count); $(id).classList.add("pop"); },
   });
   const block = source.slice(source.indexOf("const CHAINOFPAIN_WARMUP_MIN_MS"), source.indexOf("function selectChainOfPainDuration"));
   vm.runInContext(block, context);
@@ -64,11 +65,34 @@ test("Chain of Pain calibration enters counting, keeps processing poses, and sta
   w.frame(0.25, 2400);
   assert.ok(w.run("chainOfPainState.rules.segmentReps") > 0);
   w.run("tickChainOfPain()");
-  assert.match(w.$("chainofpain-hud-segment-timer").textContent, /s left$/);
+  assert.equal(w.$("chainofpain-timer").textContent, "0:30");
+  assert.equal(w.$("chainofpain-counter-badge").textContent, String(w.run("chainOfPainState.rules.segmentReps")));
   w.setTime(33000);
   w.run("tickChainOfPain()");
   assert.equal(w.run("chainOfPainState.stage"), "resting");
+  assert.match(w.$("chainofpain-rest-body").textContent, /^Next up: PUSHUPS/);
+  assert.equal(w.$("btn-chainofpain-cancel").classList.contains("hidden"), true);
   w.setTime(34000);
   w.run("tickChainOfPain()");
-  assert.equal(w.$("chainofpain-hud-segment-timer").textContent, "9s rest");
+  assert.equal(w.$("chainofpain-rest-countdown").textContent, "9");
+});
+
+test("pushups use the countdown and rep overlay; plank counts down without a rep overlay", () => {
+  const w = workout();
+  w.run("chainOfPainCompleteSegment(chainOfPainState.rules); chainOfPainAdvanceFromRest(chainOfPainState.rules); beginChainOfPainCounting({down: 0.6, up: 0.3})");
+  assert.equal(w.$("chainofpain-timer").textContent, "0:30");
+  w.setTime(1000);
+  w.run("onChainOfPainRepCounted(1); tickChainOfPain()");
+  assert.equal(w.$("chainofpain-timer").textContent, "0:29");
+  assert.equal(w.$("chainofpain-counter-badge").textContent, "1");
+  w.run("triggerChainOfPainRest()");
+  assert.match(w.$("chainofpain-rest-body").textContent, /^Next up: PLANK HOLD/);
+  w.run("chainOfPainAdvanceFromRest(chainOfPainState.rules); beginChainOfPainPlankHold()");
+  assert.equal(w.$("chainofpain-timer").textContent, "0:30");
+  assert.equal(w.$("chainofpain-counter-badge").classList.contains("hidden"), true);
+  assert.equal(w.$("chainofpain-correction-row").classList.contains("hidden"), true);
+  w.setTime(35000); // delayed timer callback must never over-credit the hold
+  w.run("tickChainOfPain()");
+  assert.equal(w.run("chainOfPainState.rules.totals.plankSeconds"), 30);
+  assert.match(w.$("chainofpain-rest-body").textContent, /^Next up: SQUATS/);
 });

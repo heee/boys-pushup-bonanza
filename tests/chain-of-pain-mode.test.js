@@ -11,6 +11,8 @@ import {
   chainOfPainComponentSessions,
   chainOfPainCreateState,
   chainOfPainCurrentExercise,
+  chainOfPainNextExercise,
+  chainOfPainCountdown,
   chainOfPainCycles,
   chainOfPainCyclesLabel,
   chainOfPainDurationById,
@@ -25,6 +27,26 @@ import {
 
 test("exercise order is squat, pushup, plank", () => {
   assert.deepEqual(CHAIN_OF_PAIN_EXERCISE_ORDER, ["squat", "pushup", "plank"]);
+});
+
+test("rest previews the upcoming exercise without advancing or losing completed reps", () => {
+  const state = chainOfPainCreateState(30);
+  for (const [current, next] of [["squat", "pushup"], ["pushup", "plank"], ["plank", "squat"]]) {
+    chainOfPainRecordReps(state, 4);
+    chainOfPainCompleteSegment(state);
+    const snapshot = structuredClone(state);
+    assert.equal(chainOfPainCurrentExercise(state), current);
+    assert.equal(chainOfPainNextExercise(state), next);
+    assert.deepEqual(state, snapshot);
+    chainOfPainAdvanceFromRest(state);
+    assert.equal(chainOfPainCurrentExercise(state), next);
+  }
+});
+
+test("countdowns round up partial seconds and stop at zero for every duration", () => {
+  for (const [ms, expected] of [[30000, "0:30"], [60000, "1:00"], [150000, "2:30"], [300000, "5:00"], [1001, "0:02"], [1, "0:01"], [0, "0:00"], [-200, "0:00"]]) {
+    assert.equal(chainOfPainCountdown(ms), expected);
+  }
 });
 
 test("duration catalog has the four fixed picker options", () => {

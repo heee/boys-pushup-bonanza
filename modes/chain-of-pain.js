@@ -46,6 +46,16 @@ export function chainOfPainCurrentExercise(state) {
   return CHAIN_OF_PAIN_EXERCISE_ORDER[state.segmentIndex];
 }
 
+// During rest the current index still identifies the completed exercise.
+export function chainOfPainNextExercise(state) {
+  return CHAIN_OF_PAIN_EXERCISE_ORDER[(state.segmentIndex + 1) % CHAIN_OF_PAIN_EXERCISE_ORDER.length];
+}
+
+export function chainOfPainCountdown(msRemaining) {
+  const seconds = Math.max(0, Math.ceil(msRemaining / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 export function chainOfPainIsPlankSegment(state) {
   return chainOfPainCurrentExercise(state) === "plank";
 }
