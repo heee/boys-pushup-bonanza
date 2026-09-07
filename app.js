@@ -13437,7 +13437,12 @@ $("holland-difficulty-cards").addEventListener("click", (e) => {
 const CHAINOFPAIN_WARMUP_MIN_MS = 1200;
 const CHAINOFPAIN_WARMUP_MIN_SAMPLES = 10;
 const CHAINOFPAIN_WARMUP_MAX_SAMPLES = 300;
-const CHAINOFPAIN_WARMUP_HINT_MS = 8000;
+// Deliberately much shorter than standalone Squat's own SQUAT_WARMUP_HINT_MS
+// (8000ms) — this is currently also serving as a live diagnostic while
+// tracking down a real-device report of calibration never completing, so
+// fast feedback matters more here than avoiding a flash of hint text for
+// someone who calibrates quickly.
+const CHAINOFPAIN_WARMUP_HINT_MS = 2000;
 const CHAINOFPAIN_TICK_MS = 200;
 
 const CHAINOFPAIN_LABELS = { squat: "SQUATS", pushup: "PUSHUPS", plank: "PLANK HOLD" };

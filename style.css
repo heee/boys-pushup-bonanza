@@ -755,7 +755,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
      and always left a much bigger gap than intended. */
   position: fixed;
   left: 50%;
-  bottom: calc(var(--tab-bar-height) + 0.4rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--tab-bar-height) + 1rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 400;
   margin: 0;
