@@ -18,7 +18,10 @@ const CENTER_INDEX = 12; // 0-based, row-major, middle of a 5x5 grid
 // with calendar-date arithmetic (setDate-style), not raw ms multiples, so
 // DST transitions can't drift a cycle off its intended local midnight —
 // same spirit as challengeWindow's local-timezone convention.
-const BINGO_EPOCH = new Date(2026, 0, 1);
+// Anchored to 2026-09-07 so the first cycle starts that day (duration
+// unchanged at CYCLE_DAYS) rather than the arbitrary Jan 1 epoch, which had
+// cycles landing on off dates like Aug 27 – Sep 9.
+const BINGO_EPOCH = new Date(2026, 8, 7);
 
 // The combined square pool: existing game-format modes (workout-modes.js /
 // the VALID_MODES the Worker accepts on a session), plain loggable exercise
@@ -45,7 +48,6 @@ export const BINGO_POOL = [
   { kind: "exercise", key: "squats", label: "Squats", emoji: "🦵" },
   { kind: "exercise", key: "situps", label: "Crunches", emoji: "🙇" },
   { kind: "exercise", key: "planks", label: "Planks", emoji: "🪵" },
-  { kind: "modifier", key: "weighted", label: "Weighted", emoji: "🏋️" },
   { kind: "modifier", key: "location", label: "On Location", emoji: "📍" },
 ];
 
@@ -211,7 +213,6 @@ export function sessionMatchesBingoItem(session, item) {
     return false;
   }
   if (item.kind === "modifier") {
-    if (item.key === "weighted") return Number(session.weightLbs) > 0;
     if (item.key === "location") return !!session.location;
     return false;
   }

@@ -18,13 +18,13 @@ import {
 } from "../screens/bingo.js";
 
 test("bingo cycle windows are 14 days, local-midnight anchored, and non-overlapping", () => {
-  const cycle = bingoCycleForDate(new Date(2026, 0, 5, 12));
-  assert.equal(cycle.id, "bingo-2026-01-01");
-  assert.equal(cycle.startDate.getTime(), new Date(2026, 0, 1, 0, 0, 0, 0).getTime());
-  assert.equal(cycle.endDate.getTime(), new Date(2026, 0, 14, 23, 59, 59, 999).getTime());
+  const cycle = bingoCycleForDate(new Date(2026, 8, 10, 12));
+  assert.equal(cycle.id, "bingo-2026-09-07");
+  assert.equal(cycle.startDate.getTime(), new Date(2026, 8, 7, 0, 0, 0, 0).getTime());
+  assert.equal(cycle.endDate.getTime(), new Date(2026, 8, 20, 23, 59, 59, 999).getTime());
 
-  const next = bingoCycleForDate(new Date(2026, 0, 15, 0, 0, 0, 1));
-  assert.equal(next.id, "bingo-2026-01-15");
+  const next = bingoCycleForDate(new Date(2026, 8, 21, 0, 0, 0, 1));
+  assert.equal(next.id, "bingo-2026-09-21");
   assert.equal(next.startDate.getTime(), cycle.endDate.getTime() + 1);
 });
 
@@ -87,8 +87,6 @@ test("sessionMatchesBingoItem routes modes, exercise types, and modifiers correc
   assert.equal(sessionMatchesBingoItem({ type: "squat" }, { kind: "exercise", key: "squats" }), true);
   assert.equal(sessionMatchesBingoItem({ type: "situp" }, { kind: "exercise", key: "situps" }), true);
   assert.equal(sessionMatchesBingoItem({ type: "plank" }, { kind: "exercise", key: "planks" }), true);
-  assert.equal(sessionMatchesBingoItem({ weightLbs: 10 }, { kind: "modifier", key: "weighted" }), true);
-  assert.equal(sessionMatchesBingoItem({ weightLbs: 0 }, { kind: "modifier", key: "weighted" }), false);
   assert.equal(sessionMatchesBingoItem({ location: { lat: 1, lng: 2 } }, { kind: "modifier", key: "location" }), true);
   assert.equal(sessionMatchesBingoItem({}, { kind: "modifier", key: "location" }), false);
 });

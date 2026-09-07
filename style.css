@@ -4378,6 +4378,18 @@ body:has(#screen-challenges.active) #app {
   margin-left: 0.4rem;
 }
 
+/* Same fix as settings-mysessions/challenges above: #app has no fixed
+   height here by default, so long detail content (e.g. Reps Bingo's 5x5
+   board plus leaderboard) makes the *page* scroll instead of #app-main —
+   and a window-level scroll is what let the fixed tab bar drift out of
+   place on iOS (see .tab-bar's own comment). Capping #app forces
+   #app-main to be the sole scroll container again. */
+body:has(#screen-challenge-detail.active) #app {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .challenge-detail-header {
   display: flex;
   align-items: center;
