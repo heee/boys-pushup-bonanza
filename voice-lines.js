@@ -535,7 +535,7 @@ export const CHAINOFPAIN_PLANK_LINES = [
 export const CHAINOFPAIN_FINISH_LINE = "Chain complete! You brought the pain and forged every link. Outstanding work!";
 export const CHAINOFPAIN_TRANSITION_LINES = {
   squat: "Squats next! Ten seconds to stand up and get your whole body in frame. Back to the forge!",
-  pushup: "Pushups next! Leave the phone standing. Face it, plant your hands, and get into position!",
+  pushup: "Pushups next! Keep the phone where it is, upright near the floor. Face the camera for pushups!",
   plank: "Plank next! Ten seconds to get down and brace. Become the steel beam!",
 };
 
