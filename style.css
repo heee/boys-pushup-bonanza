@@ -1177,6 +1177,33 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-size: 0.9rem;
   letter-spacing: 0.03em;
 }
+/* Squat's status banner lives inside .camera-wrap (a positioned ancestor)
+   so it floats over the camera preview instead of sitting in normal flow,
+   where toggling it visible/hidden used to shove every element below it
+   down the screen. .camera-wrap is mirrored (scaleX(-1)) for the selfie
+   view; un-mirror the banner itself so its text reads normally — the
+   second flip cancels the parent's and centering is unaffected since the
+   flip is symmetric around the horizontal center. */
+.status-banner-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.6rem;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: calc(100% - 1.5rem);
+  /* Centering here comes from left/right/margin, not a transform, so it's
+     unaffected by this rule's own scaleX(-1) below. That scaleX exists to
+     cancel .camera-wrap's mirror (the selfie-view flip) so this banner's
+     text reads normally instead of backwards — flipping the child around
+     its own center exactly cancels the parent flipping the same content
+     around that same point, since the child is horizontally centered. */
+  transform: scaleX(-1);
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  z-index: 5;
+}
 
 .rep-count-wrap {
   flex: 1;

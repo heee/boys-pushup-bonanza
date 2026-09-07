@@ -14,18 +14,25 @@ export const CLAP_MIN_VISIBILITY = 0.5;
 // Wrist-to-wrist spread is measured as a multiple of shoulder width so the
 // thresholds hold regardless of how far back from the camera someone stands.
 export const CLAP_EXTENDED_SPREAD_MULT = 1.6; // arms out: wrists well past shoulder-width apart
-export const CLAP_TOGETHER_SPREAD_MULT = 0.5; // clap: wrists close together
+export const CLAP_TOGETHER_SPREAD_MULT = 0.35; // clap: wrists genuinely together, not just passing near center
 // Wrists must stay roughly shoulder-height (not hanging down or raised
 // overhead) for either phase to count, again scaled by shoulder width.
 export const CLAP_HEIGHT_TOLERANCE_MULT = 1.2;
 
-// A qualifying arm pose must hold for this long before the stage advances —
-// rejects a single noisy frame mid-swing from being read as a clap.
-export const CLAP_HOLD_MS = 120;
+// A qualifying arm pose must hold for this long before the stage advances.
+// Real-world testing found normal squat arm swings (used for momentum
+// between reps) could pass fast enough through "arms out" and "hands near
+// center" to accidentally satisfy each step at the old 120ms — bumped up so
+// only a deliberate, held pose counts, not a swing passing through en route
+// to somewhere else.
+export const CLAP_HOLD_MS = 280;
 // Each step (extend -> clap -> re-extend -> clap) must follow the previous
-// one within this window, or the whole gesture resets. Generous enough for
-// an unhurried "brief pause" between the two claps.
-export const CLAP_STEP_TIMEOUT_MS = 3000;
+// one within this window, or the whole gesture resets. Tightened from 3000ms
+// (which was generous enough that several ordinary reps' worth of arm
+// movement over a few seconds could accidentally string all four steps
+// together) down to a window that still comfortably fits an unhurried
+// "brief pause" between two intentional claps, but not a whole extra rep.
+export const CLAP_STEP_TIMEOUT_MS = 1500;
 
 // Returns { spread, shoulderWidth, atShoulderHeight } normalized by shoulder
 // width, or null if the shoulders/wrists aren't confidently visible.

@@ -12300,7 +12300,7 @@ function processSquatClapGesture(landmarks) {
   }
   if (stepIndex >= 2 && !squatState.clapBannerShown) {
     squatState.clapBannerShown = true;
-    showSquatStatusBanner("👏 Clap once more to end the session");
+    showSquatStatusBanner("👏 Clap slowly twice to stop");
   } else if (stepIndex === 0 && squatState.clapBannerShown) {
     squatState.clapBannerShown = false;
     hideSquatStatusBanner();
