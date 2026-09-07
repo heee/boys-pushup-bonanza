@@ -157,7 +157,7 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
-import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js";
+import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js?v=1";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { createClapGestureDetector } from "./modes/clap-gesture.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
@@ -4893,16 +4893,14 @@ function renderGamesScreen() {
   renderGamesNavDot();
 
   const toggleEl = $("games-tab-select");
-  const startBtn = $("btn-games-start");
   const listEl = $("games-list");
   const recentSection = $("games-recent-section");
   const recentListEl = $("games-recent-list");
 
   // Nothing Open or Active — a lone "Recent" option isn't a toggle, so
-  // collapse it and promote "Start a new challenge" to where it would sit.
+  // collapse it and show the recent list directly.
   if (!hasOpen && !hasActive) {
     toggleEl.classList.add("hidden");
-    startBtn.classList.remove("hidden");
     listEl.innerHTML = "";
     recentSection.classList.remove("hidden");
     recentListEl.innerHTML = finished.length
@@ -4912,7 +4910,6 @@ function renderGamesScreen() {
     return;
   }
 
-  startBtn.classList.add("hidden");
   recentSection.classList.add("hidden");
   toggleEl.classList.remove("hidden");
   toggleEl.querySelector('[data-gtab="open"]').classList.toggle("hidden", !hasOpen);
@@ -13841,10 +13838,20 @@ async function startChainOfPain() {
   chainOfPainState.detectorType = null;
   chainOfPainState.counter = null;
 
+  // Acquire the wake lock BEFORE camera/calibration setup, not after — every
+  // other vision mode (see startSquat()) does this first specifically so the
+  // screen can't dim/lock while the boy is still positioning the phone
+  // during the auto-calibration warmup that follows. This function used to
+  // await beginChainOfPainSegment() (camera permission + model load +
+  // warmup start, which can take a few seconds) before ever requesting the
+  // wake lock, leaving exactly that window unprotected — matching a
+  // real-device report of the camera stream going stale specifically while
+  // still setting up the phone after pressing Start.
+  await acquireWakeLock();
+
   const ok = await beginChainOfPainSegment(chainOfPainCurrentExercise(chainOfPainState.rules));
   if (!ok) return;
 
-  await acquireWakeLock();
   state.chainOfPainActive = true;
   $("chainofpain-idle").classList.add("hidden");
   $("chainofpain-in-progress").classList.remove("hidden");

@@ -3180,7 +3180,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 .dashboard-header .screen-title,
 .challenges-header .screen-title { margin: 0; }
-.challenges-create-btn { flex-shrink: 0; }
+.challenges-create-btn,
+.games-start-btn {
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  line-height: 1;
+}
 
 /* Frozen pane: same technique as Challenges below — bound #app to the
    viewport and let only the active bonanza view scroll internally, so the
@@ -3440,7 +3445,6 @@ body:has(#screen-dashboard.active) #app {
 .games-tab-dot:not(.hidden) { display: inline-block; }
 .games-header { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1.2rem; }
 .games-header .screen-title { margin: 0; }
-.games-start-btn { flex-shrink: 0; }
 .games-recent-section { margin-top: 1.4rem; }
 .games-recent-section .tier1-eyebrow { margin-bottom: 0.4rem; }
 
