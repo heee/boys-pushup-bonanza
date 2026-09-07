@@ -748,10 +748,16 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   justify-content: center;
   gap: 0.38rem;
   max-width: min(92%, 24rem);
-  position: absolute;
+  /* Fixed (not absolute-in-#screen-workout) so this sits a precise, small
+     gap above the tab bar regardless of the screen's own reserved bottom
+     padding — #screen-workout's padding box ends well above the tab bar
+     itself, so an absolute "bottom" here was measured from the wrong edge
+     and always left a much bigger gap than intended. */
+  position: fixed;
   left: 50%;
-  bottom: calc(var(--tab-bar-height) + 0.1rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--tab-bar-height) + 0.4rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
+  z-index: 400;
   margin: 0;
   padding: 0.45rem 0.65rem;
   border: 0;
@@ -760,7 +766,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   background: transparent;
   box-shadow: none;
   color: var(--text-dim);
-  font-size: 0.95rem;
+  font-size: 0.72rem;
   font-weight: 400;
   line-height: 1.25;
   opacity: 0.5;
