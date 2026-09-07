@@ -44,7 +44,7 @@ test("Chain of Pain share pool is large, non-repeating, and interpolates cycles 
     const ctx = {
       mode: "chainofpain",
       isChainOfPain: true,
-      chainOfPainCtx: { squats: 12, pushups: 8, plankSeconds: 45, segments: 7 },
+      chainOfPainCtx: { squats: 12, pushups: 8, plankSeconds: 45, segments: 16 },
     };
     // Sweep Math.random across enough evenly-spaced buckets to visit every
     // pool entry exactly once (offset by 0.1/N to stay clear of float-floor
@@ -57,7 +57,27 @@ test("Chain of Pain share pool is large, non-repeating, and interpolates cycles 
     }
     assert.ok(seen.size >= 15, `expected at least 15 distinct Chain of Pain share messages, got ${seen.size}`);
     assert.ok([...seen].every((m) => m.includes("5.3 cycles")), "every message should interpolate the cycles readout");
+    assert.ok([...seen].every((m) => (m.match(/\p{Extended_Pictographic}/gu) || []).length >= 3), "every message should include several emojis");
+    assert.ok([...seen].every((m) => /chain/i.test(m)), "every message should keep the chain theme");
     assert.ok([...seen].some((m) => m.includes("12") && m.includes("8")), "at least one message should interpolate the squats/pushups breakdown");
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+test("Chain shares distinguish complete loops from extra exercise links", async () => {
+  const originalRandom = Math.random;
+  try {
+    const { pickShareMessage } = await import("../share-messages.js?chain-links");
+    for (const segments of [0, 1, 2, 3, 16]) {
+      Math.random = () => 20.1 / 24;
+      const message = pickShareMessage(`${(segments / 3).toFixed(1)} cycles`, {
+        mode: "chainofpain", chainOfPainCtx: { segments },
+      });
+      assert.ok(message.includes(`Full loops: ${Math.floor(segments / 3)}`));
+      assert.ok(message.includes(`Extra completed links: ${segments % 3}`));
+      assert.doesNotMatch(message, /undefined|NaN/);
+    }
   } finally {
     Math.random = originalRandom;
   }
