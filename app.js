@@ -1733,7 +1733,11 @@ const GOAL_TYPE_META = {
   planks: { activity: "planks", label: "Planks", icon: "🪵", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
   squats: { activity: "squats", label: "Squats", icon: "🦵", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
   pullups: { activity: "pullups", label: "Pull-ups", icon: "💪", unit: "reps", defaults: { daily: 10, weekly: 50, monthly: 200, streak: 30 } },
+  situps: { activity: "situps", label: "Crunches", icon: "🙇", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
 };
+// Home can only surface a handful of goal thermometers at once, so Settings
+// caps how many goal types can be enabled simultaneously.
+const MAX_ENABLED_GOALS = 4;
 const GOAL_TYPES = Object.keys(GOAL_TYPE_META);
 const GOAL_PERIODS = ["daily", "weekly", "monthly", "streak"];
 const GOAL_PERIOD_LABELS = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", streak: "Streak" };
@@ -1818,7 +1822,7 @@ function activeGoalsFor(user) {
 // exercise; tapping one already hit should jump to its leaderboard instead
 // — explore-mode ids are singular ("plank"/"squat"/"pullup") while goal
 // types and leaderboard mode ids share the plural GOAL_TYPES spelling.
-const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", squats: "squat", pullups: "pullup" };
+const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", squats: "squat", pullups: "pullup", situps: "situp" };
 
 // Split so the render side can force a line break after the number rather
 // than letting it wrap wherever the ~90px column happens to run out —
@@ -2462,6 +2466,11 @@ $("goal-type-list").addEventListener("change", (e) => {
   if (!toggle) return;
   const type = toggle.dataset.goalTypeToggle;
   const goals = goalsFor(state.currentUser);
+  if (toggle.checked && GOAL_TYPES.filter((t) => goals[t].enabled).length >= MAX_ENABLED_GOALS) {
+    toggle.checked = false;
+    toast(`You can only track ${MAX_ENABLED_GOALS} goals at once — turn one off first.`, 3000);
+    return;
+  }
   changeUserGoals(state.currentUser, { ...goals, [type]: { ...goals[type], enabled: toggle.checked } });
   renderGoalsSettingsScreen();
   renderGoalThermometers();
