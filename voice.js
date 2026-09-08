@@ -96,6 +96,8 @@ function refreshAudioGraphIfNeeded() {
   masterGain = null;
   unlocked = false;
   buffers.clear();
+  ghostBooBuffer = null;
+  ghostBooPromise = null;
   if (oldCtx && oldCtx.state !== "closed") {
     try {
       const p = oldCtx.close?.();
