@@ -1867,7 +1867,7 @@ $("goal-thermometers").addEventListener("click", (e) => {
     selectLeaderboardMode(type);
     showScreen("screen-dashboard");
   } else {
-    openPushupModeFromExplore(GOAL_TYPE_EXPLORE_ID[type]);
+    openExploreMode(GOAL_TYPE_EXPLORE_ID[type]);
   }
 });
 
