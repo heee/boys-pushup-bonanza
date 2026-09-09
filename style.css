@@ -1601,7 +1601,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 
 /* ---------------- Poker Hands mode HUD ---------------- */
-.poker-hud { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 17rem; position: relative; }
+.poker-hud { width: 100%; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 17rem; position: relative; }
 .poker-hand { width: min(96vw, 31rem); height: 14.5rem; position: relative; }
 .poker-card { position: absolute; top: 1rem; left: 50%; width: min(29vw, 8.5rem); aspect-ratio: 136 / 208; background: center / contain no-repeat; filter: drop-shadow(0 0.45rem 0.55rem rgba(0,0,0,.55)); transform: translateX(calc(-50% + var(--poker-x))) rotate(var(--poker-rotate)); transition: transform 220ms ease, opacity 220ms ease, filter 220ms ease; }
 .poker-card.active { z-index: 6; transform: translateX(calc(-50% + var(--poker-x))) translateY(-.75rem) rotate(var(--poker-rotate)) scale(1.06); filter: drop-shadow(0 0 .42rem color-mix(in srgb, var(--gold) 75%, transparent)) drop-shadow(0 .5rem .55rem rgba(0,0,0,.55)); }
@@ -2042,6 +2042,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .ladder-hud {
   position: relative;
   display: flex;
+  flex: 1;
+  align-items: center;
   justify-content: center;
   width: 100%;
 }
