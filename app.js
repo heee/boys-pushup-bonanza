@@ -111,7 +111,7 @@ import {
 import { createCameraController } from "./camera.js";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
-import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, weightedSummaryText } from "./screens/summary.js";
+import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=142";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=5";
@@ -1515,6 +1515,7 @@ const state = {
   summaryMultiplier: 1,
   summaryWeightLbs: 0,
   summaryPrAchieved: null,
+  summaryDurationMs: null,
   chasePrepared: null,
   chasePlan: null,
   chaseProgress: null,
@@ -1974,6 +1975,9 @@ function showScreen(id) {
   }
   if (id === "screen-summary" && state.lastSessionType !== "cock") {
     $("summary-cock-result")?.classList.add("hidden");
+  }
+  if (id === "screen-summary" && state.lastSessionType !== "pushup") {
+    $("summary-pace-note")?.classList.add("hidden");
   }
   if (id === "screen-dashboard") renderDashboard();
   if (id === "screen-session-detail") renderSessionDetail();
@@ -11539,7 +11543,9 @@ async function completeWorkout() {
   $("summary-count").textContent = formatNumber(count);
   $("missed-reps-count").textContent = "0";
   $("missed-reps-wrap").classList.remove("hidden");
+  state.summaryDurationMs = state.sessionStartedAt ? completedAt.getTime() - state.sessionStartedAt.getTime() : null;
   renderSummaryWeightedNote(rawCount, count);
+  renderSummaryPaceNote(rawCount, state.summaryDurationMs);
   renderSummaryChaseResult();
   renderSummaryRoadtripResult();
   $("summary-sync-status").textContent = "";
@@ -11591,6 +11597,18 @@ function renderSummaryWeightedNote(rawTotal, adjustedTotal) {
   el.textContent = weightedSummaryText({ weightLbs: state.summaryWeightLbs, rawTotal, multiplier: state.summaryMultiplier, adjustedTotal, formatNumber });
 }
 
+function renderSummaryPaceNote(rawCount, durationMs) {
+  const el = $("summary-pace-note");
+  const note = pushupPaceNote({ rawCount, durationMs });
+  if (!note) {
+    el.classList.add("hidden");
+    el.textContent = "";
+    return;
+  }
+  el.classList.remove("hidden");
+  el.textContent = note.text;
+}
+
 function adjustMissedReps(delta) {
   if (!state.summarySessionId) return;
   const nextExtra = state.summaryExtra + delta;
@@ -11600,6 +11618,7 @@ function adjustMissedReps(delta) {
   const { rawTotal, adjustedTotal: newTotal } = correctedSummaryTotals(state.summaryBaseCount, state.summaryExtra, state.summaryMultiplier);
   $("summary-count").textContent = formatNumber(newTotal);
   renderSummaryWeightedNote(rawTotal, newTotal);
+  renderSummaryPaceNote(rawTotal, state.summaryDurationMs);
   if (state.summaryChaseResult && state.chasePlan) {
     const result = chaseProgress(state.chasePlan, newTotal);
     state.summaryChaseResult = chaseSummaryResult(result);
