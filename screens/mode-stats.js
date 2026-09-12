@@ -25,6 +25,8 @@ const SPECS = {
     { id: "sessions", label: "Sessions logged", format: "integer", qualifier: "total", value: (s) => s.length },
     { id: "avgDuration", label: "Avg session time", format: "duration", qualifier: "group avg", value: (s) => average(s.map(durationMs).filter((v) => v != null)) },
     { id: "avgPace", label: "Avg pace", format: "pace", qualifier: "group avg", value: (s) => { const timed = s.map((x) => [x, durationMs(x)]).filter(([, ms]) => ms != null); const minutes = sum(timed, ([, ms]) => ms) / 60000; return minutes ? sum(timed, ([x]) => Number(x.count) || 0) / minutes : null; } },
+    { id: "avgReps", label: "Avg pushups / session", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
+    { id: "bestSession", label: "Most pushups in a session", format: "integer", qualifier: "group best", value: (s) => s.length ? Math.max(...s.map((x) => Number(x.count) || 0)) : null },
   ],
   classic: [
     { id: "sessions", label: "Classic sessions", format: "integer", qualifier: "total", value: (s) => s.length },
