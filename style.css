@@ -2040,9 +2040,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* ---------------- Ladder mode ---------------- */
 
-/* Pure ascent, no ceiling: rung N needs N reps. No giant hero number here —
-   this rung window (locked/active/cleared rows) is the focal visual,
-   mirroring how Cards/Dice replace the hero number with their own art. */
+/* Pure ascent, no ceiling: rung N needs N reps. A perspective ladder receding
+   into the distance is the focal visual (mirroring how Cards/Dice replace the
+   hero number with their own art): the current rung always sits at slot 3,
+   locked rungs recede above it, cleared rungs sit below. The stack shifts
+   down one slot per completed rung — the ladder scrolls under the player
+   rather than the player moving up a list. */
 .ladder-hud {
   position: relative;
   display: flex;
@@ -2051,76 +2054,98 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   justify-content: center;
   width: 100%;
 }
-.ladder-rivals-offline { position: absolute; top: -0.65rem; right: 0; z-index: 2; padding: 0.2rem 0.42rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--accent); font-size: 0.58rem; font-weight: 850; letter-spacing: 0.06em; }
+.ladder-rivals-offline { position: absolute; top: -0.65rem; right: 0; z-index: 5; padding: 0.2rem 0.42rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--accent); font-size: 0.58rem; font-weight: 850; letter-spacing: 0.06em; }
+
+/* Fixed-aspect stage (design size 260x342) scaled to the available width via
+   percentage geometry — every rung slot and rail below is positioned as a
+   percentage of this box so it stays proportional at any size. */
 .ladder-rung-window {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  position: relative;
   width: 100%;
-  max-width: 21rem;
+  max-width: 260px;
+  aspect-ratio: 260 / 342;
+  margin: 0 auto;
+}
+.ladder-rail {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.ladder-rail-left {
+  clip-path: polygon(28.46% 0, 33.08% 0, 8.46% 100%, 3.85% 100%);
+  background: linear-gradient(90deg, #2e2417, #6b5333, #33271a);
+}
+.ladder-rail-right {
+  clip-path: polygon(66.92% 0, 71.54% 0, 96.15% 100%, 91.54% 100%);
+  background: linear-gradient(90deg, #33271a, #6b5333, #2e2417);
+}
+/* Sells the "disappears into the dark" read — the topmost rung sits under
+   this and reads as dimmed rather than hidden. */
+.ladder-top-fade {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 17.5%;
+  background: linear-gradient(180deg, #151009 20%, rgba(21, 16, 9, 0));
+  z-index: 3;
+  pointer-events: none;
 }
 .ladder-rung-row {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) 1rem;
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
   align-items: center;
-  align-self: center;
-  /* Narrower than the active row by default — width is the other visual
-     differentiator (besides color/glow) for "this is the one you're on". */
-  width: 84%;
-  min-height: 3.4rem;
-  padding: 0.35rem 1.15rem;
-  border-radius: 14px;
-  border: 1.5px solid transparent;
-  font-size: 1.3rem;
+  justify-content: space-between;
+  border-radius: 4px;
   font-weight: 800;
-  color: var(--text-tertiary);
-  background: var(--bg-elevated);
-  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.25s ease, width 0.25s ease;
+  z-index: 2;
+  transition: top 0.42s cubic-bezier(.2, .7, .2, 1), left 0.42s cubic-bezier(.2, .7, .2, 1),
+    right 0.42s cubic-bezier(.2, .7, .2, 1), height 0.42s cubic-bezier(.2, .7, .2, 1),
+    font-size 0.42s cubic-bezier(.2, .7, .2, 1), background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
-.ladder-rung-number { text-align: left; }
+.ladder-rung-row.empty { visibility: hidden; }
+.ladder-rung-status { display: flex; align-items: center; gap: 0.3rem; min-width: 0; }
+.ladder-lock, .ladder-check { line-height: 1; }
+.ladder-check { color: #1b2a13; }
+
+.ladder-rung-row.locked {
+  background: #2a2115;
+  color: #7d7061;
+}
+/* Slot 1 (farthest, under the top fade) reads dimmer than slot 2. */
+.ladder-rung-row.locked[data-slot="1"] { background: #241c12; color: #6d6152; }
+/* Active rung: the one true focal point — a warm glow, lifted above the
+   fade and its neighbors. The reps-remaining pop badge
+   (#ladder-counter-badge, positioned by renderLadderRungWindow in app.js)
+   overlays this row. */
+.ladder-rung-row.active {
+  background: linear-gradient(180deg, #2b1f11, #1e1509);
+  color: #e2933f;
+  box-shadow: 0 0 0 2px #e2933f, 0 0 26px rgba(226, 147, 63, .45);
+  z-index: 4;
+}
+/* Cleared rung: filled green, already behind the player. */
+.ladder-rung-row.done {
+  background: linear-gradient(180deg, #9ad183, #6fae57);
+  color: #1b2a13;
+}
+
 .ladder-rivals { min-width: 0; display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 0.22rem; }
-.ladder-rival-dot { display: inline-flex; align-items: center; justify-content: center; width: 1.18rem; height: 1.18rem; border: 1.5px solid var(--bg); border-radius: 50%; font-size: 0.62rem; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+.ladder-rival-dot { display: inline-flex; align-items: center; justify-content: center; width: 1.18rem; height: 1.18rem; border: 1.5px solid var(--bg); border-radius: 50%; font-size: 0.62rem; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,0.25); flex: 0 0 auto; }
 .ladder-rivals.distant .ladder-rival-dot + .ladder-rival-dot { margin-left: -0.48rem; }
 .ladder-rival-chip { display: inline-flex; align-items: center; gap: 0.25rem; max-width: 100%; padding: 0.18rem 0.38rem 0.18rem 0.2rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--text); font-size: 0.62rem; font-weight: 800; line-height: 1.05; }
 .ladder-rival-chip .avatar-circle { flex: 0 0 auto; }
 .ladder-rival-dot.self { border-color: var(--primary); box-shadow: 0 0 0 1.5px var(--primary), 0 1px 4px rgba(0,0,0,0.25); }
 .ladder-rival-chip.self { background: var(--primary); color: var(--text-on-accent); }
-.ladder-rung-row.cleared .ladder-rival-chip { background: color-mix(in srgb, var(--bg) 20%, transparent); color: var(--text-on-accent); }
-.ladder-rung-row.locked {
-  opacity: 0.5;
-}
-.ladder-rung-row.active {
-  width: 100%;
-}
-.ladder-rung-icon {
-  font-size: 0.95rem;
-  line-height: 1;
-}
-.ladder-rung-row.locked .ladder-rung-icon::before {
-  content: "🔒";
-  opacity: 0.75;
-}
-/* Active rung: glowing outline rather than a fill, so it reads as "in
-   progress" — the reps-remaining pop badge (#ladder-counter-badge,
-   positioned by renderLadderRungWindow in app.js) overlays this row. */
-.ladder-rung-row.active {
-  color: var(--primary);
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(226, 147, 63, 0.18), 0 0 1.1rem rgba(226, 147, 63, 0.35);
-}
-/* Cleared rung: filled + a CSS-drawn checkmark (same border-rotate trick as
-   .workout-active .btn-complete::after) instead of an image asset. */
-.ladder-rung-row.cleared {
-  color: var(--text-on-accent);
-  background: var(--success);
-  border-color: transparent;
-}
-.ladder-rung-row.cleared .ladder-rung-icon {
-  width: 16px;
-  height: 9px;
-  border-left: 2.5px solid var(--text-on-accent);
-  border-bottom: 2.5px solid var(--text-on-accent);
-  transform: rotate(-45deg) translateY(-2px);
+.ladder-rung-row.done .ladder-rival-chip { background: color-mix(in srgb, var(--bg) 20%, transparent); color: var(--text-on-accent); }
+/* Pacer chip: the current rung's rival readout — a named avatar, never
+   wrapping, truncated past ~10 characters. */
+.ladder-pacer-chip { display: flex; align-items: center; gap: 0.3rem; max-width: 6.4rem; white-space: nowrap; overflow: hidden; font-size: 0.68rem; color: #f4ead8; font-weight: 700; }
+.ladder-pacer-chip span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.ladder-pacer-chip.self { color: #e2933f; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ladder-rung-row { transition: background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease; }
 }
 
 /* ---------------- Pyramid setup screen ---------------- */

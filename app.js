@@ -123,7 +123,7 @@ import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=1
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=10";
-import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=152";
+import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=153";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -9455,20 +9455,33 @@ function pulseIntensityNearZero(remaining, window = 10) {
   return Math.max(0, Math.min(1, (window - remaining) / window));
 }
 
-// A real ladder, not a scrolling window: rungs are grouped into fixed pages
-// of 5 (1-5, 6-10, 11-15, ...) and always render bottom-to-top like a real
-// ladder (lowest number at the bottom, climbing upward). The active rung
-// climbs one slot per rung within its page; the instant it clears the top
-// slot, the very next rung is that same page's bottom slot pushed one page
-// higher (5p+5 clears -> 5p+6 is slot 0 of the next page) — so the "reset"
-// the user asked for (active drops back to the bottom, everything above
-// freshly locked) falls straight out of the page-index math below, no
-// special-casing needed. This discrete jump (vs. a continuously sliding
-// window) is deliberately easy to read mid-set.
+// A perspective ladder: 5 fixed slots (design box 260x342) with the live rung
+// always centered at slot 3. Slot geometry is expressed as % of the stage box
+// so .ladder-rung-window can scale to any width while staying proportional.
 // #ladder-counter-badge (a .mode-counter-badge, same component Cards/Dice
 // use) isn't part of this markup — it's a persistent element repositioned
-// here to sit over whichever row is active, since it needs to survive
-// across this function's re-renders to animate its "pop" correctly.
+// here to sit over whichever row is active, since it needs to survive across
+// this function's re-renders to animate its "pop" correctly.
+const LADDER_SLOT_STYLE = {
+  1: { top: 22 / 342, inset: 77 / 260, height: 30 / 342, font: 13, pad: 10 },
+  2: { top: 80 / 342, inset: 64 / 260, height: 36 / 342, font: 15, pad: 12 },
+  3: { top: 146 / 342, inset: 50 / 260, height: 44 / 342, font: 21, pad: 12 },
+  4: { top: 216 / 342, inset: 36 / 260, height: 48 / 342, font: 19, pad: 14 },
+  5: { top: 288 / 342, inset: 22 / 260, height: 52 / 342, font: 21, pad: 16 },
+};
+// Where a rung that has fallen off the bottom (slot 5 -> gone) animates to
+// before it's removed from the DOM.
+const LADDER_EXIT_SLOT_STYLE = { top: 1.05, inset: 8 / 260, height: 52 / 342, font: 21, pad: 16 };
+
+function applyLadderSlotStyle(el, slotStyle) {
+  el.style.top = `${slotStyle.top * 100}%`;
+  el.style.left = `${slotStyle.inset * 100}%`;
+  el.style.right = `${slotStyle.inset * 100}%`;
+  el.style.height = `${slotStyle.height * 100}%`;
+  el.style.fontSize = `${slotStyle.font}px`;
+  el.style.padding = `0 ${slotStyle.pad}px`;
+}
+
 function ladderNames(names) {
   if (names.length <= 1) return names[0] || "the competition";
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
@@ -9486,6 +9499,26 @@ function ladderRivalCallout(enteredRung) {
   }).join(" ");
 }
 
+// Right side of a rung row: a rival indicator (when someone's best sits on
+// this rung) alongside the status glyph — a pacer chip with name on the
+// current rung, a compact dot/chip elsewhere, never replacing the lock/check.
+function ladderRungStatusHTML(row) {
+  const icon = row.status === "locked" ? '<span class="ladder-lock" aria-hidden="true">🔒</span>'
+    : row.status === "done" ? '<span class="ladder-check" aria-hidden="true">✓</span>'
+    : "";
+  if (!row.rival) return icon;
+  const isCurrent = row.status === "active";
+  const wrapClass = isCurrent ? "ladder-rivals near" : `ladder-rivals ${row.compactRivals ? "distant" : "near"}`;
+  const rivalMarkup = `<div class="${wrapClass}" aria-label="${escapeHtml(`Best rung for ${ladderNames(row.rival.names)}`)}">
+    ${row.rival.users.map(({ name, avatar, self }) => isCurrent
+      ? `<span class="ladder-pacer-chip${self ? " self" : ""}">${avatarCircleHTML(avatar, "20px")}<span>${escapeHtml(name)}${self ? " (you)" : ""}</span></span>`
+      : row.compactRivals
+        ? `<span class="ladder-rival-dot${self ? " self" : ""}" title="${escapeHtml(self ? "You" : name)}" style="background:${avatar.bg}">${avatar.emoji}</span>`
+        : `<span class="ladder-rival-chip${self ? " self" : ""}">${avatarCircleHTML(avatar, "1.25rem")}<span>${escapeHtml(name)}${self ? " (you)" : ""}</span></span>`).join("")}
+  </div>`;
+  return `${rivalMarkup}${icon}`;
+}
+
 function renderLadderRungWindow() {
   const container = $("ladder-rung-window");
   const current = state.ladderRung;
@@ -9493,28 +9526,47 @@ function renderLadderRungWindow() {
   const selfUser = selfBestRung > 0 ? { name: state.currentUser, avatar: avatarForUser(state.currentUser), rung: selfBestRung } : null;
   const renderKey = `${current}|${state.ladderRivals.map((rival) => `${rival.rung}:${rival.names.join(",")}`).join(";")}`;
   if (container.dataset.renderKey === renderKey) return;
-  let rows = "";
-  // slot 4 (top of the page, highest number) rendered first so it lands at
-  // the top of the screen — flex-direction: column stacks first-child-on-top.
-  for (const row of ladderRungRows(current, state.ladderRivals, shouldCompactLadderRivals, selfUser)) {
-    const n = row.rung;
-    const cls = row.status;
-    const rivals = row.rival;
-    const compactRivals = row.compactRivals;
-    const rivalMarkup = rivals ? `<div class="ladder-rivals ${compactRivals ? "distant" : "near"}" aria-label="${escapeHtml(`Best rung for ${ladderNames(rivals.names)}`)}">
-      ${rivals.users.map(({ name, avatar, self }) => compactRivals
-        ? `<span class="ladder-rival-dot${self ? " self" : ""}" title="${escapeHtml(self ? "You" : name)}" style="background:${avatar.bg}">${avatar.emoji}</span>`
-        : `<span class="ladder-rival-chip${self ? " self" : ""}">${avatarCircleHTML(avatar, "1.25rem")}<span>${escapeHtml(name)}${self ? " (you)" : ""}</span></span>`).join("")}
-    </div>` : '<div class="ladder-rivals"></div>';
-    rows += `
-      <div class="ladder-rung-row ${cls}">
-        <span class="ladder-rung-number">${n}</span>
-        ${rivalMarkup}
-        <span class="ladder-rung-icon" aria-hidden="true"></span>
-      </div>
-    `;
+
+  if (!container.querySelector(".ladder-rail-left")) {
+    container.insertAdjacentHTML("afterbegin", `
+      <div class="ladder-rail ladder-rail-left"></div>
+      <div class="ladder-rail ladder-rail-right"></div>
+      <div class="ladder-top-fade"></div>
+    `);
   }
-  container.innerHTML = rows;
+
+  const rows = ladderRungRows(current, state.ladderRivals, shouldCompactLadderRivals, selfUser);
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const seenRungs = new Set();
+
+  for (const row of rows) {
+    if (row.rung == null) continue;
+    seenRungs.add(row.rung);
+    let el = container.querySelector(`.ladder-rung-row[data-rung="${row.rung}"]`);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "ladder-rung-row";
+      el.dataset.rung = row.rung;
+      el.innerHTML = '<span class="ladder-rung-number"></span><span class="ladder-rung-status"></span>';
+      container.appendChild(el);
+    }
+    el.dataset.slot = row.slot;
+    el.className = `ladder-rung-row ${row.status}`;
+    el.querySelector(".ladder-rung-number").textContent = row.rung;
+    el.querySelector(".ladder-rung-status").innerHTML = ladderRungStatusHTML(row);
+    applyLadderSlotStyle(el, LADDER_SLOT_STYLE[row.slot]);
+  }
+
+  // Anything still in the DOM that isn't part of the new 5-slot window has
+  // fallen off the bottom (a rung completed and everything shifted down) —
+  // slide it out below the stage, then remove it.
+  container.querySelectorAll(".ladder-rung-row[data-rung]").forEach((el) => {
+    if (seenRungs.has(Number(el.dataset.rung))) return;
+    el.className = "ladder-rung-row done";
+    applyLadderSlotStyle(el, LADDER_EXIT_SLOT_STYLE);
+    setTimeout(() => el.remove(), reducedMotion ? 0 : 460);
+  });
+
   container.dataset.renderKey = renderKey;
 
   const activeRow = container.querySelector(".ladder-rung-row.active");
@@ -10429,7 +10481,9 @@ async function setupWorkoutModeState() {
     state.ladderRung = 1;
     state.ladderRepsDone = 0;
     state.ladderMaxRungCleared = 0;
-    delete $("ladder-rung-window").dataset.renderKey;
+    const ladderWindow = $("ladder-rung-window");
+    ladderWindow.innerHTML = "";
+    delete ladderWindow.dataset.renderKey;
   }
   $("ladder-hud").classList.toggle("hidden", !isLadder);
   $("ladder-session-total").classList.toggle("hidden", !isLadder);

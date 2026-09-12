@@ -78,21 +78,29 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   };
 }
 
+// Five perspective slots, farthest (1, top) to nearest (5, bottom), always
+// centered on the live rung at slot 3 — the ladder scrolls under the player
+// rather than the player moving up a list, so slot math is a plain offset
+// from `current` rather than a page reset. Slots below rung 1 don't exist
+// yet (start of a session) and come back as status "empty" so the caller can
+// skip rendering them instead of re-centering.
+//
 // `self` (optional {name, avatar, rung}) is folded into whichever row matches
 // the player's own all-time best Ladder rung — same treatment as any other
 // rival, keyed off `self.rung` rather than the live rung being climbed, so it
 // stays put on that row instead of following the player up the ladder.
 export function ladderRungRows(current, rivals, compactRivals, self) {
-  const pageStart = Math.floor((current - 1) / 5) * 5 + 1;
-  return [4, 3, 2, 1, 0].map((slot) => {
-    const rung = pageStart + slot;
-    const status = rung < current ? "cleared" : rung === current ? "active" : "locked";
+  return [1, 2, 3, 4, 5].map((slot) => {
+    const rung = current + (3 - slot);
+    if (rung < 1) return { slot, rung: null, status: "empty", rival: null, compactRivals: false };
+    const status = rung < current ? "done" : rung === current ? "active" : "locked";
     let rival = rivals.find((entry) => entry.rung === rung) || null;
     if (self && self.rung === rung) {
       const users = rival ? [...rival.users, { ...self, self: true }] : [{ ...self, self: true }];
       rival = { rung, names: users.map((user) => user.name), users };
     }
     return {
+      slot,
       rung,
       status,
       rival,

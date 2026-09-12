@@ -64,10 +64,27 @@ test("Cock Mode hides the generic hero/highscore/thermometer for its own pace-du
   assert.equal(hud.hideThermometer, true);
 });
 
-test("ladder rows keep five-rung pages ordered top to bottom", () => {
+test("ladder rows always center the live rung at slot 3, sliding under the player", () => {
   const rows = ladderRungRows(6, [{ rung: 7, users: [1, 2, 3] }], (users) => users.length > 2);
-  assert.deepEqual(rows.map(({ rung, status }) => [rung, status]), [[10, "locked"], [9, "locked"], [8, "locked"], [7, "locked"], [6, "active"]]);
+  assert.deepEqual(rows.map(({ slot, rung, status }) => [slot, rung, status]), [
+    [1, 8, "locked"],
+    [2, 7, "locked"],
+    [3, 6, "active"],
+    [4, 5, "done"],
+    [5, 4, "done"],
+  ]);
   assert.equal(rows.find((row) => row.rung === 7).compactRivals, true);
+});
+
+test("ladder rows near the start of a session leave below-rung-1 slots empty instead of re-centering", () => {
+  const rows = ladderRungRows(1, []);
+  assert.deepEqual(rows.map(({ slot, rung, status }) => [slot, rung, status]), [
+    [1, 3, "locked"],
+    [2, 2, "locked"],
+    [3, 1, "active"],
+    [4, null, "empty"],
+    [5, null, "empty"],
+  ]);
 });
 
 test("the player's own personal-best rung folds them in alongside any rivals tied there, independent of the live rung", () => {
