@@ -26,6 +26,8 @@
 
   --shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
   --gold: #e9b949;
+  --silver: #c7cdd6;
+  --bronze: #cd7f32;
   --text-on-accent: #1a1006; /* dark text sat on top of orange/gold/flame fills, both themes */
   --switch-off-track: #40352a;
   /* Pulse mode's "too cold" signal — the only cool hue in the app, used
@@ -57,6 +59,8 @@
 
   --shadow: 0 8px 20px rgba(80, 60, 20, 0.14);
   --gold: #b8862a;
+  --silver: #8e97a3;
+  --bronze: #a8622a;
   --text-on-accent: #1a1006;
   --switch-off-track: #d9c7a0;
   --pulse-cold: #3d6f89;
@@ -3918,13 +3922,23 @@ body:has(#screen-dashboard.active) #app {
   border-radius: 6px;
   color: var(--text-tertiary);
 }
-/* Only rank #1 gets special treatment — a gold badge chip + gold score
-   color. Everyone else is plain, same weight as any other row. */
+/* Top 3 get badge-chip treatment — gold/silver/bronze — everyone else
+   stays plain, same weight as any other row. */
 .leaderboard-row.rank-1 .leaderboard-rank {
   background: var(--gold);
   color: var(--text-on-accent);
 }
 .leaderboard-row.rank-1 .leaderboard-total { color: var(--gold); }
+.leaderboard-row.rank-2 .leaderboard-rank {
+  background: var(--silver);
+  color: var(--text-on-accent);
+}
+.leaderboard-row.rank-2 .leaderboard-total { color: var(--silver); }
+.leaderboard-row.rank-3 .leaderboard-rank {
+  background: var(--bronze);
+  color: var(--text-on-accent);
+}
+.leaderboard-row.rank-3 .leaderboard-total { color: var(--bronze); }
 /* "pr" challenge achiever rows: green check instead of a numeric rank. */
 .leaderboard-rank-check {
   background: var(--success);
