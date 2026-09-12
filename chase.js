@@ -1,3 +1,5 @@
+import { filterByMode } from "./stats.js";
+
 export const CHASE_PERIODS = [
   { id: "day", label: "Daily" },
   { id: "week", label: "Weekly" },
@@ -19,11 +21,18 @@ function startOfPeriod(id, now) {
 }
 
 export function buildChasePlan(sessions, currentUser, now = new Date()) {
+  // Chase is a pushups-only board: score it the same way the "All" pushups
+  // leaderboard does (filterByMode("all") — classic plus every pushup
+  // sub-mode, including the projected pushup share of Holland/Chain of
+  // Pain), not every logged exercise. Summing raw `sessions` here let squat/
+  // situp/pullup totals bleed into the chase score, so it disagreed with the
+  // per-mode leaderboards the same numbers are compared against.
+  const pushupSessions = filterByMode(sessions || [], "all");
   const stages = CHASE_PERIODS.map((period) => {
     const startMs = startOfPeriod(period.id, now);
     const totals = new Map();
-    for (const session of sessions || []) {
-      if (!session || session.type === "plank" || !session.user) continue;
+    for (const session of pushupSessions) {
+      if (!session || !session.user) continue;
       const timestamp = new Date(session.timestamp).getTime();
       if (!Number.isFinite(timestamp) || timestamp < startMs) continue;
       const score = Number(session.count) || 0;
