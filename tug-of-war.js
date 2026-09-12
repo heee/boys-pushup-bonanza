@@ -10,7 +10,7 @@
 // up to this many total players, auto-balanced onto whichever team has room.
 export const TOW_OPEN_ROSTER_SIZE = 6;
 
-export function createTugOfWarGame({ id, target, rounds, sessionType, createdBy, teams, rosterSize, now = Date.now() }) {
+export function createTugOfWarGame({ id, target, rounds, sessionType, createdBy, teams, rosterSize, deathMatch, now = Date.now() }) {
   const targetReps = Math.floor(Number(target));
   const roundCount = Math.floor(Number(rounds));
   if (!Number.isFinite(targetReps) || targetReps <= 0) throw new Error("Target reps must be a positive whole number");
@@ -31,6 +31,7 @@ export function createTugOfWarGame({ id, target, rounds, sessionType, createdBy,
     turnIndex: 0,
     turnStartedAt: sessionType === "open" ? null : now,
     sudden: false,
+    deathMatch: Boolean(deathMatch),
     scores: { a: 0, b: 0 },
     playerTotals: {},
     bursts: [],
@@ -175,7 +176,11 @@ export function applyBurst(game, { user, reps, now = Date.now() }) {
 
   const addedReps = Math.max(0, Math.floor(Number(reps)) || 0);
   const team = turn.team;
+  const otherTeam = team === "a" ? "b" : "a";
   const scores = { ...game.scores, [team]: game.scores[team] + addedReps };
+  if (game.deathMatch) {
+    scores[otherTeam] = Math.max(0, scores[otherTeam] - addedReps);
+  }
   const playerTotals = { ...game.playerTotals, [user]: (game.playerTotals[user] || 0) + addedReps };
   const bursts = [...game.bursts, { user, team, reps: addedReps, round: game.round, sudden: game.sudden, at: now }];
   const next = { ...game, scores, playerTotals, bursts };

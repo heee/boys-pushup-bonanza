@@ -38,7 +38,7 @@ export const RECAP_EXERCISES = [
   { key: "holland", filterMode: "holland", label: "Holland", unit: "cycles" },
 ];
 
-const LEADERBOARD_GROUP_LABEL = "Boys Bonanza";
+export const LEADERBOARD_GROUP_LABEL = "Boys Bonanza";
 
 // Maps a Challenges-screen challenge's activity id (screens/challenges.js's
 // challengeActivityId) to the matching recap exercise key, so a challenge
@@ -52,12 +52,12 @@ export const CHALLENGE_ACTIVITY_TO_EXERCISE_KEY = {
   planks: "plank",
 };
 
-function sessionTime(session) {
+export function sessionTime(session) {
   const value = Date.parse(session?.timestamp || session?.date || "");
   return Number.isFinite(value) ? value : 0;
 }
 
-function inRange(session, start, end) {
+export function inRange(session, start, end) {
   const t = sessionTime(session);
   return t >= start.getTime() && t < end.getTime();
 }
@@ -149,7 +149,7 @@ function bestPriorPeriodTotal(pool, user, tier, beforeEnd) {
 // Wall-clock length of a session (startedAt → timestamp). Sessions logged
 // before startedAt existed (or missing it for any other reason) contribute
 // 0 rather than skewing the total with a bogus duration.
-function sessionDurationMs(session) {
+export function sessionDurationMs(session) {
   const startedAt = Date.parse(session?.startedAt || "");
   const endedAt = sessionTime(session);
   if (!Number.isFinite(startedAt) || !endedAt) return 0;

@@ -83,6 +83,16 @@ test("applyBurst adds reps to the team score and the player's own total, then ad
   assert.equal(currentTurnPlayer(g), "Mia");
 });
 
+test("deathMatch: a burst also drags the other team's score down, floored at 0", () => {
+  let g = liveGame({ deathMatch: true });
+  g = applyBurst(g, { user: "You", reps: 12, now: 1 });
+  assert.equal(g.scores.a, 12);
+  assert.equal(g.scores.b, 0); // floored, wasn't negative
+  g = applyBurst(g, { user: "Dev", reps: 20, now: 2 });
+  assert.equal(g.scores.b, 20);
+  assert.equal(g.scores.a, 0); // 12 - 20 floored to 0
+});
+
 test("an instant win fires the moment a team reaches the target, even mid-round", () => {
   let g = liveGame({ target: 20 });
   g = applyBurst(g, { user: "You", reps: 20, now: 1 }); // Team A hits the target on the very first burst

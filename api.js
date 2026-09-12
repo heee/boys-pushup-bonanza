@@ -63,6 +63,7 @@ export function createWorkerApi({ baseUrl, appKey, timeoutMs = DEFAULT_TIMEOUT_M
       body: { latitude, longitude, accuracyM },
     }),
     searchLocations: (query) => request("/search-location", { method: "POST", body: { query } }),
+    geocodeCity: (query) => request("/geocode-city", { method: "POST", body: { query } }),
     postSession: (session) => request("/session", { method: "POST", body: session }),
     setAvatar: (user, avatar) => request("/set-avatar", { method: "POST", body: { user, avatar } }),
     setGoals: (user, goals) => request("/set-goals", { method: "POST", body: { user, goals } }),

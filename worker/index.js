@@ -6,6 +6,10 @@
 //   GET  /data         -> current app data (no auth required to read)
 //   POST /resolve-location -> { latitude, longitude, accuracyM } -> sanitized Geoapify reverse-geocode result
 //   POST /search-location  -> { query } -> sanitized Geoapify forward-geocode results
+//   POST /geocode-city     -> { query } -> { lat, lon } for the top Geoapify forward-geocode
+//                              match, rounded to ~3 decimals — used by the group monthly
+//                              recap's "miles from Houston" tile, which needs coordinates
+//                              rather than the name/id sanitizeGeoapifyResult normally returns
 //   POST /session      -> validates and stores a completed session in D1
 //                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session,
 //                          "squat" for a camera-counted squat set, "situp" for a camera-counted situp set,
@@ -198,6 +202,34 @@ export default {
           results.push(location);
         }
         return json({ results }, 200, cors);
+      } catch (e) {
+        return json({ error: "location service unavailable" }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/geocode-city" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      if (!env.GEOAPIFY_API_KEY) return json({ error: "location service not configured" }, 503, cors);
+      let body;
+      try { body = await request.json(); } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const query = typeof body?.query === "string" ? body.query.trim().slice(0, 120) : "";
+      if (query.length < 2) return json({ error: "invalid search query" }, 400, cors);
+      try {
+        const endpoint = new URL("https://api.geoapify.com/v1/geocode/search");
+        endpoint.searchParams.set("text", query);
+        endpoint.searchParams.set("format", "json");
+        endpoint.searchParams.set("lang", "en");
+        endpoint.searchParams.set("limit", "1");
+        endpoint.searchParams.set("apiKey", env.GEOAPIFY_API_KEY);
+        const payload = await fetchGeoapify(endpoint);
+        const raw = geoapifyRows(payload)[0];
+        const coords = sanitizeGeoapifyCoords(raw);
+        if (!coords) return json({ error: "location could not be resolved" }, 422, cors);
+        return json(coords, 200, cors);
       } catch (e) {
         return json({ error: "location service unavailable" }, 502, cors);
       }
@@ -1075,6 +1107,18 @@ export function sanitizeGeoapifyResult(raw, { accuracyM, allowNeighborhood = tru
   return location;
 }
 
+// Minimal sibling to sanitizeGeoapifyResult above — that one strips
+// coordinates entirely (reverse/search-location never need to leak lat/lon
+// to the client), but the group recap's miles-from-Houston tile needs
+// exactly that and nothing else, so this returns only rounded coordinates.
+function sanitizeGeoapifyCoords(raw) {
+  const data = raw?.properties && typeof raw.properties === "object" ? raw.properties : raw;
+  const lat = Number(data?.lat);
+  const lon = Number(data?.lon);
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lon) || lon < -180 || lon > 180) return null;
+  return { lat: Math.round(lat * 1000) / 1000, lon: Math.round(lon * 1000) / 1000 };
+}
+
 function cleanTerritory(value) {
   if (!value || typeof value !== "object") return null;
   const id = cleanLocationText(value.id, 180);
@@ -1578,11 +1622,12 @@ export function validateTowCreate(body) {
   const rosterSize = Number.isFinite(Number(body.rosterSize)) && Number(body.rosterSize) >= 2 && Number(body.rosterSize) <= 40
     ? Math.floor(Number(body.rosterSize))
     : TOW_OPEN_ROSTER_SIZE;
+  const deathMatch = Boolean(body.deathMatch);
 
   if (sessionType === "open") {
     const nameA = typeof body.teams?.a?.name === "string" ? body.teams.a.name.trim().slice(0, 60) || "Team A" : "Team A";
     const nameB = typeof body.teams?.b?.name === "string" ? body.teams.b.name.trim().slice(0, 60) || "Team B" : "Team B";
-    return { id, target, rounds, sessionType, createdBy, rosterSize, teams: { a: { name: nameA }, b: { name: nameB } } };
+    return { id, target, rounds, sessionType, createdBy, rosterSize, deathMatch, teams: { a: { name: nameA }, b: { name: nameB } } };
   }
 
   const cleanNames = (list) => Array.isArray(list)
@@ -1594,10 +1639,10 @@ export function validateTowCreate(body) {
   if (!a.includes(createdBy) && !b.includes(createdBy)) return null;
   const nameA = typeof body.teams?.a?.name === "string" ? body.teams.a.name.trim().slice(0, 60) || "Team A" : "Team A";
   const nameB = typeof body.teams?.b?.name === "string" ? body.teams.b.name.trim().slice(0, 60) || "Team B" : "Team B";
-  return { id, target, rounds, sessionType, createdBy, teams: { a: { name: nameA, players: a }, b: { name: nameB, players: b } } };
+  return { id, target, rounds, sessionType, createdBy, deathMatch, teams: { a: { name: nameA, players: a }, b: { name: nameB, players: b } } };
 }
 
-export function createTowGame({ id, target, rounds, sessionType, createdBy, teams, rosterSize, now = Date.now() }) {
+export function createTowGame({ id, target, rounds, sessionType, createdBy, teams, rosterSize, deathMatch, now = Date.now() }) {
   const targetReps = Math.floor(Number(target));
   const roundCount = Math.floor(Number(rounds));
   if (!Number.isFinite(targetReps) || targetReps <= 0) throw new Error("Target reps must be a positive whole number");
@@ -1618,6 +1663,7 @@ export function createTowGame({ id, target, rounds, sessionType, createdBy, team
     turnIndex: 0,
     turnStartedAt: sessionType === "open" ? null : now,
     sudden: false,
+    deathMatch: Boolean(deathMatch),
     scores: { a: 0, b: 0 },
     playerTotals: {},
     bursts: [],
@@ -1745,7 +1791,11 @@ export function applyTowBurst(game, { user, reps, now = Date.now() }) {
 
   const addedReps = Math.max(0, Math.floor(Number(reps)) || 0);
   const team = turn.team;
+  const otherTeam = team === "a" ? "b" : "a";
   const scores = { ...game.scores, [team]: game.scores[team] + addedReps };
+  if (game.deathMatch) {
+    scores[otherTeam] = Math.max(0, scores[otherTeam] - addedReps);
+  }
   const playerTotals = { ...game.playerTotals, [user]: (game.playerTotals[user] || 0) + addedReps };
   const bursts = [...game.bursts, { user, team, reps: addedReps, round: game.round, sudden: game.sudden, at: now }];
   const next = { ...game, scores, playerTotals, bursts };

@@ -60,6 +60,16 @@ test("applyTowBurst adds reps and rejects out-of-turn submissions", () => {
   assert.equal(currentTowTurnPlayer(g), "Dev");
 });
 
+test("deathMatch: a burst also drags the other team's score down, floored at 0", () => {
+  let g = liveGame({ deathMatch: true });
+  g = applyTowBurst(g, { user: "You", reps: 12, now: 1 });
+  assert.equal(g.scores.a, 12);
+  assert.equal(g.scores.b, 0);
+  g = applyTowBurst(g, { user: "Dev", reps: 20, now: 2 });
+  assert.equal(g.scores.b, 20);
+  assert.equal(g.scores.a, 0);
+});
+
 test("an instant win fires the moment a team reaches the target", () => {
   let g = liveGame({ target: 20 });
   g = applyTowBurst(g, { user: "You", reps: 20, now: 1 });

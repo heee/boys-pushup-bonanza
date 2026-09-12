@@ -165,7 +165,8 @@ import {
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
-import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js?v=1";
+import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, completedPeriodRange, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js?v=2";
+import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey } from "./group-recap.js?v=1";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { createClapGestureDetector } from "./modes/clap-gesture.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
@@ -718,6 +719,10 @@ async function workerResolveLocation(position) {
 
 async function workerSearchLocations(query) {
   return workerApi.searchLocations(query);
+}
+
+async function workerGeocodeCity(query) {
+  return workerApi.geocodeCity(query);
 }
 
 async function workerSetAvatar(user, avatar) {
@@ -1531,6 +1536,7 @@ const state = {
   recapQueue: [],
   recapTabs: [],
   recapTabIndex: 0,
+  recapGroupPayload: null,
   compareUser: "",
   // null means "A side is whoever's device this is" (the normal tap-to-compare
   // path). A shared #compare=A|B link that names someone other than the
@@ -1556,6 +1562,7 @@ const state = {
   towTarget: 300,
   towRounds: 5,
   towSessionType: "live",
+  towDeathMatch: false,
   towSetupTeams: { a: [], b: [] },
   towTeamNames: { a: "", b: "" },
   towBurstEvent: null,
@@ -3908,6 +3915,11 @@ function towWaitingRowsHTML(count) {
 function renderTowStatUI() {
   $("tow-target-value").textContent = String(state.towTarget);
   $("tow-rounds-value").textContent = String(state.towRounds);
+  const game = state.towGame;
+  const inLobby = !!(game && game.sessionType === "open" && game.status === "lobby");
+  const deathBtn = $("btn-tow-death-match");
+  deathBtn.setAttribute("aria-pressed", String(inLobby ? game.deathMatch : state.towDeathMatch));
+  deathBtn.classList.toggle("hidden", inLobby);
 }
 
 function renderTowSessionUI() {
@@ -3979,7 +3991,7 @@ function renderTowTeamsUI() {
   $("tow-stat-section").classList.toggle("hidden", inLobby);
   $("tow-lobby-stats").classList.toggle("hidden", !inLobby);
   if (inLobby) {
-    $("tow-lobby-stats").textContent = `Target ${game.target} · ${game.rounds} round${game.rounds === 1 ? "" : "s"}`;
+    $("tow-lobby-stats").textContent = `Target ${game.target} · ${game.rounds} round${game.rounds === 1 ? "" : "s"}${game.deathMatch ? " · Death match" : ""}`;
   }
   $("tow-teams-label").classList.toggle("hidden", inLobby);
   if (isOpenSetup || inLobby) {
@@ -4013,6 +4025,7 @@ function renderTowSetup(mode = "reset") {
     state.towTarget = 300;
     state.towRounds = 5;
     state.towSessionType = "live";
+    state.towDeathMatch = false;
     state.towSetupTeams = towAutoBalanceTeams([state.currentUser]);
     state.towTeamNames = randomTowTeamNames();
   } else if (mode === "rematch") {
@@ -4021,6 +4034,7 @@ function renderTowSetup(mode = "reset") {
       state.towTarget = finished.target;
       state.towRounds = finished.rounds;
       state.towSessionType = finished.sessionType === "open" ? "live" : finished.sessionType;
+      state.towDeathMatch = !!finished.deathMatch;
       state.towSetupTeams = { a: [...finished.teams.a.players], b: [...finished.teams.b.players] };
       state.towTeamNames = { a: finished.teams.a.name, b: finished.teams.b.name };
     }
@@ -4044,6 +4058,11 @@ $("btn-tow-target-dec").addEventListener("click", () => towStepper("towTarget", 
 $("btn-tow-target-inc").addEventListener("click", () => towStepper("towTarget", 10, 10, 5000));
 $("btn-tow-rounds-dec").addEventListener("click", () => towStepper("towRounds", -1, 1, 30));
 $("btn-tow-rounds-inc").addEventListener("click", () => towStepper("towRounds", 1, 1, 30));
+
+$("btn-tow-death-match").addEventListener("click", () => {
+  state.towDeathMatch = !state.towDeathMatch;
+  renderTowStatUI();
+});
 
 $("tow-session-select").addEventListener("click", (e) => {
   const btn = e.target.closest(".tow-icon-tab[data-tow-session]");
@@ -4182,6 +4201,7 @@ $("btn-tow-start").addEventListener("click", async (e) => {
         rounds: state.towRounds,
         sessionType: "open",
         createdBy: state.currentUser,
+        deathMatch: state.towDeathMatch,
         teams: { a: { name: state.towTeamNames.a }, b: { name: state.towTeamNames.b } },
       });
       state.towGame = res.game;
@@ -4201,6 +4221,7 @@ $("btn-tow-start").addEventListener("click", async (e) => {
     rounds: state.towRounds,
     sessionType: state.towSessionType,
     createdBy: state.currentUser,
+    deathMatch: state.towDeathMatch,
     teams: {
       a: { name: state.towTeamNames.a, players: state.towSetupTeams.a },
       b: { name: state.towTeamNames.b, players: state.towSetupTeams.b },
@@ -14528,6 +14549,75 @@ function recapValueDisplay(value, unit) {
   return unit === "seconds" ? formatDuration(value * 1000) : formatNumber(value);
 }
 
+// City coordinates never change once resolved, so this cache never expires —
+// it just grows as new cities get logged in Roadtrip. Used only by the group
+// monthly recap's miles-from-Houston tile (see computeGroupMilesLogged).
+const CITY_COORDS_CACHE_KEY = "bpb-cityCoords";
+
+function loadCityCoordsCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CITY_COORDS_CACHE_KEY) || "{}");
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveCityCoordsCache(cache) {
+  try {
+    localStorage.setItem(CITY_COORDS_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    // storage full/unavailable — cache just won't persist this run
+  }
+}
+
+// Best-effort: a city that fails to resolve (offline, rate-limited, unknown
+// to Geoapify) is simply left out of the map rather than blocking the rest
+// of the recap — computeGroupMilesLogged treats a missing entry as "not
+// counted yet," never as an error.
+async function resolveCityCoords(territories) {
+  const cache = loadCityCoordsCache();
+  let changed = false;
+  for (const territory of territories) {
+    if (territory.name.trim().toLowerCase() === "houston") continue;
+    if (cache[territory.id]) continue;
+    try {
+      const coords = await workerGeocodeCity(`${territory.name}, ${territory.parent}`);
+      if (Number.isFinite(coords?.lat) && Number.isFinite(coords?.lon)) {
+        cache[territory.id] = { lat: coords.lat, lon: coords.lon };
+        changed = true;
+      }
+    } catch (e) {
+      // offline/unreachable/unresolved — leave this city out for now
+    }
+  }
+  if (changed) saveCityCoordsCache(cache);
+  return cache;
+}
+
+// Gated the same way checkAndQueueRecaps gates each personal tier (mark the
+// completed month's boundary seen the first time it's checked, shown or
+// not) but behind ONE shared key, since this card is identical for every
+// viewer rather than per-user. Returns true when the "group-month" tier
+// should be spliced into the queue this session.
+async function maybeQueueGroupRecap(sessions) {
+  const { start, end } = completedPeriodRange("month", new Date());
+  const key = groupRecapSeenKey();
+  if (recapStorage.getItem(key) === start.toISOString()) return false;
+  recapStorage.setItem(key, start.toISOString());
+
+  const startTime = start.getTime(), endTime = end.getTime();
+  const hadActivity = sessions.some((s) => {
+    const t = Date.parse(s.timestamp || s.date || "");
+    return Number.isFinite(t) && t >= startTime && t < endTime;
+  });
+  if (!hadActivity) return false;
+
+  const territories = buildRoadtripTerritories(sessions, { tier: "city", period: "all" });
+  const cityCoords = await resolveCityCoords(territories).catch(() => ({}));
+  state.recapGroupPayload = buildGroupMonthRecap(sessions, new Date(), state.currentUser, cityCoords);
+  return true;
+}
+
 // Wins that don't live in the sessions array — goal-based Challenges,
 // Horse, and Tug of War — resolved once per recap-queue open and handed to
 // recap.js as plain {activityKey, time} events (see computeRecapTab).
@@ -14561,6 +14651,17 @@ function buildRecapExtras(user) {
 function openNextRecap() {
   if (!state.recapQueue.length) return;
   const tier = state.recapQueue[0];
+  if (tier === "group-month") {
+    if (!state.recapGroupPayload) {
+      state.recapQueue.shift();
+      openNextRecap();
+      return;
+    }
+    state.recapTier = tier;
+    renderRecapModal();
+    $("recap-backdrop").classList.remove("hidden");
+    return;
+  }
   const tabs = buildRecapTier(getAllSessionsForDisplay(), state.currentUser, tier, new Date(), buildRecapExtras(state.currentUser));
   if (!tabs.length) {
     state.recapQueue.shift();
@@ -14586,14 +14687,21 @@ function dismissAllRecaps() {
 }
 
 function renderRecapModal() {
+  if (state.recapTier === "group-month") {
+    renderGroupRecapModal();
+    return;
+  }
   const tier = state.recapTier;
   const tab = state.recapTabs[state.recapTabIndex];
   if (!tab) return;
   const meta = RECAP_TIER_META[tier];
 
   const card = $("recap-card");
-  card.classList.remove(...RECAP_PALETTE_CLASSES);
+  card.classList.remove(...RECAP_PALETTE_CLASSES, "recap-group");
   card.classList.add(meta.palette);
+  $("recap-strip").classList.remove("hidden");
+  $("recap-group-breakdown").classList.add("hidden");
+  $("recap-group-subtitle").classList.add("hidden");
 
   const tabsEl = $("recap-tabs");
   tabsEl.innerHTML = "";
@@ -14679,6 +14787,70 @@ function renderRecapModal() {
   $("recap-share-label").textContent = `Share your ${tier}`;
 }
 
+// Renders the collective "Boys Bonanza" monthly card — reuses the same
+// modal shell/classes as the personal recap (recap-eyebrow/hero/delta/tiles/
+// highlights) but with a group-only breakdown section swapped in for the
+// per-user activity strip, and no tab swiping (one card, not per-exercise).
+function renderGroupRecapModal() {
+  const payload = state.recapGroupPayload;
+  if (!payload) return;
+
+  const card = $("recap-card");
+  card.classList.remove(...RECAP_PALETTE_CLASSES);
+  card.classList.add("recap-group");
+
+  $("recap-tabs").innerHTML = "";
+
+  const monthLabel = payload.start.toLocaleDateString("en-US", { month: "long" }).toUpperCase();
+  $("recap-eyebrow").textContent = `Boys Bonanza · ${monthLabel}`;
+  const subtitleEl = $("recap-group-subtitle");
+  subtitleEl.textContent = "The boys moved";
+  subtitleEl.classList.remove("hidden");
+  $("recap-hero").textContent = formatNumber(payload.heroTotal);
+  $("recap-hero-label").textContent = "TOGETHER THIS MONTH";
+
+  const deltaEl = $("recap-delta");
+  if (payload.deltaPct != null) {
+    deltaEl.classList.remove("recap-delta-empty");
+    deltaEl.textContent = `${payload.deltaPct >= 0 ? "+" : ""}${payload.deltaPct}% vs last month`;
+  } else {
+    deltaEl.classList.add("recap-delta-empty");
+    deltaEl.textContent = " ";
+  }
+
+  $("recap-strip").classList.add("hidden");
+  const breakdownEl = $("recap-group-breakdown");
+  breakdownEl.classList.remove("hidden");
+  breakdownEl.innerHTML = payload.breakdown.map((row) => {
+    const pct = row.groupTotal > 0 ? Math.max(2, Math.round((row.yourTotal / row.groupTotal) * 100)) : 0;
+    return `<div class="recap-breakdown-row">
+      <div class="recap-breakdown-head">
+        <span class="recap-breakdown-label">${escapeHtml(row.label)}</span>
+        <span class="recap-breakdown-value">${escapeHtml(recapValueDisplay(row.groupTotal, row.unit))} · you ${escapeHtml(recapValueDisplay(row.yourTotal, row.unit))}</span>
+      </div>
+      <div class="recap-breakdown-track"><div class="recap-breakdown-fill" style="width: ${pct}%"></div></div>
+    </div>`;
+  }).join("");
+
+  const tilesEl = $("recap-tiles");
+  const tiles = [
+    { value: payload.stats.hoursDown.toFixed(1), label: "hours down" },
+    { value: formatNumber(payload.stats.sessionsCount), label: "sessions" },
+    { value: formatNumber(Math.round(payload.stats.milesLogged)), label: "mi round-trip" },
+    { value: formatNumber(payload.stats.gamesPlayed), label: "games played" },
+  ];
+  tilesEl.innerHTML = tiles.map((tile) =>
+    `<div class="recap-tile"><span class="recap-tile-value">${escapeHtml(tile.value)}</span><span class="recap-tile-label">${escapeHtml(tile.label)}</span></div>`
+  ).join("");
+
+  const highlightsEl = $("recap-highlights");
+  highlightsEl.innerHTML = payload.badges.map((b) =>
+    `<div class="recap-highlight"><span class="recap-highlight-icon">${b.icon}</span><span>${escapeHtml(b.text)}</span></div>`
+  ).join("");
+
+  $("recap-share-label").textContent = "Share the report";
+}
+
 function switchRecapTab(direction) {
   const count = state.recapTabs.length;
   if (count < 2) return;
@@ -14691,7 +14863,30 @@ function switchRecapTab(direction) {
 // deep-link into — that one falls back to the bare app URL.
 const RECAP_TAB_SHARE_MODE_ID = { situp: "situp", squat: "squat", pullup: "pullup", plank: "plank", holland: "holland" };
 
+async function shareGroupRecapCard() {
+  const payload = state.recapGroupPayload;
+  if (!payload) return;
+  try {
+    const blob = await exportGroupRecapImage(payload);
+    const file = new File([blob], "recap-group-month.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Boys Pushup Bonanza" });
+    } else if (navigator.share) {
+      await navigator.share({ title: "Boys Pushup Bonanza", text: `${formatNumber(payload.heroTotal)} reps together this month 💪` });
+    } else {
+      toast("Sharing isn't supported on this browser.", 3000);
+    }
+  } catch (e) {
+    // user cancelled the share sheet, or the browser blocked it — no toast needed
+  }
+  advanceRecapQueue();
+}
+
 async function shareRecapCard() {
+  if (state.recapTier === "group-month") {
+    await shareGroupRecapCard();
+    return;
+  }
   const tab = state.recapTabs[state.recapTabIndex];
   if (!tab) return;
   const url = modeShareUrl(RECAP_TAB_SHARE_MODE_ID[tab.key] || null);
@@ -14780,7 +14975,15 @@ async function init() {
   // Runs off whatever's cached locally, so it still fires offline/unreachable
   // — not gated on the live fetch above succeeding.
   if (state.currentUser) {
-    state.recapQueue = checkAndQueueRecaps(getAllSessionsForDisplay(), state.currentUser, new Date(), recapStorage);
+    const sessionsForRecap = getAllSessionsForDisplay();
+    state.recapQueue = checkAndQueueRecaps(sessionsForRecap, state.currentUser, new Date(), recapStorage);
+    // Group card slots in right after the viewer's own personal Monthly
+    // card (or at the front if Monthly isn't due this session).
+    const groupDue = await maybeQueueGroupRecap(sessionsForRecap).catch(() => false);
+    if (groupDue) {
+      const monthIndex = state.recapQueue.indexOf("month");
+      state.recapQueue.splice(monthIndex === -1 ? 0 : monthIndex + 1, 0, "group-month");
+    }
     if (state.recapQueue.length) openNextRecap();
   }
 
