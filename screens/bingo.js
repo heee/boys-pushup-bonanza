@@ -92,19 +92,31 @@ function cycleIdFor(startDate) {
   return `bingo-${startDate.getFullYear()}-${pad2(startDate.getMonth() + 1)}-${pad2(startDate.getDate())}`;
 }
 
-function cycleFromStart(startDate) {
+export function cycleFromStart(startDate) {
   const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + CYCLE_DAYS - 1, 23, 59, 59, 999);
   return { id: cycleIdFor(startDate), startDate, endDate };
 }
 
-// The cycle containing `now` (defaults to the current moment).
-export function bingoCycleForDate(now = new Date()) {
+// The shared derived-challenge clock: index 0 starts at BINGO_EPOCH, and
+// every CYCLE_DAYS after that is the next index. Royal Flush Rush
+// (poker-collection.js) reuses these two so it alternates with Bingo in
+// lockstep (see app.js's derivedChallengeForTab) without a second, possibly
+// drifting, copy of this epoch/cadence math.
+export function cycleIndexForDate(now = new Date()) {
   const epoch = localMidnight(BINGO_EPOCH);
   const today = localMidnight(now);
   const daysSince = Math.round((today - epoch) / 86400000);
-  const cycleIndex = Math.floor(daysSince / CYCLE_DAYS);
-  const startDate = new Date(epoch.getFullYear(), epoch.getMonth(), epoch.getDate() + cycleIndex * CYCLE_DAYS);
-  return cycleFromStart(startDate);
+  return Math.floor(daysSince / CYCLE_DAYS);
+}
+
+export function cycleStartDateForIndex(index) {
+  const epoch = localMidnight(BINGO_EPOCH);
+  return new Date(epoch.getFullYear(), epoch.getMonth(), epoch.getDate() + index * CYCLE_DAYS);
+}
+
+// The cycle containing `now` (defaults to the current moment).
+export function bingoCycleForDate(now = new Date()) {
+  return cycleFromStart(cycleStartDateForIndex(cycleIndexForDate(now)));
 }
 
 // Parses a cycle id ("bingo-YYYY-MM-DD") back into its window — used to

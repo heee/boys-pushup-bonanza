@@ -117,7 +117,8 @@ import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=5";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
-import { adjacentBingoCycle, bingoCompletionForUser, bingoCycleById, bingoCycleForDate, bingoLeaderboard, bingoSquaresChecked, bingoWinners, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=4";
+import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=5";
+import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES } from "./screens/poker-collection.js?v=1";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=146";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
@@ -7722,8 +7723,8 @@ function paintChallengeList() {
 
   const el = $("challenge-list");
   el.innerHTML = "";
-  const bingoCycle = bingoCycleForTab(tab, now);
-  if (!list.length && !bingoCycle) {
+  const derived = derivedChallengeForTab(tab, now);
+  if (!list.length && !derived) {
     const msg = tab === "active"
       ? "No challenge running right now — check Upcoming."
       : tab === "upcoming"
@@ -7732,9 +7733,10 @@ function paintChallengeList() {
     el.innerHTML = `<p class="leaderboard-empty">${msg}</p>`;
     return;
   }
-  // Bingo is recurring rather than curated, so it always leads whichever tab
-  // its current/next/previous cycle belongs to.
-  if (bingoCycle) el.appendChild(buildBingoCard(bingoCycle, now));
+  // The derived slot (Bingo / Royal Flush Rush, alternating) is recurring
+  // rather than curated, so it always leads whichever tab its current/next/
+  // previous cycle belongs to.
+  if (derived) el.appendChild(derived.type === "bingo" ? buildBingoCard(derived.cycle, now) : buildPokerCollectionCard(derived.cycle, now));
   for (const c of list) {
     el.appendChild(buildChallengeCard(c, now));
   }
@@ -7975,9 +7977,22 @@ async function shareBingoInvite(cycleId) {
   await shareViaSheetOrClipboard(message, url);
 }
 
+async function sharePokerCollectionInvite(cycleId) {
+  const cycle = pokerCollectionCycleById(cycleId);
+  if (!cycle) return;
+  const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const message = `Royal Flush Rush is live ♠️ Collect all 9 winning poker hands by ${fmt(cycle.endDate)} — join the boys!`;
+  const url = `${location.origin}${location.pathname}#challenge=${cycle.id}`;
+  await shareViaSheetOrClipboard(message, url);
+}
+
 async function shareChallengeInvite() {
   if (isBingoCycleId(state.openChallengeId)) {
     await shareBingoInvite(state.openChallengeId);
+    return;
+  }
+  if (isPokerCollectionCycleId(state.openChallengeId)) {
+    await sharePokerCollectionInvite(state.openChallengeId);
     return;
   }
   const c = challengeDefs.find((x) => x.id === state.openChallengeId);
@@ -8335,6 +8350,10 @@ function renderChallengeDetail() {
     renderBingoDetail();
     return;
   }
+  if (isPokerCollectionCycleId(state.openChallengeId)) {
+    renderPokerCollectionDetail();
+    return;
+  }
   const c = challengeDefs.find((x) => x.id === state.openChallengeId);
   const body = $("challenge-detail-body");
   if (!c) {
@@ -8558,6 +8577,7 @@ async function joinChallenge(id) {
     const c = challengeDefs.find((x) => x.id === id);
     if (c) showChallengeJoinToast(c, new Date());
     else if (isBingoCycleId(id)) toast(queued ? "Joined on this device — waiting to sync." : "You're in — go fill the board! 🧩");
+    else if (isPokerCollectionCycleId(id)) toast(queued ? "Joined on this device — waiting to sync." : "You're in — go chase some hands! ♠️");
   }
 }
 
@@ -8590,15 +8610,19 @@ function bingoSessionsForCycle(cycle, participants) {
   return sessions;
 }
 
+// Reps Bingo and Royal Flush Rush share one recurring-challenge card slot,
+// alternating every cycle (even cycle index = Bingo, odd = Royal Flush
+// Rush) on bingo.js's shared cycleIndexForDate/cycleStartDateForIndex clock.
 // One card per relevant tab: the cycle in progress for Active, the next one
 // for Upcoming, the immediately-preceding one for Past (older cycles are
 // still reachable by id via a share link, just not listed).
-function bingoCycleForTab(tab, now) {
-  const current = bingoCycleForDate(now);
-  if (tab === "active") return current;
-  if (tab === "upcoming") return adjacentBingoCycle(current, 1);
-  if (tab === "past") return adjacentBingoCycle(current, -1);
-  return null;
+function derivedChallengeForTab(tab, now) {
+  const currentIndex = cycleIndexForDate(now);
+  const index = tab === "upcoming" ? currentIndex + 1 : tab === "past" ? currentIndex - 1 : currentIndex;
+  const startDate = cycleStartDateForIndex(index);
+  return index % 2 === 0
+    ? { type: "bingo", cycle: bingoCycleFromStart(startDate) }
+    : { type: "poker", cycle: pokerCollectionCycleFromStart(startDate) };
 }
 
 function buildBingoCard(cycle, now) {
@@ -8838,6 +8862,235 @@ function renderBingoDetail() {
         ${avatarCircleHTML(avatarForUser(row.name), "1.8rem")}
         <div class="leaderboard-name">${escapeHtml(row.name)}</div>
         <div class="leaderboard-total">${row.squares}/25${row.fullCard ? " ✓" : ""}</div>
+      `;
+      makeNameCompareClickable(rowEl.querySelector(".leaderboard-name"), row.name);
+      el.appendChild(rowEl);
+    });
+  }
+}
+
+// ------------------- royal flush rush (poker hand collection) -------------------
+//
+// Shares the Bingo derived-challenge card slot, alternating cycle to cycle
+// (see derivedChallengeForTab). Like Bingo, the collectible set is derived
+// entirely from existing session data (each poker-mode session's
+// `pokerHandRanks`) — see screens/poker-collection.js for the pure logic.
+
+function pokerCollectionParticipantsOf(cycleId) {
+  return getCachedData().challengeParticipants[cycleId] || [];
+}
+
+function pokerCollectionSessionsForCycle(cycle, participants) {
+  const startTime = cycle.startDate.getTime();
+  const endTime = cycle.endDate.getTime();
+  const sessions = [];
+  for (const participant of participants) {
+    for (const session of indexedSessionsForUser(participant)) {
+      const t = sessionTimestamp(session);
+      if (t >= startTime && t <= endTime) sessions.push(session);
+    }
+  }
+  return sessions;
+}
+
+function buildPokerCollectionCard(cycle, now) {
+  const participants = pokerCollectionParticipantsOf(cycle.id);
+  const joined = participants.includes(state.currentUser);
+  const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
+
+  const card = document.createElement("div");
+  card.className = "challenge-card";
+  card.style.setProperty("--challenge-color", "#2e6b4a");
+  card.addEventListener("click", () => openPokerCollectionDetail(cycle.id));
+
+  let dateLabel;
+  if (status === "active") {
+    const d = Math.max(0, Math.ceil((cycle.endDate - now) / 86400000));
+    dateLabel = `${d} day${d === 1 ? "" : "s"} left`;
+  } else if (status === "upcoming") {
+    const d = Math.max(0, Math.ceil((cycle.startDate - now) / 86400000));
+    dateLabel = `in ${d} day${d === 1 ? "" : "s"}`;
+  }
+
+  const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
+  const showInlineChip = status !== "past" && !joined;
+
+  let metaLine;
+  let winnerChipHTML = "";
+  if (status === "past") {
+    const sessions = pokerCollectionSessionsForCycle(cycle, participants);
+    const result = pokerCollectionWinners(participants, sessions, cycle, sessionTimestamp);
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined`;
+    if (result.winners.length) {
+      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${result.winners.map(escapeHtml).join(" & ")}</span>`;
+    }
+  } else {
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · 9-hand set`;
+  }
+
+  let html = `
+    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
+      <div class="challenge-card-emoji">♠️</div>
+      <div class="challenge-card-heading">
+        <div class="challenge-card-title">Royal Flush Rush</div>
+        <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
+      </div>
+    </div>
+    <div class="challenge-card-meta">${metaLine}</div>
+  `;
+
+  if (joined && status !== "past") {
+    const sessions = pokerCollectionSessionsForCycle(cycle, participants);
+    const rows = pokerCollectionRowsForUser(sessions, state.currentUser, cycle, sessionTimestamp);
+    const myHands = pokerCollectionHandsCollected(rows);
+    const progressLabel = `${myHands} of 9 hands`;
+    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="9" aria-valuenow="${myHands}">${buildProgressThermometer(myHands, 9)}</div>`;
+  }
+
+  if (status !== "past" && joined) {
+    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
+  } else if (winnerChipHTML) {
+    html += winnerChipHTML;
+  }
+
+  card.innerHTML = html;
+
+  if (status !== "past" && !joined) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary challenge-join-btn";
+    btn.textContent = "JOIN";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      joinChallenge(cycle.id);
+    });
+    card.appendChild(btn);
+  }
+
+  return card;
+}
+
+function openPokerCollectionDetail(cycleId) {
+  state.openChallengeId = cycleId;
+  history.replaceState(null, "", `#challenge=${cycleId}`);
+  renderPokerCollectionDetail();
+  showScreen("screen-challenge-detail");
+}
+
+// Tapping a hand row jumps to Poker mode — same "reuse the existing
+// entry point" approach as navigateToBingoSquare.
+function navigateToPokerHandRow() {
+  openPushupModeFromExplore("poker");
+}
+
+function pokerHandRowHTML(row) {
+  const cardsHTML = row.cards.map((c) => `<div class="poker-hand-mini-card" style="background-image:url('${cardImageUrl(c)}')" aria-hidden="true"></div>`).join("");
+  return `
+    <button type="button" class="poker-hand-row${row.done ? " poker-hand-row-done" : " poker-hand-row-empty"}">
+      <div class="poker-hand-mini-cards">${cardsHTML}</div>
+      <div class="poker-hand-info">
+        <div class="poker-hand-name">${escapeHtml(row.label)}</div>
+        <div class="poker-hand-count">${row.count === 0 ? "Not yet" : `${row.count}×`}</div>
+      </div>
+    </button>
+  `;
+}
+
+function buildPokerHandRowsHTML(rows) {
+  return `<div class="poker-hand-list">${rows.map(pokerHandRowHTML).join("")}</div>`;
+}
+
+function renderPokerCollectionDetail() {
+  const cycle = pokerCollectionCycleById(state.openChallengeId);
+  const body = $("challenge-detail-body");
+  if (!cycle) {
+    body.innerHTML = '<p class="leaderboard-empty">Challenge not found.</p>';
+    return;
+  }
+
+  const now = new Date();
+  const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
+  const participants = pokerCollectionParticipantsOf(cycle.id);
+  const joined = participants.includes(state.currentUser);
+  const sessions = pokerCollectionSessionsForCycle(cycle, participants);
+
+  const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
+  const statusLabel = status === "active"
+    ? `${Math.max(0, Math.ceil((cycle.endDate - now) / 86400000))} days left`
+    : status === "upcoming"
+      ? `starts in ${Math.max(0, Math.ceil((cycle.startDate - now) / 86400000))} days`
+      : "Ended";
+
+  let html = `
+    <div class="challenge-hero" style="background: linear-gradient(135deg, #2e6b4a, #f2c94c)">
+      <div class="challenge-hero-emoji">♠️</div>
+      <div class="challenge-hero-title">Royal Flush Rush</div>
+      <div class="challenge-hero-tagline">Collect all 9 winning poker hands in Poker mode before the cycle ends. Tap a hand to go chase it.</div>
+      <div class="challenge-hero-dates">${dateRange} <span class="challenge-status-chip">${statusLabel}</span></div>
+    </div>
+  `;
+
+  if (status !== "past" && !joined) {
+    html += `<button type="button" id="btn-challenge-join" class="btn btn-primary btn-large">JOIN this challenge</button>`;
+  }
+
+  const myRows = joined
+    ? pokerCollectionRowsForUser(sessions, state.currentUser, cycle, sessionTimestamp)
+    : POKER_COLLECTION_RANKS.map((rank) => ({ rank, label: POKER_HANDS[rank], cards: POKER_HAND_EXAMPLES[rank], count: 0, done: false }));
+
+  if (joined) {
+    const myHands = pokerCollectionHandsCollected(myRows);
+    html += `
+      <div class="challenge-progress-card">
+        <div class="challenge-progress-label">${myHands} / 9 hands · ${statusLabel}</div>
+        ${buildProgressThermometer(myHands, 9)}
+      </div>
+    `;
+  }
+
+  html += buildPokerHandRowsHTML(myRows);
+
+  if (status === "past") {
+    const result = pokerCollectionWinners(participants, sessions, cycle, sessionTimestamp);
+    if (result.winners.length) {
+      const detail = result.mode === "premium" || result.mode === "handsTiebreak"
+        ? result.winners.map((n) => `${escapeHtml(n)} (${result.premium[n]} premium hand${result.premium[n] === 1 ? "" : "s"})`).join(" & ")
+        : result.winners.map(escapeHtml).join(" & ");
+      html += `<div class="challenge-winner-line">🥇 ${detail}</div>`;
+    } else {
+      html += `<p class="leaderboard-empty">Nobody logged a poker session this cycle.</p>`;
+    }
+  }
+
+  html += `
+    <h2 class="section-title">Leaderboard</h2>
+    <div id="challenge-leaderboard-list" class="leaderboard-list"></div>
+  `;
+
+  body.innerHTML = html;
+
+  if (status !== "past" && !joined) {
+    $("btn-challenge-join").addEventListener("click", () => joinChallenge(cycle.id));
+  }
+
+  body.querySelectorAll(".poker-hand-row").forEach((btn) => btn.addEventListener("click", navigateToPokerHandRow));
+
+  const rows = pokerCollectionLeaderboard(participants, sessions, cycle, sessionTimestamp);
+  const el = $("challenge-leaderboard-list");
+  el.innerHTML = "";
+  if (!rows.length) {
+    el.innerHTML = '<p class="leaderboard-empty">No participants yet.</p>';
+  } else {
+    rows.forEach((row, index) => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "leaderboard-row" + (index < 3 ? ` rank-${index + 1}` : "");
+      rowEl.innerHTML = `
+        <div class="leaderboard-rank">${index + 1}</div>
+        ${avatarCircleHTML(avatarForUser(row.name), "1.8rem")}
+        <div class="leaderboard-name">${escapeHtml(row.name)}</div>
+        <div class="leaderboard-total">${row.hands}/9${row.fullSet ? " ✓" : ""}</div>
       `;
       makeNameCompareClickable(rowEl.querySelector(".leaderboard-name"), row.name);
       el.appendChild(rowEl);
@@ -15006,6 +15259,8 @@ async function init() {
     openChallengeDetail(hashMatch[1]);
   } else if (hashMatch && state.currentUser && isBingoCycleId(hashMatch[1]) && bingoCycleById(hashMatch[1])) {
     openBingoDetail(hashMatch[1]);
+  } else if (hashMatch && state.currentUser && isPokerCollectionCycleId(hashMatch[1]) && pokerCollectionCycleById(hashMatch[1])) {
+    openPokerCollectionDetail(hashMatch[1]);
   }
 
   // A shared head-to-head link (#compare=NameA|NameB) is read-only and names

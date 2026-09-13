@@ -5182,6 +5182,59 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .bingo-cell-free .bingo-cell-badge { color: var(--gold); }
 
+/* Royal Flush Rush — ranked checklist of the 9 winning hands. Each row
+   shows a fixed illustrative 5-card example (see poker-collection.js's
+   POKER_HAND_EXAMPLES) so the hand is recognizable at a glance, plus the
+   name and this cycle's in-window count. Rows tap through to Poker mode. */
+.poker-hand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+.poker-hand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+}
+.poker-hand-row:active { transform: scale(0.98); }
+.poker-hand-mini-cards {
+  display: flex;
+  flex-shrink: 0;
+}
+.poker-hand-mini-card {
+  width: 1.6rem;
+  aspect-ratio: 136 / 208;
+  background: center / contain no-repeat;
+  border-radius: 3px;
+  box-shadow: 0 0.1rem 0.2rem rgba(0,0,0,.35);
+  margin-left: -0.65rem;
+}
+.poker-hand-mini-card:first-child { margin-left: 0; }
+.poker-hand-info {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.poker-hand-name { font-weight: 700; }
+.poker-hand-count { font-size: 0.85rem; font-weight: 700; color: var(--text-dim); flex-shrink: 0; }
+.poker-hand-row-empty { opacity: 0.45; }
+.poker-hand-row-empty .poker-hand-mini-card { filter: grayscale(0.6); }
+.poker-hand-row-done { background: color-mix(in srgb, var(--success) 16%, var(--bg-elevated)); }
+.poker-hand-row-done .poker-hand-count { color: var(--success); }
+
 .challenge-pr-achieved { text-align: center; }
 .challenge-pr-achieved-title {
   font-size: 1.15rem;
