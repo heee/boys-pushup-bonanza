@@ -1612,6 +1612,11 @@ const SQUAT_WARMUP_MIN_SAMPLES = 10;
 // grow it unbounded; percentile only needs a recent window anyway.
 const SQUAT_WARMUP_MAX_SAMPLES = 300;
 const SQUAT_WARMUP_HINT_MS = 8000;
+// Setting the phone down (propping it against something) is often a
+// stand->crouch->stand motion indistinguishable from a real squat. Ignore
+// samples for this long after warmup starts so setup motion can't seed
+// calibration or get replayed as a counted rep once counting begins.
+const SQUAT_SETUP_GRACE_MS = 2500;
 
 const squatState = {
   counter: null,
@@ -12503,6 +12508,7 @@ const squatCamera = createCameraController({
     const bbox = squatBodyBBox(landmarks, video);
     if (bbox) updateSquatFaceBox(bbox);
     if (squatState.stage === "warmup") {
+      if (performance.now() - squatState.warmupStartedAt < SQUAT_SETUP_GRACE_MS) return;
       squatState.calSamples.push({ ratio: hipY, t: performance.now() });
       if (squatState.calSamples.length > SQUAT_WARMUP_MAX_SAMPLES) squatState.calSamples.shift();
       tickSquatWarmup();
