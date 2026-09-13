@@ -32,16 +32,16 @@ const BINGO_EPOCH = new Date(2026, 8, 7);
 // without adding new logging (out of scope per the module's own rule).
 export const BINGO_POOL = [
   { kind: "mode", key: "cards", label: "Cards", emoji: "🃏" },
-  { kind: "mode", key: "poker", label: "Poker", emoji: "🂡" },
+  { kind: "mode", key: "poker", label: "Poker", emoji: "♠️" },
   { kind: "mode", key: "dice", label: "Dice", emoji: "🎲" },
-  { kind: "mode", key: "wheel", label: "Wheel", emoji: "🎡" },
+  { kind: "mode", key: "wheel", label: "Wheel", emoji: "🎯" },
   { kind: "mode", key: "ladder", label: "Ladder", emoji: "🪜" },
-  { kind: "mode", key: "sharpshooter", label: "Shooter", emoji: "🎯" },
-  { kind: "mode", key: "pyramid", label: "Pyramid", emoji: "▲" },
+  { kind: "mode", key: "sharpshooter", label: "Shooter", emoji: "🏹" },
+  { kind: "mode", key: "pyramid", label: "Pyramid", emoji: "🔺" },
   { kind: "mode", key: "pulse", label: "Pulse", emoji: "❤️‍🔥" },
   { kind: "mode", key: "cock", label: "Cock Mode", emoji: "🐓" },
   { kind: "mode", key: "fortune", label: "Fortune", emoji: "🥠" },
-  { kind: "mode", key: "chase", label: "Chase", emoji: "🏃" },
+  { kind: "mode", key: "chase", label: "Chase", emoji: "👑" },
   { kind: "mode", key: "zen", label: "Zen", emoji: "🧘" },
   { kind: "mode", key: "countdown", label: "Countdown", emoji: "⏱️" },
   { kind: "exercise", key: "pushups", label: "Pushups", emoji: "💪" },
@@ -227,14 +227,27 @@ function inWindow(session, window, timestampOf) {
 // Per-user completion state for every square on the board. FREE is always
 // done. `sessions` may be any user's sessions — this filters to `userName`
 // and the cycle window itself, so callers can pass one shared full session
-// list for every participant.
+// list for every participant. When the same item occupies more than one
+// square (the pool is short of 24 distinct items, so duplicates happen — see
+// buildPoolBag), each occurrence needs its own matching session: one session
+// only ever checks off one square, never every square sharing that item.
 export function bingoCompletionForUser(board, sessions, userName, window, timestampOf) {
   const inWindowSessions = sessions.filter((s) => s.user === userName && inWindow(s, window, timestampOf));
-  return board.map((cell) =>
-    cell.free
-      ? { ...cell, done: true }
-      : { ...cell, done: inWindowSessions.some((s) => sessionMatchesBingoItem(s, cell.item)) }
-  );
+  const matchCountByKey = new Map();
+  for (const s of inWindowSessions) {
+    for (const item of BINGO_POOL) {
+      if (sessionMatchesBingoItem(s, item)) matchCountByKey.set(item.key, (matchCountByKey.get(item.key) || 0) + 1);
+    }
+  }
+  const usedByKey = new Map();
+  return board.map((cell) => {
+    if (cell.free) return { ...cell, done: true };
+    const key = cell.item.key;
+    const used = usedByKey.get(key) || 0;
+    const done = used < (matchCountByKey.get(key) || 0);
+    if (done) usedByKey.set(key, used + 1);
+    return { ...cell, done };
+  });
 }
 
 export function bingoSquaresChecked(completedBoard) {

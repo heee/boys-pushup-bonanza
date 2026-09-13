@@ -120,6 +120,25 @@ test("bingoCompletionForUser ignores out-of-window and other-user sessions", () 
   assert.equal(completed.find((c) => c.index === 0).done, false);
 });
 
+test("bingoCompletionForUser: a duplicated item needs a separate session per square", () => {
+  const dupBoard = [
+    { index: 0, free: false, item: cardsItem },
+    { index: 1, free: false, item: cardsItem },
+    { index: 12, free: true, item: null },
+  ];
+  const oneSession = [{ user: "Henning", mode: "cards", count: 20, timestamp: new Date(2026, 0, 3).getTime() }];
+  const completedOne = bingoCompletionForUser(dupBoard, oneSession, "Henning", window, timestampOf);
+  assert.equal(bingoSquaresChecked(completedOne), 2); // FREE + exactly one of the two "cards" squares
+  assert.equal(completedOne.filter((c) => !c.free && c.done).length, 1);
+
+  const twoSessions = [
+    ...oneSession,
+    { user: "Henning", mode: "cards", count: 20, timestamp: new Date(2026, 0, 4).getTime() },
+  ];
+  const completedTwo = bingoCompletionForUser(dupBoard, twoSessions, "Henning", window, timestampOf);
+  assert.equal(bingoIsFullCard(completedTwo), true);
+});
+
 test("bingoSquaresChecked / bingoIsFullCard count correctly", () => {
   const sessions = [
     { user: "Henning", mode: "cards", count: 20, timestamp: new Date(2026, 0, 3).getTime() },

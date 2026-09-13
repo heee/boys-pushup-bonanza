@@ -117,7 +117,7 @@ import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=5";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
-import { adjacentBingoCycle, bingoCompletionForUser, bingoCycleById, bingoCycleForDate, bingoLeaderboard, bingoSquaresChecked, bingoWinners, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=3";
+import { adjacentBingoCycle, bingoCompletionForUser, bingoCycleById, bingoCycleForDate, bingoLeaderboard, bingoSquaresChecked, bingoWinners, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=146";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
