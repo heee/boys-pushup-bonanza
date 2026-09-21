@@ -112,6 +112,21 @@ export function chainOfPainApplyCorrection(state, delta) {
   return state;
 }
 
+// Post-segment correction (rest-stage +/- adjuster), squat/pushup only —
+// mirrors chainOfPainApplyCorrection but targets the just-finished segment
+// (state.lastSegment) while resting, since the boy often notices a miscount
+// only after the timer forces the segment to end.
+export function chainOfPainApplyRestCorrection(state, delta) {
+  if (state.phase !== "rest" || !state.lastSegment) return state;
+  const { exercise } = state.lastSegment;
+  if (exercise === "plank") return state;
+  const next = Math.max(0, state.lastSegment.count + delta);
+  const appliedDelta = next - state.lastSegment.count;
+  state.lastSegment.count = next;
+  state.totals[totalsKeyFor(exercise)] += appliedDelta;
+  return state;
+}
+
 export function chainOfPainSegmentDurationMs(state) {
   return state.durationSeconds * 1000;
 }

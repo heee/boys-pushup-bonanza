@@ -217,6 +217,7 @@ import {
   CHAIN_OF_PAIN_REST_SECONDS,
   chainOfPainAdvanceFromRest,
   chainOfPainApplyCorrection,
+  chainOfPainApplyRestCorrection,
   chainOfPainBuildSession,
   chainOfPainCompleteSegment,
   chainOfPainComponentSessions,
@@ -14204,20 +14205,24 @@ function tickChainOfPain() {
   }
 }
 
+function renderChainOfPainRestTitle() {
+  const { exercise, count } = chainOfPainState.rules.lastSegment;
+  const label = exercise === "plank" ? formatDuration(count * 1000) : `${count} ${CHAINOFPAIN_LABELS[exercise].toLowerCase()}`;
+  $("chainofpain-rest-title").textContent = `${label} done!`;
+  $("chainofpain-rest-cycles").textContent = chainOfPainCyclesLabel(chainOfPainCycles(chainOfPainState.rules));
+}
+
 function triggerChainOfPainRest() {
   stopChainOfPainTicker();
   chainOfPainState.stage = "resting";
   chainOfPainCamera?.stop();
   chainOfPainState.detectorType = null;
   const completedExercise = chainOfPainCurrentExercise(chainOfPainState.rules);
-  const completedCount = chainOfPainState.rules.segmentReps;
   chainOfPainCompleteSegment(chainOfPainState.rules);
   const nextExercise = chainOfPainNextExercise(chainOfPainState.rules);
-  const cycles = chainOfPainCycles(chainOfPainState.rules);
-  const completedLabel = completedExercise === "plank" ? formatDuration(completedCount * 1000) : `${completedCount} ${CHAINOFPAIN_LABELS[completedExercise].toLowerCase()}`;
-  $("chainofpain-rest-title").textContent = `${completedLabel} done!`;
+  renderChainOfPainRestTitle();
   $("chainofpain-rest-body").textContent = `Next up: ${CHAINOFPAIN_LABELS[nextExercise]}. ${CHAINOFPAIN_REPOSITION_HINTS[nextExercise]}`;
-  $("chainofpain-rest-cycles").textContent = chainOfPainCyclesLabel(cycles);
+  $("chainofpain-rest-correction-row").classList.toggle("hidden", completedExercise === "plank");
   $("chainofpain-cal-stage").classList.add("hidden");
   $("chainofpain-count-stage").classList.add("hidden");
   $("chainofpain-rest-stage").classList.remove("hidden");
@@ -14407,6 +14412,14 @@ $("btn-chainofpain-plus").addEventListener("click", () => {
   chainOfPainApplyCorrection(chainOfPainState.rules, 1);
   renderChainOfPainCountStage();
   updateModeCounterBadge("chainofpain-counter-badge", chainOfPainState.rules.segmentReps);
+});
+$("btn-chainofpain-rest-minus").addEventListener("click", () => {
+  chainOfPainApplyRestCorrection(chainOfPainState.rules, -1);
+  renderChainOfPainRestTitle();
+});
+$("btn-chainofpain-rest-plus").addEventListener("click", () => {
+  chainOfPainApplyRestCorrection(chainOfPainState.rules, 1);
+  renderChainOfPainRestTitle();
 });
 $("chainofpain-duration-cards").addEventListener("click", (e) => {
   const card = e.target.closest(".holland-difficulty-card");

@@ -6,6 +6,7 @@ import {
   CHAIN_OF_PAIN_REST_SECONDS,
   chainOfPainAdvanceFromRest,
   chainOfPainApplyCorrection,
+  chainOfPainApplyRestCorrection,
   chainOfPainBuildSession,
   chainOfPainCompleteSegment,
   chainOfPainComponentSessions,
@@ -110,6 +111,33 @@ test("chainOfPainApplyCorrection clamps at zero but has no upper cap", () => {
   assert.equal(state.totals.squat, 0);
   chainOfPainApplyCorrection(state, 50);
   assert.equal(state.segmentReps, 50);
+});
+
+test("chainOfPainApplyRestCorrection adjusts the just-finished segment during rest, clamped at zero, plank exempt", () => {
+  const state = chainOfPainCreateState(30);
+  chainOfPainRecordReps(state, 5); // squat segment
+  chainOfPainCompleteSegment(state); // -> rest, lastSegment = { exercise: "squat", count: 5 }
+  chainOfPainApplyRestCorrection(state, -2);
+  assert.equal(state.lastSegment.count, 3);
+  assert.equal(state.totals.squat, 3);
+  chainOfPainApplyRestCorrection(state, -100);
+  assert.equal(state.lastSegment.count, 0);
+  assert.equal(state.totals.squat, 0);
+  chainOfPainApplyRestCorrection(state, 4);
+  assert.equal(state.lastSegment.count, 4);
+  assert.equal(state.totals.squat, 4);
+  // Not resting (mid-segment) -> no-op.
+  chainOfPainAdvanceFromRest(state);
+  chainOfPainApplyRestCorrection(state, 1);
+  assert.equal(state.lastSegment.count, 4);
+
+  chainOfPainCompleteSegment(state); // finish pushup -> rest
+  chainOfPainAdvanceFromRest(state); // -> plank
+  chainOfPainTickPlank(state, 12);
+  chainOfPainCompleteSegment(state); // -> rest, lastSegment = { exercise: "plank", count: 12 }
+  chainOfPainApplyRestCorrection(state, 5);
+  assert.equal(state.lastSegment.count, 12);
+  assert.equal(state.totals.plankSeconds, 12);
 });
 
 test("plank segment has no rep counting or correction — only tick", () => {
