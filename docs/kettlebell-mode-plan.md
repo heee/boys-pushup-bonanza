@@ -11,7 +11,7 @@ Henning's manual steps called out explicitly.
   (`screens/explore-modes.js`, alongside "Pushups" / "Other exercises"), one card per
   preset workout.
 - **Presets only** (no in-app builder in v1), stored as a config module. Henning
-  supplies workouts; v1 ships exactly two (below).
+  supplies workouts; v1 ships exactly three (below).
 - **Format per workout:** `circuit` (round-robin through all exercises, N rounds) or
   `straight` (all sets of one exercise, then the next). Rest is per workout:
   `restSec` between exercises/sets, `roundRestSec` between circuit rounds.
@@ -45,6 +45,9 @@ Henning's manual steps called out explicitly.
 - **Countdown** for a rep set = `targetReps × paceSec(user, exercise, weight)`, rounded
   up to whole seconds plus a small buffer (~10 %). Rep ranges use the **top** of the
   range (e.g. 8–12 → 12). `/side` targets count both sides (6/side = 12 reps).
+- **Timed sets** (`target: "max"` or `"hold"`) use a fixed window. For `max` the
+  rest screen still gets a rep stepper; for `hold` (planks, hollow holds) there are
+  no reps — the set logs seconds completed only (Done early = shorter hold).
 - **Max sets** use a fixed window (`maxWindowSec`, 45 s for Five Alive); the suggested
   reps = window ÷ learned pace (or recent actuals).
 - **Suggested reps** on the rest screen = target reps (or the Max estimate). The user
@@ -78,9 +81,28 @@ Henning's manual steps called out explicitly.
 | 3 | Seated Halo | 15 | |
 | 4 | Seated Over-the-Shoulder | 8/side (16) | source range 6–8/side |
 
+### Core Ten — straight, 1 round, 60 s per exercise, 10 s transitions (~11.5 min)
+
+Source is a non-stop 10-minute EMOM-style core series; the 10 s transitions exist so
+reps can be confirmed on the rest screen (Henning confirmed).
+
+| Min | Exercise | Target | Notes |
+|---|---|---|---|
+| 1 | North to South Plank Drag | max (60 s) | |
+| 2 | Bear Plank KB Taps | max (60 s) | |
+| 3 | Side to Side Leg Raises | max (60 s) | bell is a marker — `bodyweight: true` |
+| 4 | KB Overhead Sit Ups | max (60 s) | |
+| 5 | Iron Trident | max (60 s) | |
+| 6 | Plank Pull Through | max (60 s) | |
+| 7 | KB High Plank | hold (60 s) | time only |
+| 8 | Half Kneeling Wood Chop | max (60 s) | /side — "switch sides" at 30 s |
+| 9 | Hollow Hold + Flutter Kicks | hold (60 s) | time only |
+| 10 | Hollow Hold + Leg Raises | max (60 s) | reps = leg raises |
+
 Default paces (seed only, tune freely): push-up 2.0 s, halo 2.5 s, curl 2.5 s,
 row-clean-press 5.0 s, goblet march 1.5 s, seated press 2.5 s, seated over-the-shoulder
-2.0 s.
+2.0 s, plank drag 3.0 s, bear taps 1.5 s, side leg raises 2.0 s, overhead sit up
+3.0 s, iron trident 3.0 s, pull through 3.0 s, wood chop 2.5 s, hollow leg raise 3.0 s.
 
 ## Data model
 
@@ -100,7 +122,7 @@ Config (`kettlebell-workouts.js`):
 Session (`type: "kettlebell"`): `count` = total reps; `kettlebellWorkoutId`;
 `kettlebellVolumeLbs`; `kettlebellDurationSeconds`; `kettlebellSets` = JSON array of
 `{ exerciseId, round, targetReps, suggestedReps, actualReps, weightLbs, bells,
-elapsedSec }`. Keeping `suggestedReps` vs `actualReps` preserves the raw learning
+elapsedSec }` (`hold` sets: reps fields null, `elapsedSec` = seconds held). Keeping `suggestedReps` vs `actualReps` preserves the raw learning
 signal for later tuning.
 
 Local per-user state (localStorage, same pattern as `getSquatWeightedProfiles`):
