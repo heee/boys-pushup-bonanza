@@ -23,6 +23,7 @@ export const MODE_META = {
   situps: { label: "Crunches", icon: "🙇" },
   holland: { label: "Holland Mode", icon: "🇳🇱" },
   chainofpain: { label: "Chain of Pain", icon: "⛓️" },
+  kettlebell: { label: "Kettlebell", icon: "🏋️" },
   tow: { label: "Tug of War", icon: "🪢" },
 };
 
@@ -33,6 +34,7 @@ export function sessionModeId(session) {
   if (session?.type === "situp") return "situps";
   if (session?.type === "holland") return "holland";
   if (session?.type === "chainofpain") return "chainofpain";
+  if (session?.type === "kettlebell") return "kettlebell";
   return session?.mode || "classic";
 }
 
@@ -98,7 +100,7 @@ export function sessionKeyMetrics(session) {
 
   if (modeId !== "planks" && modeId !== "pulse") {
     metrics.push({ id: "duration", label: "Duration", format: "duration", value: sessionDurationMs(session) });
-    if (modeId !== "holland" && modeId !== "chainofpain") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
+    if (modeId !== "holland" && modeId !== "chainofpain" && modeId !== "kettlebell") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
   }
 
   // Pulse's `count` is seconds held in band, not reps — the generic
@@ -154,6 +156,11 @@ export function sessionKeyMetrics(session) {
     if (session.chainOfPainSquats != null) metrics.push({ id: "chainOfPainSquats", label: "Squats", format: "integer", value: session.chainOfPainSquats });
     if (session.chainOfPainPushups != null) metrics.push({ id: "chainOfPainPushups", label: "Pushups", format: "integer", value: session.chainOfPainPushups });
     if (session.chainOfPainPlankSeconds != null) metrics.push({ id: "chainOfPainPlankSeconds", label: "Plank hold", format: "duration", value: session.chainOfPainPlankSeconds * 1000 });
+  }
+  if (modeId === "kettlebell") {
+    if (session.kettlebellVolumeLbs != null) metrics.push({ id: "kettlebellVolume", label: "Volume", format: "text", value: `${Number(session.kettlebellVolumeLbs).toLocaleString()} lb` });
+    metrics.push({ id: "kettlebellReps", label: "Reps", format: "integer", value: session.count });
+    if (Array.isArray(session.kettlebellSets)) metrics.push({ id: "kettlebellSets", label: "Sets", format: "integer", value: session.kettlebellSets.length });
   }
   if (modeId === "chase") {
     metrics.push({ id: "chaseResult", label: session.chaseOvertaken ? "Overtook" : "Chasing", format: "text", value: session.chaseRival || "rival" });

@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Boys Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=306">
+<link rel="stylesheet" href="style.css?v=307">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1117,6 +1117,64 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: KETTLEBELL PREVIEW ============ -->
+    <section id="screen-kettlebell-preview" class="screen">
+      <div class="horse-header-row">
+        <button id="btn-kettlebell-preview-back" type="button" class="icon-btn" aria-label="Back">←</button>
+        <h1 id="kettlebell-preview-title" class="screen-title">Kettlebell</h1>
+      </div>
+      <p id="kettlebell-preview-meta" class="screen-sub"></p>
+      <div id="kettlebell-preview-list" class="kb-preview-list"></div>
+      <p id="kettlebell-preview-best" class="pulse-best-run"></p>
+      <button id="btn-kettlebell-start" type="button" class="btn btn-giant btn-primary">Start</button>
+    </section>
+
+    <!-- ============ SCREEN: KETTLEBELL WORKOUT ============ -->
+    <section id="screen-kettlebell-workout" class="screen">
+      <div id="kettlebell-confetti" class="confetti" aria-hidden="true"></div>
+
+      <div id="kettlebell-active-stage" class="kb-stage hidden">
+        <p id="kettlebell-active-round" class="workout-eyebrow"></p>
+        <h2 id="kettlebell-active-name" class="kb-exercise-name"></h2>
+        <p id="kettlebell-active-target" class="kb-target"></p>
+        <div id="kettlebell-active-timer" class="rep-count" role="timer" aria-label="Time remaining">0:00</div>
+        <p id="kettlebell-active-cue" class="highscore-message"></p>
+        <button id="btn-kettlebell-done-set" type="button" class="btn btn-giant btn-primary">Done</button>
+      </div>
+
+      <div id="kettlebell-rest-stage" class="kb-stage hidden">
+        <p class="workout-eyebrow">Rest</p>
+        <div id="kettlebell-rest-timer" class="rep-count" role="timer" aria-label="Rest remaining">0:15</div>
+        <p id="kettlebell-rest-done-name" class="kb-rest-done-name"></p>
+        <div id="kettlebell-rest-reps" class="kb-rest-reps">
+          <div class="missed-reps-label">Reps you actually did</div>
+          <div class="stepper-row">
+            <button id="btn-kettlebell-reps-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
+            <div id="kettlebell-reps-value" class="stepper-value">0</div>
+            <button id="btn-kettlebell-reps-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+          </div>
+        </div>
+        <p id="kettlebell-rest-hold" class="highscore-message hidden"></p>
+        <p id="kettlebell-rest-next" class="kb-rest-next"></p>
+        <button id="btn-kettlebell-ready" type="button" class="btn btn-giant btn-primary">Ready</button>
+      </div>
+
+      <div id="kettlebell-done-stage" class="kb-stage hidden">
+        <h1 class="screen-title">Workout complete! 🎉</h1>
+        <div id="kettlebell-done-volume" class="summary-count">0</div>
+        <p id="kettlebell-done-volume-label" class="kb-volume-label">lb moved</p>
+        <div id="kettlebell-done-pb" class="holland-27-badge hidden">🏆 New best volume</div>
+        <p id="kettlebell-done-meta" class="screen-sub"></p>
+        <div id="kettlebell-done-table" class="kb-done-table"></div>
+        <div id="kettlebell-sync-status" class="sync-status" role="status" aria-live="polite"></div>
+        <div class="summary-actions">
+          <button id="btn-kettlebell-done-home" class="btn btn-primary btn-large">Done</button>
+        </div>
+      </div>
+
+      <button id="btn-kettlebell-quit" type="button" class="btn btn-secondary btn-small-wide hidden">End workout</button>
+    </section>
+
     <!-- ============ SCREEN: SITUP WORKOUT ============ -->
     <section id="screen-situp-workout" class="screen">
       <div id="situp-confetti" class="confetti" aria-hidden="true"></div>
@@ -1298,6 +1356,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="holland"><span>Holland</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="chainofpain"><span>Chain of Pain</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="kettlebell"><span>Kettlebell</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
           </div>
         </div>
       </div>
@@ -2048,6 +2107,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=323"></script>
+<script type="module" src="app.js?v=324"></script>
 </body>
 </html>

@@ -1,3 +1,5 @@
+import { KETTLEBELL_WORKOUTS } from "../modes/kettlebell-workouts.js";
+
 export const EXPLORE_MODES = [
   { id: "classic", icon: "💪", title: "Classic", tagline: "Straight sets, no gimmicks", live: true },
   { id: "countdown", icon: "⏱️", title: "Countdown", tagline: "Beat your own personal best", live: true },
@@ -22,12 +24,15 @@ export const EXPLORE_MODES = [
   { id: "zen", icon: "🧘", title: "Zen Mode", tagline: "No counters, no noise — just push", live: true },
   { id: "horse", icon: "🐴", title: "Horse", tagline: "Beat the set before you, or take a letter", live: true },
   { id: "tow", icon: "🪢", title: "Tug of war", tagline: "Two teams race to the target, together", live: true },
+  // One card per preset kettlebell workout, in their own "Kettlebell" section
+  // (see docs/kettlebell-mode-plan.md). Ids are "kb-<workout id>".
+  ...KETTLEBELL_WORKOUTS.map((workout) => ({ id: `kb-${workout.id}`, icon: workout.icon, title: workout.name, tagline: workout.tagline, live: true, kettlebellWorkoutId: workout.id })),
 ];
 
 function usageByMode(sessions) {
   const counts = new Map();
   for (const session of sessions) {
-    const id = session.type === "plank" ? "plank" : session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : session.type === "holland" ? "holland" : session.type === "chainofpain" ? "chainofpain" : (session.mode || "classic");
+    const id = session.type === "plank" ? "plank" : session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : session.type === "holland" ? "holland" : session.type === "chainofpain" ? "chainofpain" : session.type === "kettlebell" ? `kb-${session.kettlebellWorkoutId}` : (session.mode || "classic");
     if (id) counts.set(id, (counts.get(id) || 0) + 1);
   }
   return counts;
@@ -74,10 +79,13 @@ export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, cha
       : lockedForPulse ? `${pulseUnlock.validCount}/${pulseUnlock.needed} Classic sessions logged`
       : lockedForCock ? `${cockUnlock.validCount}/${cockUnlock.needed} Classic sessions logged`
       : "Coming soon";
-    const section = OTHER_EXERCISE_IDS.has(mode.id) ? "other" : "pushups";
+    const section = mode.kettlebellWorkoutId ? "kettlebell" : OTHER_EXERCISE_IDS.has(mode.id) ? "other" : "pushups";
     return { mode, index, playable, tagline, status, section, usage: usage.get(mode.id) || 0 };
   });
   const pushups = orderBucket(decorated.filter((item) => item.section === "pushups"));
   const other = orderBucket(decorated.filter((item) => item.section === "other"));
-  return [...pushups, ...other];
+  // Kettlebell keeps its preset order (no usage re-sorting) so the list reads
+  // the same every visit.
+  const kettlebell = decorated.filter((item) => item.section === "kettlebell");
+  return [...pushups, ...other, ...kettlebell];
 }

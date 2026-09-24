@@ -5961,3 +5961,36 @@ body:has(#screen-challenge-detail.active) #app {
 #chainofpain-camera-overlay .chainofpain-learning { background: rgba(0, 0, 0, 0.7); }
 #chainofpain-camera-overlay #btn-chainofpain-face-tracker { position: absolute; top: 0.5rem; left: 0.5rem; right: 0.5rem; padding: 0.5rem; font-size: 0.75rem; pointer-events: auto; }
 #screen-summary:has(#summary-chainofpain-result:not(.hidden)) :is(#btn-summary-different-mode, #btn-summary-share) { font-weight: 400; }
+
+/* ---- Kettlebell workouts (docs/kettlebell-mode-plan.md) ---- */
+.kb-preview-list { background: var(--bg-elevated); border-radius: 16px; margin-bottom: 1rem; }
+.kb-preview-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+.kb-preview-row:last-child { border-bottom: none; }
+.kb-preview-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--bg-elevated-2); color: var(--text-dim); font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.kb-preview-copy { flex: 1; min-width: 0; }
+.kb-preview-name { font-weight: 700; font-size: 0.95rem; }
+.kb-preview-sub { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.1rem; }
+.kb-preview-weight { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+.kb-preview-weight .stepper-row { gap: 0.4rem; }
+.kb-preview-weight .stepper-btn { width: 1.9rem; height: 1.9rem; font-size: 1rem; }
+.kb-preview-weight .stepper-value { min-width: 3.2rem; font-size: 0.95rem; }
+.kb-preview-bw { font-size: 0.75rem; color: var(--text-tertiary); }
+.kb-nudge { border: none; border-radius: 999px; padding: 0.2rem 0.55rem; background: var(--primary); color: var(--text-on-accent); font-size: 0.7rem; font-weight: 800; cursor: pointer; }
+.kb-stage { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; padding-top: 1rem; }
+.kb-exercise-name { font-size: 1.7rem; font-weight: 900; margin: 0; line-height: 1.15; }
+.kb-target { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin: 0; }
+.kb-rest-done-name { font-size: 0.9rem; color: var(--text-dim); margin: 0.4rem 0 0; }
+.kb-rest-reps { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.kb-rest-reps .stepper-btn { width: 3rem; height: 3rem; font-size: 1.5rem; }
+.kb-rest-reps .stepper-value { min-width: 3.5rem; font-size: 2.2rem; }
+.kb-rest-next { font-size: 0.9rem; color: var(--text); background: var(--bg-elevated); border-radius: 12px; padding: 0.6rem 0.9rem; margin: 0.4rem 0; }
+.kb-volume-label { margin: -0.4rem 0 0; font-size: 0.85rem; font-weight: 700; color: var(--text-dim); }
+.kb-done-table { width: 100%; max-width: 29rem; background: var(--bg-elevated); border-radius: 14px; text-align: left; }
+.kb-done-row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem; align-items: center; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.kb-done-row:last-child { border-bottom: none; }
+.kb-done-name { font-weight: 700; }
+.kb-done-stat { font-weight: 800; text-align: right; }
+.kb-done-delta { font-size: 0.75rem; font-weight: 800; min-width: 2.6rem; text-align: right; color: var(--text-tertiary); }
+.kb-done-delta.up { color: var(--success); }
+.kb-done-delta.down { color: var(--danger); }
+#btn-kettlebell-quit { display: block; flex: 0 0 auto; width: 100%; max-width: 14rem; margin: 1.2rem auto 0; }

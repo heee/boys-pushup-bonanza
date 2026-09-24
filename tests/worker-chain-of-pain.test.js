@@ -11,7 +11,7 @@ import { hollandComponentSessions } from "../modes/holland.js";
 test("Chain of Pain survives database persistence and contributes once to each exercise", async () => {
   const sqlite = new DatabaseSync(":memory:");
   try {
-    for (const migration of ["0001_initial_schema.sql", "0003_holland_mode.sql", "0005_pulse_mode.sql", "0006_session_progression.sql", "0007_chain_of_pain.sql"]) {
+    for (const migration of ["0001_initial_schema.sql", "0003_holland_mode.sql", "0005_pulse_mode.sql", "0006_session_progression.sql", "0007_chain_of_pain.sql", "0008_kettlebell.sql"]) {
       sqlite.exec(readFileSync(new URL(`../worker/migrations/${migration}`, import.meta.url), "utf8"));
     }
     // These existing production columns predate the Chain migration.

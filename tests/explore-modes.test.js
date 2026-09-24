@@ -23,7 +23,11 @@ test("Explore ordering preserves Chase priority, locks, and roadmap", () => {
   // the roadmap ones — tied on zero usage, Chain of Pain sorts last since
   // it's the final entry in that bucket in EXPLORE_MODES (ties break by
   // list order).
-  assert.equal(ready.at(-1).mode.id, "chainofpain");
+  const otherIds = ready.filter((item) => item.section === "other").map((item) => item.mode.id);
+  assert.equal(otherIds.at(-1), "chainofpain");
+  // The Kettlebell section comes last, one card per preset in preset order.
+  assert.deepEqual(ready.filter((item) => item.section === "kettlebell").map((item) => item.mode.id), ["kb-five-alive", "kb-throne-room", "kb-core-ten"]);
+  assert.equal(ready.at(-1).mode.id, "kb-core-ten");
   const pushupIds = ready.filter((item) => item.section === "pushups").map((item) => item.mode.id);
   assert.equal(pushupIds.at(-1), "boss");
 });

@@ -14,7 +14,8 @@
 //                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session,
 //                          "squat" for a camera-counted squat set, "situp" for a camera-counted situp set,
 //                          "holland" for a continuous pull-up/pushup/squat circuit, "chainofpain" for a
-//                          continuous TIME-driven squat/pushup/plank circuit (see AGENTS.md);
+//                          continuous TIME-driven squat/pushup/plank circuit (see AGENTS.md), "kettlebell" for a
+//                          timer-driven preset kettlebell workout with user-confirmed reps;
 //                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks,
 //                          total raw reps across all three exercises for Holland, squats+pushups for Chain of
 //                          Pain (plank has its own chainOfPainPlankSeconds field instead), seconds held in
@@ -31,6 +32,10 @@
 //                          of fully-completed (timer-expired) segments, chainOfPainCycles is that divided by
 //                          3 (server-derived, not client-trusted) — a segment-granular fractional cycle value;
 //                          chainOfPainDurationSeconds is the fixed per-segment duration picked (30/60/150/300);
+//                          kettlebellWorkoutId/kettlebellSets/kettlebellDurationSeconds: Kettlebell-only — the
+//                          preset id, the compact per-set log ({e,r,k,t,s,a,w,b,d}; see modes/kettlebell.js),
+//                          and wall-clock seconds; count must equal the logged reps; kettlebellVolumeLbs is
+//                          server-derived (Σ reps × weight × bells). Stored as one kettlebell_json column;
 //                          rawCount/weightLbs are optional weighted-mode transparency fields — the actual
 //                          physical reps and added weight behind an already-scaled-up `count`;
 //                          mode: omit for Classic, "countdown", "cards", "dice", "ladder", "fortune", "chase",
@@ -853,6 +858,32 @@ function sanitizeSessionProgression(raw, session) {
   return { v: 1, i: 10, k: raw.k, b: raw.b };
 }
 
+function sanitizeKettlebell(body, count) {
+  const workoutId = typeof body.kettlebellWorkoutId === "string" && /^[a-z0-9-]{1,40}$/.test(body.kettlebellWorkoutId) ? body.kettlebellWorkoutId : null;
+  const durationSeconds = Math.floor(Number(body.kettlebellDurationSeconds));
+  if (!workoutId || !Array.isArray(body.kettlebellSets) || body.kettlebellSets.length < 1 || body.kettlebellSets.length > 100) return null;
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0 || durationSeconds > 4 * 3600) return null;
+  const smallInt = (n, max) => Number.isInteger(n) && n >= 0 && n <= max;
+  const nullableInt = (n, max) => n === null || smallInt(n, max);
+  const sets = [];
+  let reps = 0;
+  let volumeLbs = 0;
+  for (const raw of body.kettlebellSets) {
+    if (!raw || typeof raw !== "object") return null;
+    const set = { e: raw.e, r: raw.r, k: raw.k, t: raw.t ?? null, s: raw.s ?? null, a: raw.a ?? null, w: raw.w, b: raw.b, d: raw.d };
+    if (typeof set.e !== "string" || !/^[a-z0-9-]{1,40}$/.test(set.e)) return null;
+    if (!["reps", "max", "hold"].includes(set.k)) return null;
+    if (!smallInt(set.r, 100) || !nullableInt(set.t, 1000) || !nullableInt(set.s, 1000) || !smallInt(set.w, 1000) || !smallInt(set.d, 3600)) return null;
+    if (set.b !== 1 && set.b !== 2) return null;
+    if (set.k === "hold" ? set.a !== null : !smallInt(set.a, 1000)) return null;
+    reps += set.a || 0;
+    volumeLbs += (set.a || 0) * set.w * set.b;
+    sets.push(set);
+  }
+  if (reps !== count) return null;
+  return { kettlebellWorkoutId: workoutId, kettlebellVolumeLbs: volumeLbs, kettlebellDurationSeconds: durationSeconds, kettlebellSets: sets };
+}
+
 export function validateSession(body) {
   if (!body || typeof body !== "object") return null;
   const user = String(body.user || "").trim().slice(0, 40);
@@ -876,8 +907,17 @@ export function validateSession(body) {
   if (typeof body.startedAt === "string" && !isNaN(new Date(body.startedAt).getTime())) {
     session.startedAt = body.startedAt;
   }
-  if (body.type === "plank" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland" || body.type === "chainofpain") {
+  if (body.type === "plank" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland" || body.type === "chainofpain" || body.type === "kettlebell") {
     session.type = body.type;
+  }
+  // Kettlebell's own fields (see docs/kettlebell-mode-plan.md): the set log is
+  // user-confirmed (timer-driven, no camera). Workout ids are validated by
+  // shape only so new presets don't need a Worker redeploy. `count` must equal
+  // the logged reps and the volume is re-derived here, never client-trusted.
+  if (body.type === "kettlebell") {
+    const kettlebell = sanitizeKettlebell(body, count);
+    if (!kettlebell) return null;
+    Object.assign(session, kettlebell);
   }
   // Holland mode's own fields: difficulty catalog + per-exercise component
   // reps that also feed the existing pull-up/pushup/squat aggregations
@@ -1227,6 +1267,15 @@ export function sessionFromRow(row) {
   if (row.location_json !== null) session.location = parseStoredJson(row.location_json, undefined);
   if (row.session_progression_json !== null) session.sessionProgression = parseStoredJson(row.session_progression_json, undefined);
   if (session.type === "chainofpain" && Number.isInteger(session.chainOfPainSegments)) session.chainOfPainCycles = session.chainOfPainSegments / 3;
+  if (row.kettlebell_json != null) {
+    const kettlebell = parseStoredJson(row.kettlebell_json, null);
+    if (kettlebell) {
+      session.kettlebellWorkoutId = kettlebell.w;
+      session.kettlebellVolumeLbs = kettlebell.v;
+      session.kettlebellDurationSeconds = kettlebell.d;
+      session.kettlebellSets = kettlebell.s;
+    }
+  }
   return session;
 }
 
@@ -1287,8 +1336,9 @@ async function replaceTowGameIfUnchanged(db, before, after) {
 
 export async function insertSession(db, session) {
   const userId = await ensureUser(db, session.user);
-  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json,holland_difficulty,holland_pullups,holland_pushups,holland_squats,holland_cycles,holland_circuits,holland_achievement,pulse_band_width,pulse_band_low,pulse_band_high,pulse_end_reason,pulse_break_rpm,pulse_reps,cock_result,cock_end_reason,cock_median_rpm,cock_final_cock_rpm,session_progression_json,chain_of_pain_squats,chain_of_pain_pushups,chain_of_pain_plank_seconds,chain_of_pain_segments,chain_of_pain_duration_seconds) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+  await db.prepare(`INSERT OR IGNORE INTO sessions (id,user_id,timestamp,count,avatar,started_at,type,raw_count,weight_lbs,mode,ladder_max_rung,pyramid_size,pyramid_direction,pyramid_peak_reached,pyramid_completed,poker_hands_completed,poker_best_rank,poker_premium_hands,poker_hand_ranks_json,poker_achievements_json,fortune_challenge_id,fortune_grip_side,modifier,location_json,holland_difficulty,holland_pullups,holland_pushups,holland_squats,holland_cycles,holland_circuits,holland_achievement,pulse_band_width,pulse_band_low,pulse_band_high,pulse_end_reason,pulse_break_rpm,pulse_reps,cock_result,cock_end_reason,cock_median_rpm,cock_final_cock_rpm,session_progression_json,chain_of_pain_squats,chain_of_pain_pushups,chain_of_pain_plank_seconds,chain_of_pain_segments,chain_of_pain_duration_seconds,kettlebell_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
     session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null, session.hollandDifficulty ?? null, session.hollandPullups ?? null, session.hollandPushups ?? null, session.hollandSquats ?? null, session.hollandCycles ?? null, session.hollandCircuits ?? null, session.hollandAchievement ?? null, session.pulseBandWidth ?? null, session.pulseBandLow ?? null, session.pulseBandHigh ?? null, session.pulseEndReason ?? null, session.pulseBreakRpm ?? null, session.pulseReps ?? null, session.cockResult ?? null, session.cockEndReason ?? null, session.cockMedianRpm ?? null, session.cockFinalCockRpm ?? null, session.sessionProgression ? JSON.stringify(session.sessionProgression) : null, session.chainOfPainSquats ?? null, session.chainOfPainPushups ?? null, session.chainOfPainPlankSeconds ?? null, session.chainOfPainSegments ?? null, session.chainOfPainDurationSeconds ?? null,
+    session.type === "kettlebell" ? JSON.stringify({ w: session.kettlebellWorkoutId, v: session.kettlebellVolumeLbs, d: session.kettlebellDurationSeconds, s: session.kettlebellSets }) : null,
   ).run();
 }
 

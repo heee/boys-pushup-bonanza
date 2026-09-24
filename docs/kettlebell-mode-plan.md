@@ -147,16 +147,35 @@ last weight per exercise; pace EMA per exercise × weight.
 7. Bump `sw.js` `CACHE_NAME`; verify every screen against this spec on a cache-busted
    reload.
 
-## ⚠️ Henning's manual steps
+## ⚠️ Henning's manual steps — in this order
 
-- **D1 schema (DDL — the MCP connection can't run it):** add columns, e.g.
-  `ALTER TABLE sessions ADD COLUMN kettlebell_workout_id TEXT;`
-  `ALTER TABLE sessions ADD COLUMN kettlebell_volume_lbs INTEGER;`
-  `ALTER TABLE sessions ADD COLUMN kettlebell_duration_seconds INTEGER;`
-  `ALTER TABLE sessions ADD COLUMN kettlebell_sets TEXT;`
-  (exact statements finalized by the build agent against the live schema).
-- **Worker redeploy:** paste updated `worker/index.js` into Cloudflare Quick Edit.
-- **Voice generation:** provide `OPENAI_API_KEY` as an env var when step 4 runs.
+The app must not go live before the Worker understands `type: "kettlebell"`:
+the current Worker ignores unknown types and would store a kettlebell workout
+as a plain *pushup* session (its reps would pollute pushup totals).
+
+1. **D1 schema** (DDL — the MCP connection can't run it), Cloudflare dashboard →
+   D1 → console: `ALTER TABLE sessions ADD COLUMN kettlebell_json TEXT;`
+   (also in `worker/migrations/0008_kettlebell.sql`). Must run before step 2 —
+   the new Worker's INSERT names this column.
+2. **Worker redeploy:** paste updated `worker/index.js` into Cloudflare Quick Edit.
+3. **Then** merge the branch to `main` so the app ships.
+4. **Voice (optional):** `OPENAI_API_KEY=… node scripts/generate-voice.js` and commit
+   `assets/voice/`; until then kettlebell cues use the phone's built-in voice.
+
+## As built (2026-09-24)
+
+- Storage is a single `kettlebell_json` column (`{ w, v, d, s }`) rather than four
+  columns; `sessionFromRow` expands it back to `kettlebellWorkoutId`,
+  `kettlebellVolumeLbs`, `kettlebellDurationSeconds`, `kettlebellSets`.
+- Explore cards use ids `kb-<workout id>`; Kettlebell is also a leaderboard mode
+  (ranked by volume) with its own group-stats rows (workouts, total/best volume,
+  total reps).
+- An 8 s "Get ready" lead-in precedes the first set; the final set gets a
+  confirm screen (reps stepper + "Finish workout") instead of a rest.
+- "End workout" mid-session saves the finished sets.
+- Pace samples are clamped to 60–160 % of the current learned pace so one
+  accidental early Done can't wreck it.
+- Default starting weight 20 lb per exercise until the user changes it.
 
 ## Out of scope (v1)
 
