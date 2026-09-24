@@ -24,6 +24,8 @@
 // gets its own subfolder. Keep in sync with scripts/generate-voice.js's own
 // PRESETS map (that one also carries the voice/instructions, which are a
 // generation-time-only concern and don't belong in the browser bundle).
+import { KETTLEBELL_EXERCISES } from "./modes/kettlebell-workouts.js";
+
 export const VOICE_PRESETS = [
   { id: "default", label: "Default", dir: "" },
   { id: "drill-de", label: "German Drill Instructor", dir: "drill-de" },
@@ -35,6 +37,14 @@ export const VOICE_PRESETS = [
 // (counting reps) is one seamless recording rather than spliced syllables.
 // Above that we fall back to splicing "two hundred" + "forty-seven".
 export const MAX_WHOLE_NUMBER = 150;
+
+// Kettlebell workouts (docs/kettlebell-mode-plan.md): short coaching
+// fragments spliced with numbers and each exercise's spoken name, e.g.
+// "Round two." + "Halos." + "sixteen." — exercise names come from the preset
+// catalog so a new exercise gets its clip on the next generate-voice run.
+export const KETTLEBELL_PHRASES = ["Round", "Rest", "Next up", "Switch sides", "Go", "Max reps", "Hold it", "reps", "Get ready"];
+export const KETTLEBELL_FINISH_LINE = (lbs) => `Workout complete. ${lbs} pounds moved.`;
+export const KETTLEBELL_FINISH_NO_WEIGHT_LINE = "Workout complete. Nice work.";
 
 const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
   "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
@@ -708,6 +718,10 @@ export function buildCorpus() {
   for (const line of LADDER_CHEER_LINES) add(line, "hype");
   for (const line of SHARPSHOOTER_HIT_LINES) add(line, "hype");
   for (const line of PYRAMID_ROW_CHEER_LINES) add(line, "hype");
+  for (const phrase of KETTLEBELL_PHRASES) add(phrase, "calm");
+  for (const exercise of Object.values(KETTLEBELL_EXERCISES)) add(exercise.spoken, "calm");
+  for (const frag of templateFragments(KETTLEBELL_FINISH_LINE)) add(frag, "hype");
+  add(KETTLEBELL_FINISH_NO_WEIGHT_LINE, "hype");
   add(PYRAMID_APEX_LINE, "hype");
   add(PYRAMID_TURNAROUND_LINE, "hype");
   add(PYRAMID_COMPLETE_LINE, "hype");

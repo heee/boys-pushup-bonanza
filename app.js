@@ -21,6 +21,8 @@ import {
   CHASE_TOOK_LEAD_LINE,
   ENCOURAGE_LINES,
   FIXED_PHRASES,
+  KETTLEBELL_FINISH_LINE,
+  KETTLEBELL_FINISH_NO_WEIGHT_LINE,
   FUN_MESSAGES,
   FUN_MESSAGES_PLANK,
   HOLLAND_27_LINE,
@@ -73,7 +75,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=147";
+} from "./voice-lines.js?v=148";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -89,7 +91,7 @@ import {
   speakClips,
   speakFallback,
   unlockVoice,
-} from "./voice.js?v=155";
+} from "./voice.js?v=156";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
 import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
@@ -113,17 +115,17 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=142";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=5";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=143";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=6";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=5";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES } from "./screens/poker-collection.js?v=1";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=146";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=147";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=10";
+import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=153";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -170,6 +172,23 @@ import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY
 import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey } from "./group-recap.js?v=1";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { createClapGestureDetector } from "./modes/clap-gesture.js";
+import { KETTLEBELL_WORKOUTS, kettlebellExercise, kettlebellWorkoutById } from "./modes/kettlebell-workouts.js";
+import {
+  kettlebellBuildSession,
+  kettlebellDecodeSets,
+  kettlebellEstimateSeconds,
+  kettlebellExerciseRollup,
+  kettlebellExpandSets,
+  kettlebellFormatClock,
+  kettlebellNudges,
+  kettlebellPaceFor,
+  kettlebellSetDurationSec,
+  kettlebellStepWeight,
+  kettlebellSuggestedReps,
+  kettlebellTargetLabel,
+  kettlebellTotals,
+  kettlebellUpdatePace,
+} from "./modes/kettlebell.js";
 import { deriveSitupThresholds, estimateSitupRange, situpCalibrationValid, situpFrameRatio, situpSwing, SITUP_MIN_SWING } from "./modes/situp.js";
 import {
   PULSE_BAND_WIDTHS,
@@ -295,6 +314,7 @@ const LS = {
   roadtripPrompted: "bpb-roadtrip-location-prompted",
   hollandDifficulty: "bpb-holland-difficulty",
   chainOfPainDuration: "bpb-chainofpain-duration",
+  kettlebellProfiles: "bpb-kettlebell-profiles",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -331,6 +351,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "planks", label: "Planks" },
   { id: "holland", label: "Holland" },
   { id: "chainofpain", label: "Chain of Pain" },
+  { id: "kettlebell", label: "Kettlebell" },
 ];
 const LEADERBOARD_MODE_IDS = new Set(LEADERBOARD_MODE_OPTIONS.map((option) => option.id));
 
@@ -343,14 +364,15 @@ const MY_SESSIONS_MODE_OPTIONS = [
   { id: "planks", label: "Planks" },
   { id: "holland", label: "Holland" },
   { id: "chainofpain", label: "Chain of Pain" },
+  { id: "kettlebell", label: "Kettlebell" },
 ];
 
 function sessionActivity(s) {
-  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : "pushups";
+  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups";
 }
 
 function leaderboardActivity(mode) {
-  return ["planks", "pullups", "squats", "situps", "holland", "chainofpain"].includes(mode) ? mode : "pushups";
+  return ["planks", "pullups", "squats", "situps", "holland", "chainofpain", "kettlebell"].includes(mode) ? mode : "pushups";
 }
 
 function activityLabel(activity, singular = false) {
@@ -362,6 +384,7 @@ function activityLabel(activity, singular = false) {
     planks: singular ? "plank" : "planks",
     holland: singular ? "Holland cycle" : "Holland cycles",
     chainofpain: singular ? "Chain of Pain cycle" : "Chain of Pain cycles",
+    kettlebell: singular ? "kettlebell workout" : "kettlebell workouts",
   };
   return words[activity] || words.pushups;
 }
@@ -378,6 +401,7 @@ function activityEmoji(activity) {
     planks: "🪵",
     holland: "🇳🇱",
     chainofpain: "⛓️",
+    kettlebell: "🏋️",
   };
   return icons[activity] || icons.pushups;
 }
@@ -833,7 +857,7 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [] };
+  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [], kettlebell: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
@@ -1513,6 +1537,7 @@ const state = {
   hollandDifficulty: savedHollandDifficulty(),
   hollandSessionLocation: null,
   chainOfPainActive: false,
+  kettlebellActive: false,
   chainOfPainBest: 0,
   chainOfPainDuration: savedChainOfPainDuration(),
   chainOfPainSessionLocation: null,
@@ -1719,7 +1744,8 @@ function renderStreakBadge() {
     el.classList.add("hidden");
     return;
   }
-  const mine = indexedSessionsForUser(state.currentUser, "pushups");
+  // Kettlebell workouts keep the streak alive too (docs/kettlebell-mode-plan.md).
+  const mine = [...indexedSessionsForUser(state.currentUser, "pushups"), ...indexedSessionsForUser(state.currentUser, "kettlebell")];
   const { streak, restDays } = computeStreakCore(mine);
   el.classList.remove("hidden");
   const yesterday = new Date();
@@ -1917,6 +1943,8 @@ const TAB_FOR_SCREEN = {
   "screen-situp-workout": "btn-nav-home",
   "screen-holland-workout": "btn-nav-home",
   "screen-chainofpain-workout": "btn-nav-home",
+  "screen-kettlebell-preview": "btn-nav-home",
+  "screen-kettlebell-workout": "btn-nav-home",
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
   "screen-user-compare": "btn-nav-dashboard",
@@ -1959,7 +1987,8 @@ function showScreen(id) {
     (id === "screen-pullup-workout" && state.pullupActive) ||
     (id === "screen-situp-workout" && state.situpActive) ||
     (id === "screen-holland-workout" && state.hollandActive) ||
-    (id === "screen-chainofpain-workout" && state.chainOfPainActive);
+    (id === "screen-chainofpain-workout" && state.chainOfPainActive) ||
+    (id === "screen-kettlebell-workout" && state.kettlebellActive);
   setChromeMinimized(minimized);
   const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
   document.querySelectorAll("#tab-bar .tab-item").forEach((btn) => {
@@ -2086,6 +2115,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this Chain of Pain workout? Your in-progress circuit won't be saved.");
     if (!ok) return;
     stopChainOfPainHard();
+  } else if (state.screen === "screen-kettlebell-workout" && state.kettlebellActive) {
+    const ok = confirm("Leave this kettlebell workout? Your in-progress sets won't be saved.");
+    if (!ok) return;
+    stopKettlebellHard();
   }
   next();
 }
@@ -2802,7 +2835,7 @@ function renderExploreModesScreen(refresh = true) {
   const pulseUnlock = pulseUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
   const cockUnlock = cockUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
   const items = exploreModesModel({ sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock });
-  const sectionLabels = { pushups: "Pushups", other: "Other exercises" };
+  const sectionLabels = { pushups: "Pushups", other: "Other exercises", kettlebell: "Kettlebell" };
   let lastSection = null;
   list.innerHTML = items.map((item) => {
     const m = item.mode;
@@ -3044,6 +3077,10 @@ $("btn-cock-start").addEventListener("click", () => {
 // `onChaseIneligible` lets the tap handler disable/re-render its row; the
 // hash-link path has no row and just no-ops instead.
 async function openExploreMode(modeId, { onChaseIneligible } = {}) {
+  if (modeId.startsWith("kb-")) {
+    openKettlebellPreview(modeId.slice(3));
+    return;
+  }
   if (modeId === "chase") {
     const prepared = await refreshChaseAvailability();
     if (!prepared.eligible) {
@@ -6921,6 +6958,7 @@ function renderSessionDetail() {
   const isSitup = session.type === "situp";
   const isHolland = session.type === "holland";
   const isChainOfPain = session.type === "chainofpain";
+  const isKettlebell = session.type === "kettlebell";
   const isPulse = session.mode === "pulse";
 
   $("session-detail-user").textContent = `${session.user}'s session`;
@@ -6928,8 +6966,9 @@ function renderSessionDetail() {
   $("session-detail-count").textContent = (isPlank || isPulse) ? formatDuration(session.count * 1000)
     : isHolland ? hollandFormatCycles(Number(session.hollandCycles) || 0)
     : isChainOfPain ? chainOfPainFormatCycles(Number(session.chainOfPainCycles) || 0)
+    : isKettlebell ? formatNumber(Number(session.kettlebellVolumeLbs) || 0)
     : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isKettlebell ? `LB MOVED · ${(kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "KETTLEBELL").toUpperCase()}` : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
 
   const badgeHTML = (badge) => `<span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>`;
   const allBadges = sessionBadges(session);
@@ -6988,9 +7027,10 @@ async function shareSessionDetail() {
   const isSitup = session.type === "situp";
   const isHolland = session.type === "holland";
   const isChainOfPain = session.type === "chainofpain";
+  const isKettlebell = session.type === "kettlebell";
   const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isKettlebell ? `${formatNumber(Number(session.kettlebellVolumeLbs) || 0)} lb moved in ${kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "a kettlebell workout"}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const modifierBadge = sessionBadges(session).find((b) => b.id === "modifier");
   const rings = sessionRings(session, getAllSessionsForDisplay());
   const statRing = [rings.find((r) => r.id === "vsPrior"), rings.find((r) => r.id === "vsAvg")].find((r) => r?.hasData && r.diffPct != null);
@@ -7004,7 +7044,7 @@ async function shareSessionDetail() {
     dateText: formatDateTime(session.timestamp),
     statLine,
   });
-  const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isPulse ? "pulse" : (session.mode || "classic");
+  const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
   const url = modeShareUrl(modeId);
   if (navigator.share) {
     try { await navigator.share({ title: "Boys Pushup Bonanza", text: message, url }); } catch (e) { /* cancelled */ }
@@ -7208,8 +7248,10 @@ function paintDashboard(sessions) {
   const isHolland = state.activityType === "holland";
   const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
-  const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : Number(s.count) || 0);
-  const fmtCount = (n) => ((isPlank || isPulse) ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : formatNumber(n));
+  // Kettlebell ranks by volume (reps × weight), not self-reported reps.
+  const isKettlebell = state.activityType === "kettlebell";
+  const metricOf = (s) => (isHolland ? Number(s.hollandCycles) || 0 : isKettlebell ? Number(s.kettlebellVolumeLbs) || 0 : Number(s.count) || 0);
+  const fmtCount = (n) => ((isPlank || isPulse) ? formatDuration(n * 1000) : isHolland ? n.toFixed(1) : isKettlebell ? `${formatNumber(n)} lb` : formatNumber(n));
 
   const buckets = renderWeekChart(sessions, "boys-week-chart", "boys-week-trend", isPlank || isPulse, isHolland, chartBucketPeriod(state.dashboardPeriod), "boys-week-header", {
     selectedOffset: state.dashboardBucketOffset,
@@ -7382,7 +7424,7 @@ function renderRecentList(sessions) {
       </div>
       <div class="recent-count-col">
         ${modifierIcon}
-        <span class="recent-count">${(isPlank || isPulse) ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : formatNumber(s.count)}</span>
+        <span class="recent-count">${(isPlank || isPulse) ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : s.type === "kettlebell" ? `${formatNumber(Number(s.kettlebellVolumeLbs) || 0)} lb` : formatNumber(s.count)}</span>
       </div>
     `;
     makeNameCompareClickable(row.querySelector(".recent-name"), s.user, true);
@@ -7408,12 +7450,14 @@ function updateHistoryViewVisibility() {
 // independent of whichever activityType/leaderboardMode is currently
 // selected, since Mode history mixes every mode together.
 function sessionMetricValue(s) {
-  return sessionModeId(s) === "holland" ? Number(s.hollandCycles) || 0 : Number(s.count) || 0;
+  const modeId = sessionModeId(s);
+  return modeId === "holland" ? Number(s.hollandCycles) || 0 : modeId === "kettlebell" ? Number(s.kettlebellVolumeLbs) || 0 : Number(s.count) || 0;
 }
 
 function formatModeHistoryTotal(modeId, total) {
   if (modeId === "planks" || modeId === "pulse") return formatDuration(total * 1000);
   if (modeId === "holland") return total.toFixed(1);
+  if (modeId === "kettlebell") return `${formatNumber(total)} lb`;
   return formatNumber(total);
 }
 
@@ -14807,6 +14851,491 @@ async function completeSitup() {
 $("btn-situp-start").addEventListener("click", startSitup);
 $("btn-situp-cancel").addEventListener("click", stopSitupHard);
 $("btn-situp-stop").addEventListener("click", completeSitup);
+
+// ------------------- Kettlebell workouts -------------------
+// Timer-driven preset workouts with user-confirmed reps (see
+// docs/kettlebell-mode-plan.md). No camera: each set's countdown comes from
+// the target × the boy's learned pace, the rest screen prefills the
+// suggested reps for him to correct, and those actuals teach the pace model.
+// Pure rules live in modes/kettlebell.js; this is screens, timers, voice,
+// and the local per-user profile (last weight per exercise, learned paces,
+// "go heavier" nudges) — never synced, same as the weighted profiles.
+
+const KETTLEBELL_DEFAULT_WEIGHT_LBS = 20;
+const KETTLEBELL_GET_READY_SECONDS = 8;
+const KETTLEBELL_NEXT_CUE_SECONDS = 8;
+const KETTLEBELL_EMOJI = ["🏋️", "💪", "🔥", "🔔"];
+
+function getKettlebellProfiles() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS.kettlebellProfiles) || "{}");
+    return raw && typeof raw === "object" ? raw : {};
+  } catch (e) {
+    return {};
+  }
+}
+function getKettlebellProfile(user) {
+  const profile = getKettlebellProfiles()[user] || {};
+  return { weights: profile.weights || {}, paces: profile.paces || {}, nudges: profile.nudges || {} };
+}
+function saveKettlebellProfile(user, profile) {
+  const profiles = getKettlebellProfiles();
+  profiles[user] = profile;
+  try { localStorage.setItem(LS.kettlebellProfiles, JSON.stringify(profiles)); } catch (e) { /* storage full/blocked — best effort */ }
+}
+
+const kbState = {
+  workout: null,
+  sets: [],
+  index: 0,
+  stage: "idle", // "ready" | "active" | "rest" | "confirm" | "done"
+  stageStartedAt: 0,
+  stageEndsAt: 0,
+  stageSeconds: 0,
+  intervalId: null,
+  log: [],
+  startedAt: null,
+  weights: {},
+  paces: {},
+  nudges: {},
+  lastCueSecond: null,
+  switchCued: false,
+  nextCued: false,
+};
+
+function kbWeightFor(exerciseId) {
+  if (kettlebellExercise(exerciseId).bodyweight) return 0;
+  const saved = Number(kbState.weights[exerciseId]);
+  return Number.isFinite(saved) ? saved : KETTLEBELL_DEFAULT_WEIGHT_LBS;
+}
+function kbPaceForSet(set) {
+  return kettlebellPaceFor(kbState.paces, set.exerciseId, kbWeightFor(set.exerciseId));
+}
+
+function kettlebellSessionsForWorkout(user, workoutId) {
+  return getAllSessionsForDisplay()
+    .filter((s) => s.user === user && s.type === "kettlebell" && s.kettlebellWorkoutId === workoutId)
+    .sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a));
+}
+
+function openKettlebellPreview(workoutId) {
+  const workout = kettlebellWorkoutById(workoutId);
+  if (!workout) return;
+  const profile = getKettlebellProfile(state.currentUser);
+  kbState.workout = workout;
+  kbState.sets = kettlebellExpandSets(workout);
+  kbState.weights = { ...profile.weights };
+  kbState.paces = profile.paces;
+  kbState.nudges = profile.nudges;
+  renderKettlebellPreview();
+  guardLeaveWorkout(() => showScreen("screen-kettlebell-preview"));
+}
+
+function renderKettlebellPreview() {
+  const workout = kbState.workout;
+  if (!workout) return;
+  $("kettlebell-preview-title").textContent = `${workout.icon} ${workout.name}`;
+  const estimate = kettlebellEstimateSeconds(kbState.sets, kbPaceForSet);
+  const format = workout.format === "circuit" ? `Circuit × ${workout.rounds}` : workout.rounds > 1 ? `${workout.rounds} sets each` : "One pass";
+  const rest = workout.format === "circuit" && workout.roundRestSec !== workout.restSec
+    ? `${workout.restSec}s rest, ${workout.roundRestSec}s between rounds`
+    : `${workout.restSec}s rest`;
+  $("kettlebell-preview-meta").textContent = `${format} · ${rest} · ~${Math.max(1, Math.round(estimate / 60))} min`;
+  $("kettlebell-preview-list").innerHTML = workout.exercises.map((entry, index) => {
+    const exercise = kettlebellExercise(entry.exerciseId);
+    const set = kbState.sets.find((s) => s.exerciseIndex === index);
+    const seconds = kettlebellSetDurationSec(set, kbPaceForSet(set));
+    const sub = `${kettlebellTargetLabel(set)} · ${set.kind === "reps" ? "~" : ""}${seconds}s${exercise.bells === 2 ? " · 2 bells" : ""}`;
+    const weight = kbWeightFor(entry.exerciseId);
+    const nudge = Number(kbState.nudges[entry.exerciseId]);
+    const nudgeChip = !exercise.bodyweight && Number.isFinite(nudge) && nudge > weight
+      ? `<button type="button" class="kb-nudge" data-kb-nudge="${entry.exerciseId}" data-lbs="${nudge}">Try ${nudge} lb?</button>`
+      : "";
+    const weightControl = exercise.bodyweight
+      ? `<div class="kb-preview-bw">Bodyweight</div>`
+      : `<div class="kb-preview-weight">
+          <div class="stepper-row">
+            <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="-1" aria-label="Lighter ${escapeHtml(exercise.name)}">−</button>
+            <div class="stepper-value">${weight} lb</div>
+            <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="1" aria-label="Heavier ${escapeHtml(exercise.name)}">+</button>
+          </div>
+          ${nudgeChip}
+        </div>`;
+    return `<div class="kb-preview-row">
+      <div class="kb-preview-num">${index + 1}</div>
+      <div class="kb-preview-copy">
+        <div class="kb-preview-name">${escapeHtml(exercise.name)}</div>
+        <div class="kb-preview-sub">${escapeHtml(sub)}</div>
+      </div>
+      ${weightControl}
+    </div>`;
+  }).join("");
+  const history = kettlebellSessionsForWorkout(state.currentUser, workout.id);
+  const best = history.reduce((max, s) => Math.max(max, Number(s.kettlebellVolumeLbs) || 0), 0);
+  $("kettlebell-preview-best").innerHTML = history.length
+    ? `Best: <b>${formatNumber(best)} lb</b> moved · last: ${formatNumber(Number(history[0].kettlebellVolumeLbs) || 0)} lb`
+    : "First run — set your weights and go";
+}
+
+$("kettlebell-preview-list").addEventListener("click", (e) => {
+  const nudge = e.target.closest("[data-kb-nudge]");
+  if (nudge) {
+    kbState.weights[nudge.dataset.kbNudge] = Number(nudge.dataset.lbs);
+    renderKettlebellPreview();
+    return;
+  }
+  const btn = e.target.closest("[data-kb-weight]");
+  if (!btn) return;
+  const id = btn.dataset.kbWeight;
+  kbState.weights[id] = kettlebellStepWeight(kbWeightFor(id), Number(btn.dataset.dir));
+  renderKettlebellPreview();
+});
+$("btn-kettlebell-preview-back").addEventListener("click", () => showScreen("screen-explore-modes"));
+$("btn-kettlebell-start").addEventListener("click", startKettlebell);
+
+function kbShowStage(stage) {
+  kbState.stage = stage;
+  $("kettlebell-active-stage").classList.toggle("hidden", stage !== "active");
+  $("kettlebell-rest-stage").classList.toggle("hidden", stage !== "rest" && stage !== "ready" && stage !== "confirm");
+  $("kettlebell-done-stage").classList.toggle("hidden", stage !== "done");
+  $("btn-kettlebell-quit").classList.toggle("hidden", stage === "done");
+}
+
+function kbStartTimer(seconds) {
+  const now = Date.now();
+  kbState.stageStartedAt = now;
+  kbState.stageSeconds = seconds;
+  kbState.stageEndsAt = now + seconds * 1000;
+  kbState.lastCueSecond = null;
+  kbState.switchCued = false;
+  kbState.nextCued = false;
+  if (!kbState.intervalId) kbState.intervalId = setInterval(kbTick, 200);
+}
+
+function kbStopTimer() {
+  if (kbState.intervalId) clearInterval(kbState.intervalId);
+  kbState.intervalId = null;
+}
+
+function kbSpokenTarget(set) {
+  const exercise = kettlebellExercise(set.exerciseId);
+  if (set.kind === "hold") return `${exercise.spoken}. Hold it.`;
+  if (set.kind === "max") return `${exercise.spoken}. Max reps.`;
+  return `${exercise.spoken}. ${numberToWords(set.targetReps)}.`;
+}
+
+function kbNextUpLine(set) {
+  const roundPrefix = kbState.workout.format === "circuit" && kbState.workout.rounds > 1 && set.exerciseIndex === 0
+    ? `Round ${numberToWords(set.round)}. ` : "";
+  return `Next up. ${roundPrefix}${kbSpokenTarget(set)}`;
+}
+
+function kbRoundLabel(set) {
+  const workout = kbState.workout;
+  const position = `Set ${kbState.sets.indexOf(set) + 1} of ${kbState.sets.length}`;
+  return workout.format === "circuit" && workout.rounds > 1 ? `Round ${set.round} of ${workout.rounds} · ${position}` : position;
+}
+
+function kbNextLabel(set) {
+  const exercise = kettlebellExercise(set.exerciseId);
+  const weight = kbWeightFor(set.exerciseId);
+  return `Next: ${exercise.name} · ${kettlebellTargetLabel(set)}${weight ? ` · ${weight} lb` : ""}`;
+}
+
+async function startKettlebell() {
+  if (!kbState.workout) return;
+  if (soundIsEnabled()) unlockVoice();
+  // Wake lock before any countdown starts (see CLAUDE.md's startX() ordering
+  // note) — the screen dimming mid-rest would stall the timers' UI.
+  await acquireWakeLock();
+  const profile = getKettlebellProfile(state.currentUser);
+  profile.weights = { ...profile.weights, ...kbState.weights };
+  saveKettlebellProfile(state.currentUser, profile);
+  kbState.log = [];
+  kbState.index = 0;
+  kbState.startedAt = new Date();
+  state.kettlebellActive = true;
+  showScreen("screen-kettlebell-workout");
+  kbEnterReady();
+}
+
+// Lead-in before the first set: time to pick up the bell. Same screen as
+// rest, minus the rep stepper.
+function kbEnterReady() {
+  const next = kbState.sets[0];
+  kbShowStage("ready");
+  $("kettlebell-rest-stage").querySelector(".workout-eyebrow").textContent = "Get ready";
+  $("kettlebell-rest-done-name").textContent = "";
+  $("kettlebell-rest-reps").classList.add("hidden");
+  $("kettlebell-rest-hold").classList.add("hidden");
+  $("kettlebell-rest-next").textContent = kbNextLabel(next);
+  $("kettlebell-rest-next").classList.remove("hidden");
+  $("kettlebell-rest-timer").classList.remove("hidden");
+  $("btn-kettlebell-ready").textContent = "Start now";
+  kbStartTimer(KETTLEBELL_GET_READY_SECONDS);
+  kbState.nextCued = true;
+  speak(`Get ready. ${kbNextUpLine(next)}`);
+  kbRenderTimer();
+}
+
+function kbEnterActive() {
+  const set = kbState.sets[kbState.index];
+  const exercise = kettlebellExercise(set.exerciseId);
+  const weight = kbWeightFor(set.exerciseId);
+  kbShowStage("active");
+  $("kettlebell-active-round").textContent = kbRoundLabel(set);
+  $("kettlebell-active-name").textContent = exercise.name;
+  $("kettlebell-active-target").textContent = `${kettlebellTargetLabel(set)}${weight ? ` · ${weight} lb${exercise.bells === 2 ? " ×2" : ""}` : ""}`;
+  $("kettlebell-active-cue").textContent = set.perSide ? "Switch sides at halfway" : "";
+  $("btn-kettlebell-done-set").textContent = set.kind === "hold" ? "Done holding" : "Done";
+  kbStartTimer(kettlebellSetDurationSec(set, kbPaceForSet(set)));
+  speak("Go");
+  kbRenderTimer();
+}
+
+function kbCompleteActive(timedOut) {
+  if (kbState.stage !== "active") return;
+  const set = kbState.sets[kbState.index];
+  const elapsedSec = Math.min(kbState.stageSeconds, Math.max(1, Math.round((Date.now() - kbState.stageStartedAt) / 1000)));
+  const pace = kbPaceForSet(set);
+  const suggested = kettlebellSuggestedReps(set, pace);
+  kbState.log.push({
+    exerciseId: set.exerciseId,
+    round: set.round,
+    kind: set.kind,
+    targetReps: set.targetReps,
+    suggestedReps: suggested,
+    // Stopped early on a Max window → scale the estimate to the time used.
+    actualReps: set.kind === "hold" ? null : set.kind === "max" && !timedOut ? Math.max(0, Math.round(elapsedSec / pace)) : suggested,
+    weightLbs: kbWeightFor(set.exerciseId),
+    elapsedSec,
+    timedOut,
+  });
+  if (kbState.index >= kbState.sets.length - 1) kbEnterRest(0);
+  else kbEnterRest(set.restAfterSec);
+}
+
+// Rest (or the final confirm when seconds === 0): correct the just-finished
+// set's reps while the next set is previewed.
+function kbEnterRest(seconds) {
+  const last = kbState.log.at(-1);
+  const final = seconds <= 0;
+  const next = final ? null : kbState.sets[kbState.index + 1];
+  kbShowStage(final ? "confirm" : "rest");
+  $("kettlebell-rest-stage").querySelector(".workout-eyebrow").textContent = final ? "Last set done" : "Rest";
+  $("kettlebell-rest-done-name").textContent = kettlebellExercise(last.exerciseId).name;
+  const isHold = last.kind === "hold";
+  $("kettlebell-rest-reps").classList.toggle("hidden", isHold);
+  $("kettlebell-rest-hold").classList.toggle("hidden", !isHold);
+  $("kettlebell-rest-hold").textContent = isHold ? `Held ${kettlebellFormatClock(last.elapsedSec)}` : "";
+  $("kettlebell-reps-value").textContent = String(last.actualReps ?? 0);
+  $("kettlebell-rest-next").textContent = next ? kbNextLabel(next) : "";
+  $("kettlebell-rest-next").classList.toggle("hidden", !next);
+  $("kettlebell-rest-timer").classList.toggle("hidden", final);
+  $("btn-kettlebell-ready").textContent = final ? "Finish workout" : "Ready";
+  if (final) {
+    kbStopTimer();
+    return;
+  }
+  kbStartTimer(seconds);
+  if (seconds <= KETTLEBELL_NEXT_CUE_SECONDS) {
+    kbState.nextCued = true;
+    speak(`Rest. ${kbNextUpLine(next)}`);
+  } else {
+    speak("Rest");
+  }
+  kbRenderTimer();
+}
+
+function kbAdjustReps(delta) {
+  if (!["rest", "confirm"].includes(kbState.stage)) return;
+  const last = kbState.log.at(-1);
+  if (!last || last.kind === "hold") return;
+  last.actualReps = Math.max(0, Math.min(999, (last.actualReps || 0) + delta));
+  $("kettlebell-reps-value").textContent = String(last.actualReps);
+}
+
+// Commits the confirmed reps of the set that just finished into the pace
+// model (only once the boy has had his chance to correct them).
+function kbLearnFromLastSet() {
+  const last = kbState.log.at(-1);
+  if (!last || last.learned) return;
+  last.learned = true;
+  kbState.paces = kettlebellUpdatePace(kbState.paces, last);
+}
+
+function kbAdvance() {
+  if (kbState.stage === "ready") {
+    kbEnterActive();
+    return;
+  }
+  if (kbState.stage === "confirm") {
+    finishKettlebell();
+    return;
+  }
+  if (kbState.stage !== "rest") return;
+  kbLearnFromLastSet();
+  kbState.index += 1;
+  kbEnterActive();
+}
+
+function kbRenderTimer() {
+  const remaining = Math.max(0, (kbState.stageEndsAt - Date.now()) / 1000);
+  const text = kettlebellFormatClock(remaining);
+  if (kbState.stage === "active") $("kettlebell-active-timer").textContent = text;
+  else $("kettlebell-rest-timer").textContent = text;
+}
+
+function kbTick() {
+  if (!["ready", "active", "rest"].includes(kbState.stage)) return;
+  const now = Date.now();
+  kbRenderTimer();
+  const remainingSec = Math.ceil((kbState.stageEndsAt - now) / 1000);
+  if (now >= kbState.stageEndsAt) {
+    if (kbState.stage === "active") kbCompleteActive(true);
+    else kbAdvance();
+    return;
+  }
+  if (remainingSec === kbState.lastCueSecond) return;
+  kbState.lastCueSecond = remainingSec;
+  if (kbState.stage === "active") {
+    const set = kbState.sets[kbState.index];
+    if (set.perSide && !kbState.switchCued && now - kbState.stageStartedAt >= kbState.stageSeconds * 500) {
+      kbState.switchCued = true;
+      $("kettlebell-active-cue").textContent = "Switch sides!";
+      speak("Switch sides");
+      return;
+    }
+  }
+  if (kbState.stage === "rest" && !kbState.nextCued && remainingSec <= KETTLEBELL_NEXT_CUE_SECONDS) {
+    kbState.nextCued = true;
+    speak(kbNextUpLine(kbState.sets[kbState.index + 1]));
+    return;
+  }
+  if (remainingSec >= 1 && remainingSec <= 3) speak(numberToWords(remainingSec));
+}
+
+function stopKettlebellHard() {
+  kbStopTimer();
+  releaseWakeLock();
+  state.kettlebellActive = false;
+  kbState.stage = "idle";
+  kbShowStage("idle");
+  setChromeMinimized(false);
+}
+
+$("btn-kettlebell-done-set").addEventListener("click", () => kbCompleteActive(false));
+$("btn-kettlebell-ready").addEventListener("click", kbAdvance);
+$("btn-kettlebell-reps-minus").addEventListener("click", () => kbAdjustReps(-1));
+$("btn-kettlebell-reps-plus").addEventListener("click", () => kbAdjustReps(1));
+$("btn-kettlebell-quit").addEventListener("click", () => {
+  if (!state.kettlebellActive) return;
+  const hasSets = kbState.log.length > 0;
+  const ok = confirm(hasSets ? "End the workout now? Your finished sets will be saved." : "End the workout now? Nothing has been logged yet.");
+  if (!ok) return;
+  if (hasSets) finishKettlebell();
+  else stopKettlebellHard();
+});
+$("btn-kettlebell-done-home").addEventListener("click", () => {
+  kbShowStage("idle");
+  selectLeaderboardMode("kettlebell");
+  goToDashboard("mine");
+});
+
+async function finishKettlebell() {
+  kbLearnFromLastSet();
+  kbStopTimer();
+  await releaseWakeLock();
+  state.kettlebellActive = false;
+  setChromeMinimized(false);
+
+  const workout = kbState.workout;
+  const log = kbState.log.map(({ learned, timedOut, ...set }) => set);
+  const previous = kettlebellSessionsForWorkout(state.currentUser, workout.id);
+
+  // Persist what this run taught: paces, and "+5 lb next time" nudges for
+  // exercises where every set hit its target (cleared for the ones that didn't).
+  const profile = getKettlebellProfile(state.currentUser);
+  profile.paces = kbState.paces;
+  const nudges = kettlebellNudges(log);
+  const nextNudges = { ...profile.nudges };
+  for (const entry of workout.exercises) delete nextNudges[entry.exerciseId];
+  profile.nudges = { ...nextNudges, ...nudges };
+  saveKettlebellProfile(state.currentUser, profile);
+
+  const totals = kettlebellTotals(log);
+  kbShowStage("done");
+  $("kettlebell-sync-status").textContent = "";
+  if (totals.reps <= 0) {
+    $("kettlebell-done-volume").textContent = "0";
+    $("kettlebell-done-meta").textContent = "No reps logged, so nothing was saved.";
+    $("kettlebell-done-pb").classList.add("hidden");
+    $("kettlebell-done-table").innerHTML = "";
+    return;
+  }
+
+  const finishedAt = new Date();
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: finishedAt.toISOString(),
+    avatar: state.currentAvatar,
+    startedAt: kbState.startedAt ? kbState.startedAt.toISOString() : undefined,
+    // No location: self-reported reps stay out of Roadtrip territory totals,
+    // same as they stay out of every other rep total.
+    ...kettlebellBuildSession({ workout, setLog: log, startedAt: kbState.startedAt, finishedAt }),
+  };
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+  state.lastSessionType = "kettlebell";
+
+  renderKettlebellDone(session, log, previous);
+  launchConfetti("kettlebell-confetti", KETTLEBELL_EMOJI);
+  speak(totals.volumeLbs > 0 ? KETTLEBELL_FINISH_LINE(numberToWords(totals.volumeLbs)) : KETTLEBELL_FINISH_NO_WEIGHT_LINE);
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("kettlebell-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+function renderKettlebellDone(session, log, previous) {
+  const volume = session.kettlebellVolumeLbs;
+  const hasVolume = volume > 0;
+  $("kettlebell-done-volume").textContent = hasVolume ? formatNumber(volume) : formatNumber(session.count);
+  $("kettlebell-done-volume-label").textContent = hasVolume ? "lb moved" : "reps";
+  const bestBefore = previous.reduce((max, s) => Math.max(max, Number(s.kettlebellVolumeLbs) || 0), 0);
+  $("kettlebell-done-pb").classList.toggle("hidden", !(previous.length && hasVolume && volume > bestBefore));
+  $("kettlebell-done-meta").textContent = `${kbState.workout.name} · ${formatNumber(session.count)} reps · ${formatDuration(session.kettlebellDurationSeconds * 1000)}`;
+  const prevRows = previous.length ? kettlebellExerciseRollup(kettlebellDecodeSets(previous[0].kettlebellSets)) : [];
+  $("kettlebell-done-table").innerHTML = kettlebellExerciseRollup(log).map((row) => {
+    const exercise = kettlebellExercise(row.exerciseId);
+    const prev = prevRows.find((r) => r.exerciseId === row.exerciseId);
+    const stat = row.kind === "hold" ? kettlebellFormatClock(row.holdSec) : `${row.reps} reps`;
+    const weight = row.weightLbs ? ` · ${row.weightLbs} lb${exercise.bells === 2 ? " ×2" : ""}` : "";
+    let delta = "";
+    let direction = "";
+    if (prev) {
+      const weightDiff = row.weightLbs - prev.weightLbs;
+      const diff = weightDiff !== 0 ? weightDiff : row.kind === "hold" ? row.holdSec - prev.holdSec : row.reps - prev.reps;
+      const unit = weightDiff !== 0 ? " lb" : row.kind === "hold" ? "s" : "";
+      if (diff !== 0) {
+        direction = diff > 0 ? "up" : "down";
+        delta = `${diff > 0 ? "▲" : "▼"}${Math.abs(diff)}${unit}`;
+      } else {
+        delta = "=";
+      }
+    }
+    return `<div class="kb-done-row">
+      <div><div class="kb-done-name">${escapeHtml(exercise.name)}</div><div class="kb-preview-sub">${row.sets} set${row.sets === 1 ? "" : "s"}${escapeHtml(weight)}</div></div>
+      <div class="kb-done-stat">${stat}</div>
+      <div class="kb-done-delta ${direction}">${delta}</div>
+    </div>`;
+  }).join("");
+}
 
 // ------------------- Recap -------------------
 
