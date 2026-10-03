@@ -5366,22 +5366,30 @@ body:has(#screen-challenge-detail.active) #app {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.6);
-  padding: 1.4rem;
+  padding: calc(1.4rem + env(safe-area-inset-top)) 1.4rem calc(1.4rem + env(safe-area-inset-bottom));
 }
 .recap-card {
   --recap-tile-min-h: 4.6rem;
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 24rem;
-  max-height: min(92vh, 46rem);
-  overflow-y: auto;
-  padding: 1.5rem 1.3rem calc(1.4rem + env(safe-area-inset-bottom));
+  max-height: min(100%, 46rem);
+  overflow: hidden;
+  padding: 1.5rem 1.3rem 1.4rem;
   border-radius: 28px;
   background: linear-gradient(165deg, var(--recap-grad-from) 0%, var(--recap-grad-via) 55%, var(--recap-grad-to) 100%);
   color: var(--recap-text);
   text-align: center;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
 }
+.recap-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.recap-actions { flex: none; }
 .recap-week {
   --recap-grad-from: #e8853f; --recap-grad-via: #d9642a; --recap-grad-to: #a83f1c;
   --recap-text: #ffffff; --recap-tile-bg: rgba(255, 255, 255, 0.16); --recap-tile-bg-2: rgba(255, 255, 255, 0.1);
