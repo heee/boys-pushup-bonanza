@@ -5886,8 +5886,9 @@ body:has(#screen-challenge-detail.active) #app {
 .workout-instructions:empty { display: none; }
 
 /* Stroke mode icons (screens/mode-icons.js) in Explore Modes + Home picker. */
-.explore-mode-icon.is-stroke { color: var(--primary); }
-.explore-mode-icon.is-stroke svg { width: 22px; height: 22px; display: block; }
+/* Flat like the Settings category icons — no tile behind the stroke. */
+.explore-mode-icon.is-stroke { color: var(--primary); background: none; width: 1.6rem; height: 1.6rem; }
+.explore-mode-icon.is-stroke svg { width: 1.4rem; height: 1.4rem; display: block; }
 .explore-mode-row.disabled .explore-mode-icon.is-stroke { color: var(--text-dim); }
 .pmode-icon { display: inline-flex; vertical-align: -0.2em; margin-right: 0.3em; }
 .pmode-icon svg { width: 1.1em; height: 1.1em; }
