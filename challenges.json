@@ -491,34 +491,6 @@
       ]
     },
     {
-      "id": "king-hill-2026-10-05",
-      "title": "King of the Hill",
-      "emoji": "⛰️",
-      "tagline": "The Hill = 5,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
-      "start": "2026-10-05",
-      "end": "2026-10-11",
-      "goalType": "collective",
-      "goal": 5000,
-      "gradient": [
-        "#4a3a2e",
-        "#8a9a6e"
-      ]
-    },
-    {
-      "id": "king-hill-2026-10-12",
-      "title": "King of the Hill",
-      "emoji": "⛰️",
-      "tagline": "The Hill = 5,000 pushups. Everyone in the group throws reps at the same weekly mountain.",
-      "start": "2026-10-12",
-      "end": "2026-10-18",
-      "goalType": "collective",
-      "goal": 5000,
-      "gradient": [
-        "#4a3a2e",
-        "#8a9a6e"
-      ]
-    },
-    {
       "id": "king-hill-2026-10-19",
       "title": "King of the Hill",
       "emoji": "⛰️",
@@ -1466,19 +1438,6 @@
       ]
     },
     {
-      "id": "pr-week-2026-10-12",
-      "title": "New Max Monday",
-      "emoji": "📈",
-      "tagline": "One set, one shot — top your own number before Sunday.",
-      "start": "2026-10-12",
-      "end": "2026-10-18",
-      "goalType": "pr",
-      "gradient": [
-        "#4a2e6b",
-        "#f2c94c"
-      ]
-    },
-    {
       "id": "pr-week-2026-10-26",
       "title": "New Max Monday",
       "emoji": "📈",
@@ -1927,19 +1886,6 @@
       "tagline": "No reps, just resolve. Longest single hold and cumulative time decide the champion.",
       "start": "2026-09-21",
       "end": "2026-09-27",
-      "goalType": "plankGauntlet",
-      "gradient": [
-        "#2e3a4a",
-        "#7a8ca8"
-      ]
-    },
-    {
-      "id": "plank-gauntlet-2026-10-05",
-      "title": "Plank Gauntlet",
-      "emoji": "🪵",
-      "tagline": "Two ways to win: one brutal hold, or a pile of shorter ones. Bring both.",
-      "start": "2026-10-05",
-      "end": "2026-10-11",
       "goalType": "plankGauntlet",
       "gradient": [
         "#2e3a4a",
@@ -2398,20 +2344,6 @@
       "tagline": "One rep further than last time is all it takes. Go find it.",
       "start": "2026-09-21",
       "end": "2026-09-27",
-      "goalType": "pr",
-      "activity": "squats",
-      "gradient": [
-        "#2e4a3a",
-        "#f2c94c"
-      ]
-    },
-    {
-      "id": "squat-pr-week-2026-10-05",
-      "title": "Squat Max Monday",
-      "emoji": "🦵",
-      "tagline": "Your old squat max is now just a starting line.",
-      "start": "2026-10-05",
-      "end": "2026-10-11",
       "goalType": "pr",
       "activity": "squats",
       "gradient": [
@@ -3114,20 +3046,6 @@
       "tagline": "One set, one shot — top your own crunch number before Sunday.",
       "start": "2026-09-21",
       "end": "2026-09-27",
-      "goalType": "pr",
-      "activity": "situps",
-      "gradient": [
-        "#5e1f2e",
-        "#f2c94c"
-      ]
-    },
-    {
-      "id": "ab-attack-2026-10-05",
-      "title": "Ab Attack Monday",
-      "emoji": "🥊",
-      "tagline": "One set, one shot — top your own crunch number before Sunday.",
-      "start": "2026-10-05",
-      "end": "2026-10-11",
       "goalType": "pr",
       "activity": "situps",
       "gradient": [
