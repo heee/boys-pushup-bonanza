@@ -5946,3 +5946,6 @@ body:has(#screen-challenge-detail.active) #app {
 @media (max-height: 700px) { .poker-hand-seven .poker-card { width: min(21vw, 5.8rem); } }
 .poker-card.scoring { z-index: 5; transform: translateX(calc(-50% + var(--poker-x))) translateY(-.5rem) rotate(var(--poker-rotate)); filter: drop-shadow(0 0 .4rem color-mix(in srgb, var(--gold) 70%, transparent)) drop-shadow(0 .45rem .5rem rgba(0,0,0,.5)); }
 .poker-card.unused { opacity: .28; filter: grayscale(.6); }
+
+/* Royal Flush Rush: the Royal Flush row is a bonus, not part of the set. */
+.poker-hand-bonus { display: inline-block; margin-left: 0.35rem; padding: 0.05rem 0.4rem; border: 1px solid var(--gold); border-radius: 999px; color: var(--gold); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: 0.1em; }

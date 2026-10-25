@@ -67,8 +67,10 @@ test("collection rows/handsCollected/isFullSet reflect per-rank counts", () => {
   const sessions = POKER_COLLECTION_RANKS.map((rank) => session("A", [rank]));
   const rows = pokerCollectionRowsForUser(sessions, "A", window, timestampOf);
   assert.equal(rows.length, 9);
-  assert.equal(pokerCollectionHandsCollected(rows), 9);
+  assert.equal(pokerCollectionHandsCollected(rows), 8); // Royal Flush is a bonus, not counted
   assert.equal(pokerCollectionIsFullSet(rows), true);
+  const noRoyal = pokerCollectionRowsForUser(sessions.slice(0, 8), "A", window, timestampOf);
+  assert.equal(pokerCollectionIsFullSet(noRoyal), true); // Pair..Straight Flush finishes the set
 
   const partial = pokerCollectionRowsForUser(sessions.slice(0, 3), "A", window, timestampOf);
   assert.equal(pokerCollectionHandsCollected(partial), 3);
@@ -95,11 +97,17 @@ test("pokerCollectionWinners: full-set finishers are tiebroken by premium hand v
   assert.deepEqual(result.winners, ["B"]);
 });
 
+test("pokerCollectionWinners: a Royal Flush bonus beats premium volume among finishers", () => {
+  const set = [1, 2, 3, 4, 5, 6, 7, 8];
+  const sessions = [session("A", [...set, 9]), session("B", [...set, 8, 8, 8, 7])];
+  assert.deepEqual(pokerCollectionWinners(["A", "B"], sessions, window, timestampOf).winners, ["A"]);
+});
+
 test("pokerCollectionWinners: no finisher falls back to most hands collected, tiebroken by premium", () => {
-  const sessions = [session("A", [1, 2, 3]), session("B", [1, 2, 9, 9])];
+  const sessions = [session("A", [1, 2, 3]), session("B", [1, 2, 8, 8])];
   const result = pokerCollectionWinners(["A", "B"], sessions, window, timestampOf);
   assert.equal(result.mode, "handsTiebreak");
-  // both collected 3 distinct hands; B logged an extra premium (rank-9) occurrence
+  // both collected 3 distinct hands; B logged an extra premium (rank-8) occurrence
   assert.deepEqual(result.winners, ["B"]);
 
   const nobody = pokerCollectionWinners(["A", "B"], [], window, timestampOf);

@@ -15,9 +15,14 @@ import { POKER_HANDS } from "../poker.js";
 
 const CYCLE_DAYS = 14;
 
-// The collectible set for a cycle: every real winning hand, Pair through
-// Royal Flush. Rank 0 (High Card) isn't actually a win, so it's excluded.
+// Every winning hand shown in the collection, Pair through Royal Flush.
+// Rank 0 (High Card) isn't actually a win, so it's excluded. The set to
+// finish is Pair → Straight Flush (8 hands); Royal Flush is a bonus — too
+// rare to require (~1 in 30,000 hands even with Poker's best-5-of-7 deal),
+// but it outranks premium volume when breaking ties.
 export const POKER_COLLECTION_RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+export const POKER_BONUS_RANK = 9;
+export const POKER_SET_SIZE = POKER_COLLECTION_RANKS.length - 1;
 
 // A fixed, illustrative 5-card example per hand for the detail list's card
 // art — flavor art showing what the hand looks like, not tied to any real
@@ -102,15 +107,21 @@ export function pokerCollectionRowsForUser(sessions, userName, window, timestamp
     cards: POKER_HAND_EXAMPLES[rank],
     count: counts[rank],
     done: counts[rank] > 0,
+    bonus: rank === POKER_BONUS_RANK,
   }));
 }
 
+// Required hands collected (0..POKER_SET_SIZE) — the bonus never counts.
 export function pokerCollectionHandsCollected(rows) {
-  return rows.filter((r) => r.done).length;
+  return rows.filter((r) => r.done && !r.bonus).length;
 }
 
 export function pokerCollectionIsFullSet(rows) {
-  return rows.every((r) => r.done);
+  return rows.filter((r) => !r.bonus).every((r) => r.done);
+}
+
+export function pokerCollectionHasBonus(rows) {
+  return rows.some((r) => r.bonus && r.done);
 }
 
 // Volume tiebreak: total premium (Two Pair or better) hands logged
@@ -126,27 +137,31 @@ export function pokerCollectionLeaderboard(participants, sessions, window, times
   return participants
     .map((name) => {
       const rows = pokerCollectionRowsForUser(sessions, name, window, timestampOf);
-      return { name, hands: pokerCollectionHandsCollected(rows), fullSet: pokerCollectionIsFullSet(rows), premium: premiumHandCount(sessions, name, window, timestampOf) };
+      return { name, hands: pokerCollectionHandsCollected(rows), fullSet: pokerCollectionIsFullSet(rows), bonus: pokerCollectionHasBonus(rows), premium: premiumHandCount(sessions, name, window, timestampOf) };
     })
-    .sort((a, b) => b.hands - a.hands || b.premium - a.premium);
+    .sort((a, b) => b.hands - a.hands || Number(b.bonus) - Number(a.bonus) || b.premium - a.premium);
 }
 
 // Cycle-end result: who won and how.
-//  - One or more participants collected the full 9-hand set: among just
-//    those finishers, most total premium hands logged wins (ties share).
+//  - One or more participants collected the full 8-hand set: among just
+//    those finishers, a Royal Flush (bonus) wins first, then most total
+//    premium hands logged (ties share).
 //  - Nobody finished: most hands collected wins; a tie at the max count is
-//    broken by premium hand volume among just the tied participants.
+//    broken by the bonus, then premium hand volume, among just the tied.
 export function pokerCollectionWinners(participants, sessions, window, timestampOf) {
   const standings = participants.map((name) => {
     const rows = pokerCollectionRowsForUser(sessions, name, window, timestampOf);
-    return { name, hands: pokerCollectionHandsCollected(rows), fullSet: pokerCollectionIsFullSet(rows), premium: premiumHandCount(sessions, name, window, timestampOf) };
+    return { name, hands: pokerCollectionHandsCollected(rows), fullSet: pokerCollectionIsFullSet(rows), bonus: pokerCollectionHasBonus(rows), premium: premiumHandCount(sessions, name, window, timestampOf) };
   });
+  // Narrows a group to its bonus holders when any of them has one.
+  const preferBonus = (group) => (group.some((s) => s.bonus) ? group.filter((s) => s.bonus) : group);
   if (!standings.length) return { winners: [], premium: {}, finishers: [], mode: "none" };
 
   const finishers = standings.filter((s) => s.fullSet);
   if (finishers.length) {
-    const maxPremium = Math.max(...finishers.map((f) => f.premium));
-    const winners = finishers.filter((f) => f.premium === maxPremium).map((f) => f.name);
+    const contenders = preferBonus(finishers);
+    const maxPremium = Math.max(...contenders.map((f) => f.premium));
+    const winners = contenders.filter((f) => f.premium === maxPremium).map((f) => f.name);
     return { winners, premium: Object.fromEntries(finishers.map((f) => [f.name, f.premium])), finishers: finishers.map((f) => f.name), mode: "premium" };
   }
 
@@ -155,7 +170,8 @@ export function pokerCollectionWinners(participants, sessions, window, timestamp
   const top = standings.filter((s) => s.hands === maxHands);
   if (top.length === 1) return { winners: [top[0].name], premium: {}, finishers: [], mode: "hands" };
 
-  const maxPremium = Math.max(...top.map((t) => t.premium));
-  const winners = top.filter((t) => t.premium === maxPremium).map((t) => t.name);
+  const contenders = preferBonus(top);
+  const maxPremium = Math.max(...contenders.map((t) => t.premium));
+  const winners = contenders.filter((t) => t.premium === maxPremium).map((t) => t.name);
   return { winners, premium: Object.fromEntries(top.map((t) => [t.name, t.premium])), finishers: [], mode: "handsTiebreak" };
 }

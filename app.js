@@ -120,7 +120,7 @@ import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=6";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
-import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES } from "./screens/poker-collection.js?v=1";
+import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_SET_SIZE } from "./screens/poker-collection.js?v=2";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=150";
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=2";
@@ -8163,7 +8163,7 @@ async function sharePokerCollectionInvite(cycleId) {
   const cycle = pokerCollectionCycleById(cycleId);
   if (!cycle) return;
   const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const message = `Royal Flush Rush is live ♠️ Collect all 9 winning poker hands by ${fmt(cycle.endDate)} — join the boys!`;
+  const message = `Royal Flush Rush is live ♠️ Collect all ${POKER_SET_SIZE} winning poker hands by ${fmt(cycle.endDate)} (Royal Flush is a bonus) — join the boys!`;
   const url = `${location.origin}${location.pathname}#challenge=${cycle.id}`;
   await shareViaSheetOrClipboard(message, url);
 }
@@ -9119,7 +9119,7 @@ function buildPokerCollectionCard(cycle, now) {
       winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${result.winners.map(escapeHtml).join(" & ")}</span>`;
     }
   } else {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · 9-hand set`;
+    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${POKER_SET_SIZE}-hand set + Royal bonus`;
   }
 
   let html = `
@@ -9137,8 +9137,8 @@ function buildPokerCollectionCard(cycle, now) {
     const sessions = pokerCollectionSessionsForCycle(cycle, participants);
     const rows = pokerCollectionRowsForUser(sessions, state.currentUser, cycle, sessionTimestamp);
     const myHands = pokerCollectionHandsCollected(rows);
-    const progressLabel = `${myHands} of 9 hands`;
-    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="9" aria-valuenow="${myHands}">${buildProgressThermometer(myHands, 9)}</div>`;
+    const progressLabel = `${myHands} of ${POKER_SET_SIZE} hands`;
+    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="${POKER_SET_SIZE}" aria-valuenow="${myHands}">${buildProgressThermometer(myHands, POKER_SET_SIZE)}</div>`;
   }
 
   if (status !== "past" && joined) {
@@ -9183,7 +9183,7 @@ function pokerHandRowHTML(row) {
     <button type="button" class="poker-hand-row${row.done ? " poker-hand-row-done" : " poker-hand-row-empty"}">
       <div class="poker-hand-mini-cards">${cardsHTML}</div>
       <div class="poker-hand-info">
-        <div class="poker-hand-name">${escapeHtml(row.label)}</div>
+        <div class="poker-hand-name">${escapeHtml(row.label)}${row.bonus ? ' <span class="poker-hand-bonus">Bonus</span>' : ""}</div>
         <div class="poker-hand-count">${row.count === 0 ? "Not yet" : `${row.count}×`}</div>
       </div>
     </button>
@@ -9220,7 +9220,7 @@ function renderPokerCollectionDetail() {
     <div class="challenge-hero" style="background: linear-gradient(135deg, #2e6b4a, #f2c94c)">
       <div class="challenge-hero-emoji is-stroke">${modeIconSvg("poker")}</div>
       <div class="challenge-hero-title">Royal Flush Rush</div>
-      <div class="challenge-hero-tagline">Collect all 9 winning poker hands in Poker mode before the cycle ends. Tap a hand to go chase it.</div>
+      <div class="challenge-hero-tagline">Collect all ${POKER_SET_SIZE} winning hands, Pair to Straight Flush, in Poker mode before the cycle ends. A Royal Flush is a bonus that wins ties. Tap a hand to go chase it.</div>
       <div class="challenge-hero-dates">${dateRange} <span class="challenge-status-chip">${statusLabel}</span></div>
     </div>
   `;
@@ -9231,14 +9231,14 @@ function renderPokerCollectionDetail() {
 
   const myRows = joined
     ? pokerCollectionRowsForUser(sessions, state.currentUser, cycle, sessionTimestamp)
-    : POKER_COLLECTION_RANKS.map((rank) => ({ rank, label: POKER_HANDS[rank], cards: POKER_HAND_EXAMPLES[rank], count: 0, done: false }));
+    : POKER_COLLECTION_RANKS.map((rank) => ({ rank, label: POKER_HANDS[rank], cards: POKER_HAND_EXAMPLES[rank], count: 0, done: false, bonus: rank === POKER_BONUS_RANK }));
 
   if (joined) {
     const myHands = pokerCollectionHandsCollected(myRows);
     html += `
       <div class="challenge-progress-card">
-        <div class="challenge-progress-label">${myHands} / 9 hands · ${statusLabel}</div>
-        ${buildProgressThermometer(myHands, 9)}
+        <div class="challenge-progress-label">${myHands} / ${POKER_SET_SIZE} hands${pokerCollectionHasBonus(myRows) ? " + Royal Flush bonus" : ""} · ${statusLabel}</div>
+        ${buildProgressThermometer(myHands, POKER_SET_SIZE)}
       </div>
     `;
   }
@@ -9283,7 +9283,7 @@ function renderPokerCollectionDetail() {
         <div class="leaderboard-rank">${index + 1}</div>
         ${avatarCircleHTML(avatarForUser(row.name), "1.8rem")}
         <div class="leaderboard-name">${escapeHtml(row.name)}</div>
-        <div class="leaderboard-total">${row.hands}/9${row.fullSet ? " ✓" : ""}</div>
+        <div class="leaderboard-total">${row.hands}/${POKER_SET_SIZE}${row.fullSet ? " ✓" : ""}${row.bonus ? " + Royal" : ""}</div>
       `;
       makeNameCompareClickable(rowEl.querySelector(".leaderboard-name"), row.name);
       el.appendChild(rowEl);
