@@ -7904,14 +7904,18 @@ async function renderChallengesScreen() {
 function paintChallengeList() {
   const now = new Date();
   const tab = state.challengeTab;
-  const list = challengeDefs.filter((c) => challengeStatus(c, now) === tab);
+  // Past challenges nobody joined are dead entries — leave them off the list.
+  const list = challengeDefs.filter((c) => challengeStatus(c, now) === tab && (tab !== "past" || challengeParticipantsOf(c).length > 0));
   if (tab === "active") list.sort((a, b) => daysLeft(a, now) - daysLeft(b, now));
   else if (tab === "upcoming") list.sort((a, b) => daysUntilStart(a, now) - daysUntilStart(b, now));
   else list.sort((a, b) => challengeWindow(b).endDate - challengeWindow(a).endDate);
 
   const el = $("challenge-list");
   el.innerHTML = "";
-  const derived = derivedChallengeForTab(tab, now);
+  const derivedCandidate = derivedChallengeForTab(tab, now);
+  const derived = derivedCandidate && tab === "past" && !(getCachedData().challengeParticipants[derivedCandidate.cycle.id] || []).length
+    ? null
+    : derivedCandidate;
   if (!list.length && !derived) {
     const msg = tab === "active"
       ? "No challenge running right now — check Upcoming."
