@@ -2784,17 +2784,23 @@ function selectHomeMode(type, modeId) {
 
 const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "situps", "planks"]);
 
+// Each Home selector segment: small caption over the current value, so
+// Type | Mode | Modifier fit side by side in one row.
+function homeSelectorHTML(caption, value, icon = "") {
+  return `<span class="pmode-cap">${caption}</span><span class="pmode-val">${icon ? `<span class="pmode-icon" aria-hidden="true">${icon}</span>` : ""}<span class="pmode-val-text">${escapeHtml(value)}</span></span>`;
+}
+
 function renderPushupModePicker() {
   const type = workoutTypeById(state.homeType);
-  $("home-type-title").textContent = type.title;
-  $("home-type-icon").innerHTML = typeIconSvg(type.id);
+  $("home-type-btn").innerHTML = homeSelectorHTML("Type", type.title, typeIconSvg(type.id));
+  $("home-type-btn").title = type.title;
   const current = $("pmode-mode");
   const single = SINGLE_MODE_TYPES.has(type.id);
   const selected = single ? null : EXPLORE_MODES.find((mode) => mode.id === state.homeMode);
-  const compactTitles = { dice: "Dice", wheel: "Wheel", chase: "Chase", poker: "Poker", zen: "Zen", holland: "Holland", cock: "Cock" };
+  const compactTitles = { dice: "Dice", wheel: "Wheel", chase: "Chase", poker: "Poker", zen: "Zen", holland: "Holland", cock: "Cock", chainofpain: "Chain" };
   const selectedTitle = selected ? (compactTitles[selected.id] || selected.title) : "Classic";
   const icon = !selected || selected.id === "classic" ? "" : modeIconSvg(selected.id);
-  current.innerHTML = `Mode: ${icon ? `<span class="pmode-icon" aria-hidden="true">${icon}</span>` : ""}${escapeHtml(selectedTitle)}`;
+  current.innerHTML = homeSelectorHTML("Mode", selectedTitle, icon);
   current.title = selected?.title || "Classic";
   current.classList.toggle("segment-disabled", single);
   current.setAttribute("aria-disabled", String(single));
@@ -2838,7 +2844,7 @@ function renderModifierSlot() {
   const picked = state.modifier ? MODIFIERS.find((m) => m.id === state.modifier) : null;
   // Grips only apply to pushups, so other types show a locked "No modifier".
   const notPushups = state.homeType !== "pushups";
-  btn.textContent = picked && !notPushups ? `Modifier: ${picked.icon} ${picked.title}` : "No modifier";
+  btn.innerHTML = homeSelectorHTML("Modifier", picked && !notPushups ? `${picked.icon} ${picked.title}` : "None");
   btn.classList.toggle("active", !!picked && !notPushups);
   const disabled = notPushups || state.pushupMode === "zen";
   btn.classList.toggle("segment-disabled", disabled);

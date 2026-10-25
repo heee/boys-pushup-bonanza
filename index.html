@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=316">
+<link rel="stylesheet" href="style.css?v=317">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -88,12 +88,8 @@
         <p id="workout-instructions" class="workout-instructions">Phone flat on the floor, screen up. Face over the camera.</p>
 
         <button id="btn-weighted-quick" type="button" class="weighted-quick-toggle hidden">🏋️ Weighted mode off</button>
-        <button id="home-type-btn" type="button" class="home-type-btn" aria-haspopup="true">
-          <span id="home-type-icon" class="home-type-icon" aria-hidden="true"></span>
-          <span class="home-type-label">Type: <span id="home-type-title">Pushups</span></span>
-          <span class="home-type-chev" aria-hidden="true">›</span>
-        </button>
         <div id="pushup-mode-select" class="segmented pushup-mode-select" role="tablist">
+          <button type="button" class="segment active" id="home-type-btn" aria-haspopup="true"></button>
           <button type="button" class="segment active" id="pmode-mode">Mode: Classic</button>
           <button type="button" class="segment pmode-modifier" id="pmode-modifier"></button>
         </div>
@@ -2121,6 +2117,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=332"></script>
+<script type="module" src="app.js?v=333"></script>
 </body>
 </html>
