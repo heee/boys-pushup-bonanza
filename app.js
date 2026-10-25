@@ -2880,6 +2880,7 @@ $("pmode-modifier").addEventListener("click", () => {
 });
 
 $("pmode-mode").addEventListener("click", () => {
+  modePickerOrigin = "home";
   showScreen("screen-explore-modes");
 });
 
@@ -2890,12 +2891,18 @@ $("pmode-mode").addEventListener("click", () => {
 // beating that personal best), so it's gated dynamically in
 // renderExploreModesScreen rather than being statically "live" here.
 let chaseAvailabilityRequest = 0;
+// "home" = picking Home's Mode (selection only); "games" = Games tab's Start,
+// limited to the multiplayer games and opening them directly.
+let modePickerOrigin = "home";
+const GAMES_PICKER_MODES = new Set(["horse", "tow"]);
 function renderExploreModesScreen(refresh = true) {
   const list = $("explore-modes-list");
   const hasPR = getHighScore(state.currentUser) >= 1;
   const pulseUnlock = pulseUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
   const cockUnlock = cockUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
-  const items = modePickerModel(state.homeType, { sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock });
+  const fromGames = modePickerOrigin === "games";
+  const items = modePickerModel(fromGames ? "pushups" : state.homeType, { sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock })
+    .filter((item) => !fromGames || GAMES_PICKER_MODES.has(item.mode.id));
   let lastSection = null;
   list.innerHTML = items.map((item) => {
     const m = item.mode;
@@ -2905,7 +2912,7 @@ function renderExploreModesScreen(refresh = true) {
       : `<span class="explore-mode-soon">${item.status}</span>`;
     const header = item.sectionLabel !== lastSection ? `<p class="explore-mode-section-label">${escapeHtml(item.sectionLabel)}</p>` : "";
     lastSection = item.sectionLabel;
-    const selected = m.id === state.homeMode;
+    const selected = !fromGames && m.id === state.homeMode;
     return `
     ${header}
     <div class="explore-mode-row${live ? "" : " disabled"}${selected ? " selected" : ""}" data-explore-mode="${m.id}">
@@ -3226,6 +3233,10 @@ $("explore-modes-list").addEventListener("click", async (e) => {
       toast("You’re leading every board. Disgusting behavior.", 3500);
       return;
     }
+  }
+  if (modePickerOrigin === "games") {
+    openExploreMode(modeId);
+    return;
   }
   selectHomeMode(workoutTypeForMode(modeId), modeId);
 });
@@ -4835,7 +4846,7 @@ function gamesRowPeopleHTML(namesStr) {
 function towGamesRowHTML(item) {
   if (item.kind === "turn") {
     return `<button type="button" class="games-row${gamesHighlightClass(item)}" data-bell-tow-turn="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🪢</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("tow")}</span>
         <span class="games-row-info"><span class="games-row-title">Your turn · Tug of war · Round ${item.round} of ${item.rounds} · ${escapeHtml(item.trailLabel)}</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
@@ -4843,7 +4854,7 @@ function towGamesRowHTML(item) {
   if (item.kind === "invite") {
     return `
       <div class="games-row">
-        <span class="games-row-icon" aria-hidden="true">🪢</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("tow")}</span>
         <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.from)} invited you to Tug of war · ${escapeHtml(item.teamName)} · target ${item.target}</span></span>
         <span class="games-row-actions">
           <button type="button" class="icon-btn" data-bell-tow-view="${item.gameId}" aria-label="View">→</button>
@@ -4853,19 +4864,19 @@ function towGamesRowHTML(item) {
   }
   if (item.kind === "ready") {
     return `<button type="button" class="games-row" data-bell-tow-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🪢</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("tow")}</span>
         <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.opponents)} joined your Open Tug of war — start when ready</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
   }
   if (item.kind === "hosting") {
     return `<button type="button" class="games-row" data-bell-tow-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🪢</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("tow")}</span>
         <span class="games-row-info"><span class="games-row-title">Your Open Tug of war lobby — waiting for players to join</span></span>
       </button>`;
   }
   return `<button type="button" class="games-row${gamesRowWaitingClass(item)}" data-bell-tow-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🪢</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("tow")}</span>
         <span class="games-row-info"><span class="games-row-title">Waiting on ${escapeHtml(item.upNow)} in Tug of war</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
@@ -4875,7 +4886,7 @@ function horseGamesRowHTML(item) {
   {
     if (item.kind === "turn") {
       return `<button type="button" class="games-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("horse")}</span>
         <span class="games-row-info"><span class="games-row-title">Your turn in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : " · set the opening bar"}${item.targetLabel ? ` · beat ${escapeHtml(item.targetLabel)}` : ""}</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
@@ -4886,7 +4897,7 @@ function horseGamesRowHTML(item) {
       const others = item.opponents.split(", ").filter((name) => name && name !== item.from).join(", ");
       return `
       <div class="games-row">
-        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("horse")}</span>
         <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.from)} invited you to Horse${others ? ` vs. ${escapeHtml(others)}` : ""}</span></span>
         <span class="games-row-actions">
           <button type="button" class="icon-btn" data-bell-join="${item.gameId}" aria-label="Join">→</button>
@@ -4896,34 +4907,34 @@ function horseGamesRowHTML(item) {
     }
     if (item.kind === "choosing") {
       return `<button type="button" class="games-row${gamesHighlightClass(item)}" data-bell-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("horse")}</span>
         <span class="games-row-info"><span class="games-row-title">Your turn to set the target in Horse${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""}</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
     }
     if (item.kind === "expired") {
       return `<button type="button" class="games-row" data-bell-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">⏰</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("countdown")}</span>
         <span class="games-row-info"><span class="games-row-title">Horse challenge${item.opponents ? ` vs. ${escapeHtml(item.opponents)}` : ""} ended — tally the scores</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
     }
     if (item.kind === "joined") {
       return `<button type="button" class="games-row" data-bell-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("horse")}</span>
         <span class="games-row-info"><span class="games-row-title">${escapeHtml(item.name)} joined your Open Horse game</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
     }
     if (item.kind === "hosting") {
       return `<button type="button" class="games-row" data-bell-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("horse")}</span>
         <span class="games-row-info"><span class="games-row-title">Your Open Horse lobby — waiting for players to join</span></span>
       </button>`;
     }
     const otherWaiting = item.opponents.split(", ").filter((name) => name && name !== item.upNow).join(", ");
     return `<button type="button" class="games-row${gamesRowWaitingClass(item)}" data-bell-view="${item.gameId}">
-        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("horse")}</span>
         <span class="games-row-info"><span class="games-row-title">Waiting on ${escapeHtml(item.upNow)}${otherWaiting ? ` (vs. ${escapeHtml(otherWaiting)})` : ""} in Horse</span></span>
         ${gamesRowPeopleHTML(item.opponents)}
       </button>`;
@@ -4997,7 +5008,7 @@ function finishedGameRowHTML(entry) {
       ? `won${opponents ? ` vs. ${escapeHtml(opponents)}` : ""}`
       : `lost to ${escapeHtml((game.winner || []).join(" & ") || "?")}`;
     return `<button type="button" class="games-row" data-games-recent-horse="${game.id}">
-        <span class="games-row-icon" aria-hidden="true">🐴</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("horse")}</span>
         <span class="games-row-info">
           <span class="games-row-title">Horse<span class="games-recent-result"> · ${resultText}</span></span>
           <span class="games-row-subtitle">${timeLabel}</span>
@@ -5012,7 +5023,7 @@ function finishedGameRowHTML(entry) {
     ? "voided"
     : `${game.winner === side ? "won" : "lost"} ${game.scores[side]}-${game.scores[side === "a" ? "b" : "a"]}`;
   return `<button type="button" class="games-row" data-games-recent-tow="${game.id}">
-        <span class="games-row-icon" aria-hidden="true">🪢</span>
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg("tow")}</span>
         <span class="games-row-info">
           <span class="games-row-title">Tug of war<span class="games-recent-result"> · ${resultText}</span></span>
           <span class="games-row-subtitle">${timeLabel}</span>
@@ -5095,7 +5106,10 @@ $("games-tab-select").addEventListener("click", (e) => {
   renderGamesScreen();
 });
 
+// Games' Start opens the mode picker narrowed to the multiplayer games, and
+// a tap there jumps straight into that game's setup (no Home round-trip).
 $("btn-games-start").addEventListener("click", () => {
+  modePickerOrigin = "games";
   guardLeaveWorkout(() => showScreen("screen-explore-modes"));
 });
 
@@ -7664,11 +7678,11 @@ $("period-select").addEventListener("click", (e) => {
   btn.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
 });
 
-// Horizontal swipe anywhere on the Leaderboard steps Day → Week → … →
-// All-time (clamped, no wrap). Skips gestures that start on the chart cards
-// (they already swipe between exercise types) or inside anything that
-// scrolls horizontally on its own.
-let periodSwipeStart = null;
+// Horizontal swipe anywhere on a tabbed screen steps through its underline
+// tabs (clamped, no wrap): Board's Day → … → All-time, Challenges' Active /
+// Upcoming / Past, Roadtrip's Neighborhood / City / Country. Skips gestures
+// that start on the Board chart cards (they swipe between exercise types)
+// or inside anything that scrolls horizontally on its own.
 function startsInOwnHorizontalGesture(target, root) {
   if (target.closest(".mybonanza-chart-card")) return true;
   for (let el = target; el && el !== root; el = el.parentElement) {
@@ -7677,23 +7691,30 @@ function startsInOwnHorizontalGesture(target, root) {
   }
   return false;
 }
-$("screen-dashboard").addEventListener("touchstart", (event) => {
-  const t = event.touches[0];
-  periodSwipeStart = event.touches.length === 1 && !startsInOwnHorizontalGesture(event.target, $("screen-dashboard"))
-    ? { x: t.clientX, y: t.clientY }
-    : null;
-}, { passive: true });
-$("screen-dashboard").addEventListener("touchend", (event) => {
-  if (!periodSwipeStart) return;
-  const dx = event.changedTouches[0].clientX - periodSwipeStart.x;
-  const dy = event.changedTouches[0].clientY - periodSwipeStart.y;
-  periodSwipeStart = null;
-  if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-  const segments = [...document.querySelectorAll("#period-select .segment")].filter((s) => s.offsetParent !== null);
-  const current = segments.findIndex((s) => s.classList.contains("active"));
-  const next = segments[current + (dx < 0 ? 1 : -1)];
-  if (next) next.click();
-});
+function attachTabSwipe(screenId, tabsSelector) {
+  const screen = $(screenId);
+  let start = null;
+  screen.addEventListener("touchstart", (event) => {
+    const t = event.touches[0];
+    start = event.touches.length === 1 && !startsInOwnHorizontalGesture(event.target, screen)
+      ? { x: t.clientX, y: t.clientY }
+      : null;
+  }, { passive: true });
+  screen.addEventListener("touchend", (event) => {
+    if (!start) return;
+    const dx = event.changedTouches[0].clientX - start.x;
+    const dy = event.changedTouches[0].clientY - start.y;
+    start = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const segments = [...document.querySelectorAll(tabsSelector)].filter((s) => s.offsetParent !== null);
+    const current = segments.findIndex((s) => s.classList.contains("active"));
+    const next = segments[current + (dx < 0 ? 1 : -1)];
+    if (next) next.click();
+  });
+}
+attachTabSwipe("screen-dashboard", "#period-select .segment");
+attachTabSwipe("screen-challenges", "#challenge-tab-select .segment");
+attachTabSwipe("screen-roadtrip", "#roadtrip-tier-select .segment");
 
 // ------------------- challenges -------------------
 
@@ -7998,7 +8019,7 @@ function buildChallengeCard(c, now) {
   const showInlineChip = status !== "past" && !joined;
   let html = `
     <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji">${c.emoji}</div>
+      <div class="challenge-card-emoji is-stroke">${typeIconSvg(challengeActivity(c))}</div>
       <div class="challenge-card-heading">
         <div class="challenge-card-title">${escapeHtml(c.title)}</div>
         <div class="challenge-card-dates">${formatChallengeDates(c, undefined, { includeYear: status === "past" })}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
@@ -8531,7 +8552,7 @@ function renderChallengeDetail() {
 
   let html = `
     <div class="challenge-hero" style="background: linear-gradient(135deg, ${c.gradient[0]}, ${c.gradient[1]})">
-      <div class="challenge-hero-emoji">${c.emoji}</div>
+      <div class="challenge-hero-emoji is-stroke">${typeIconSvg(challengeActivity(c))}</div>
       <div class="challenge-hero-title">${escapeHtml(c.title)}</div>
       <div class="challenge-hero-tagline">${escapeHtml(c.tagline)}</div>
       <div class="challenge-hero-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${statusLabel}</span></div>
@@ -8822,7 +8843,7 @@ function buildBingoCard(cycle, now) {
 
   let html = `
     <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji">🧩</div>
+      <div class="challenge-card-emoji is-stroke">${BINGO_GRID_ICON}</div>
       <div class="challenge-card-heading">
         <div class="challenge-card-title">Reps Bingo</div>
         <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
@@ -8905,6 +8926,17 @@ function navigateToBingoSquare(item) {
   }
 }
 
+// Bingo squares use the same stroke icons as the Type/Mode pickers.
+const BINGO_GRID_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M9.2 3.5v17"/><path d="M14.8 3.5v17"/><path d="M3.5 9.2h17"/><path d="M3.5 14.8h17"/></svg>';
+const BINGO_FREE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9Z"/></svg>';
+const BINGO_LOCATION_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>';
+function bingoItemIconSvg(item) {
+  if (item.kind === "mode") return modeIconSvg(item.key);
+  if (item.kind === "exercise") return typeIconSvg(item.key);
+  if (item.key === "location") return BINGO_LOCATION_ICON;
+  return "";
+}
+
 function bingoCellClassAndBadge(cell) {
   if (cell.free) return { cls: " bingo-cell-free", badge: "★" };
   return { cls: cell.done ? " bingo-cell-done" : "", badge: cell.done ? "✓" : "" };
@@ -8913,7 +8945,7 @@ function bingoCellClassAndBadge(cell) {
 function buildBingoGridHTML(completedBoard) {
   const cells = completedBoard.map((cell) => {
     const { cls, badge } = bingoCellClassAndBadge(cell);
-    const emoji = cell.free ? "⭐" : cell.item.emoji;
+    const emoji = cell.free ? BINGO_FREE_ICON : bingoItemIconSvg(cell.item) || cell.item.emoji;
     const label = cell.free ? "FREE" : cell.item.label;
     return `
       <button type="button" class="bingo-cell${cls}" data-bingo-index="${cell.index}" aria-label="${escapeHtml(label)}${cell.done ? " (done)" : ""}">
@@ -8951,7 +8983,7 @@ function renderBingoDetail() {
 
   let html = `
     <div class="challenge-hero" style="background: linear-gradient(135deg, #4a2e6b, #f2c94c)">
-      <div class="challenge-hero-emoji">🧩</div>
+      <div class="challenge-hero-emoji is-stroke">${BINGO_GRID_ICON}</div>
       <div class="challenge-hero-title">Reps Bingo</div>
       <div class="challenge-hero-tagline">One shared 25-square board every two weeks. Tap a square to go log it — blackout the whole card to be in the running.</div>
       <div class="challenge-hero-dates">${dateRange} <span class="challenge-status-chip">${statusLabel}</span></div>
@@ -9089,7 +9121,7 @@ function buildPokerCollectionCard(cycle, now) {
 
   let html = `
     <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji">♠️</div>
+      <div class="challenge-card-emoji is-stroke">${modeIconSvg("poker")}</div>
       <div class="challenge-card-heading">
         <div class="challenge-card-title">Royal Flush Rush</div>
         <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
@@ -9183,7 +9215,7 @@ function renderPokerCollectionDetail() {
 
   let html = `
     <div class="challenge-hero" style="background: linear-gradient(135deg, #2e6b4a, #f2c94c)">
-      <div class="challenge-hero-emoji">♠️</div>
+      <div class="challenge-hero-emoji is-stroke">${modeIconSvg("poker")}</div>
       <div class="challenge-hero-title">Royal Flush Rush</div>
       <div class="challenge-hero-tagline">Collect all 9 winning poker hands in Poker mode before the cycle ends. Tap a hand to go chase it.</div>
       <div class="challenge-hero-dates">${dateRange} <span class="challenge-status-chip">${statusLabel}</span></div>
@@ -12287,6 +12319,7 @@ $("btn-summary-again").addEventListener("click", () => {
   showScreen(screen || "screen-workout");
 });
 $("btn-summary-different-mode").addEventListener("click", () => {
+  modePickerOrigin = "home";
   showScreen("screen-explore-modes");
 });
 $("btn-summary-different-type").addEventListener("click", () => {
