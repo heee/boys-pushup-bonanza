@@ -5944,3 +5944,6 @@ body:has(#screen-challenge-detail.active) #app {
 
 /* Royal Flush Rush: the Royal Flush row is a bonus, not part of the set. */
 .poker-hand-bonus { display: inline-block; margin-left: 0.35rem; padding: 0.05rem 0.4rem; border: 1px solid var(--gold); border-radius: 999px; color: var(--gold); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: 0.1em; }
+
+/* Match the Type | Mode | Modifier row's 12px outer corners. */
+#btn-start { border-radius: 12px; }
