@@ -3231,7 +3231,7 @@ body:has(#screen-dashboard.active) #app {
 .roadtrip-header { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
 .roadtrip-header .screen-title { margin: 0; }
 #roadtrip-tier-select { margin-top: 0.8rem; }
-.roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; }
+.roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; }
 .roadtrip-row {
   width: 100%;
   display: grid;
@@ -3384,7 +3384,7 @@ body:has(#screen-dashboard.active) #app {
 /* Games list rows — the same card/row structure as Roadtrip's ranked list
    (.roadtrip-ranked-list/.roadtrip-row), reused here so the app's list
    screens read as one consistent component instead of two different ones. */
-.games-ranked-list { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; }
+.games-ranked-list { display: flex; flex-direction: column; }
 .games-row {
   width: 100%;
   display: grid;
@@ -3446,8 +3446,6 @@ body:has(#screen-dashboard.active) #app {
 .leaderboard-list {
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
-  overflow: hidden;
 }
 .boys-mode-stats-section { margin-top: 0.85rem; }
 .boys-mode-stats-eyebrow { margin: 0 0 8px 2px; }
@@ -5947,3 +5945,8 @@ body:has(#screen-challenge-detail.active) #app {
 
 /* Match the Type | Mode | Modifier row's 12px outer corners. */
 #btn-start { border-radius: 12px; }
+
+/* Highlighted rows (current place, you, selected mode) are full-bleed
+   straight bands — no rounded container clipping the first/last row. The
+   picker lists drop their card for the same reason. */
+.explore-modes-list { background: none; border-radius: 0; overflow: visible; }
