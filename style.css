@@ -5951,3 +5951,8 @@ body:has(#screen-challenge-detail.active) #app {
    straight bands — no rounded container clipping the first/last row. The
    picker lists drop their card for the same reason. */
 .explore-modes-list { background: none; border-radius: 0; overflow: visible; }
+
+/* Home: eyebrow sits tight on the greeting; the selectors + Let's go read
+   as their own section below it. */
+#workout-idle .workout-eyebrow { margin-bottom: -0.35rem; }
+#workout-idle .workout-hello { margin-bottom: 1.6rem; }
