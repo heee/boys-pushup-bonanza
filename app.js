@@ -7561,6 +7561,38 @@ $("period-select").addEventListener("click", (e) => {
   state.dashboardBucketOffset = null;
   updateLeaderboardModeMenuVisibility();
   paintActiveBonanzaView();
+  btn.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+});
+
+// Horizontal swipe anywhere on the Leaderboard steps Day → Week → … →
+// All-time (clamped, no wrap). Skips gestures that start on the chart cards
+// (they already swipe between exercise types) or inside anything that
+// scrolls horizontally on its own.
+let periodSwipeStart = null;
+function startsInOwnHorizontalGesture(target, root) {
+  if (target.closest(".mybonanza-chart-card")) return true;
+  for (let el = target; el && el !== root; el = el.parentElement) {
+    const ox = getComputedStyle(el).overflowX;
+    if ((ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth) return true;
+  }
+  return false;
+}
+$("screen-dashboard").addEventListener("touchstart", (event) => {
+  const t = event.touches[0];
+  periodSwipeStart = event.touches.length === 1 && !startsInOwnHorizontalGesture(event.target, $("screen-dashboard"))
+    ? { x: t.clientX, y: t.clientY }
+    : null;
+}, { passive: true });
+$("screen-dashboard").addEventListener("touchend", (event) => {
+  if (!periodSwipeStart) return;
+  const dx = event.changedTouches[0].clientX - periodSwipeStart.x;
+  const dy = event.changedTouches[0].clientY - periodSwipeStart.y;
+  periodSwipeStart = null;
+  if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  const segments = [...document.querySelectorAll("#period-select .segment")].filter((s) => s.offsetParent !== null);
+  const current = segments.findIndex((s) => s.classList.contains("active"));
+  const next = segments[current + (dx < 0 ? 1 : -1)];
+  if (next) next.click();
 });
 
 // ------------------- challenges -------------------
