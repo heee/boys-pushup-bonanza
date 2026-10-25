@@ -791,59 +791,6 @@ const SHARE_MESSAGES_LADDER_EMPTY = [
   (n) => `Zero rungs cleared after ${n} reps, dignity also zero. This is now a documented rivalry. 🪜`,
 ];
 
-const SHARE_MESSAGES_FORTUNE = [
-  (n, c) => `FORTUNE COOKIE assigned ${c.title}. I answered with ${n} pushups and ate the prophecy before it could testify. 🥠`,
-  (n, c) => `Cracked a cookie, received ${c.title}, committed ${n} reps. The fortune now reads: "what the hell was that?"`,
-  (n, c) => `${c.title} came out of the cookie. ${n} pushups came out of me. Neither party had legal representation.`,
-  (n, c) => `Today's cursed fortune: ${c.title}. Final body count: ${n} reps and one spiritually compromised cookie.`,
-  (n, c) => `A tiny paper slip told me to do ${c.title}, so naturally I gave it ${n} pushups and catastrophic obedience.`,
-  (n, c) => `Fortune mode delivered ${c.title}. I delivered ${n} reps and a formal threat to the snack industry. 🥠`,
-  (n, c) => `Cookie said ${c.title}, I answered with ${n} reps 🥠 The cookie had no right to be that accurate.`,
-  (n, c) => `Cookie said ${c.title}, I answered with ${n} reps. Snack industry has been formally warned. 🥠`,
-  (n, c) => `Cookie said ${c.title}, I answered with ${n} reps and I ate the evidence. 🥠`,
-  (n, c) => `Cookie said ${c.title}, I answered with ${n} reps. The prophecy did not see this coming. 🥠`,
-  (n, c) => `Cookie said ${c.title}, I answered with ${n} reps like a man with something to prove to a dessert. 🥠`,
-  (n, c) => `Cookie said ${c.title}, I answered with ${n} reps. Boys, a cookie just ran my whole day. 🥠`,
-  (n, c) => `${c.title} came out of the cookie, ${n} pushups came out of me 🥠 The cookie had no right to be that accurate.`,
-  (n, c) => `${c.title} came out of the cookie, ${n} pushups came out of me. Snack industry has been formally warned. 🥠`,
-  (n, c) => `${c.title} came out of the cookie, ${n} pushups came out of me and I ate the evidence. 🥠`,
-  (n, c) => `${c.title} came out of the cookie, ${n} pushups came out of me. The prophecy did not see this coming. 🥠`,
-  (n, c) => `${c.title} came out of the cookie, ${n} pushups came out of me like a man with something to prove to a dessert. 🥠`,
-  (n, c) => `${c.title} came out of the cookie, ${n} pushups came out of me. Boys, a cookie just ran my whole day. 🥠`,
-  (n, c) => `Cracked a fortune, got ${c.title}, paid ${n} reps 🥠 The cookie had no right to be that accurate.`,
-  (n, c) => `Cracked a fortune, got ${c.title}, paid ${n} reps. Snack industry has been formally warned. 🥠`,
-  (n, c) => `Cracked a fortune, got ${c.title}, paid ${n} reps and I ate the evidence. 🥠`,
-  (n, c) => `Cracked a fortune, got ${c.title}, paid ${n} reps. The prophecy did not see this coming. 🥠`,
-  (n, c) => `Cracked a fortune, got ${c.title}, paid ${n} reps like a man with something to prove to a dessert. 🥠`,
-  (n, c) => `Cracked a fortune, got ${c.title}, paid ${n} reps. Boys, a cookie just ran my whole day. 🥠`,
-  (n, c) => `${n} reps to satisfy a prophecy called ${c.title} 🥠 The cookie had no right to be that accurate.`,
-  (n, c) => `${n} reps to satisfy a prophecy called ${c.title}. Snack industry has been formally warned. 🥠`,
-  (n, c) => `${n} reps to satisfy a prophecy called ${c.title} and I ate the evidence. 🥠`,
-  (n, c) => `${n} reps to satisfy a prophecy called ${c.title}. The prophecy did not see this coming. 🥠`,
-  (n, c) => `${n} reps to satisfy a prophecy called ${c.title} like a man with something to prove to a dessert. 🥠`,
-  (n, c) => `${n} reps to satisfy a prophecy called ${c.title}. Boys, a cookie just ran my whole day. 🥠`,
-  (n, c) => `The cookie demanded ${c.title}. ${n} pushups later, it's satisfied 🥠 The cookie had no right to be that accurate.`,
-  (n, c) => `The cookie demanded ${c.title}. ${n} pushups later, it's satisfied. Snack industry has been formally warned. 🥠`,
-  (n, c) => `The cookie demanded ${c.title}. ${n} pushups later, it's satisfied and I ate the evidence. 🥠`,
-  (n, c) => `The cookie demanded ${c.title}. ${n} pushups later, it's satisfied. The prophecy did not see this coming. 🥠`,
-  (n, c) => `The cookie demanded ${c.title}. ${n} pushups later, it's satisfied like a man with something to prove to a dessert. 🥠`,
-  (n, c) => `The cookie demanded ${c.title}. ${n} pushups later, it's satisfied. Boys, a cookie just ran my whole day. 🥠`,
-  (n, c) => `Boys, this cookie said ${c.title} and I had no choice but ${n} reps. 🥠 The snack industry has been formally warned.`,
-  (n, c) => `Boys, this cookie said ${c.title} and I had no choice but ${n} reps. This is why I don't trust dessert anymore. 🥠`,
-  (n, c) => `Boys, this cookie said ${c.title} and I had no choice but ${n} reps and the cookie has retained a lawyer. 🥠`,
-  (n, c) => `Boys, this cookie said ${c.title} and I had no choice but ${n} reps. Somebody tell the boys a cookie ran my whole day. 🥠`,
-  (n, c) => `Boys, this cookie said ${c.title} and I had no choice but ${n} reps. The prophecy did not see this coming, allegedly. 🥠`,
-  (n, c) => `${c.title} was the prophecy, ${n} pushups was the receipt. 🥠 The snack industry has been formally warned.`,
-  (n, c) => `${c.title} was the prophecy, ${n} pushups was the receipt. This is why I don't trust dessert anymore. 🥠`,
-  (n, c) => `${c.title} was the prophecy, ${n} pushups was the receipt and the cookie has retained a lawyer. 🥠`,
-  (n, c) => `${c.title} was the prophecy, ${n} pushups was the receipt. Somebody tell the boys a cookie ran my whole day. 🥠`,
-  (n, c) => `${c.title} was the prophecy, ${n} pushups was the receipt. The prophecy did not see this coming, allegedly. 🥠`,
-  (n, c) => `Fortune cookie called ${c.title}. I answered with ${n} reps like a maniac. 🥠 The snack industry has been formally warned.`,
-  (n, c) => `Fortune cookie called ${c.title}. I answered with ${n} reps like a maniac. This is why I don't trust dessert anymore. 🥠`,
-  (n, c) => `Fortune cookie called ${c.title}. I answered with ${n} reps like a maniac and the cookie has retained a lawyer. 🥠`,
-  (n, c) => `Fortune cookie called ${c.title}. I answered with ${n} reps like a maniac. Somebody tell the boys a cookie ran my whole day. 🥠`,
-];
-
 const SHARE_MESSAGES_ZEN_UNHINGED = [
   (n) => `ZEN MODE: ${n} silent pushups while my soul floated above my body and asked what the hell I was doing. 🪷`,
   (n) => `${n} mindful reps. Inner peace achieved; outer shoulders absolutely fucked. Namaste.`,
@@ -2037,111 +1984,6 @@ const SHARE_MODIFIERS_LADDER_PASSED = [
   (names) => `🏁 Blew past ${names} without slowing down. Their old rungs are just a memory now.`,
 ];
 
-const SHARE_MODIFIERS_FORTUNE_BEAT = [
-  (c) => `🥠 Target ${c.target} cleared. The prophecy has been violently fulfilled.`,
-  (c) => `🥠 Target ${c.target} smashed. The cookie called it and I delivered, unhinged as promised.`,
-  (c) => `🥠 Beat the ${c.target} target. Somewhere a fortune cookie factory is taking credit.`,
-  (c) => `🥠 Target ${c.target} cleared. The prophecy has been violently fulfilled.`,
-  (c) => `🥠 Target ${c.target} cleared. Somewhere a fortune cookie factory is taking credit.`,
-  (c) => `🥠 Target ${c.target} cleared. Unhinged as promised.`,
-  (c) => `🥠 Target ${c.target} cleared. The cookie had no right to be that accurate.`,
-  (c) => `🥠 Target ${c.target} cleared. Boys, a cookie just ran my whole day and I let it win.`,
-  (c) => `🥠 Target ${c.target} cleared. Snack industry has been formally notified.`,
-  (c) => `🥠 Target ${c.target} cleared. The prophecy did not see this coming.`,
-  (c) => `🥠 Target ${c.target} cleared. I ate the evidence immediately after.`,
-  (c) => `🥠 Target ${c.target} cleared. Somebody screenshot this before the cookie takes credit.`,
-  (c) => `🥠 Beat the ${c.target} target. The prophecy has been violently fulfilled.`,
-  (c) => `🥠 Beat the ${c.target} target. Somewhere a fortune cookie factory is taking credit.`,
-  (c) => `🥠 Beat the ${c.target} target. Unhinged as promised.`,
-  (c) => `🥠 Beat the ${c.target} target. The cookie had no right to be that accurate.`,
-  (c) => `🥠 Beat the ${c.target} target. Boys, a cookie just ran my whole day and I let it win.`,
-  (c) => `🥠 Beat the ${c.target} target. Snack industry has been formally notified.`,
-  (c) => `🥠 Beat the ${c.target} target. The prophecy did not see this coming.`,
-  (c) => `🥠 Beat the ${c.target} target. I ate the evidence immediately after.`,
-  (c) => `🥠 Beat the ${c.target} target. Somebody screenshot this before the cookie takes credit.`,
-  (c) => `🥠 Target ${c.target} smashed. The prophecy has been violently fulfilled.`,
-  (c) => `🥠 Target ${c.target} smashed. Somewhere a fortune cookie factory is taking credit.`,
-  (c) => `🥠 Target ${c.target} smashed. Unhinged as promised.`,
-  (c) => `🥠 Target ${c.target} smashed. The cookie had no right to be that accurate.`,
-  (c) => `🥠 Target ${c.target} smashed. Boys, a cookie just ran my whole day and I let it win.`,
-  (c) => `🥠 Target ${c.target} smashed. Snack industry has been formally notified.`,
-  (c) => `🥠 Target ${c.target} smashed. The prophecy did not see this coming.`,
-  (c) => `🥠 Target ${c.target} smashed. I ate the evidence immediately after.`,
-  (c) => `🥠 Target ${c.target} smashed. Somebody screenshot this before the cookie takes credit.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. The prophecy has been violently fulfilled.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. Somewhere a fortune cookie factory is taking credit.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. Unhinged as promised.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. The cookie had no right to be that accurate.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. Boys, a cookie just ran my whole day and I let it win.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. Snack industry has been formally notified.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. The prophecy did not see this coming.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. I ate the evidence immediately after.`,
-  (c) => `🥠 Cookie called ${c.target}, I delivered. Somebody screenshot this before the cookie takes credit.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. The prophecy has been violently, gleefully fulfilled.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. Boys, the cookie called it and I delivered.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. Somewhere a fortune cookie factory is popping champagne.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. The paper had no idea what it started.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. Snack industry is taking full credit, allegedly.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. This is why I don't trust dessert with predictions anymore.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. The cookie won, technically, but so did I.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. Somebody screenshot the receipt before the cookie brags.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. Boys, a piece of paper just called my entire day and won.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. The prophecy is now framed on my wall, unofficially.`,
-  (c) => `🥠 Target ${c.target} didn't stand a chance. Unhinged as promised, delivered as threatened.`,
-];
-
-const SHARE_MODIFIERS_FORTUNE_MISS = [
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. That smug little paper bastard gets one night.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. The cookie is currently gloating.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. The prophecy walked away undefeated, for now.`,
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. That smug little paper bastard gets one night.`,
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. The cookie is currently gloating.`,
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. The prophecy walked away undefeated, for now.`,
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. Enjoy the borrowed time, cookie.`,
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. Rematch is already being scheduled.`,
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. The snack industry remains undefeated today.`,
-  (c) => `🥠 Target ${c.target} survived by ${c.remaining}. Somebody tell the boys I lost to a piece of paper.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. That smug little paper bastard gets one night.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. The cookie is currently gloating.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. The prophecy walked away undefeated, for now.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. Enjoy the borrowed time, cookie.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. Rematch is already being scheduled.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. The snack industry remains undefeated today.`,
-  (c) => `🥠 Missed the ${c.target} target by ${c.remaining}. Somebody tell the boys I lost to a piece of paper.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. That smug little paper bastard gets one night.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. The cookie is currently gloating.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. The prophecy walked away undefeated, for now.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. Enjoy the borrowed time, cookie.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. Rematch is already being scheduled.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. The snack industry remains undefeated today.`,
-  (c) => `🥠 ${c.remaining} short of ${c.target}. Somebody tell the boys I lost to a piece of paper.`,
-  (c) => `🥠 The ${c.target} target lived to see another day, ${c.remaining} away. That smug little paper bastard gets one night.`,
-  (c) => `🥠 The ${c.target} target lived to see another day, ${c.remaining} away. The cookie is currently gloating.`,
-  (c) => `🥠 The ${c.target} target lived to see another day, ${c.remaining} away. The prophecy walked away undefeated, for now.`,
-  (c) => `🥠 The ${c.target} target lived to see another day, ${c.remaining} away. Enjoy the borrowed time, cookie.`,
-  (c) => `🥠 The ${c.target} target lived to see another day, ${c.remaining} away. Rematch is already being scheduled.`,
-  (c) => `🥠 The ${c.target} target lived to see another day, ${c.remaining} away. The snack industry remains undefeated today.`,
-  (c) => `🥠 The ${c.target} target lived to see another day, ${c.remaining} away. Somebody tell the boys I lost to a piece of paper.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} away and gloating about it.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. The cookie is currently undefeated and insufferable.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} short. Rematch is already being scheduled.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. That smug little paper bastard gets one more night.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} off. The prophecy walked away laughing.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. Somebody tell the boys I lost to a dessert.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} short of glory, several excuses drafted.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. The snack industry remains undefeated today.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} away. Enjoy the borrowed time, cookie.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. This is now a documented rivalry with a fortune cookie.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} off target. The paper is not humble about it.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. Boys, a cookie just beat me and I have no excuse.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} short. The rematch clock starts now.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. The prophecy survived, barely, and is bragging regardless.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} away from a very silly victory.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. Somewhere a cookie factory is laughing at me.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} short of the number a dessert predicted.`,
-  (c) => `🥠 Target ${c.target} lived to see another day. The paper prophecy remains technically correct and smug.`,
-  (c) => `🥠 Target ${c.target} lived to see another day, ${c.remaining} off. Tomorrow the cookie gets a rematch.`,
-];
 
 // Grip/incline modifier bonus lines — appended when a workout used a
 // non-Standard modifier (see screens/modifiers.js). Standard grip is the
@@ -2571,10 +2413,6 @@ function decorateShareMessage(message, ctx, displayCount) {
   if (ctx.ladderCtx?.isNewBest) {
     extras.push(pickFrom(SHARE_MODIFIERS_LADDER_NEW_BEST)(ctx.ladderCtx));
   }
-  if (ctx.fortuneCtx?.target != null) {
-    const pool = ctx.fortuneCtx.beatTarget ? SHARE_MODIFIERS_FORTUNE_BEAT : SHARE_MODIFIERS_FORTUNE_MISS;
-    extras.push(pickFrom(pool)(ctx.fortuneCtx));
-  }
   if (ctx.prCtx) extras.push(pickFrom(SHARE_MODIFIERS_PR)(ctx.prCtx));
   const modifierPool = ctx.modifierCtx?.id ? SHARE_MODIFIERS_BY_ID[ctx.modifierCtx.id] : null;
   if (modifierPool) extras.push(pickFrom(modifierPool)(ctx.modifierCtx));
@@ -2717,9 +2555,6 @@ export function pickShareMessage(count, ctx) {
   } else if (mode === "pyramid") {
     modeCtx = ctx.pyramidCtx;
     pool = modeCtx?.peakReached ? SHARE_MESSAGES_PYRAMID_UNHINGED : SHARE_MESSAGES_PYRAMID_EMPTY;
-  } else if (mode === "fortune") {
-    modeCtx = ctx.fortuneCtx;
-    pool = SHARE_MESSAGES_FORTUNE;
   } else if (mode === "zen") {
     pool = SHARE_MESSAGES_ZEN_UNHINGED;
   } else if (mode === "plank") {

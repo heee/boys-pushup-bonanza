@@ -1,11 +1,11 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v447";
+const CACHE_NAME = "bpb-shell-v448";
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=309",
-  "./app.js?v=325",
+  "./style.css?v=310",
+  "./app.js?v=326",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",
   "./wheel-mode.js?v=4",
@@ -17,7 +17,7 @@ const SHELL_FILES = [
   "./modes/kettlebell-workouts.js",
   "./modes/pulse.js",
   "./modes/cock.js",
-  "./share-messages.js?v=150",
+  "./share-messages.js?v=151",
   "./api.js",
   "./storage.js",
   "./territory-location.js",
@@ -36,13 +36,14 @@ const SHELL_FILES = [
   "./screens/comparison.js?v=139",
   "./screens/session-detail.js?v=11",
   "./screens/challenges.js",
-  "./screens/bingo.js?v=5",
+  "./screens/bingo.js?v=6",
   "./screens/poker-collection.js?v=1",
   "./screens/settings.js",
-  "./screens/explore-modes.js?v=147",
+  "./screens/explore-modes.js?v=148",
+  "./screens/mode-icons.js?v=1",
   "./screens/modifiers.js?v=100",
   "./screens/users.js",
-  "./workout-modes.js?v=153",
+  "./workout-modes.js?v=154",
   "./horse.js",
   "./horse-words.js",
   "./screens/horse.js",

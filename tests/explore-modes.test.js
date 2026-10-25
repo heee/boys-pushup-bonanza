@@ -29,7 +29,8 @@ test("Explore ordering preserves Chase priority, locks, and roadmap", () => {
   assert.deepEqual(ready.filter((item) => item.section === "kettlebell").map((item) => item.mode.id), ["kb-five-alive", "kb-throne-room", "kb-core-ten"]);
   assert.equal(ready.at(-1).mode.id, "kb-core-ten");
   const pushupIds = ready.filter((item) => item.section === "pushups").map((item) => item.mode.id);
-  assert.equal(pushupIds.at(-1), "boss");
+  assert.equal(pushupIds.at(-1), "tow");
+  assert.ok(!pushupIds.includes("fortune") && !pushupIds.includes("boss"));
 });
 
 test("Pulse is locked with a visible progress count until enough Classic sessions are logged", () => {

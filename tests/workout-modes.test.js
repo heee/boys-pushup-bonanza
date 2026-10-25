@@ -44,7 +44,6 @@ test("Horse hero exposes the live count, not a remaining-vs-target number", () =
 test("HUD visibility remains mode-specific", () => {
   assert.equal(workoutHudModel("zen", 20).hideHero, true);
   assert.equal(workoutHudModel("chase", 20).hideHighscore, true);
-  assert.equal(workoutHudModel("fortune", 20, { hideCounter: true }).hideHero, true);
   assert.equal(workoutHudModel("classic", 0).hideThermometer, true);
 });
 

@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=309">
+<link rel="stylesheet" href="style.css?v=310">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -91,20 +91,6 @@
         <div id="pushup-mode-select" class="segmented pushup-mode-select" role="tablist">
           <button type="button" class="segment active" id="pmode-mode">Mode: Classic</button>
           <button type="button" class="segment pmode-modifier" id="pmode-modifier"></button>
-        </div>
-
-        <div id="fortune-idle-stage" class="fortune-idle-stage hidden">
-          <div class="fortune-scene">
-            <button type="button" id="fortune-cookie-tap" class="fortune-cookie-tap" aria-label="Reveal fortune challenge">
-              <img id="fortune-frame-closed" class="fortune-frame is-active" alt="">
-              <img id="fortune-frame-cracked" class="fortune-frame" alt="">
-              <img id="fortune-frame-emerging" class="fortune-frame" alt="">
-              <img id="fortune-frame-revealed" class="fortune-frame" alt="">
-            </button>
-            <div id="fortune-message" class="fortune-message hidden" aria-live="polite"></div>
-          </div>
-          <p id="fortune-tap-hint" class="fortune-tap-hint">Tap to reveal today's challenge</p>
-          <button type="button" id="btn-fortune-start-set" class="btn btn-giant btn-primary hidden">Start set</button>
         </div>
 
         <button id="btn-start" class="btn btn-giant btn-primary">Let's go<svg class="btn-start-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h12.5c3.2 0 5.2-2.8 4.3-5.8L17.5 7.5c-.5-1.8-2.3-2.9-4.1-2.4l-1.9.5c-1.5.4-1.7 2.4-.3 3.1l2.3 1.1.9 4.2"/><path d="M14.7 14C13.8 8.4 6.4 8 5 13H3"/></svg></button>
@@ -325,7 +311,6 @@
               <div id="tow-rope-meter-chevron" class="tow-rope-chevron">➤</div>
             </div>
           </div>
-          <div id="fortune-session-total" class="cards-session-total hidden"></div>
           <div id="chase-hud" class="chase-hud hidden" aria-live="polite">
             <div class="chase-kicker"><span id="chase-offline" class="chase-offline hidden">OFFLINE TARGET</span></div>
             <div id="chase-identity" class="chase-identity"></div>
@@ -1344,7 +1329,6 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="poker"><span>Poker</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="dice"><span>Dice</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="ladder"><span>Ladder</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="fortune"><span>Fortune</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="chase"><span>Chase</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="sharpshooter"><span>Sharpshooter</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pyramid"><span>Pyramid</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -2125,6 +2109,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=325"></script>
+<script type="module" src="app.js?v=326"></script>
 </body>
 </html>

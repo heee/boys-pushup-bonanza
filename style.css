@@ -2914,136 +2914,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   .pyramid-stone.stone-cleared { animation: none; }
 }
 
-/* ---------------- Fortune Cookie mode ---------------- */
-
-/* Idle-screen-only reveal ritual — unlike Cards/Dice/Ladder, no HUD swap is
-   needed inside the active session; Classic's own giant hero number and rep
-   counting are reused as-is (see setupWorkoutModeState in app.js), except
-   for the two challenges that hide the counter. */
-.fortune-idle-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* Wider than it looks like it needs to be: closed/cracked/emerging are
-     scaled up 1.2x (see .fortune-frame rules below) and .fortune-scene has
-     no overflow clipping, so those frames visually bleed ~10% of the
-     scene's own height past its box in every direction — this has to clear
-     that bleed or the tap hint sits underneath the enlarged cookie. */
-  gap: 2.75rem;
-  width: 100%;
-  margin: 0.4rem 0 1rem;
-}
-/* Sized to the revealed frame's own aspect ratio (4:3, the widest of the
-   four) so it's never cropped — the taller closed/cracked/emerging frames
-   just letterbox within it via object-fit: contain. */
-.fortune-scene {
-  position: relative;
-  width: min(88vw, 22rem);
-  aspect-ratio: 4 / 3;
-}
-.fortune-cookie-tap {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.fortune-frame {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  opacity: 0;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-  /* Promoted to its own compositor layer up front (not mid-animation) so
-     the cross-fade never has to wait on a layer-promotion hitch. */
-  will-change: opacity, transform;
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-.fortune-frame.is-active { opacity: 1; }
-
-/* Each frame's own transition-duration matches how long revealFortune()
-   (app.js) actually holds that state before moving on — previously all four
-   shared one fixed 180/220ms duration while the JS advanced every 140ms,
-   so every transition got cut short mid-flight and re-targeted, which read
-   as choppy rather than a clean cross-fade. Durations here follow the
-   spec's own timing table (closed->cracked fast, cracked->emerging a beat
-   slower, emerging->revealed the slowest, eased out). */
-#fortune-frame-closed { transition-duration: 140ms; }
-#fortune-frame-cracked { transition-duration: 140ms; }
-#fortune-frame-emerging { transition-duration: 200ms; }
-#fortune-frame-revealed { transition-duration: 300ms; transition-timing-function: ease-out; }
-
-/* Restrained per-frame motion (spec section 8): scale-settle on the crack,
-   small upward drift on emerging/revealed.
-   Closed/cracked/emerging are portrait (3:4) inside this 4:3 box, so
-   object-fit: contain pillarboxes them narrower than the revealed frame
-   (which matches the box exactly and fills it edge to edge) — scaled up
-   here so the cookie reads as a similar size throughout the sequence.
-   Revealed is intentionally left at its natural fill, unscaled. */
-#fortune-frame-closed { transform: scale(1.2); }
-#fortune-frame-cracked { transform: scale(1.188); }
-#fortune-frame-cracked.is-active { transform: scale(1.2); }
-#fortune-frame-emerging { transform: scale(1.2) translateY(4px); }
-#fortune-frame-emerging.is-active { transform: scale(1.2) translateY(0); }
-#fortune-frame-revealed { transform: translateY(8px); }
-#fortune-frame-revealed.is-active { transform: translateY(0); }
-
-@media (prefers-reduced-motion: reduce) {
-  .fortune-frame { transition: opacity 120ms ease; transform: none !important; }
-}
-
-.fortune-tap-hint {
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-/* Overlaid on the revealed frame's blank card area — percentages matched to
-   the actual art's writable region rather than a hardcoded pixel box, so it
-   holds up across viewport widths (see spec section 9's padding rules). */
-.fortune-message {
-  position: absolute;
-  left: 15%;
-  right: 15%;
-  top: 38%;
-  bottom: 38%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  text-align: center;
-  color: #33261a;
-  animation: fortune-message-in 220ms ease 60ms both;
-}
-@keyframes fortune-message-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fortune-message { animation: none; }
-}
-.fortune-title {
-  font-size: 0.92rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-.fortune-detail {
-  font-size: 0.76rem;
-  font-weight: 500;
-  line-height: 1.25;
-}
-
 /* ---------------- Summary screen ---------------- */
 
 #screen-summary { position: relative; align-items: center; text-align: center; }
@@ -4078,20 +3948,19 @@ body:has(#screen-dashboard.active) #app {
 .settings-category-row:last-child { border-bottom: none; }
 .settings-category-icon {
   flex-shrink: 0;
-  width: 2.3rem;
-  height: 2.3rem;
-  border-radius: 50%;
+  width: 1.6rem;
+  height: 1.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.settings-category-icon svg { width: 1.15rem; height: 1.15rem; display: block; }
-.settings-category-icon-profile { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); }
-.settings-category-icon-mysessions { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
-.settings-category-icon-workout { background: color-mix(in srgb, var(--flame) 22%, transparent); color: var(--flame); }
-.settings-category-icon-appearance { background: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--accent); }
-.settings-category-icon-bonanza { background: color-mix(in srgb, var(--success) 22%, transparent); color: var(--success); }
-.settings-category-icon-goals { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+.settings-category-icon svg { width: 1.3rem; height: 1.3rem; display: block; }
+.settings-category-icon-profile { color: var(--primary); }
+.settings-category-icon-mysessions { color: var(--gold); }
+.settings-category-icon-workout { color: var(--flame); }
+.settings-category-icon-appearance { color: var(--accent); }
+.settings-category-icon-bonanza { color: var(--success); }
+.settings-category-icon-goals { color: var(--gold); }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-value-active { color: var(--gold); font-weight: 600; }
@@ -6015,3 +5884,10 @@ body:has(#screen-challenge-detail.active) #app {
 
 /* Form tips are opt-in — an empty instruction line collapses entirely. */
 .workout-instructions:empty { display: none; }
+
+/* Stroke mode icons (screens/mode-icons.js) in Explore Modes + Home picker. */
+.explore-mode-icon.is-stroke { color: var(--primary); }
+.explore-mode-icon.is-stroke svg { width: 22px; height: 22px; display: block; }
+.explore-mode-row.disabled .explore-mode-icon.is-stroke { color: var(--text-dim); }
+.pmode-icon { display: inline-flex; vertical-align: -0.2em; margin-right: 0.3em; }
+.pmode-icon svg { width: 1.1em; height: 1.1em; }

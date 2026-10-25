@@ -38,13 +38,12 @@ export function workoutHeroModel(mode, count, state = {}) {
   return { kind: "hero", display: String(count), label: "PUSHUPS", over: !!state.highScore && count > state.highScore, spokenValue: count, spokenPrefix: "" };
 }
 
-export function workoutHudModel(mode, highScore, fortuneChallenge) {
+export function workoutHudModel(mode, highScore) {
   const cards = mode === "cards";
   const dice = mode === "dice";
   const poker = mode === "poker";
   const wheel = mode === "wheel";
   const ladder = mode === "ladder";
-  const fortune = mode === "fortune";
   const chase = mode === "chase";
   const zen = mode === "zen";
   const sharpshooter = mode === "sharpshooter";
@@ -53,14 +52,11 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
   const tow = mode === "tow";
   const pulse = mode === "pulse";
   const cock = mode === "cock";
-  const fortuneHidesCounter = fortune && !!fortuneChallenge?.hideCounter;
-  const fortuneMinimalFeedback = fortune && !!fortuneChallenge?.minimalFeedback;
   return {
     cards,
     dice,
     wheel,
     ladder,
-    fortune,
     chase,
     zen,
     poker,
@@ -70,8 +66,8 @@ export function workoutHudModel(mode, highScore, fortuneChallenge) {
     tow,
     pulse,
     cock,
-    hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || horse || fortuneHidesCounter || zen || pulse || cock,
-    hideHighscore: dice || wheel || sharpshooter || pyramid || horse || tow || fortuneMinimalFeedback || chase || zen || pulse || cock,
+    hideHero: cards || poker || dice || wheel || ladder || sharpshooter || pyramid || horse || zen || pulse || cock,
+    hideHighscore: dice || wheel || sharpshooter || pyramid || horse || tow || chase || zen || pulse || cock,
     // Pulse/Cock both have their own pace visualization (trace chart), not
     // the generic high-score thermometer.
     hideThermometer: zen || horse || tow || pulse || cock || !highScore,

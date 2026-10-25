@@ -22,7 +22,6 @@ test("every completed workout mode keeps its own unhinged share theme", async ()
       ["dice", 28, { mode: "dice", diceCtx: { rolls: 4, rollsText: "4 rolls" } }, /DICE MODE: cleared 4 rolls.*28 reps/],
       ["ladder", 36, { mode: "ladder", ladderCtx: { maxRung: 8, isNewBest: false, passedRivals: [] } }, /Reached rung 8.*36 reps/],
       ["sharpshooter", 62, { mode: "sharpshooter", sharpshooterCtx: { targets: 3, targetsText: "3 targets", longestShot: 24, remaining: 12 } }, /SHARPSHOOTER MODE: destroyed 3 targets.*62 pushups/],
-      ["fortune", 24, { mode: "fortune", fortuneCtx: { title: "PERFECT FORM", target: null } }, /FORTUNE COOKIE assigned PERFECT FORM.*24 pushups/],
       ["zen", 20, { mode: "zen", isZen: true }, /ZEN MODE: 20 silent pushups/],
       ["plank", "1:30", { mode: "plank", isPlank: true }, /1:30 pretending to be a coffee table/],
       ["pullup", 8, { mode: "pullup", isPullup: true }, /8 pull-ups.*Gravity.*meeting/],
@@ -113,24 +112,6 @@ test("Ladder shares compact passed rivals and append PR plus weighted damage", a
     assert.match(message, /\+25 lbs/);
     assert.match(message, /August PR: 48 → 55/);
   }, "ladder-modifiers");
-});
-
-test("Fortune progression outcomes append without replacing Fortune copy", async () => {
-  await withFirstTemplate(({ pickShareMessage }) => {
-    const win = pickShareMessage(31, {
-      mode: "fortune",
-      fortuneCtx: { title: "ONE MORE", target: 30, beatTarget: true, remaining: 0 },
-    });
-    assert.match(win, /FORTUNE COOKIE assigned ONE MORE/);
-    assert.match(win, /Target 30 cleared/);
-
-    const miss = pickShareMessage(27, {
-      mode: "fortune",
-      fortuneCtx: { title: "MATCH YOUR BEST", target: 30, beatTarget: false, remaining: 3 },
-    });
-    assert.match(miss, /MATCH YOUR BEST/);
-    assert.match(miss, /survived by 3/);
-  }, "fortune-outcomes");
 });
 
 test("Chase shares retain their mode theme while appending weighted and PR context", async () => {

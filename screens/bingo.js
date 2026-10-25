@@ -40,7 +40,6 @@ export const BINGO_POOL = [
   { kind: "mode", key: "pyramid", label: "Pyramid", emoji: "🔺" },
   { kind: "mode", key: "pulse", label: "Pulse", emoji: "❤️‍🔥" },
   { kind: "mode", key: "cock", label: "Cock Mode", emoji: "🐓" },
-  { kind: "mode", key: "fortune", label: "Fortune", emoji: "🥠" },
   { kind: "mode", key: "chase", label: "Chase", emoji: "👑" },
   { kind: "mode", key: "zen", label: "Zen", emoji: "🧘" },
   { kind: "mode", key: "countdown", label: "Countdown", emoji: "⏱️" },

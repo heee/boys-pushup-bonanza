@@ -119,14 +119,15 @@ import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=6";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
-import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=5";
+import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES } from "./screens/poker-collection.js?v=1";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=147";
+import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=148";
+import { modeIconSvg } from "./screens/mode-icons.js?v=1";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
-import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=153";
+import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -341,7 +342,6 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "poker", label: "Poker" },
   { id: "dice", label: "Dice" },
   { id: "ladder", label: "Ladder" },
-  { id: "fortune", label: "Fortune" },
   { id: "chase", label: "Chase" },
   { id: "sharpshooter", label: "Sharpshooter" },
   { id: "pyramid", label: "Pyramid" },
@@ -695,13 +695,6 @@ function applyTheme(theme) {
   if (state.currentCard) {
     setCardFace($("card-face-front"), state.currentCard);
     setCardFace($("card-face-back"), state.currentCard);
-  }
-  // Same idea for Fortune Cookie's own per-theme art — each frame's src is
-  // swapped as a whole (never a mid-crossfade blend of both themes), so a
-  // theme change mid-reveal still only ever shows one theme at a time.
-  if (state.pushupMode === "fortune") {
-    preloadFortuneAssets(theme).catch(() => {});
-    renderFortuneStage();
   }
 }
 
@@ -1482,9 +1475,6 @@ const state = {
   resolvedModifier: null,
   ladderRivals: [],
   ladderRivalsOffline: false,
-  fortuneRevealState: "closed",
-  fortuneRevealing: false,
-  fortuneChallenge: null,
   wakeLock: null,
   lastSessionResult: null,
   dashboardPeriod: "day",
@@ -2053,8 +2043,6 @@ function showScreen(id) {
     preserveNextModeSelection = false;
     renderPushupModePicker();
     renderModifierSlot();
-    if (state.pushupMode === "fortune") resetFortuneStage();
-    renderFortuneIdleUI();
   }
   if (id === "screen-plank-workout" && !state.plankActive) {
     $("plank-username").textContent = state.currentUser || "Friend";
@@ -2742,29 +2730,6 @@ function renderWorkoutInstructionLine() {
   el.classList.add("is-cue");
 }
 
-// Fortune Cookie's idle-screen flow (tap cookie -> reveal -> Start Set)
-// replaces the normal coaching-cue line and START button entirely, since its
-// own "Start Set" button is what calls startWorkout() for this mode. Purely
-// visibility toggling — resetFortuneStage() (called separately, at the
-// actual mode-selection transition) is what clears any in-progress reveal.
-function renderFortuneIdleUI() {
-  const isFortune = state.pushupMode === "fortune";
-  $("fortune-idle-stage").classList.toggle("hidden", !isFortune);
-  $("workout-eyebrow").classList.toggle("hidden", isFortune);
-  $("workout-hello").classList.toggle("hidden", isFortune);
-  $("workout-instructions").classList.toggle("hidden", isFortune);
-  // The mode picker itself is hidden too — this screen becomes a focused
-  // reveal ritual. Switching away still works: the tab bar's Home button
-  // routes through the user picker, and a fresh Home visit always resets
-  // back to Classic (see showScreen's screen-workout branch).
-  $("pushup-mode-select").classList.toggle("hidden", isFortune);
-  $("btn-start").classList.toggle("hidden", isFortune);
-  if (isFortune) {
-    loadFortuneMode().catch(() => {});
-    preloadFortuneAssets(fortuneTheme());
-  }
-}
-
 // Reflects whatever state.pushupMode currently is as the active segment.
 // Does NOT touch state.pushupMode itself — callers decide whether this is a
 // fresh Home visit (reset to Classic) or arriving with a mode pre-selected
@@ -2772,11 +2737,12 @@ function renderFortuneIdleUI() {
 function renderPushupModePicker() {
   const current = $("pmode-mode");
   const selected = state.pushupMode === "classic"
-    ? { id: "classic", title: "Classic", icon: "" }
+    ? { id: "classic", title: "Classic" }
     : EXPLORE_MODES.find((mode) => mode.id === state.pushupMode);
-  const compactTitles = { dice: "Dice", wheel: "Wheel", fortune: "Fortune", chase: "Chase", poker: "Poker", zen: "Zen" };
+  const compactTitles = { dice: "Dice", wheel: "Wheel", chase: "Chase", poker: "Poker", zen: "Zen" };
   const selectedTitle = selected ? (compactTitles[selected.id] || selected.title) : "Classic";
-  current.textContent = `Mode: ${selected?.icon ? `${selected.icon} ` : ""}${selectedTitle}`;
+  const icon = selected?.id === "classic" ? "" : (modeIconSvg(selected?.id) || selected?.icon || "");
+  current.innerHTML = `Mode: ${icon ? `<span class="pmode-icon" aria-hidden="true">${icon}</span>` : ""}${escapeHtml(selectedTitle)}`;
   current.title = selected?.title || "Classic";
 }
 
@@ -2858,7 +2824,7 @@ function renderExploreModesScreen(refresh = true) {
     return `
     ${header}
     <div class="explore-mode-row${live ? "" : " disabled"}" data-explore-mode="${m.id}">
-      <div class="explore-mode-icon">${m.icon}</div>
+      <div class="explore-mode-icon is-stroke">${modeIconSvg(m.id) || m.icon}</div>
       <div class="explore-mode-copy">
         <div class="explore-mode-title">${escapeHtml(m.title)}</div>
         <div class="explore-mode-tagline">${escapeHtml(item.tagline)}</div>
@@ -2893,7 +2859,6 @@ function loadSharpshooterMode() {
 
 function openPushupModeFromExplore(modeId) {
   state.pushupMode = modeId;
-  if (modeId === "fortune") loadFortuneMode().catch(() => {});
   if (modeId === "sharpshooter") loadSharpshooterMode().catch(() => {});
   preserveNextModeSelection = true;
   guardLeaveWorkout(() => showScreen("screen-workout"));
@@ -9365,7 +9330,7 @@ function updateThermometer(count) {
   // visibility rule here as well as during initial screen setup. Otherwise
   // Horse's hidden personal-best meter reappears after rep one beneath its
   // opponent-overtake meter.
-  const hud = workoutHudModel(state.pushupMode, state.highScore, state.fortuneChallenge);
+  const hud = workoutHudModel(state.pushupMode, state.highScore);
   if (hud.hideThermometer) {
     wrap.classList.add("hidden");
     return;
@@ -9999,140 +9964,6 @@ function advancePyramidRow() {
 
 function getPyramidBest(user, size, direction) {
   return bestFor(indexedSessionsForUser(user, "pushups"), user, (s) => s.mode === "pyramid" && s.pyramidSize === size && s.pyramidDirection === direction, "count");
-}
-
-// ------------------- fortune cookie mode -------------------
-// One standard, user-directed push-up set framed by a single revealed
-// technique challenge. Unlike Cards/Dice/Ladder, the "flavor" here happens
-// entirely on the idle screen BEFORE the camera ever starts: tap the cookie,
-// watch the 4-frame reveal, read the challenge, then its own "Start Set"
-// button (not the normal #btn-start) calls the same startWorkout() every
-// other mode uses. Reps are counted exactly like Classic mode; only the
-// challenge framing differs, plus two challenges (No Looking, Silent Set)
-// hide the live counter.
-
-function fortuneUserSessions(user) {
-  return [...indexedSessionsForUser(user, "pushups")]
-    .sort((a, b) => sessionTimestamp(a) - sessionTimestamp(b));
-}
-
-let fortuneModePromise = null;
-function loadFortuneMode() {
-  if (!fortuneModePromise) fortuneModePromise = import("./modes/fortune.js?v=147");
-  return fortuneModePromise;
-}
-
-async function pickFortuneChallenge(user) {
-  const fortuneMode = await loadFortuneMode();
-  return fortuneMode.pickFortuneChallenge(fortuneUserSessions(user), {
-    excludedCategories: state.modifier ? ["grip"] : [],
-  });
-}
-
-function fortuneTheme() {
-  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
-}
-function fortuneImageUrl(theme, frame) {
-  return `assets/fortune/${theme}/${frame}.webp`;
-}
-
-const FORTUNE_FRAMES = ["closed", "cracked", "emerging", "revealed"];
-const fortuneAssetsPreloaded = { dark: null, light: null };
-// Preloads all 4 frames for one theme so the reveal never waits on a
-// network fetch OR a decode mid-animation — img.decode() (falling back to
-// onload where unsupported) resolves only once the bitmap is actually ready
-// to paint, not just downloaded, since decoding a fresh image the first
-// time it's asked to composite is a real, measurable jank source on a
-// cross-faded/transformed element. The service worker caches each
-// same-origin GET on first use, same as Cards'/Dice's art, so this only
-// costs a real fetch once per device. Returns (and caches) the in-flight
-// promise so a tap arriving before preload finishes awaits the same work
-// instead of kicking off a redundant fetch.
-function preloadFortuneAssets(theme) {
-  if (fortuneAssetsPreloaded[theme]) return fortuneAssetsPreloaded[theme];
-  const promise = Promise.all(FORTUNE_FRAMES.map((f) => {
-    const img = new Image();
-    img.src = fortuneImageUrl(theme, f);
-    return (img.decode ? img.decode() : Promise.resolve()).catch(() => new Promise((resolve) => {
-      img.onload = resolve;
-      img.onerror = resolve;
-    }));
-  }));
-  fortuneAssetsPreloaded[theme] = promise;
-  return promise;
-}
-
-// Renders whichever reveal frame is active (opacity cross-fade via
-// .is-active, see style.css) plus the tap hint / Start Set button / message
-// overlay, each shown only in their matching state.
-function renderFortuneStage() {
-  const theme = fortuneTheme();
-  for (const f of FORTUNE_FRAMES) {
-    const el = $(`fortune-frame-${f}`);
-    if (!el) continue;
-    // Same-value writes to .src are normally a no-op, but skipping them
-    // outright avoids any risk of that check itself costing a frame during
-    // the animation — cheap insurance right when frame budget matters most.
-    const url = fortuneImageUrl(theme, f);
-    if (el.src !== new URL(url, location.href).href) el.src = url;
-    el.classList.toggle("is-active", state.fortuneRevealState === f);
-  }
-  const revealed = state.fortuneRevealState === "revealed";
-  $("fortune-tap-hint").classList.toggle("hidden", state.fortuneRevealState !== "closed");
-  $("fortune-message").classList.toggle("hidden", !revealed);
-  $("btn-fortune-start-set").classList.toggle("hidden", !revealed);
-  if (revealed && state.fortuneChallenge) {
-    const c = state.fortuneChallenge.challenge;
-    $("fortune-message").innerHTML = `<div class="fortune-title">${escapeHtml(c.title)}</div>` +
-      c.lines.map((l) => `<div class="fortune-detail">${escapeHtml(l)}</div>`).join("");
-  }
-}
-
-// Resets the idle stage back to a fresh closed cookie — called whenever the
-// Fortune Cookie idle screen is (re)entered, so switching modes away and
-// back (or leaving to Explore Modes) never leaves a stale reveal on screen.
-function resetFortuneStage() {
-  state.fortuneRevealState = "closed";
-  state.fortuneRevealing = false;
-  state.fortuneChallenge = null;
-  renderFortuneStage();
-}
-
-// Timing follows the spec's table: each cross-fade duration below matches
-// the CSS transition-duration set on that frame in style.css exactly, then
-// a short "hold" lets it sit fully settled before the next cross-fade
-// starts — a transition that gets re-targeted before finishing is what
-// read as choppy, not the cross-fades themselves. Guards against a
-// double-tap starting a second reveal mid-sequence, and against the tap
-// landing before this theme's assets have actually finished decoding.
-async function revealFortune() {
-  if (state.fortuneRevealing || state.fortuneRevealState !== "closed") return;
-  state.fortuneRevealing = true;
-  state.fortuneChallenge = await pickFortuneChallenge(state.currentUser);
-  await preloadFortuneAssets(fortuneTheme());
-
-  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduceMotion) {
-    state.fortuneRevealState = "revealed";
-    renderFortuneStage();
-    state.fortuneRevealing = false;
-    return;
-  }
-
-  state.fortuneRevealState = "cracked";
-  renderFortuneStage();
-  await sleep(140); // closed -> cracked transition
-  await sleep(120); // cracked hold
-
-  state.fortuneRevealState = "emerging";
-  renderFortuneStage();
-  await sleep(200); // cracked -> emerging transition
-  await sleep(130); // emerging hold
-
-  state.fortuneRevealState = "revealed";
-  renderFortuneStage();
-  await sleep(300); // emerging -> revealed transition
-  state.fortuneRevealing = false;
 }
 
 function cardRankSpokenWord(card) {
@@ -10897,35 +10728,18 @@ async function setupWorkoutModeState() {
   $("cock-hud").classList.toggle("hidden", !isCock);
   $("workout-active").classList.toggle("mode-cock", isCock);
 
-  // Fortune Cookie is the odd one out: it reuses Classic's own giant hero
-  // number and rep counting unchanged (the challenge was already picked and
-  // shown during the idle-screen reveal, not here) — except No Looking and
-  // Silent Set, which hide the counter until Complete, and Silent Set, which
-  // additionally quiets the high-score callout.
-  const isFortune = state.pushupMode === "fortune";
-  let fortuneChallengeConfig = null;
-  if (isFortune) {
-    if (!state.fortuneChallenge) state.fortuneChallenge = await pickFortuneChallenge(state.currentUser); // safety net
-    const c = state.fortuneChallenge ? state.fortuneChallenge.challenge : null;
-    fortuneChallengeConfig = c;
-    $("fortune-session-total").textContent = c ? c.title : "";
-  }
-  $("fortune-session-total").classList.toggle("hidden", !isFortune);
-
-  const hud = workoutHudModel(state.pushupMode, state.highScore, fortuneChallengeConfig);
+  const hud = workoutHudModel(state.pushupMode, state.highScore);
   $("chase-hud").classList.toggle("hidden", !hud.chase);
   if (hud.chase) renderChaseProgress(0);
 
   // Classic/Countdown keep the giant hero number; Cards', Dice's, and
   // Ladder's focal point is their own visual, so the number/label live only
-  // in the subordinate line for those three. Fortune keeps it too, unless
-  // its own challenge specifically hides it.
+  // in the subordinate line for those three.
   $("workout-active").classList.toggle("mode-zen", hud.zen);
   $("rep-count").classList.toggle("hidden", hud.hideHero);
   $("rep-label").classList.toggle("hidden", hud.hideHero);
   // Dice's own subordinate line already carries the meaningful number, so
-  // the high-score countdown (Classic/Countdown framing) doesn't fit there;
-  // Silent Set asks for the same quieting on top of hiding the counter.
+  // the high-score countdown (Classic/Countdown framing) doesn't fit there.
   $("highscore-message").classList.toggle("hidden", hud.hideHighscore);
   $("thermometer-wrap").classList.toggle("hidden", hud.hideThermometer);
   renderHeroForCount(0);
@@ -11846,10 +11660,6 @@ async function completeWorkout() {
       diceRollsCleared: state.diceRollsCleared.length,
       diceRollsClearedValue: state.diceRollsCleared.reduce((total, roll) => total + (Number(roll.sum) || 0), 0),
     } : {}),
-    ...(state.pushupMode === "fortune" && state.fortuneChallenge ? {
-      fortuneChallengeId: state.fortuneChallenge.challenge.id,
-      ...(state.fortuneChallenge.gripSide ? { fortuneGripSide: state.fortuneChallenge.gripSide } : {}),
-    } : {}),
     ...(chaseSessionProgress && chaseTarget ? {
       chasePeriod: chaseTarget.id,
       chaseRival: chaseTarget.leaderNames?.[0] || "",
@@ -12059,8 +11869,6 @@ $("btn-missed-minus").addEventListener("click", () => adjustMissedReps(-1));
 
 $("btn-start").addEventListener("click", startWorkout);
 $("btn-complete").addEventListener("click", completeWorkout);
-$("fortune-cookie-tap").addEventListener("click", revealFortune);
-$("btn-fortune-start-set").addEventListener("click", startWorkout);
 
 
 // ---- Cards mode share ----
@@ -12257,13 +12065,6 @@ function buildShareContext(adjustedCount) {
       margin: Math.max(0, adjustedCount - state.countdownTarget),
       remaining: Math.max(0, state.countdownTarget - adjustedCount),
     } : null,
-    fortuneCtx: (isPushup && state.pushupMode === "fortune" && state.fortuneChallenge) ? {
-      title: state.fortuneChallenge.challenge.title,
-      target: state.fortuneChallenge.target,
-      beatTarget: state.fortuneChallenge.target == null ? null : adjustedCount >= state.fortuneChallenge.target,
-      remaining: state.fortuneChallenge.target == null ? 0 : Math.max(0, state.fortuneChallenge.target - adjustedCount),
-      gripSide: state.fortuneChallenge.gripSide,
-    } : null,
     weightedCtx: state.summaryMultiplier !== 1 ? {
       weightLbs: state.summaryWeightLbs,
       rawCount: state.summaryBaseCount + state.summaryExtra,
@@ -12279,7 +12080,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=150").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=151").then((module) => {
       workoutShareMessages = module;
       return module;
     });
