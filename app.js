@@ -293,6 +293,8 @@ const LS = {
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
   showHighscore: "bpb-show-highscore",
+  showFormTips: "bpb-show-form-tips",
+  showPaceNote: "bpb-show-pace-note",
   ghostMode: "bpb-ghost-mode",
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
@@ -2437,6 +2439,8 @@ function renderSettings() {
   $("val-down").textContent = getThresholdDown().toFixed(2);
   $("val-up").textContent = getThresholdUp().toFixed(2);
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
+  $("chk-form-tips").checked = localStorage.getItem(LS.showFormTips) === "1";
+  $("chk-pace-note").checked = localStorage.getItem(LS.showPaceNote) === "1";
   $("chk-ghost-mode").checked = ghostModeEnabled();
   $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
   renderVoicePresetSelect();
@@ -2725,6 +2729,12 @@ function renderWorkoutInstructionLine() {
   const hasPermissionIssue = localStorage.getItem(LS.cameraPermissionIssue) === "1";
   if (!hasCameraStarted || hasPermissionIssue) {
     el.textContent = "Phone flat on the floor, screen up. Face over the camera.";
+    el.classList.remove("is-cue");
+    return;
+  }
+  // Form tips are opt-in (Settings > Preferences); empty collapses the slot.
+  if (localStorage.getItem(LS.showFormTips) !== "1") {
+    el.textContent = "";
     el.classList.remove("is-cue");
     return;
   }
@@ -5495,6 +5505,12 @@ $("range-up").addEventListener("input", (e) => {
 });
 $("chk-highscore-message").addEventListener("change", (e) => {
   localStorage.setItem(LS.showHighscore, e.target.checked ? "1" : "0");
+});
+$("chk-form-tips").addEventListener("change", (e) => {
+  localStorage.setItem(LS.showFormTips, e.target.checked ? "1" : "0");
+});
+$("chk-pace-note").addEventListener("change", (e) => {
+  localStorage.setItem(LS.showPaceNote, e.target.checked ? "1" : "0");
 });
 $("chk-ghost-mode").addEventListener("change", (e) => {
   localStorage.setItem(LS.ghostMode, e.target.checked ? "1" : "0");
@@ -11923,7 +11939,7 @@ function renderSummaryWeightedNote(rawTotal, adjustedTotal) {
 
 function renderSummaryPaceNote(rawCount, durationMs) {
   const el = $("summary-pace-note");
-  const note = pushupPaceNote({ rawCount, durationMs });
+  const note = localStorage.getItem(LS.showPaceNote) === "1" ? pushupPaceNote({ rawCount, durationMs }) : null;
   if (!note) {
     el.classList.add("hidden");
     el.textContent = "";
