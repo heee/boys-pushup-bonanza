@@ -52,3 +52,16 @@ test("Cock Mode is locked with a visible progress count until enough Classic ses
   const unlocked = exploreModesModel({ sessions, hasPR: true, refresh: false, chasePrepared: { eligible: true }, chaseLeaderLabel: () => "B", cockUnlock: { unlocked: true, validCount: 3, needed: 3 } });
   assert.equal(unlocked.find((item) => item.mode.id === "cock").playable, true);
 });
+
+test("Mode picker filters to one type and sections Pushups", async () => {
+  const { modePickerModel, workoutTypeForMode, WORKOUT_TYPES, HOME_START_MODES } = await import("../screens/explore-modes.js");
+  const args = { sessions: [], hasPR: true, refresh: false, chasePrepared: { eligible: true }, chaseLeaderLabel: () => "B", pulseUnlock: { unlocked: true }, cockUnlock: { unlocked: true } };
+  const pushups = modePickerModel("pushups", args);
+  assert.deepEqual([...new Set(pushups.map((i) => i.sectionLabel))], ["Solo", "Games of chance", "Progressions", "Pace", "Rivals"]);
+  assert.ok(pushups.every((i) => workoutTypeForMode(i.mode.id) === "pushups"));
+  assert.deepEqual(modePickerModel("circuits", args).map((i) => i.mode.id), ["holland", "chainofpain"]);
+  assert.deepEqual(modePickerModel("squats", args).map((i) => i.mode.id), ["squat"]);
+  assert.equal(modePickerModel("kettlebell", args).length, 3);
+  for (const type of WORKOUT_TYPES) assert.equal(workoutTypeForMode(type.defaultMode), type.id);
+  assert.ok(HOME_START_MODES.has("classic") && !HOME_START_MODES.has("pyramid"));
+});

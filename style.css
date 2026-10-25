@@ -5892,3 +5892,28 @@ body:has(#screen-challenge-detail.active) #app {
 .explore-mode-row.disabled .explore-mode-icon.is-stroke { color: var(--text-dim); }
 .pmode-icon { display: inline-flex; vertical-align: -0.2em; margin-right: 0.3em; }
 .pmode-icon svg { width: 1.1em; height: 1.1em; }
+
+/* Home's Type selector — full-width row above Mode | Modifier. */
+.home-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  max-width: 21rem;
+  margin: 0 0 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.home-type-btn:active { transform: scale(0.98); }
+.home-type-icon { display: inline-flex; color: var(--primary); }
+.home-type-icon svg { width: 1.25rem; height: 1.25rem; }
+.home-type-label { flex: 1; text-align: left; }
+.home-type-chev { color: var(--text-dim); font-size: 1.2rem; line-height: 1; }
+.explore-mode-row.selected .explore-mode-title::after { content: " ✓"; color: var(--primary); }

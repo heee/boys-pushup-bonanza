@@ -40,3 +40,19 @@ export const MODE_ICONS = {
 export function modeIconSvg(id) {
   return MODE_ICONS[id] || "";
 }
+
+// Home Type selector icons — the single-exercise types reuse their mode's
+// drawing; Circuits gets a loop and Kettlebell a plain bell.
+const TYPE_ICONS = {
+  pushups: MODE_ICONS.classic,
+  squats: MODE_ICONS.squat,
+  pullups: MODE_ICONS.pullup,
+  situps: MODE_ICONS.situp,
+  planks: MODE_ICONS.plank,
+  circuits: S('<path d="M20 11a8 8 0 0 0-14.9-4"/><path d="M4 3.5V7.5h4"/><path d="M4 13a8 8 0 0 0 14.9 4"/><path d="M20 20.5v-4h-4"/>'),
+  kettlebell: S('<path d="M8.5 9.5V8a3.5 3.5 0 0 1 7 0v1.5"/><path d="M7.5 9.5h9c1.6 1.4 2.5 3.5 2.5 5.7 0 2.3-1 4.3-2.6 5.8H7.6C6 19.5 5 17.5 5 15.2c0-2.2.9-4.3 2.5-5.7Z"/>'),
+};
+
+export function typeIconSvg(id) {
+  return TYPE_ICONS[id] || "";
+}

@@ -87,3 +87,54 @@ export function exploreModesModel({ sessions, hasPR, refresh, chasePrepared, cha
   const kettlebell = decorated.filter((item) => item.section === "kettlebell");
   return [...pushups, ...other, ...kettlebell];
 }
+
+// ------------------- Home Type → Mode → Modifier -------------------
+// Home picks a Type first, then a Mode within it. Pushups is the only type
+// with real mode choice; single-exercise types have exactly one mode, and
+// Circuits/Kettlebell narrow to their circuit or preset.
+export const WORKOUT_TYPES = [
+  { id: "pushups", title: "Pushups", tagline: "Classic sets plus every pushup game", defaultMode: "classic" },
+  { id: "squats", title: "Squats", tagline: "Camera-counted squats", defaultMode: "squat" },
+  { id: "pullups", title: "Pull-ups", tagline: "Camera-counted pull-ups", defaultMode: "pullup" },
+  { id: "situps", title: "Crunches", tagline: "Camera-counted crunches", defaultMode: "situp" },
+  { id: "planks", title: "Planks", tagline: "Hold your ground, beat your time", defaultMode: "plank" },
+  { id: "circuits", title: "Circuits", tagline: "Holland Mode, Chain of Pain", defaultMode: "holland" },
+  { id: "kettlebell", title: "Kettlebell", tagline: "Five Alive, Throne Room, Core Ten", defaultMode: "kb-five-alive" },
+];
+
+const TYPE_BY_SINGLE_MODE = { squat: "squats", pullup: "pullups", situp: "situps", plank: "planks", holland: "circuits", chainofpain: "circuits" };
+
+export function workoutTypeForMode(modeId) {
+  if (!modeId) return "pushups";
+  if (modeId.startsWith("kb-")) return "kettlebell";
+  return TYPE_BY_SINGLE_MODE[modeId] || "pushups";
+}
+
+export function workoutTypeById(id) {
+  return WORKOUT_TYPES.find((type) => type.id === id) || WORKOUT_TYPES[0];
+}
+
+// Pushup modes that run on Home itself — Let's go starts the camera. Every
+// other mode (and every non-pushup type) opens its own screen instead.
+export const HOME_START_MODES = new Set(["classic", "countdown", "cards", "dice", "poker", "wheel", "ladder", "chase", "sharpshooter", "zen"]);
+
+export const PUSHUP_MODE_SECTIONS = [
+  { id: "solo", label: "Solo", modes: ["classic", "countdown", "zen"] },
+  { id: "chance", label: "Games of chance", modes: ["cards", "dice", "poker", "wheel"] },
+  { id: "progressions", label: "Progressions", modes: ["ladder", "pyramid", "sharpshooter"] },
+  { id: "pace", label: "Pace", modes: ["pulse", "cock"] },
+  { id: "rivals", label: "Rivals", modes: ["chase", "horse", "tow"] },
+];
+
+// Mode picker list for one type: same decorated items as exploreModesModel
+// (locks, taglines, usage ordering), filtered to the type and — for
+// Pushups — regrouped into PUSHUP_MODE_SECTIONS. Each item gets `sectionLabel`.
+export function modePickerModel(type, args) {
+  const items = exploreModesModel(args).filter((item) => workoutTypeForMode(item.mode.id) === type);
+  if (type !== "pushups") {
+    const label = workoutTypeById(type).title;
+    return items.map((item) => ({ ...item, sectionLabel: label }));
+  }
+  return PUSHUP_MODE_SECTIONS.flatMap((section) => orderBucket(items.filter((item) => section.modes.includes(item.mode.id)))
+    .map((item) => ({ ...item, sectionLabel: section.label })));
+}

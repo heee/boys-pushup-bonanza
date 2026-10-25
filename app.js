@@ -122,8 +122,8 @@ import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, 
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES } from "./screens/poker-collection.js?v=1";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, exploreModesModel } from "./screens/explore-modes.js?v=148";
-import { modeIconSvg } from "./screens/mode-icons.js?v=1";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=149";
+import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=2";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
@@ -318,6 +318,8 @@ const LS = {
   hollandDifficulty: "bpb-holland-difficulty",
   chainOfPainDuration: "bpb-chainofpain-duration",
   kettlebellProfiles: "bpb-kettlebell-profiles",
+  homeType: "bpb-home-type",
+  homeMode: "bpb-home-mode",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -1478,6 +1480,8 @@ const state = {
   wakeLock: null,
   lastSessionResult: null,
   dashboardPeriod: "day",
+  homeType: "pushups",
+  homeMode: "classic",
   dashboardBucketOffset: null,
   myChartFlipped: false,
   myChartDayOffset: 0,
@@ -1915,6 +1919,7 @@ const TAB_FOR_SCREEN = {
   "screen-user": "btn-nav-home",
   "screen-workout": "btn-nav-home",
   "screen-explore-modes": "btn-nav-home",
+  "screen-type-picker": "btn-nav-home",
   "screen-pyramid-setup": "btn-nav-home",
   "screen-horse-setup": "btn-nav-home",
   "screen-horse-join": "btn-nav-home",
@@ -2037,9 +2042,15 @@ function showScreen(id) {
     renderWorkoutInstructionLine();
     renderGoalThermometers();
     renderDeviceLocation();
-    // Fresh Home visits always reset to Classic; arriving pre-selected from
-    // Explore Modes (openPushupModeFromExplore) skips this exactly once.
-    if (!preserveNextModeSelection) state.pushupMode = "classic";
+    // Fresh Home visits restore the last Type + Mode picked on this device;
+    // arriving with a pushup mode pre-selected (openPushupModeFromExplore,
+    // Pulse/Cock start) keeps that mode exactly once.
+    if (preserveNextModeSelection) {
+      state.homeType = "pushups";
+      state.homeMode = state.pushupMode;
+    } else {
+      restoreHomeSelection();
+    }
     preserveNextModeSelection = false;
     renderPushupModePicker();
     renderModifierSlot();
@@ -2730,21 +2741,93 @@ function renderWorkoutInstructionLine() {
   el.classList.add("is-cue");
 }
 
-// Reflects whatever state.pushupMode currently is as the active segment.
-// Does NOT touch state.pushupMode itself — callers decide whether this is a
-// fresh Home visit (reset to Classic) or arriving with a mode pre-selected
-// from Explore Modes (see openPushupModeFromExplore).
+// ------------------- Home Type → Mode → Modifier -------------------
+// Type picks the exercise family, Mode narrows within it, Modifier (grip)
+// applies to Pushups only. The selection is remembered per device; a stale
+// or now-locked saved mode falls back to its type's default.
+function modeSelectableForHome(type, modeId) {
+  const items = modePickerModel(type, {
+    sessions: getAllSessionsForDisplay(),
+    hasPR: getHighScore(state.currentUser) >= 1,
+    refresh: false,
+    chasePrepared: state.chasePrepared,
+    chaseLeaderLabel,
+    pulseUnlock: pulseUnlockStatus(pulseHistorySessionsForUser(state.currentUser)),
+    cockUnlock: cockUnlockStatus(pulseHistorySessionsForUser(state.currentUser)),
+  });
+  return items.some((item) => item.mode.id === modeId && item.playable);
+}
+
+function applyHomeSelection(type, modeId) {
+  state.homeType = type;
+  state.homeMode = modeId;
+  // Only pushup modes drive the Home workout itself; other types hand off
+  // to their own screen on Let's go, so Home stays on plain Classic.
+  state.pushupMode = type === "pushups" ? modeId : "classic";
+}
+
+function restoreHomeSelection() {
+  const savedType = WORKOUT_TYPES.some((t) => t.id === localStorage.getItem(LS.homeType)) ? localStorage.getItem(LS.homeType) : "pushups";
+  const savedMode = localStorage.getItem(LS.homeMode);
+  const modeOk = savedMode && workoutTypeForMode(savedMode) === savedType && modeSelectableForHome(savedType, savedMode);
+  applyHomeSelection(savedType, modeOk ? savedMode : workoutTypeById(savedType).defaultMode);
+}
+
+function selectHomeMode(type, modeId) {
+  applyHomeSelection(type, modeId);
+  localStorage.setItem(LS.homeType, type);
+  localStorage.setItem(LS.homeMode, modeId);
+  if (modeId === "sharpshooter") loadSharpshooterMode().catch(() => {});
+  preserveNextModeSelection = type === "pushups";
+  guardLeaveWorkout(() => showScreen("screen-workout"));
+}
+
+const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "situps", "planks"]);
+
 function renderPushupModePicker() {
+  const type = workoutTypeById(state.homeType);
+  $("home-type-title").textContent = type.title;
+  $("home-type-icon").innerHTML = typeIconSvg(type.id);
   const current = $("pmode-mode");
-  const selected = state.pushupMode === "classic"
-    ? { id: "classic", title: "Classic" }
-    : EXPLORE_MODES.find((mode) => mode.id === state.pushupMode);
-  const compactTitles = { dice: "Dice", wheel: "Wheel", chase: "Chase", poker: "Poker", zen: "Zen" };
+  const single = SINGLE_MODE_TYPES.has(type.id);
+  const selected = single ? null : EXPLORE_MODES.find((mode) => mode.id === state.homeMode);
+  const compactTitles = { dice: "Dice", wheel: "Wheel", chase: "Chase", poker: "Poker", zen: "Zen", holland: "Holland", cock: "Cock" };
   const selectedTitle = selected ? (compactTitles[selected.id] || selected.title) : "Classic";
-  const icon = selected?.id === "classic" ? "" : (modeIconSvg(selected?.id) || selected?.icon || "");
+  const icon = !selected || selected.id === "classic" ? "" : modeIconSvg(selected.id);
   current.innerHTML = `Mode: ${icon ? `<span class="pmode-icon" aria-hidden="true">${icon}</span>` : ""}${escapeHtml(selectedTitle)}`;
   current.title = selected?.title || "Classic";
+  current.classList.toggle("segment-disabled", single);
+  current.setAttribute("aria-disabled", String(single));
 }
+
+function renderTypePicker() {
+  $("type-list").innerHTML = WORKOUT_TYPES.map((type) => `
+    <div class="explore-mode-row${type.id === state.homeType ? " selected" : ""}" data-type-id="${type.id}">
+      <div class="explore-mode-icon is-stroke">${typeIconSvg(type.id)}</div>
+      <div class="explore-mode-copy">
+        <div class="explore-mode-title">${escapeHtml(type.title)}</div>
+        <div class="explore-mode-tagline">${escapeHtml(type.tagline)}</div>
+      </div>
+      <span class="explore-mode-chev">›</span>
+    </div>
+  `).join("");
+}
+
+$("type-list").addEventListener("click", (e) => {
+  const row = e.target.closest(".explore-mode-row");
+  if (!row) return;
+  const type = row.dataset.typeId;
+  if (type === state.homeType) {
+    guardLeaveWorkout(() => showScreen("screen-workout"));
+    return;
+  }
+  selectHomeMode(type, workoutTypeById(type).defaultMode);
+});
+
+$("home-type-btn").addEventListener("click", () => {
+  renderTypePicker();
+  guardLeaveWorkout(() => showScreen("screen-type-picker"));
+});
 
 // Home's 3rd fixed slot: independent of pushupMode entirely (a Modifier can
 // be set while Classic, Cards, Countdown, etc. are active in turn — it only
@@ -2753,9 +2836,11 @@ function renderPushupModePicker() {
 function renderModifierSlot() {
   const btn = $("pmode-modifier");
   const picked = state.modifier ? MODIFIERS.find((m) => m.id === state.modifier) : null;
-  btn.textContent = picked ? `Modifier: ${picked.icon} ${picked.title}` : "No modifier";
-  btn.classList.toggle("active", !!picked);
-  const disabled = state.pushupMode === "zen";
+  // Grips only apply to pushups, so other types show a locked "No modifier".
+  const notPushups = state.homeType !== "pushups";
+  btn.textContent = picked && !notPushups ? `Modifier: ${picked.icon} ${picked.title}` : "No modifier";
+  btn.classList.toggle("active", !!picked && !notPushups);
+  const disabled = notPushups || state.pushupMode === "zen";
   btn.classList.toggle("segment-disabled", disabled);
   btn.setAttribute("aria-disabled", String(disabled));
 }
@@ -2810,8 +2895,7 @@ function renderExploreModesScreen(refresh = true) {
   const hasPR = getHighScore(state.currentUser) >= 1;
   const pulseUnlock = pulseUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
   const cockUnlock = cockUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
-  const items = exploreModesModel({ sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock });
-  const sectionLabels = { pushups: "Pushups", other: "Other exercises", kettlebell: "Kettlebell" };
+  const items = modePickerModel(state.homeType, { sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock });
   let lastSection = null;
   list.innerHTML = items.map((item) => {
     const m = item.mode;
@@ -2819,11 +2903,12 @@ function renderExploreModesScreen(refresh = true) {
     const badge = live
       ? '<span class="explore-mode-chev">›</span>'
       : `<span class="explore-mode-soon">${item.status}</span>`;
-    const header = item.section !== lastSection ? `<p class="explore-mode-section-label">${sectionLabels[item.section]}</p>` : "";
-    lastSection = item.section;
+    const header = item.sectionLabel !== lastSection ? `<p class="explore-mode-section-label">${escapeHtml(item.sectionLabel)}</p>` : "";
+    lastSection = item.sectionLabel;
+    const selected = m.id === state.homeMode;
     return `
     ${header}
-    <div class="explore-mode-row${live ? "" : " disabled"}" data-explore-mode="${m.id}">
+    <div class="explore-mode-row${live ? "" : " disabled"}${selected ? " selected" : ""}" data-explore-mode="${m.id}">
       <div class="explore-mode-icon is-stroke">${modeIconSvg(m.id) || m.icon}</div>
       <div class="explore-mode-copy">
         <div class="explore-mode-title">${escapeHtml(m.title)}</div>
@@ -2858,7 +2943,7 @@ function loadSharpshooterMode() {
 }
 
 function openPushupModeFromExplore(modeId) {
-  state.pushupMode = modeId;
+  applyHomeSelection("pushups", modeId);
   if (modeId === "sharpshooter") loadSharpshooterMode().catch(() => {});
   preserveNextModeSelection = true;
   guardLeaveWorkout(() => showScreen("screen-workout"));
@@ -3133,13 +3218,16 @@ $("explore-modes-list").addEventListener("click", async (e) => {
   const row = e.target.closest(".explore-mode-row:not(.disabled)");
   if (!row) return;
   const modeId = row.dataset.exploreMode;
-  if (modeId === "chase") row.classList.add("disabled");
-  await openExploreMode(modeId, {
-    onChaseIneligible: () => {
+  if (modeId === "chase") {
+    row.classList.add("disabled");
+    const prepared = await refreshChaseAvailability();
+    if (!prepared.eligible) {
       renderExploreModesScreen(false);
       toast("You’re leading every board. Disgusting behavior.", 3500);
-    },
-  });
+      return;
+    }
+  }
+  selectHomeMode(workoutTypeForMode(modeId), modeId);
 });
 
 // ------------------- Horse mode -------------------
@@ -11899,7 +11987,12 @@ async function reconcileSummaryCount() {
 $("btn-missed-plus").addEventListener("click", () => adjustMissedReps(1));
 $("btn-missed-minus").addEventListener("click", () => adjustMissedReps(-1));
 
-$("btn-start").addEventListener("click", startWorkout);
+// Let's go: Home-run pushup modes start the camera here; everything else
+// opens that mode's own screen (setup or its own START), as Explore did.
+$("btn-start").addEventListener("click", () => {
+  if (state.homeType === "pushups" && HOME_START_MODES.has(state.homeMode)) startWorkout();
+  else openExploreMode(state.homeMode);
+});
 $("btn-complete").addEventListener("click", completeWorkout);
 
 
