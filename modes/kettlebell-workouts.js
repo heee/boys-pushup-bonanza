@@ -13,11 +13,17 @@
 // bells: 2        — double-bell move; volume counts both bells.
 
 export const KETTLEBELL_EXERCISES = {
-  "kb-pushup": { name: "KB Push Up", spoken: "Push ups", paceSec: 2.0, bodyweight: true },
+  "kb-pushup": {
+    name: "KB Push Up", spoken: "Push ups", paceSec: 2.0, bodyweight: true,
+    clip: { src: "assets/kettlebell/kb-pushup.mp4", loopSec: 3.95, repsPerLoop: 1, aspect: "7 / 5", zoom: 1, origin: "50% 47%" },
+  },
   "kb-halo": { name: "KB Halo", spoken: "Halos", paceSec: 2.5 },
   "kb-curl": { name: "KB Curl", spoken: "Curls", paceSec: 2.5 },
   "row-clean-press": { name: "Row, Clean, Press", spoken: "Row, clean, press", paceSec: 5.0, bells: 2 },
-  "goblet-march": { name: "Goblet March", spoken: "Goblet march", paceSec: 1.5 },
+  "goblet-march": {
+    name: "Goblet March", spoken: "Goblet march", paceSec: 1.5,
+    clip: { src: "assets/kettlebell/goblet-march.mp4", loopSec: 3.55, repsPerLoop: 2, aspect: "3 / 4", zoom: 1.35, origin: "46% 81%" },
+  },
   "seated-press": { name: "Seated Shoulder Press", spoken: "Seated shoulder press", paceSec: 2.5 },
   "seated-curl": { name: "Seated Curl", spoken: "Seated curls", paceSec: 2.5 },
   "seated-halo": { name: "Seated Halo", spoken: "Seated halos", paceSec: 2.5 },

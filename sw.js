@@ -1,11 +1,11 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v465";
+const CACHE_NAME = "bpb-shell-v466";
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=322",
-  "./app.js?v=337",
+  "./style.css?v=323",
+  "./app.js?v=338",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",
   "./wheel-mode.js?v=4",
@@ -94,6 +94,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return; // let GitHub API / CDN requests pass through
   if (event.request.method !== "GET") return;
   if (url.pathname.endsWith("/challenges.json")) return; // always fetch fresh — never cache-first
+  if (url.pathname.endsWith(".mp4")) return; // video needs native Range handling (iOS Safari won't play a cached 200)
 
   if (event.request.mode === "navigate") {
     event.respondWith(networkFirstNavigation(event.request));

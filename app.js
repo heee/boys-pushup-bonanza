@@ -15040,8 +15040,41 @@ $("kettlebell-preview-list").addEventListener("click", (e) => {
 $("btn-kettlebell-preview-back").addEventListener("click", () => showScreen("screen-explore-modes"));
 $("btn-kettlebell-start").addEventListener("click", startKettlebell);
 
+// Shows the exercise's demo clip (if it has one) in a .kb-clip panel, looped
+// at the learned pace so one loop matches the boy's own rep tempo. Holds and
+// clipless exercises hide the panel.
+const KB_CLIP_MIN_RATE = 0.75;
+const KB_CLIP_MAX_RATE = 2;
+function kbShowClip(panelId, set) {
+  const panel = $(panelId);
+  const video = panel.querySelector("video");
+  const clip = set ? kettlebellExercise(set.exerciseId).clip : null;
+  panel.classList.toggle("hidden", !clip);
+  if (!clip) {
+    video.pause();
+    return;
+  }
+  panel.style.setProperty("--kb-clip-aspect", clip.aspect);
+  panel.style.setProperty("--kb-clip-zoom", String(clip.zoom || 1));
+  panel.style.setProperty("--kb-clip-origin", clip.origin || "50% 50%");
+  if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+  const nativeRepSec = clip.loopSec / (clip.repsPerLoop || 1);
+  const rate = set.kind === "hold" ? 1 : nativeRepSec / Math.max(0.1, kbPaceForSet(set));
+  video.defaultPlaybackRate = video.playbackRate = Math.min(KB_CLIP_MAX_RATE, Math.max(KB_CLIP_MIN_RATE, rate));
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  video.play().catch(() => {});
+}
+
+function kbHideClips() {
+  for (const id of ["kettlebell-active-clip", "kettlebell-rest-clip"]) {
+    $(id).classList.add("hidden");
+    $(id).querySelector("video").pause();
+  }
+}
+
 function kbShowStage(stage) {
   kbState.stage = stage;
+  kbHideClips();
   $("kettlebell-active-stage").classList.toggle("hidden", stage !== "active");
   $("kettlebell-rest-stage").classList.toggle("hidden", stage !== "rest" && stage !== "ready" && stage !== "confirm");
   $("kettlebell-done-stage").classList.toggle("hidden", stage !== "done");
@@ -15117,6 +15150,7 @@ function kbEnterReady() {
   $("kettlebell-rest-hold").classList.add("hidden");
   $("kettlebell-rest-next").textContent = kbNextLabel(next);
   $("kettlebell-rest-next").classList.remove("hidden");
+  kbShowClip("kettlebell-rest-clip", next);
   $("kettlebell-rest-timer").classList.remove("hidden");
   $("btn-kettlebell-ready").textContent = "Start now";
   kbStartTimer(KETTLEBELL_GET_READY_SECONDS);
@@ -15134,6 +15168,7 @@ function kbEnterActive() {
   $("kettlebell-active-name").textContent = exercise.name;
   $("kettlebell-active-target").textContent = `${kettlebellTargetLabel(set)}${weight ? ` · ${weight} lb${exercise.bells === 2 ? " ×2" : ""}` : ""}`;
   $("kettlebell-active-cue").textContent = set.perSide ? "Switch sides at halfway" : "";
+  kbShowClip("kettlebell-active-clip", set);
   $("btn-kettlebell-done-set").textContent = set.kind === "hold" ? "Done holding" : "Done";
   kbStartTimer(kettlebellSetDurationSec(set, kbPaceForSet(set)));
   speak("Go");
@@ -15178,6 +15213,7 @@ function kbEnterRest(seconds) {
   $("kettlebell-reps-value").textContent = String(last.actualReps ?? 0);
   $("kettlebell-rest-next").textContent = next ? kbNextLabel(next) : "";
   $("kettlebell-rest-next").classList.toggle("hidden", !next);
+  kbShowClip("kettlebell-rest-clip", next);
   $("kettlebell-rest-timer").classList.toggle("hidden", final);
   $("btn-kettlebell-ready").textContent = final ? "Finish workout" : "Ready";
   if (final) {

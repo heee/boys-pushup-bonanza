@@ -5862,6 +5862,13 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-stage { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; padding-top: 1rem; }
 .kb-exercise-name { font-size: 1.7rem; font-weight: 900; margin: 0; line-height: 1.15; }
 .kb-target { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin: 0; }
+/* Exercise demo clip: dark source background kept, cropped per clip via
+   --kb-clip-aspect / --kb-clip-zoom / --kb-clip-origin (set from the clip data). */
+.kb-clip { height: min(26vh, 220px); aspect-ratio: var(--kb-clip-aspect, 3 / 4); max-width: 100%; border-radius: 16px; overflow: hidden; background: #0b0908; flex-shrink: 0; }
+.kb-clip-small { height: min(17vh, 140px); margin-top: 0.4rem; }
+/* With a clip on screen the countdown steps down so the demo stays the focus. */
+.kb-stage:has(.kb-clip:not(.hidden)) .rep-count { font-size: min(20vw, 5.5rem); }
+.kb-clip video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--kb-clip-origin, 50% 50%); transform: scale(var(--kb-clip-zoom, 1)); transform-origin: var(--kb-clip-origin, 50% 50%); pointer-events: none; }
 .kb-rest-done-name { font-size: 0.9rem; color: var(--text-dim); margin: 0.4rem 0 0; }
 .kb-rest-reps { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 .kb-rest-reps .stepper-btn { width: 3rem; height: 3rem; font-size: 1.5rem; }

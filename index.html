@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=322">
+<link rel="stylesheet" href="style.css?v=323">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1129,6 +1129,7 @@
         <p id="kettlebell-active-round" class="workout-eyebrow"></p>
         <h2 id="kettlebell-active-name" class="kb-exercise-name"></h2>
         <p id="kettlebell-active-target" class="kb-target"></p>
+        <div id="kettlebell-active-clip" class="kb-clip hidden" aria-hidden="true"><video muted loop playsinline preload="auto" disablepictureinpicture></video></div>
         <div id="kettlebell-active-timer" class="rep-count" role="timer" aria-label="Time remaining">0:00</div>
         <p id="kettlebell-active-cue" class="highscore-message"></p>
         <button id="btn-kettlebell-done-set" type="button" class="btn btn-giant btn-primary">Done</button>
@@ -1147,6 +1148,7 @@
           </div>
         </div>
         <p id="kettlebell-rest-hold" class="highscore-message hidden"></p>
+        <div id="kettlebell-rest-clip" class="kb-clip kb-clip-small hidden" aria-hidden="true"><video muted loop playsinline preload="auto" disablepictureinpicture></video></div>
         <p id="kettlebell-rest-next" class="kb-rest-next"></p>
         <button id="btn-kettlebell-ready" type="button" class="btn btn-giant btn-primary">Ready</button>
       </div>
@@ -2124,6 +2126,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=337"></script>
+<script type="module" src="app.js?v=338"></script>
 </body>
 </html>
