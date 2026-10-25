@@ -5626,9 +5626,11 @@ function capitalize(word) {
   return word ? `${word.charAt(0).toUpperCase()}${word.slice(1)}` : word;
 }
 
-function setRoadtripPeriodMenuOpen(open) {
-  $("roadtrip-period-trigger").setAttribute("aria-expanded", String(open));
-  $("roadtrip-period-menu").classList.toggle("hidden", !open);
+// Roadtrip: the place tier (Neighborhood/City/Country) is the header
+// dropdown; the timeframe is the always-visible underline tab row.
+function setRoadtripTierMenuOpen(open) {
+  $("roadtrip-tier-trigger").setAttribute("aria-expanded", String(open));
+  $("roadtrip-tier-menu").classList.toggle("hidden", !open);
 }
 
 async function openRoadtrip() {
@@ -5682,13 +5684,13 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
 }
 
 function renderRoadtrip() {
-  $("roadtrip-period-label").textContent = ROADTRIP_PERIOD_LABELS[state.roadtripPeriod];
-  document.querySelectorAll("[data-roadtrip-period]").forEach((option) => {
-    const selected = option.dataset.roadtripPeriod === state.roadtripPeriod;
+  $("roadtrip-tier-label").textContent = ROADTRIP_TIER_LABELS[state.roadtripTier] || "City";
+  document.querySelectorAll("[data-roadtrip-tier]").forEach((option) => {
+    const selected = option.dataset.roadtripTier === state.roadtripTier;
     option.classList.toggle("selected", selected);
     option.setAttribute("aria-selected", String(selected));
   });
-  document.querySelectorAll("[data-roadtrip-tier]").forEach((option) => option.classList.toggle("active", option.dataset.roadtripTier === state.roadtripTier));
+  document.querySelectorAll("[data-roadtrip-period]").forEach((option) => option.classList.toggle("active", option.dataset.roadtripPeriod === state.roadtripPeriod));
   const locationMissing = !state.deviceLocationProfile.location;
   $("roadtrip-location-needed").classList.toggle("hidden", !locationMissing);
   const list = $("roadtrip-list");
@@ -5699,7 +5701,7 @@ function renderRoadtrip() {
   });
   const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
   if (!top.length) {
-    list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${ROADTRIP_PERIOD_LABELS[state.roadtripPeriod].toLowerCase()}</strong><span>One pushup with a selected location can fix that.</span></div>`;
+    list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One pushup with a selected location can fix that.</span></div>`;
     return;
   }
   const group = document.createElement("div");
@@ -5864,27 +5866,28 @@ async function shareRoadtripDetail() {
 }
 $("btn-roadtrip-share").addEventListener("click", shareRoadtripDetail);
 
-$("roadtrip-tier-select").addEventListener("click", (event) => {
-  const option = event.target.closest("[data-roadtrip-tier]");
-  if (!option) return;
-  state.roadtripTier = option.dataset.roadtripTier;
-  localStorage.setItem(LS.roadtripTier, state.roadtripTier);
-  renderRoadtrip();
-});
-$("roadtrip-period-trigger").addEventListener("click", () => setRoadtripPeriodMenuOpen($("roadtrip-period-trigger").getAttribute("aria-expanded") !== "true"));
-$("roadtrip-period-menu").addEventListener("click", (event) => {
+$("roadtrip-period-select").addEventListener("click", (event) => {
   const option = event.target.closest("[data-roadtrip-period]");
   if (!option) return;
   state.roadtripPeriod = option.dataset.roadtripPeriod;
   localStorage.setItem(LS.roadtripPeriod, state.roadtripPeriod);
-  setRoadtripPeriodMenuOpen(false);
+  renderRoadtrip();
+  option.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+});
+$("roadtrip-tier-trigger").addEventListener("click", () => setRoadtripTierMenuOpen($("roadtrip-tier-trigger").getAttribute("aria-expanded") !== "true"));
+$("roadtrip-tier-menu").addEventListener("click", (event) => {
+  const option = event.target.closest("[data-roadtrip-tier]");
+  if (!option) return;
+  state.roadtripTier = option.dataset.roadtripTier;
+  localStorage.setItem(LS.roadtripTier, state.roadtripTier);
+  setRoadtripTierMenuOpen(false);
   renderRoadtrip();
 });
 document.addEventListener("click", (event) => {
-  if (!event.target.closest("#roadtrip-period-picker")) setRoadtripPeriodMenuOpen(false);
+  if (!event.target.closest("#roadtrip-tier-picker")) setRoadtripTierMenuOpen(false);
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") setRoadtripPeriodMenuOpen(false);
+  if (event.key === "Escape") setRoadtripTierMenuOpen(false);
 });
 $("btn-roadtrip-location").addEventListener("click", openLocationSheet);
 $("btn-roadtrip-back").addEventListener("click", () => showScreen("screen-roadtrip"));
@@ -7707,7 +7710,7 @@ $("period-select").addEventListener("click", (e) => {
 
 // Horizontal swipe anywhere on a tabbed screen steps through its underline
 // tabs (clamped, no wrap): Board's Day → … → All-time, Challenges' Active /
-// Upcoming / Past, Roadtrip's Neighborhood / City / Country. Skips gestures
+// Upcoming / Past, Roadtrip's Day → … → All-time. Skips gestures
 // that start on the Board chart cards (they swipe between exercise types)
 // or inside anything that scrolls horizontally on its own.
 function startsInOwnHorizontalGesture(target, root) {
@@ -7741,7 +7744,7 @@ function attachTabSwipe(screenId, tabsSelector) {
 }
 attachTabSwipe("screen-dashboard", "#period-select .segment");
 attachTabSwipe("screen-challenges", "#challenge-tab-select .segment");
-attachTabSwipe("screen-roadtrip", "#roadtrip-tier-select .segment");
+attachTabSwipe("screen-roadtrip", "#roadtrip-period-select .segment");
 
 // ------------------- challenges -------------------
 

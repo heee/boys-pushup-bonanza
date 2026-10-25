@@ -3220,9 +3220,9 @@ body:has(#screen-dashboard.active) #app {
    non-selected options; the other reuses of this shared component (compare
    mode, my-sessions mode) keep every option at the same weight. */
 #leaderboard-mode-menu .leaderboard-mode-option,
-#roadtrip-period-menu .leaderboard-mode-option { font-weight: 500; }
+#roadtrip-tier-menu .leaderboard-mode-option { font-weight: 500; }
 #leaderboard-mode-menu .leaderboard-mode-option.selected,
-#roadtrip-period-menu .leaderboard-mode-option.selected { font-weight: 650; }
+#roadtrip-tier-menu .leaderboard-mode-option.selected { font-weight: 650; }
 .leaderboard-mode-check { visibility: hidden; }
 .leaderboard-mode-option.selected .leaderboard-mode-check { visibility: visible; }
 
@@ -3230,7 +3230,8 @@ body:has(#screen-dashboard.active) #app {
 
 .roadtrip-header { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
 .roadtrip-header .screen-title { margin: 0; }
-#roadtrip-tier-select { margin-top: 0.8rem; }
+#roadtrip-period-select { margin-top: 0.8rem; overflow-x: auto; scrollbar-width: none; }
+#roadtrip-period-select::-webkit-scrollbar { display: none; }
 .roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; }
 .roadtrip-row {
   width: 100%;

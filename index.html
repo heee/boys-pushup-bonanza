@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=320">
+<link rel="stylesheet" href="style.css?v=321">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1620,24 +1620,24 @@
     <section id="screen-roadtrip" class="screen">
       <div class="roadtrip-header">
         <h1 class="screen-title screen-title-with-icon"><span class="screen-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg></span>Roadtrip</h1>
-        <div id="roadtrip-period-picker" class="leaderboard-mode-picker">
-          <button id="roadtrip-period-trigger" class="leaderboard-mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="roadtrip-period-menu">
-            <span id="roadtrip-period-label">Week</span><span class="leaderboard-mode-chevron" aria-hidden="true"></span>
+        <div id="roadtrip-tier-picker" class="leaderboard-mode-picker">
+          <button id="roadtrip-tier-trigger" class="leaderboard-mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="roadtrip-tier-menu">
+            <span id="roadtrip-tier-label">City</span><span class="leaderboard-mode-chevron" aria-hidden="true"></span>
           </button>
-          <div id="roadtrip-period-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Roadtrip timeframe">
-            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="day"><span>Day</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option selected" role="option" data-roadtrip-period="week"><span>Week</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="month"><span>Month</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="quarter"><span>Quarter</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="year"><span>Year</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-period="all"><span>All-time</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+          <div id="roadtrip-tier-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Location tier">
+            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-tier="neighborhood"><span>Neighborhood</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option selected" role="option" data-roadtrip-tier="city"><span>City</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-tier="country"><span>Country</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
           </div>
         </div>
       </div>
-      <div id="roadtrip-tier-select" class="segmented segmented-underline" role="tablist" aria-label="Location tier">
-        <button class="segment" data-roadtrip-tier="neighborhood">Neighborhood</button>
-        <button class="segment active" data-roadtrip-tier="city">City</button>
-        <button class="segment" data-roadtrip-tier="country">Country</button>
+      <div id="roadtrip-period-select" class="segmented segmented-underline" role="tablist" aria-label="Roadtrip timeframe">
+        <button class="segment" data-roadtrip-period="day">Day</button>
+        <button class="segment active" data-roadtrip-period="week">Week</button>
+        <button class="segment" data-roadtrip-period="month">Month</button>
+        <button class="segment" data-roadtrip-period="quarter">Quarter</button>
+        <button class="segment" data-roadtrip-period="year">Year</button>
+        <button class="segment" data-roadtrip-period="all">All-time</button>
       </div>
       <div id="roadtrip-location-needed" class="roadtrip-location-needed hidden">
         <div class="roadtrip-empty-icon">📍</div>
@@ -2124,6 +2124,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=335"></script>
+<script type="module" src="app.js?v=337"></script>
 </body>
 </html>
