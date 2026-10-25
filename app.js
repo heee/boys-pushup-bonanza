@@ -1490,7 +1490,7 @@ const state = {
   historyView: "recent",
   highScore: 0,
   pushupLast: 0,
-  bonanzaMode: "mine",
+  bonanzaMode: "boys",
   modeBreakdownScope: "group",
   modeBreakdownPeriod: "week",
   lastSessions: [],
@@ -6121,7 +6121,14 @@ async function renderDashboard() {
   await flushQueue().catch(() => {});
   const sessions = await refreshFromRemote();
   state.lastSessions = sessions;
-  $("leaderboard-mode-picker").classList.remove("hidden");
+  // The mode dropdown is gone from the header; the chart cards' arrows/swipe
+  // only step whole exercises, so a saved pushup sub-mode (e.g. Dice) would
+  // be unreachable — fall back to All.
+  if (state.leaderboardMode !== "all" && leaderboardActivity(state.leaderboardMode) === "pushups") {
+    state.leaderboardMode = "all";
+    state.activityType = "pushups";
+    localStorage.setItem(LS.leaderboardMode, "all");
+  }
   syncLeaderboardModeControl();
   paintActiveBonanzaView();
   renderStreakBadge();
@@ -6208,7 +6215,7 @@ function selectLeaderboardMode(mode) {
 // sub-modes. Landing back on pushups always resets to "All" rather than
 // restoring whichever sub-mode was last picked; Holland isn't in the cycle
 // (dropdown-only) but still needs a sane index to step from if it's active.
-const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "squats", "pullups", "situps"];
+const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "squats", "pullups", "situps", "holland", "chainofpain", "kettlebell"];
 // Only cycle through activities that actually have a session within the
 // selected time horizon (state.dashboardPeriod), scoped to the same user
 // pool the chart card itself is drawing from — no point swiping to an
@@ -7283,6 +7290,11 @@ function boysModeStatsMetrics(sessions, allModeSessions) {
 
 function renderBoysModeStats(sessions, allModeSessions = sessions) {
   const el = $("boys-mode-stats");
+  // With a single participant the group numbers are just that boy's own
+  // numbers — nothing to compare, so the section is hidden.
+  const soloBoard = new Set(sessions.map((s) => s.user)).size <= 1;
+  el.closest(".boys-mode-stats-section").classList.toggle("hidden", soloBoard);
+  if (soloBoard) return;
   const metrics = boysModeStatsMetrics(sessions, allModeSessions);
   el.innerHTML = metrics.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
@@ -12276,6 +12288,22 @@ $("btn-summary-again").addEventListener("click", () => {
 });
 $("btn-summary-different-mode").addEventListener("click", () => {
   showScreen("screen-explore-modes");
+});
+$("btn-summary-different-type").addEventListener("click", () => {
+  renderTypePicker();
+  showScreen("screen-type-picker");
+});
+// Opens the just-finished session's detail view; falls back to this user's
+// newest session when the summary didn't record an id (non-pushup types).
+$("btn-summary-review").addEventListener("click", () => {
+  const sessions = getAllSessionsForDisplay();
+  const session = sessions.find((s) => s.id === state.summarySessionId)
+    || sessions.filter((s) => s.user === state.currentUser).sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a))[0];
+  if (!session) {
+    toast("Session not saved yet.", 2500);
+    return;
+  }
+  openSessionDetail(session, "screen-summary");
 });
 $("btn-summary-share").addEventListener("click", shareFlex);
 $("summary-roadtrip-cue").addEventListener("click", shareRoadtripConquest);
