@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=317">
+<link rel="stylesheet" href="style.css?v=318">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1325,9 +1325,16 @@
       <div class="dashboard-header">
         <h1 class="screen-title screen-title-with-icon"><span class="screen-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span>Board</h1>
         <div class="dashboard-header-actions">
-          <div id="bonanza-mode-select" class="segmented bonanza-mode-compact" role="tablist">
-            <button class="segment active" data-mode="boys">Boys Bonanza</button>
-            <button class="segment" data-mode="mine">My Bonanza</button>
+          <div id="bonanza-mode-picker" class="leaderboard-mode-picker">
+            <button id="bonanza-mode-trigger" class="leaderboard-mode-trigger" type="button"
+              aria-haspopup="listbox" aria-expanded="false" aria-controls="bonanza-mode-menu">
+              <span id="bonanza-mode-label">Boys Bonanza</span>
+              <span class="leaderboard-mode-chevron" aria-hidden="true"></span>
+            </button>
+            <div id="bonanza-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Board view">
+              <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mode="boys"><span>Boys Bonanza</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+              <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mode="mine"><span>My Bonanza</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            </div>
           </div>
           <button id="btn-leaderboard-share" type="button" class="icon-btn" aria-label="Share stats" title="Share stats"><span class="icon-share" aria-hidden="true"></span></button>
         </div>
@@ -2117,6 +2124,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=334"></script>
+<script type="module" src="app.js?v=335"></script>
 </body>
 </html>

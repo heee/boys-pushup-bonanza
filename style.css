@@ -5912,8 +5912,11 @@ body:has(#screen-challenge-detail.active) #app {
 
 /* Board header: title left, Boys/My Bonanza toggle + share right. */
 .dashboard-header-actions { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
-.segmented.bonanza-mode-compact { margin: 0; padding: 3px; min-width: 0; }
-.bonanza-mode-compact .segment { flex: none; padding: 0.4rem 0.6rem; font-size: 0.76rem; white-space: nowrap; }
+/* Boys/My Bonanza dropdown and the share button share one height so the
+   header reads as a single row. */
+.dashboard-header-actions .leaderboard-mode-trigger,
+.dashboard-header-actions .icon-btn { height: 2.4rem; box-sizing: border-box; }
+.dashboard-header-actions .leaderboard-mode-trigger { white-space: nowrap; }
 #screen-dashboard .dashboard-header { margin-bottom: 0.6rem; }
 
 /* Session complete: stroke confetti in the title, Same again + 2x2 grid. */

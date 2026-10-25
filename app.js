@@ -2124,13 +2124,28 @@ function guardLeaveWorkout(next) {
   next();
 }
 
-function goToDashboard(mode) {
-  state.bonanzaMode = mode;
-  document.querySelectorAll("#bonanza-mode-select .segment").forEach((s) => {
-    s.classList.toggle("active", s.dataset.mode === mode);
+// Board's Boys/My Bonanza dropdown (header, beside share) — keeps the
+// trigger label, menu selection and visible view in sync.
+function syncBonanzaModeControl() {
+  const mode = state.bonanzaMode;
+  document.querySelectorAll("#bonanza-mode-menu .leaderboard-mode-option").forEach((option) => {
+    const isSelected = option.dataset.mode === mode;
+    option.classList.toggle("selected", isSelected);
+    option.setAttribute("aria-selected", String(isSelected));
   });
+  $("bonanza-mode-label").textContent = mode === "mine" ? "My Bonanza" : "Boys Bonanza";
   $("boys-bonanza-view").classList.toggle("hidden", mode !== "boys");
   $("my-bonanza-view").classList.toggle("hidden", mode !== "mine");
+}
+
+function setBonanzaModeMenuOpen(open) {
+  $("bonanza-mode-trigger").setAttribute("aria-expanded", String(open));
+  $("bonanza-mode-menu").classList.toggle("hidden", !open);
+}
+
+function goToDashboard(mode) {
+  state.bonanzaMode = mode;
+  syncBonanzaModeControl();
   showScreen("screen-dashboard");
 }
 
@@ -6169,15 +6184,17 @@ function paintActiveBonanzaView() {
   else paintDashboard(typed);
 }
 
-$("bonanza-mode-select").addEventListener("click", (e) => {
-  const btn = e.target.closest(".segment");
-  if (!btn) return;
-  document.querySelectorAll("#bonanza-mode-select .segment").forEach((s) => s.classList.remove("active"));
-  btn.classList.add("active");
-  state.bonanzaMode = btn.dataset.mode;
+$("bonanza-mode-trigger").addEventListener("click", () => {
+  setBonanzaModeMenuOpen($("bonanza-mode-trigger").getAttribute("aria-expanded") !== "true");
+});
+$("bonanza-mode-menu").addEventListener("click", (e) => {
+  const option = e.target.closest(".leaderboard-mode-option");
+  if (!option) return;
+  setBonanzaModeMenuOpen(false);
+  if (option.dataset.mode === state.bonanzaMode) return;
+  state.bonanzaMode = option.dataset.mode;
   state.dashboardBucketOffset = null;
-  $("boys-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "boys");
-  $("my-bonanza-view").classList.toggle("hidden", state.bonanzaMode !== "mine");
+  syncBonanzaModeControl();
   updateLeaderboardModeMenuVisibility();
   paintActiveBonanzaView();
 });
@@ -6329,6 +6346,7 @@ $("leaderboard-mode-menu").addEventListener("keydown", (event) => {
 
 document.addEventListener("click", (event) => {
   if (!event.target.closest("#leaderboard-mode-picker")) setLeaderboardModeMenuOpen(false);
+  if (!event.target.closest("#bonanza-mode-picker")) setBonanzaModeMenuOpen(false);
   if (!event.target.closest("#mysessions-mode-picker")) setMySessionsModeMenuOpen(false);
 });
 
