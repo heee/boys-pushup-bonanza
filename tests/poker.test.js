@@ -44,3 +44,16 @@ test("every Poker callout is included in the pre-rendered voice corpus", () => {
     for (const line of lines) assert.ok(corpusLines.has(line));
   }
 });
+
+test("bestPokerHand picks the strongest five of seven", async () => {
+  const { bestPokerHand } = await import("../poker.js");
+  const c = (label, suit) => ({ label, suit });
+  const flushInSeven = [c("2", "hearts"), c("K", "spades"), c("7", "hearts"), c("9", "hearts"), c("5", "clubs"), c("J", "hearts"), c("4", "hearts")];
+  const flush = bestPokerHand(flushInSeven);
+  assert.equal(flush.label, "Flush");
+  assert.deepEqual(flush.used, [0, 2, 3, 5, 6]);
+  const fullHouse = bestPokerHand([c("9", "hearts"), c("9", "spades"), c("9", "clubs"), c("4", "hearts"), c("4", "spades"), c("4", "clubs"), c("A", "hearts")]);
+  assert.equal(fullHouse.label, "Full House");
+  assert.equal(bestPokerHand([c("2", "hearts"), c("2", "spades"), c("5", "clubs"), c("9", "hearts"), c("J", "spades")]).label, "Pair");
+  assert.equal(bestPokerHand([c("2", "hearts")]), null);
+});

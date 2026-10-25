@@ -13,7 +13,7 @@ export const EXPLORE_MODES = [
   { id: "chainofpain", icon: "⛓️", title: "Chain of Pain", tagline: "Squats, pushups, planks — nonstop", live: true },
   { id: "ladder", icon: "🪜", title: "Ladder", tagline: "Climb the ladder, cash out anytime", live: true },
   { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Hunt the first board you don't already lead", live: true },
-  { id: "poker", icon: "♠️", title: "Poker hands", tagline: "Clear five cards, reveal your hand", live: true },
+  { id: "poker", icon: "♠️", title: "Poker hands", tagline: "Clear seven cards, play your best five", live: true },
   { id: "wheel", icon: "🎯", title: "Wheel of pain", tagline: "Spin every set for your next number", live: true },
   { id: "sharpshooter", icon: "🏹", title: "Sharpshooter", tagline: "Destroy targets, one shot at a time", live: true },
   { id: "pyramid", icon: "🔺", title: "Pyramid", tagline: "Descend the base, conquer the apex", live: true },

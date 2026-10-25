@@ -122,7 +122,7 @@ import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, 
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES } from "./screens/poker-collection.js?v=1";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=149";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=150";
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=2";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
@@ -155,7 +155,7 @@ import {
   towTurnStatusCopy,
 } from "./screens/tug-of-war.js";
 import { randomTeamNames as randomTowTeamNames } from "./tug-of-war-words.js";
-import { bestPokerRank, evaluatePokerHand, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js";
+import { bestPokerHand, bestPokerRank, pokerAchievementIds, pokerAchievementsFromSessions, POKER_HANDS } from "./poker.js?v=2";
 import {
   formatTerritoryLocation,
   normalizeDeviceLocationProfile,
@@ -6731,11 +6731,14 @@ function getPersistedPokerDeck() {
   if (state.pokerHand.length) renderPokerHand();
 }
 
+// Seven cards per hand, scored as the best five (see bestPokerHand) — big
+// hands (Flush, Full House) are ~15x likelier than a straight 5-card deal.
+const POKER_DEAL_SIZE = 7;
 function dealPokerHand() {
   let deck = getPersistedPokerDeck();
-  if (deck.length < 5) deck = buildFreshDeck();
-  const dealt = deck.slice(0, 5).map((card) => cardAt(card.col, card.row));
-  localStorage.setItem(LS.pokerDeck, JSON.stringify(deck.slice(5)));
+  if (deck.length < POKER_DEAL_SIZE) deck = buildFreshDeck();
+  const dealt = deck.slice(0, POKER_DEAL_SIZE).map((card) => cardAt(card.col, card.row));
+  localStorage.setItem(LS.pokerDeck, JSON.stringify(deck.slice(POKER_DEAL_SIZE)));
   return dealt;
 }
 
@@ -10154,7 +10157,7 @@ function preloadCard(card) {
 // see .cards-completed-stack in style.css). Called after every card clears;
 // state.cardsCleared already holds the full session history, so this just
 // slices the tail and re-renders. The count badge always reflects the full
-// session total, not just the 5 cards currently shown.
+// session total, not just the cards currently shown.
 const CARDS_STACK_OFFSETS = [
   { x: "0rem", y: "0rem", rotate: "-12deg" },
   { x: "0.4rem", y: "-0.2rem", rotate: "-6deg" },
@@ -10191,10 +10194,17 @@ function setCardFace(el, card) {
 function renderPokerHand() {
   const hand = $("poker-hand");
   if (!hand) return;
-  const offsets = [-7.2, -3.6, 0, 3.6, 7.2];
-  const rotations = [-4, -2, 0, 2, 4];
+  // Fan spacing/rotation centred on the middle card, for any hand size.
+  const mid = (state.pokerHand.length - 1) / 2;
+  const offsets = state.pokerHand.map((_, i) => (i - mid) * 2.7);
+  const rotations = state.pokerHand.map((_, i) => (i - mid) * 1.8);
+  // Once the hand resolves, the five scoring cards stay lit and the other
+  // two fade out, so it's clear which cards made the hand.
+  const used = state.pokerResolvedUsed ? new Set(state.pokerResolvedUsed) : null;
+  hand.classList.toggle("poker-hand-seven", state.pokerHand.length > 5);
   hand.innerHTML = state.pokerHand.map((card, index) => {
-    const status = index < state.pokerCardIndex ? " completed" : index === state.pokerCardIndex ? " active" : "";
+    const status = used ? (used.has(index) ? " scoring" : " unused")
+      : index < state.pokerCardIndex ? " completed" : index === state.pokerCardIndex ? " active" : "";
     const check = index < state.pokerCardIndex ? '<span class="poker-card-check" aria-hidden="true">✓</span>' : "";
     const counter = index === state.pokerCardIndex ? '<span id="poker-counter-badge" class="mode-counter-badge" aria-hidden="true"></span>' : "";
     return `<div class="poker-card${status}" style="--poker-x:${offsets[index]}rem;--poker-rotate:${rotations[index]}deg;background-image:url('${cardImageUrl(card)}')" aria-label="${card.label} of ${card.suit}${index === state.pokerCardIndex ? ", active" : ""}">${check}${counter}</div>`;
@@ -10225,17 +10235,20 @@ function dealNextPokerHand() {
   state.pokerCardRepsDone = 0;
   state.pokerCardTarget = state.pokerHand[0].value;
   state.pokerResolving = false;
+  state.pokerResolvedUsed = null;
   $("poker-result").classList.add("hidden");
   renderPokerHand();
   state.pokerHand.forEach(preloadCard);
 }
 
 function completePokerHand() {
-  const result = evaluatePokerHand(state.pokerHand);
-  if (!result) return;
+  const best = bestPokerHand(state.pokerHand);
+  if (!best) return;
+  const { used, ...result } = best;
   state.pokerHandsCompleted.push(result);
   state.pokerResolving = true;
-  state.pokerCardIndex = 5;
+  state.pokerResolvedUsed = used;
+  state.pokerCardIndex = state.pokerHand.length;
   renderPokerHand();
   const achieved = priorPokerAchievements();
   const newIds = pokerAchievementIds(result.rank).filter((id) => !achieved.has(id));
@@ -10260,7 +10273,7 @@ function completePokerHand() {
 function advancePokerCard() {
   state.pokerCardIndex += 1;
   state.pokerCardRepsDone = 0;
-  if (state.pokerCardIndex >= 5) completePokerHand();
+  if (state.pokerCardIndex >= state.pokerHand.length) completePokerHand();
   else {
     state.pokerCardTarget = state.pokerHand[state.pokerCardIndex].value;
     renderPokerHand();

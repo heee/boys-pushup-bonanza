@@ -49,3 +49,20 @@ export function pokerAchievementsFromSessions(sessions) {
   }
   return [...ranks].sort((a, b) => a - b);
 }
+
+// Seven-card deal: score the best five-card hand among all 21 combinations
+// (Texas Hold'em style). Returns that hand's result plus `used`, the indices
+// (into `cards`) of the five cards that make it. Five cards in is a no-op
+// wrapper so callers don't care how many were dealt.
+export function bestPokerHand(cards) {
+  if (!Array.isArray(cards) || cards.length < 5) return null;
+  let best = null;
+  const n = cards.length;
+  for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c = b + 1; c < n; c++)
+    for (let d = c + 1; d < n; d++) for (let e = d + 1; e < n; e++) {
+      const used = [a, b, c, d, e];
+      const result = evaluatePokerHand(used.map((i) => cards[i]));
+      if (result && (!best || result.rank > best.rank)) best = { ...result, used };
+    }
+  return best;
+}
