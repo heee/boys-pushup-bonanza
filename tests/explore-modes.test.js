@@ -26,8 +26,8 @@ test("Explore ordering preserves Chase priority, locks, and roadmap", () => {
   const otherIds = ready.filter((item) => item.section === "other").map((item) => item.mode.id);
   assert.equal(otherIds.at(-1), "chainofpain");
   // The Kettlebell section comes last, one card per preset in preset order.
-  assert.deepEqual(ready.filter((item) => item.section === "kettlebell").map((item) => item.mode.id), ["kb-five-alive", "kb-throne-room", "kb-core-ten"]);
-  assert.equal(ready.at(-1).mode.id, "kb-core-ten");
+  assert.deepEqual(ready.filter((item) => item.section === "kettlebell").map((item) => item.mode.id), ["kb-five-alive", "kb-throne-room", "kb-core-ten", "kb-iron-grip"]);
+  assert.equal(ready.at(-1).mode.id, "kb-iron-grip");
   const pushupIds = ready.filter((item) => item.section === "pushups").map((item) => item.mode.id);
   assert.equal(pushupIds.at(-1), "tow");
   assert.ok(!pushupIds.includes("fortune") && !pushupIds.includes("boss"));
@@ -61,7 +61,7 @@ test("Mode picker filters to one type and sections Pushups", async () => {
   assert.ok(pushups.every((i) => workoutTypeForMode(i.mode.id) === "pushups"));
   assert.deepEqual(modePickerModel("circuits", args).map((i) => i.mode.id), ["holland", "chainofpain"]);
   assert.deepEqual(modePickerModel("squats", args).map((i) => i.mode.id), ["squat"]);
-  assert.equal(modePickerModel("kettlebell", args).length, 3);
+  assert.equal(modePickerModel("kettlebell", args).length, 4);
   for (const type of WORKOUT_TYPES) assert.equal(workoutTypeForMode(type.defaultMode), type.id);
   assert.ok(HOME_START_MODES.has("classic") && !HOME_START_MODES.has("pyramid"));
 });

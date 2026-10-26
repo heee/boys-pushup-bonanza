@@ -53,6 +53,13 @@ export const KETTLEBELL_EXERCISES = {
   "wood-chop": { name: "Half Kneeling Wood Chop", spoken: "Wood chops", paceSec: 2.5 },
   "hollow-flutter": { name: "Hollow Hold + Flutter Kicks", spoken: "Hollow hold, flutter kicks", paceSec: 1, bodyweight: true },
   "hollow-leg-raise": { name: "Hollow Hold + Leg Raises", spoken: "Hollow hold, leg raises", paceSec: 3.0 },
+  "wrist-rotation": { name: "Wrist Rotation", spoken: "Wrist rotations", paceSec: 2.0 },
+  "wrist-twist": { name: "Wrist Twist", spoken: "Wrist twists", paceSec: 2.0 },
+  "biceps-to-triceps": { name: "Biceps to Triceps", spoken: "Biceps to triceps", paceSec: 3.5 },
+  "pull-press": { name: "Pull & Press", spoken: "Pull and press", paceSec: 3.5 },
+  "static-hold-left": { name: "Static Hold (Left)", spoken: "Static hold, left arm", paceSec: 1 },
+  "static-hold-right": { name: "Static Hold (Right)", spoken: "Static hold, right arm", paceSec: 1 },
+  "alt-one-arm-pull": { name: "Alternating One-Arm Pull", spoken: "Alternating one arm pulls", paceSec: 2.0 },
 };
 
 export const KETTLEBELL_WORKOUTS = [
@@ -109,6 +116,26 @@ export const KETTLEBELL_WORKOUTS = [
       { exerciseId: "wood-chop", kind: "max", windowSec: 60, perSide: true },
       { exerciseId: "hollow-flutter", kind: "hold", windowSec: 60 },
       { exerciseId: "hollow-leg-raise", kind: "max", windowSec: 60 },
+    ],
+  },
+  {
+    // All kneeling forearm/arm work, one bell.
+    id: "iron-grip",
+    name: "Iron Grip",
+    icon: "✊",
+    tagline: "Kneeling forearm burner — seven moves, two rounds",
+    format: "circuit",
+    rounds: 2,
+    restSec: 15,
+    roundRestSec: 60,
+    exercises: [
+      { exerciseId: "wrist-rotation", reps: 15 },
+      { exerciseId: "wrist-twist", reps: 15 },
+      { exerciseId: "biceps-to-triceps", reps: 15 },
+      { exerciseId: "pull-press", reps: 12 },
+      { exerciseId: "static-hold-left", kind: "hold", windowSec: 40 },
+      { exerciseId: "static-hold-right", kind: "hold", windowSec: 40 },
+      { exerciseId: "alt-one-arm-pull", reps: 20 },
     ],
   },
 ];

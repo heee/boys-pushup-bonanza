@@ -99,7 +99,7 @@ export const WORKOUT_TYPES = [
   { id: "situps", title: "Crunches", tagline: "Camera-counted crunches", defaultMode: "situp" },
   { id: "planks", title: "Planks", tagline: "Hold your ground, beat your time", defaultMode: "plank" },
   { id: "circuits", title: "Circuits", tagline: "Holland Mode, Chain of Pain", defaultMode: "holland" },
-  { id: "kettlebell", title: "Kettlebell", tagline: "Five Alive, Throne Room, Core Ten", defaultMode: "kb-five-alive" },
+  { id: "kettlebell", title: "Kettlebell", tagline: "Five Alive, Throne Room, Core Ten, Iron Grip", defaultMode: "kb-five-alive" },
 ];
 
 const TYPE_BY_SINGLE_MODE = { squat: "squats", pullup: "pullups", situp: "situps", plank: "planks", holland: "circuits", chainofpain: "circuits" };

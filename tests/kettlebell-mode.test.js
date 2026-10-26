@@ -59,6 +59,14 @@ test("Core Ten is ten one-minute windows with 10 s transitions and two holds", (
   assert.deepEqual(sets.slice(0, -1).map((s) => s.restAfterSec), Array(9).fill(10));
 });
 
+test("Iron Grip is a two-round, seven-move circuit with a left and right hold", () => {
+  const sets = kettlebellExpandSets(kettlebellWorkoutById("iron-grip"));
+  assert.equal(sets.length, 14);
+  assert.deepEqual(sets.filter((s) => s.kind === "hold").map((s) => `${s.exerciseId}:${s.windowSec}`), ["static-hold-left:40", "static-hold-right:40", "static-hold-left:40", "static-hold-right:40"]);
+  assert.equal(sets[6].restAfterSec, 60, "round break");
+  assert.deepEqual(sets.slice(0, 6).map((s) => s.restAfterSec), Array(6).fill(15));
+});
+
 test("countdown = target × pace with buffer; max/hold use the window", () => {
   assert.equal(kettlebellSetDurationSec({ kind: "reps", targetReps: 16 }, 2.5), 44);
   assert.equal(kettlebellSetDurationSec({ kind: "reps", targetReps: 2 }, 1), 10, "floor");
