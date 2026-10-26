@@ -3602,7 +3602,7 @@ async function shareHorseReminder() {
   const url = game.sessionType === "open" ? horseInviteUrl(game.id) : location.href;
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -3625,7 +3625,7 @@ async function shareOpenHorseInvite() {
   const url = horseInviteUrl(game.id);
   const text = pickHorseOpenInviteMessage({ createdBy: game.createdBy });
   if (navigator.share) {
-    try { await navigator.share({ title: "Open Horse", text, url }); } catch (e) { /* cancelled */ }
+    try { await navigator.share(sharePayload("Open Horse", text, url)); } catch (e) { /* cancelled */ }
     return;
   }
   try {
@@ -3938,7 +3938,7 @@ $("btn-horse-letter-share").addEventListener("click", async () => {
   const url = game.sessionType === "open" ? horseInviteUrl(game.id) : location.href;
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -4285,7 +4285,7 @@ async function shareTowInvite() {
     rosterSize: game.rosterSize,
   });
   if (navigator.share) {
-    try { await navigator.share({ title: "Tug of War", text, url }); } catch (e) { /* cancelled */ }
+    try { await navigator.share(sharePayload("Tug of War", text, url)); } catch (e) { /* cancelled */ }
   } else if (navigator.clipboard) {
     await navigator.clipboard.writeText(`${text} ${url}`);
     toast("Invite link copied", 2500);
@@ -4560,7 +4560,7 @@ async function shareTowReminder() {
   const url = game.sessionType === "open" ? towInviteUrl(game.id) : location.href;
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -4646,7 +4646,7 @@ async function shareTowBurstBrag() {
   const url = location.href;
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -5851,7 +5851,7 @@ async function shareRoadtripDetail() {
   const url = `${location.origin}${location.pathname}#roadtrip=${encodeURIComponent(territory.id)}`;
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -7034,7 +7034,7 @@ async function shareUserCompare() {
       const blob = await exportCompareImage(model, selfUser, otherUser, modeLabel, tallyText);
       const file = new File([blob], "head-to-head.png", { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Boys Pushup Bonanza", text: message, url });
+        await navigator.share({ files: [file], ...sharePayload("Boys Pushup Bonanza", message, url) });
         return;
       }
     } catch (e) {
@@ -7043,7 +7043,7 @@ async function shareUserCompare() {
   }
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -7167,7 +7167,7 @@ async function shareSessionDetail() {
   const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
   const url = modeShareUrl(modeId);
   if (navigator.share) {
-    try { await navigator.share({ title: "Boys Pushup Bonanza", text: message, url }); } catch (e) { /* cancelled */ }
+    try { await navigator.share(sharePayload("Boys Pushup Bonanza", message, url)); } catch (e) { /* cancelled */ }
     return;
   }
   try {
@@ -8167,7 +8167,7 @@ const CHALLENGE_INVITE_MESSAGES = [
 async function shareViaSheetOrClipboard(message, url) {
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -8518,7 +8518,7 @@ async function shareLeaderboardStats() {
   const url = modeShareUrl(shareModeId);
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -12229,6 +12229,12 @@ function refreshSummaryRoadtripConquests() {
 // Builds a share link that deep-links straight into a mode via the #mode=
 // hash init() reads on load (see openExploreMode), instead of the bare app
 // URL a recipient would otherwise land on with no idea what to play.
+// Some share targets (iOS Messages, WhatsApp) drop `text` when a separate
+// `url` is passed and share only the link, so the link rides inside the text.
+function sharePayload(title, text, url) {
+  return { title, text: `${text} ${url}` };
+}
+
 function modeShareUrl(modeId) {
   const base = `${location.origin}${location.pathname}`;
   return modeId ? `${base}#mode=${encodeURIComponent(modeId)}` : base;
@@ -12311,7 +12317,7 @@ async function shareFlex() {
   const url = modeShareUrl(ctx.mode);
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: message, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", message, url));
     } catch (e) {
       // user cancelled the share sheet — not an error
     }
@@ -12331,7 +12337,7 @@ async function shareRoadtripConquest() {
   const message = roadtripConquestShareMessage(state.currentUser, wins);
   const url = `${location.origin}${location.pathname}#roadtrip=${encodeURIComponent(wins[0].id)}`;
   if (navigator.share) {
-    try { await navigator.share({ title: "Roadtrip conquered", text: message, url }); } catch (e) { /* cancelled */ }
+    try { await navigator.share(sharePayload("Roadtrip conquered", message, url)); } catch (e) { /* cancelled */ }
     return;
   }
   try {
@@ -15776,7 +15782,7 @@ async function shareRecapCard() {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: "Boys Pushup Bonanza", url });
     } else if (navigator.share) {
-      await navigator.share({ title: "Boys Pushup Bonanza", text: `${recapValueDisplay(tab.total, tab.unit)} ${tab.label.toLowerCase()} this ${state.recapTier} 💪`, url });
+      await navigator.share(sharePayload("Boys Pushup Bonanza", `${recapValueDisplay(tab.total, tab.unit)} ${tab.label.toLowerCase()} this ${state.recapTier} 💪`, url));
     } else {
       toast("Sharing isn't supported on this browser.", 3000);
     }
