@@ -11,18 +11,33 @@
 //   kind: "hold"   — fixed windowSec; time only, no reps logged.
 // bodyweight: true — no weight stepper, contributes reps but no volume.
 // bells: 2        — double-bell move; volume counts both bells.
+// clip            — looping demo video shown during the active set, one file
+//                   per theme (<base>-dark.mp4 / <base>-light.mp4, backgrounds
+//                   rendered to match --bg). loopSec ÷ repsPerLoop is the
+//                   clip's native tempo; playback is sped up/slowed to the
+//                   learned pace. aspect/zoom/origin crop the 600×800 source
+//                   so the figure fills the panel.
 
 export const KETTLEBELL_EXERCISES = {
   "kb-pushup": {
     name: "KB Push Up", spoken: "Push ups", paceSec: 2.0, bodyweight: true,
-    clip: { src: "assets/kettlebell/kb-pushup.mp4", loopSec: 3.95, repsPerLoop: 1, aspect: "7 / 5", zoom: 1, origin: "50% 47%" },
+    clip: { base: "assets/kettlebell/kb-pushup", loopSec: 3.9, repsPerLoop: 1, aspect: "7 / 5", zoom: 0.85, origin: "53% 43%" },
   },
-  "kb-halo": { name: "KB Halo", spoken: "Halos", paceSec: 2.5 },
-  "kb-curl": { name: "KB Curl", spoken: "Curls", paceSec: 2.5 },
-  "row-clean-press": { name: "Row, Clean, Press", spoken: "Row, clean, press", paceSec: 5.0, bells: 2 },
+  "kb-halo": {
+    name: "KB Halo", spoken: "Halos", paceSec: 2.5,
+    clip: { base: "assets/kettlebell/kb-halo", loopSec: 3.15, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.3, origin: "44% 78%" },
+  },
+  "kb-curl": {
+    name: "KB Curl", spoken: "Curls", paceSec: 2.5,
+    clip: { base: "assets/kettlebell/kb-curl", loopSec: 3.85, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.3, origin: "52% 76%" },
+  },
+  "row-clean-press": {
+    name: "Row, Clean, Press", spoken: "Row, clean, press", paceSec: 5.0, bells: 2,
+    clip: { base: "assets/kettlebell/row-clean-press", loopSec: 9.9, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.3, origin: "61% 67%" },
+  },
   "goblet-march": {
     name: "Goblet March", spoken: "Goblet march", paceSec: 1.5,
-    clip: { src: "assets/kettlebell/goblet-march.mp4", loopSec: 3.55, repsPerLoop: 2, aspect: "3 / 4", zoom: 1.35, origin: "46% 81%" },
+    clip: { base: "assets/kettlebell/goblet-march", loopSec: 3.5, repsPerLoop: 2, aspect: "3 / 4", zoom: 1.3, origin: "46% 85%" },
   },
   "seated-press": { name: "Seated Shoulder Press", spoken: "Seated shoulder press", paceSec: 2.5 },
   "seated-curl": { name: "Seated Curl", spoken: "Seated curls", paceSec: 2.5 },

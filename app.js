@@ -15063,7 +15063,9 @@ function kbShowClip(set) {
   panel.style.setProperty("--kb-clip-aspect", clip.aspect);
   panel.style.setProperty("--kb-clip-zoom", String(clip.zoom || 1));
   panel.style.setProperty("--kb-clip-origin", clip.origin || "50% 50%");
-  if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+  const theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const src = `${clip.base}-${theme}.mp4`;
+  if (video.getAttribute("src") !== src) video.src = src;
   const nativeRepSec = clip.loopSec / (clip.repsPerLoop || 1);
   const rate = set.kind === "hold" ? 1 : nativeRepSec / Math.max(0.1, kbPaceForSet(set));
   video.defaultPlaybackRate = video.playbackRate = Math.min(KB_CLIP_MAX_RATE, Math.max(KB_CLIP_MIN_RATE, rate));

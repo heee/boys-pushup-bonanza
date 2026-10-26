@@ -5862,9 +5862,16 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-stage { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; padding-top: 1rem; }
 .kb-exercise-name { font-size: 1.7rem; font-weight: 900; margin: 0; line-height: 1.15; }
 .kb-target { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin: 0; }
-/* Exercise demo clip: dark source background kept, cropped per clip via
+/* Exercise demo clip: per-theme video whose background matches --bg, cropped per clip via
    --kb-clip-aspect / --kb-clip-zoom / --kb-clip-origin (set from the clip data). */
-.kb-clip { height: min(26vh, 220px); aspect-ratio: var(--kb-clip-aspect, 3 / 4); max-width: 100%; border-radius: 16px; overflow: hidden; background: #0b0908; flex-shrink: 0; }
+.kb-clip { height: min(26vh, 220px); aspect-ratio: var(--kb-clip-aspect, 3 / 4); max-width: 100%; overflow: hidden; background: var(--bg); flex-shrink: 0; }
+/* Decoded video lands a level or two off --bg, so feather the edges rather than show a faint box. */
+.kb-clip {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent), linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent), linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
+  mask-composite: intersect;
+}
 /* With a clip on screen the countdown steps down so the demo stays the focus. */
 .kb-stage:has(.kb-clip:not(.hidden)) .rep-count { font-size: min(20vw, 5.5rem); }
 .kb-clip video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--kb-clip-origin, 50% 50%); transform: scale(var(--kb-clip-zoom, 1)); transform-origin: var(--kb-clip-origin, 50% 50%); pointer-events: none; }
