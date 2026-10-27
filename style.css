@@ -3960,6 +3960,7 @@ body:has(#screen-dashboard.active) #app {
 .settings-category-icon-appearance { color: var(--accent); }
 .settings-category-icon-bonanza { color: var(--success); }
 .settings-category-icon-goals { color: var(--gold); }
+.settings-category-icon-poker { color: #2e9e5b; }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-value-active { color: var(--gold); font-weight: 600; }
@@ -5109,6 +5110,74 @@ body:has(#screen-challenge-detail.active) #app {
 .poker-hand-row-empty .poker-hand-mini-card { filter: grayscale(0.6); }
 .poker-hand-row-done { background: color-mix(in srgb, var(--success) 16%, var(--bg-elevated)); }
 .poker-hand-row-done .poker-hand-count { color: var(--success); }
+
+/* Settings > Poker collection — lifetime showcase, 2-col binder of fanned
+   example hands with an overlaid ×N badge per tile. */
+.poker-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.poker-showcase-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.1rem 0.5rem 0.75rem;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #24603f, #173d29);
+  box-shadow: var(--shadow);
+  color: #fff;
+}
+.poker-showcase-fan {
+  position: relative;
+  width: 100%;
+  height: 4.6rem;
+}
+.poker-showcase-card {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 2.6rem;
+  aspect-ratio: 136 / 208;
+  margin-left: -1.3rem;
+  background: center / contain no-repeat;
+  border-radius: 4px;
+  box-shadow: 0 0.15rem 0.35rem rgba(0,0,0,.45);
+  transform-origin: 50% 120%;
+  transform: translateX(calc(var(--i) * 0.95rem)) rotate(calc(var(--i) * 9deg));
+}
+.poker-showcase-count {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  min-width: 2rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1a1a1a;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 0 0.1rem 0.3rem rgba(0,0,0,.4);
+  z-index: 1;
+}
+.poker-showcase-name {
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.poker-showcase-tile-royal {
+  grid-column: 1 / -1;
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+  background: linear-gradient(160deg, #2e6b4a, #6b5a1c);
+}
+.poker-showcase-tile-empty .poker-showcase-fan,
+.poker-showcase-tile-empty .poker-showcase-name { opacity: 0.45; filter: grayscale(1); }
+.poker-showcase-tile-empty .poker-showcase-count { background: rgba(255,255,255,.2); color: #fff; box-shadow: none; }
 
 .challenge-pr-achieved { text-align: center; }
 .challenge-pr-achieved-title {

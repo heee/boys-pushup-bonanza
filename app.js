@@ -120,7 +120,7 @@ import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=6";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
-import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_SET_SIZE } from "./screens/poker-collection.js?v=2";
+import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_SET_SIZE } from "./screens/poker-collection.js?v=3";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=151";
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=3";
@@ -1960,6 +1960,7 @@ const TAB_FOR_SCREEN = {
   "screen-settings-goal-edit": "btn-nav-settings",
   "screen-edit-profile": "btn-nav-settings",
   "screen-mode-breakdown": "btn-nav-settings",
+  "screen-poker-showcase": "btn-nav-settings",
 };
 
 // Header and tab bar always minimize/hide together — an active rep-counting
@@ -2487,6 +2488,10 @@ function renderSettingsCategoryValues() {
   $("settings-category-mysessions-value").textContent = `${mySessionCount} ${mySessionCount === 1 ? "session" : "sessions"}`;
   const activeGoalCount = GOAL_TYPES.filter((type) => goalsFor(state.currentUser)[type].enabled).length;
   $("settings-category-goals-value").textContent = activeGoalCount ? `${activeGoalCount} active` : "Off";
+  const mine = indexedSessionsForUser(state.currentUser);
+  const poker = pokerLifetimeCollection(mine, state.currentUser, sessionTimestamp);
+  $("btn-open-poker-showcase").classList.toggle("hidden", !mine.some((s) => s.mode === "poker"));
+  $("settings-category-poker-value").textContent = `${poker.collected}/${POKER_COLLECTION_RANKS.length}`;
 }
 
 $("settings-category-list").addEventListener("click", (e) => {
@@ -9225,6 +9230,30 @@ function pokerHandRowHTML(row) {
     </button>
   `;
 }
+
+// Settings > Poker collection: lifetime showcase of every winning hand as a
+// 2-col binder of fanned example cards, each with an overlaid ×N badge.
+function paintPokerShowcase() {
+  const { rows, collected, handsPlayed } = pokerLifetimeCollection(indexedSessionsForUser(state.currentUser), state.currentUser, sessionTimestamp);
+  $("poker-showcase-summary").textContent = `${collected} of ${rows.length} hands collected · ${handsPlayed} hand${handsPlayed === 1 ? "" : "s"} played`;
+  $("poker-showcase-grid").innerHTML = rows.map((row) => {
+    const mid = (row.cards.length - 1) / 2;
+    const cardsHTML = row.cards.map((c, i) => `<div class="poker-showcase-card" style="--i:${i - mid};background-image:url('${cardImageUrl(c)}')"></div>`).join("");
+    return `
+      <div class="poker-showcase-tile${row.done ? "" : " poker-showcase-tile-empty"}${row.bonus ? " poker-showcase-tile-royal" : ""}">
+        <div class="poker-showcase-fan" aria-hidden="true">${cardsHTML}</div>
+        <div class="poker-showcase-count">×${row.count}</div>
+        <div class="poker-showcase-name">${escapeHtml(row.label)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+$("btn-open-poker-showcase").addEventListener("click", () => {
+  showScreen("screen-poker-showcase");
+  paintPokerShowcase();
+});
+$("btn-poker-showcase-back").addEventListener("click", () => showScreen("screen-settings"));
 
 function buildPokerHandRowsHTML(rows) {
   return `<div class="poker-hand-list">${rows.map(pokerHandRowHTML).join("")}</div>`;

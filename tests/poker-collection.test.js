@@ -114,3 +114,20 @@ test("pokerCollectionWinners: no finisher falls back to most hands collected, ti
   assert.deepEqual(nobody.winners, []);
   assert.equal(nobody.mode, "none");
 });
+
+test("pokerLifetimeCollection counts every poker session regardless of date", async () => {
+  const { pokerLifetimeCollection } = await import("../screens/poker-collection.js");
+  const sessions = [
+    { user: "A", mode: "poker", timestamp: "2020-01-01T12:00:00Z", pokerHandRanks: [0, 1, 1, 9] },
+    { user: "A", mode: "poker", timestamp: "2026-10-01T12:00:00Z", pokerHandRanks: [2, 0] },
+    { user: "A", mode: "squat", timestamp: "2026-10-01T12:00:00Z", pokerHandRanks: [5] },
+    { user: "B", mode: "poker", timestamp: "2026-10-01T12:00:00Z", pokerHandRanks: [3] },
+  ];
+  const { rows, collected, handsPlayed } = pokerLifetimeCollection(sessions, "A");
+  assert.equal(rows.length, 9);
+  assert.equal(rows.find((r) => r.rank === 1).count, 2);
+  assert.equal(rows.find((r) => r.rank === 9).count, 1);
+  assert.equal(rows.find((r) => r.rank === 3).count, 0);
+  assert.equal(collected, 3);
+  assert.equal(handsPlayed, 6);
+});

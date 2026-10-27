@@ -111,6 +111,19 @@ export function pokerCollectionRowsForUser(sessions, userName, window, timestamp
   }));
 }
 
+// Settings > Poker collection: the same rows over a user's whole history
+// (no cycle window), plus total rounds played for the header line.
+const ALL_TIME = { startDate: new Date(-8.64e15), endDate: new Date(8.64e15) };
+
+export function pokerLifetimeCollection(sessions, userName, timestampOf) {
+  const rows = pokerCollectionRowsForUser(sessions, userName, ALL_TIME, timestampOf);
+  let handsPlayed = 0;
+  for (const s of sessions) {
+    if (s.user === userName && s.mode === "poker") handsPlayed += (s.pokerHandRanks || []).length;
+  }
+  return { rows, collected: rows.filter((r) => r.done).length, handsPlayed };
+}
+
 // Required hands collected (0..POKER_SET_SIZE) — the bonus never counts.
 export function pokerCollectionHandsCollected(rows) {
   return rows.filter((r) => r.done && !r.bonus).length;

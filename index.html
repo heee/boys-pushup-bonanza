@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=327">
+<link rel="stylesheet" href="style.css?v=328">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1707,6 +1707,12 @@
           <span class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
+        <button id="btn-open-poker-showcase" type="button" class="settings-category-row hidden">
+          <span class="settings-category-icon settings-category-icon-poker" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="11" height="16" rx="2" transform="rotate(-10 8.5 13)"/><rect x="10" y="3" width="11" height="16" rx="2" transform="rotate(8 15.5 11)"/></svg></span>
+          <span class="settings-category-title">Poker collection</span>
+          <span id="settings-category-poker-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
       </div>
 
       <p class="settings-footer">Made in Texas with love 🇺🇸</p>
@@ -2027,6 +2033,16 @@
       <div id="mode-breakdown-list" class="mode-breakdown-list"></div>
     </section>
 
+    <!-- ============ SCREEN: POKER COLLECTION (Settings) ============ -->
+    <section id="screen-poker-showcase" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-poker-showcase-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Poker collection</h1>
+      <p id="poker-showcase-summary" class="settings-hint"></p>
+      <div id="poker-showcase-grid" class="poker-showcase-grid"></div>
+    </section>
+
     <!-- ============ SCREEN: EDIT PROFILE ============ -->
     <section id="screen-edit-profile" class="screen">
       <div class="edit-profile-header">
@@ -2125,6 +2141,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=343"></script>
+<script type="module" src="app.js?v=344"></script>
 </body>
 </html>
