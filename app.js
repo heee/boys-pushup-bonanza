@@ -7347,11 +7347,14 @@ function renderBoysModeStats(sessions, allModeSessions = sessions) {
 function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
   const el = $("boys-leader-stats");
   const metrics = boysModeStatsMetrics(sessions, allModeSessions);
+  // With only one person in the selection, the leader is always them —
+  // the avatar would just repeat itself on every row.
+  const soloSelection = new Set([...sessions, ...allModeSessions].map((s) => s.user)).size <= 1;
   el.innerHTML = metrics.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
     if (!metric.available || !metric.leaders.length) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
     const leader = metric.leaders[0];
-    const avatar = avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
+    const avatar = soloSelection ? "" : avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
     return `<div class="boys-mode-stat">
       <span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span>
       <span class="boys-mode-stat-values">
