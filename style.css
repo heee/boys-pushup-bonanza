@@ -3700,6 +3700,22 @@ body:has(#screen-challenges.active) .challenge-list {
 .week-bar-col-today .week-bar-value {
   font-weight: 800;
 }
+/* The bar area only — value + bar, excluding the day label — so bar
+   heights scale against space they actually get. Sizing them against the
+   whole column made the tallest bars overflow and get squashed, flattening
+   the differences between days. */
+.week-bar-track {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+/* --h is the bar's share (0–1) of the track minus the value line above it. */
+.week-bar[style*="--h"] { height: calc((100% - 1.3rem) * var(--h)); }
 .week-bar {
   width: 65%;
   min-height: 4px;

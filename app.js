@@ -6489,8 +6489,10 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     if (isSelected) classes.push("week-bar-col-selected");
     return `
       <div class="${classes.join(" ")}" data-bucket-offset="${offset}">
-        <div class="week-bar-value">${valueDisplay}</div>
-        <div class="week-bar" style="height:${heightPct}%"></div>
+        <div class="week-bar-track">
+          <div class="week-bar-value">${valueDisplay}</div>
+          <div class="week-bar" style="--h:${heightPct / 100}"></div>
+        </div>
         <div class="week-bar-label">${label}</div>
       </div>
     `;
@@ -6612,7 +6614,7 @@ function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, 
     } else {
       barHTML = `<div class="week-bar week-bar-solid" style="height:${heightPct}%"></div>`;
     }
-    return `<div class="week-bar-col">${barHTML}<div class="week-bar-label">${label}</div></div>`;
+    return `<div class="week-bar-col"><div class="week-bar-track">${barHTML}</div><div class="week-bar-label">${label}</div></div>`;
   }).join("");
 
   return { peakHour: peak && peak.total > 0 ? peak.hour : null, userOrder };
