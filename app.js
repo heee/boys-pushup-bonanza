@@ -764,10 +764,6 @@ async function workerPostSession(session) {
   return workerApi.postSession(session);
 }
 
-async function deleteUserRemote(name) {
-  return workerApi.deleteUser(name);
-}
-
 async function deleteSessionRemote(id) {
   return workerApi.deleteSession(id);
 }
@@ -1952,7 +1948,6 @@ const TAB_FOR_SCREEN = {
   "screen-roadtrip": "btn-nav-roadtrip",
   "screen-roadtrip-detail": "btn-nav-roadtrip",
   "screen-settings": "btn-nav-settings",
-  "screen-settings-profile": "btn-nav-settings",
   "screen-settings-mysessions": "btn-nav-settings",
   "screen-settings-workout": "btn-nav-settings",
   "screen-settings-appearance": "btn-nav-settings",
@@ -2031,7 +2026,7 @@ function showScreen(id) {
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") renderRoadtrip();
   if (id === "screen-roadtrip-detail") renderRoadtripDetail();
-  if (id === "screen-settings" || id === "screen-settings-profile" || id === "screen-settings-mysessions" ||
+  if (id === "screen-settings" || id === "screen-settings-mysessions" ||
     id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") renderSettings();
   if (id === "screen-settings-goals") renderGoalsSettingsScreen();
   if (id === "screen-settings-goal-edit") renderGoalEditScreen();
@@ -2471,7 +2466,6 @@ function renderSettings() {
   renderWeightedSettings();
   renderSquatWeightedControls();
 
-  renderManageUsers();
   state.mySessionsShown = 10;
   state.mySessionsMode = "all";
   syncMySessionsModeControl();
@@ -2480,8 +2474,8 @@ function renderSettings() {
 }
 
 function renderSettingsCategoryValues() {
-  const names = orderedUserNames(getAllSessionsForDisplay(), state.currentUser, { alphabetical: true });
-  $("settings-category-profile-value").textContent = `${names.length} ${names.length === 1 ? "person" : "people"}`;
+  setAvatarEl($("settings-profile-avatar"), avatarForUser(state.currentUser).id);
+  $("settings-profile-name").textContent = state.currentUser;
   const theme = document.documentElement.getAttribute("data-theme") === "light" ? "Light" : "Dark";
   $("settings-category-appearance-value").textContent = theme;
   const mySessionCount = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser).length;
@@ -2494,13 +2488,15 @@ function renderSettingsCategoryValues() {
   $("settings-category-poker-value").textContent = `${poker.collected}/${POKER_COLLECTION_RANKS.length}`;
 }
 
-$("settings-category-list").addEventListener("click", (e) => {
-  const row = e.target.closest(".settings-category-row");
-  if (!row || !row.dataset.settingsCategory) return;
-  showScreen(`screen-settings-${row.dataset.settingsCategory}`);
-});
+for (const listId of ["settings-category-list", "settings-category-list-app"]) {
+  $(listId).addEventListener("click", (e) => {
+    const row = e.target.closest(".settings-category-row");
+    if (!row || !row.dataset.settingsCategory) return;
+    showScreen(`screen-settings-${row.dataset.settingsCategory}`);
+  });
+}
+$("btn-settings-profile-card").addEventListener("click", () => openEditProfile());
 $("btn-settings-switch-user").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
-$("btn-settings-profile-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-mysessions-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-workout-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-appearance-back").addEventListener("click", () => showScreen("screen-settings"));
@@ -5228,45 +5224,6 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-function renderManageUsers() {
-  const sessions = getAllSessionsForDisplay();
-  const names = orderedUserNames(sessions, state.currentUser, { alphabetical: true });
-  const list = $("manage-users-list");
-  list.innerHTML = "";
-  if (!names.length) {
-    list.innerHTML = '<p class="settings-hint">No users yet.</p>';
-    return;
-  }
-  for (const name of names) {
-    const isYou = name === state.currentUser;
-    const avatar = avatarForUser(name);
-    const row = document.createElement("div");
-    row.className = "manage-user-row";
-    row.innerHTML = `
-      <button type="button" class="avatar-picker-btn manage-avatar-btn" aria-label="Change ${escapeHtml(name)}'s avatar" style="background:${avatar.bg}">${avatar.emoji}</button>
-      <span class="manage-user-name">${escapeHtml(name)}</span>
-      ${isYou ? '<span class="you-badge">You</span>' : ""}
-      ${isYou
-        ? '<button type="button" class="btn-edit-profile">Edit <span class="chev">›</span></button>'
-        : `<button type="button" class="btn-delete-user" aria-label="Delete ${escapeHtml(name)}">🗑️</button>`}
-    `;
-    const avatarBtn = row.querySelector(".manage-avatar-btn");
-    avatarBtn.addEventListener("click", () => {
-      openAvatarSheet(avatar.id, (id) => {
-        avatarBtn.style.background = getAvatar(id).bg;
-        avatarBtn.textContent = getAvatar(id).emoji;
-        changeUserAvatar(name, id);
-      });
-    });
-    if (isYou) {
-      row.querySelector(".btn-edit-profile").addEventListener("click", () => openEditProfile());
-    } else {
-      row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteUser(name));
-    }
-    list.appendChild(row);
-  }
-}
-
 async function changeUserAvatar(name, avatarId) {
   const cached = getCachedData();
   const previousAvatar = cached.avatars[name];
@@ -5288,32 +5245,6 @@ async function changeUserAvatar(name, avatarId) {
   }
   toast(`Updated ${name}'s avatar.`);
   return true;
-}
-
-async function confirmDeleteUser(name) {
-  const ok = confirm(`Delete all of ${name}'s sessions from the shared leaderboard? This can't be undone.`);
-  if (!ok) return;
-  if (!navigator.onLine) {
-    toast("Deleting a user requires a live connection.", 4000);
-    return;
-  }
-  try {
-    await deleteUserRemote(name);
-  } catch (e) {
-    toast(`Couldn't delete right now — check your connection.`, 4000);
-    return;
-  }
-  const cached = getCachedData();
-  cached.sessions = cached.sessions.filter((s) => s.user !== name);
-  if (cached.avatars) delete cached.avatars[name];
-  cacheData(cached);
-  setQueue(getQueue().filter((operation) => operation.payload?.user !== name && operation.payload?.oldName !== name));
-  if (state.currentUser === name) {
-    state.currentUser = "";
-    localStorage.removeItem(LS.lastUser);
-  }
-  toast(`Deleted ${name}'s sessions.`);
-  renderManageUsers();
 }
 
 // ------------------- edit profile -------------------
@@ -5351,9 +5282,8 @@ function openEditProfile() {
   showScreen("screen-edit-profile");
 }
 
-// Popover grid used by Settings > Profile & users to change a user's
-// avatar in place — replaces what used to be a native <select> of 75
-// emoji, which is exactly the wall-of-text list a native picker is worst
+// Popover grid used by new-user setup to pick an avatar — replaces what
+// used to be a native <select> of 75 emoji, which is exactly the wall-of-text list a native picker is worst
 // at; a grid lets you see every option at a glance and tap the one you want.
 let avatarSheetOnPick = null;
 function openAvatarSheet(selectedId, onPick) {

@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=329">
+<link rel="stylesheet" href="style.css?v=330">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1665,12 +1665,16 @@
     <section id="screen-settings" class="screen">
       <h1 class="screen-title screen-title-with-icon"><span class="screen-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37c1 .608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg></span>Settings</h1>
 
+      <button id="btn-settings-profile-card" type="button" class="settings-profile-card">
+        <span id="settings-profile-avatar" class="avatar-circle settings-profile-avatar" aria-hidden="true"></span>
+        <span class="settings-profile-text">
+          <span id="settings-profile-name" class="settings-profile-name"></span>
+          <span class="settings-profile-sub">Edit profile</span>
+        </span>
+        <span class="settings-category-chevron" aria-hidden="true">›</span>
+      </button>
+
       <div class="settings-block settings-category-list" id="settings-category-list">
-        <button id="btn-settings-switch-user" type="button" class="settings-category-row">
-          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
-          <span class="settings-category-title">Switch user</span>
-          <span class="settings-category-chevron" aria-hidden="true">›</span>
-        </button>
         <button type="button" class="settings-category-row" data-settings-category="goals">
           <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
           <span class="settings-category-title">Personal goals</span>
@@ -1681,24 +1685,6 @@
           <span class="settings-category-icon settings-category-icon-mysessions" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
           <span class="settings-category-title">My sessions</span>
           <span id="settings-category-mysessions-value" class="settings-category-value"></span>
-          <span class="settings-category-chevron" aria-hidden="true">›</span>
-        </button>
-        <button type="button" class="settings-category-row" data-settings-category="workout">
-          <span class="settings-category-icon settings-category-icon-workout" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
-          <span class="settings-category-title">Preferences</span>
-          <span class="settings-category-value"></span>
-          <span class="settings-category-chevron" aria-hidden="true">›</span>
-        </button>
-        <button type="button" class="settings-category-row" data-settings-category="profile">
-          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>
-          <span class="settings-category-title">Profile &amp; users</span>
-          <span id="settings-category-profile-value" class="settings-category-value"></span>
-          <span class="settings-category-chevron" aria-hidden="true">›</span>
-        </button>
-        <button type="button" class="settings-category-row" data-settings-category="appearance">
-          <span class="settings-category-icon settings-category-icon-appearance" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
-          <span class="settings-category-title">Appearance</span>
-          <span id="settings-category-appearance-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
         <button id="btn-open-mode-breakdown" type="button" class="settings-category-row">
@@ -1715,21 +1701,27 @@
         </button>
       </div>
 
+      <div class="settings-block settings-category-list" id="settings-category-list-app">
+        <button type="button" class="settings-category-row" data-settings-category="workout">
+          <span class="settings-category-icon settings-category-icon-workout" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
+          <span class="settings-category-title">Preferences</span>
+          <span class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="settings-category-row" data-settings-category="appearance">
+          <span class="settings-category-icon settings-category-icon-appearance" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
+          <span class="settings-category-title">Appearance</span>
+          <span id="settings-category-appearance-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button id="btn-settings-switch-user" type="button" class="settings-category-row">
+          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+          <span class="settings-category-title">Switch user</span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+      </div>
+
       <p class="settings-footer">Made in Texas with love 🇺🇸</p>
-    </section>
-
-    <!-- ============ SCREEN: SETTINGS > PROFILE & USERS ============ -->
-    <section id="screen-settings-profile" class="screen">
-      <div class="edit-profile-header">
-        <button id="btn-settings-profile-back" type="button" class="challenge-detail-back">← Settings</button>
-      </div>
-      <h1 class="screen-title">Profile &amp; users</h1>
-
-      <div class="settings-section">
-        <div class="tier1-eyebrow">Manage users</div>
-        <p class="settings-hint">Tap someone's icon to change their avatar. The trash icon removes all of their sessions from the shared leaderboard — this can't be undone.</p>
-        <div id="manage-users-list" class="manage-users-list settings-block"></div>
-      </div>
     </section>
 
     <!-- ============ SCREEN: SETTINGS > MY SESSIONS ============ -->
@@ -2141,6 +2133,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=345"></script>
+<script type="module" src="app.js?v=346"></script>
 </body>
 </html>

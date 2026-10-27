@@ -3945,6 +3945,28 @@ body:has(#screen-dashboard.active) #app {
   text-align: left;
 }
 .settings-category-row:last-child { border-bottom: none; }
+/* Profile card heading Settings — your identity, tapping opens Edit profile. */
+.settings-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: calc(100% - 2rem);
+  margin: 0 1rem 1.25rem;
+  padding: 0.9rem 1rem;
+  border: none;
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.settings-profile-card:active { transform: scale(0.98); }
+.settings-profile-avatar { width: 3.2rem; height: 3.2rem; font-size: 1.75rem; }
+.settings-profile-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.settings-profile-name { font-weight: 800; font-size: 1.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-profile-sub { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-icon {
   flex-shrink: 0;
   width: 1.6rem;
@@ -4054,18 +4076,16 @@ body:has(#screen-dashboard.active) #app {
   margin: 1.6rem 0 0.5rem;
 }
 
-.manage-users-list, .my-sessions-list { display: flex; flex-direction: column; }
-.manage-user-row, .my-session-row {
+.my-sessions-list { display: flex; flex-direction: column; }
+.my-session-row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.7rem 1rem;
   border-bottom: 1px solid var(--border);
 }
-.manage-user-row:last-child, .my-session-row:last-child { border-bottom: none; }
-.manage-user-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Shared by every "tap to open the avatar-sheet grid" trigger — Settings'
-   per-user row and the New user form both use it, just at different sizes. */
+.my-session-row:last-child { border-bottom: none; }
+/* "Tap to open the avatar-sheet grid" trigger on the New user form. */
 .avatar-picker-btn {
   flex-shrink: 0;
   border-radius: 50%;
@@ -4076,43 +4096,7 @@ body:has(#screen-dashboard.active) #app {
   padding: 0;
   cursor: pointer;
 }
-.manage-avatar-btn { width: 2.2rem; height: 2.2rem; font-size: 1.05rem; }
 .new-user-avatar-btn { width: 2.8rem; height: 2.8rem; font-size: 1.3rem; }
-.btn-delete-user {
-  background: none;
-  border: none;
-  font-size: 1.1rem;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 0.2rem 0.3rem;
-  flex-shrink: 0;
-  transition: color 0.15s ease;
-}
-.btn-delete-user:active { transform: scale(0.9); color: var(--danger); }
-.you-badge {
-  flex-shrink: 0;
-  background: var(--bg-elevated-2);
-  color: var(--primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-}
-.btn-edit-profile {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  color: var(--text-tertiary);
-  font-weight: 700;
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 0.2rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.1rem;
-}
-.btn-edit-profile:active { opacity: 0.7; }
-.btn-edit-profile .chev { font-size: 1rem; }
 
 /* Grid, not flex — the mode badge's width varies with its label ("Cards" vs
    "Sharpshooter"), so a flex row left every count starting at a different x
