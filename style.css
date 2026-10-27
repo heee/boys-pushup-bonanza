@@ -4081,7 +4081,14 @@ body:has(#screen-dashboard.active) #app {
   color: var(--text-tertiary);
   font-size: 0.75rem;
   font-weight: 400;
-  margin: 1.6rem 0 0.5rem;
+  margin: 0.75rem 0 0;
+}
+/* Settings fits one phone screen: breathing room under the title, a tight
+   footer, and less spare clearance above the tab bar than other screens. */
+#screen-settings > .screen-title { margin-bottom: 0.9rem; }
+#settings-category-list-app { margin-bottom: 0; }
+body:has(#screen-settings.active) #app-main {
+  padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 0.25rem);
 }
 
 .my-sessions-list { display: flex; flex-direction: column; }
