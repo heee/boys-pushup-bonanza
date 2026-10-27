@@ -3542,14 +3542,7 @@ body:has(#screen-challenges.active) .challenge-list {
 .boys-mode-stat-avatars { display: flex; align-items: center; }
 .boys-mode-stat-avatars .avatar-circle + .avatar-circle { margin-left: -0.4rem; }
 
-/* Secondary information relative to the main leaderboard above — deliberately
-   muted so the ranked leaderboard reads as the primary content. */
-#history-view-select,
-#recent-list,
-#history-list {
-  opacity: 0.5;
-}
-#history-view-select { margin-top: 1.6rem; }
+
 #boys-mode-stats, #boys-leader-stats { margin-top: 1.6rem; }
 
 .mybonanza-chart-card {
@@ -3852,16 +3845,26 @@ body:has(#screen-challenges.active) .challenge-list {
   white-space: nowrap;
 }
 
+/* History: one line per session, flush with the rows above it. Secondary
+   to the leaderboard through text color rather than a whole-block fade. */
 .recent-row {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.7rem 1rem;
+  gap: 0.6rem;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--border);
 }
 .recent-row:last-child { border-bottom: none; }
-.recent-statement { flex: 1; min-width: 0; font-size: 0.85rem; line-height: 1.35; color: var(--text-dim); }
-.recent-name { font-weight: 700; color: var(--text); }
+.recent-statement {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-name { font-weight: 600; color: var(--text-dim); }
 /* Fixed-width count column so counts line up top to bottom down the list,
    like a table, regardless of how long the statement text runs. */
 .recent-count-col {
@@ -3872,7 +3875,7 @@ body:has(#screen-challenges.active) .challenge-list {
   width: 3.6rem;
   flex: 0 0 auto;
 }
-.recent-count { font-weight: 900; font-size: 1.1rem; color: var(--primary); font-variant-numeric: tabular-nums; }
+.recent-count { font-weight: 800; font-size: 0.95rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .recent-modifier {
   display: flex;
   align-items: center;
@@ -3950,31 +3953,6 @@ body:has(#screen-challenges.active) .challenge-list {
   border-radius: 16px;
   overflow: hidden;
 }
-.history-user-group { border-bottom: 1px solid var(--border); }
-.history-user-group:last-child { border-bottom: none; }
-.history-user-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.7rem 1rem;
-  cursor: pointer;
-  font-weight: 400;
-}
-.history-user-label { display: flex; align-items: center; gap: 0.55rem; }
-.history-user-header .chev { transition: transform 0.15s ease; color: var(--text-dim); }
-.history-user-group.open .chev { transform: rotate(90deg); }
-.history-sessions { display: none; padding: 0 1rem 0.7rem; }
-.history-user-group.open .history-sessions { display: block; }
-.history-session-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.88rem;
-  color: var(--text-dim);
-  padding: 0.35rem 0;
-  border-top: 1px dashed var(--border);
-}
-.history-session-row:first-child { border-top: none; }
-.history-session-count { font-weight: 800; color: var(--text); }
 
 /* ---------------- Settings ---------------- */
 /* 6 labeled sections instead of one bordered-box-per-setting. Tier-1 flat

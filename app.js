@@ -126,9 +126,9 @@ import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workou
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=3";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=5";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=6";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -1485,7 +1485,6 @@ const state = {
   myChartDayOffset: 0,
   boysChartFlipped: false,
   boysChartDayOffset: 0,
-  historyView: "recent",
   highScore: 0,
   pushupLast: 0,
   bonanzaMode: "boys",
@@ -7437,56 +7436,7 @@ function paintDashboard(sessions) {
 
   renderBoysModeStats(filtered, allModesInPeriod);
   renderBoysLeaderStats(filtered, allModesInPeriod);
-  renderModeHistory(allModesInPeriod);
-  const hasModifiers = renderModifierHistory(allModesInPeriod);
-  const modifiersTabBtn = $("modifiers-tab-btn");
-  modifiersTabBtn.classList.toggle("hidden", !hasModifiers);
-  if (!hasModifiers && state.historyView === "modifiers") {
-    state.historyView = "recent";
-    modifiersTabBtn.classList.remove("active");
-    document.querySelectorAll("#history-view-select .segment").forEach((s) => s.classList.toggle("active", s.dataset.view === "recent"));
-  }
-
-  const historyList = $("history-list");
-  historyList.innerHTML = "";
-  if (!filtered.length) {
-    historyList.innerHTML = '<p class="history-empty">No sessions in this period.</p>';
-  } else {
-    const byUser = new Map();
-    for (const s of filtered) {
-      if (!byUser.has(s.user)) byUser.set(s.user, []);
-      byUser.get(s.user).push(s);
-    }
-    const usersSorted = Array.from(byUser.keys()).sort((a, b) => (totals.get(b) || 0) - (totals.get(a) || 0));
-    for (const user of usersSorted) {
-      const userSessions = byUser.get(user).sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a));
-      const group = document.createElement("div");
-      group.className = "history-user-group";
-      const header = document.createElement("div");
-      header.className = "history-user-header";
-      header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${userSessions.length} session${userSessions.length === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
-      header.addEventListener("click", () => group.classList.toggle("open"));
-      makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
-      const sessionsWrap = document.createElement("div");
-      sessionsWrap.className = "history-sessions";
-      for (const s of userSessions) {
-        const sessionRow = document.createElement("div");
-        sessionRow.className = "history-session-row compare-clickable";
-        sessionRow.innerHTML = `<span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${fmtCount(metricOf(s))}</span>`;
-        sessionRow.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openSessionDetail(s, "screen-dashboard");
-        });
-        sessionsWrap.appendChild(sessionRow);
-      }
-      group.appendChild(header);
-      group.appendChild(sessionsWrap);
-      historyList.appendChild(group);
-    }
-  }
-
   renderRecentList(sessions);
-  updateHistoryViewVisibility();
 }
 
 // Short "elapsed since" label for the recent-activity statement (mirrors
@@ -7502,6 +7452,24 @@ function timeAgoLabel(timestampMs) {
   if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
   const months = Math.floor(days / 30);
   return months < 12 ? `${months} month${months === 1 ? "" : "s"} ago` : `${Math.floor(months / 12)} year${months < 24 ? "" : "s"} ago`;
+}
+
+// Compact elapsed label for History's one-line rows: "now", "12m", "4h",
+// "3d", "2mo", "1y" — always followed by " ago" at the call site.
+function capitalizeFirst(str) {
+  return str ? str[0].toUpperCase() + str.slice(1) : str;
+}
+
+function shortAgoLabel(timestampMs) {
+  const minutes = Math.floor(Math.max(0, Date.now() - timestampMs) / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return months < 12 ? `${months}mo ago` : `${Math.floor(months / 12)}y ago`;
 }
 
 // Short and catchy: "a classic" / "a plank" / "a Holland round" — no
@@ -7540,7 +7508,7 @@ function renderRecentList(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.3rem")}
       <div class="recent-statement">
-        <span class="recent-name">${escapeHtml(s.user)}</span> completed ${sessionActivityPhrase(s)} ${timeAgoLabel(sessionTimestamp(s))}
+        <span class="recent-name">${escapeHtml(s.user)}</span> · ${escapeHtml(capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, "")))} · ${shortAgoLabel(sessionTimestamp(s))}
       </div>
       <div class="recent-count-col">
         ${modifierIcon}
@@ -7558,132 +7526,6 @@ function renderRecentList(sessions) {
     recentList.appendChild(row);
   }
 }
-
-function updateHistoryViewVisibility() {
-  $("recent-list").classList.toggle("hidden", state.historyView !== "recent");
-  $("history-list").classList.toggle("hidden", state.historyView !== "history");
-  $("mode-history-list").classList.toggle("hidden", state.historyView !== "modes");
-  $("modifier-history-list").classList.toggle("hidden", state.historyView !== "modifiers");
-}
-
-// A session's own raw metric (reps, seconds held, or Holland cycles) —
-// independent of whichever activityType/leaderboardMode is currently
-// selected, since Mode history mixes every mode together.
-function sessionMetricValue(s) {
-  const modeId = sessionModeId(s);
-  return modeId === "holland" ? Number(s.hollandCycles) || 0 : modeId === "kettlebell" ? Number(s.kettlebellVolumeLbs) || 0 : Number(s.count) || 0;
-}
-
-function formatModeHistoryTotal(modeId, total) {
-  if (modeId === "planks" || modeId === "pulse") return formatDuration(total * 1000);
-  if (modeId === "holland") return total.toFixed(1);
-  if (modeId === "kettlebell") return `${formatNumber(total)} lb`;
-  return formatNumber(total);
-}
-
-// Cumulative modes-by-user for the selected time horizon — every mode
-// touched (pushup sub-modes, planks, squats, pull-ups, crunches, Holland),
-// not just the one the leaderboard is currently sliced to (mirrors "Modes
-// used" in Group stats, which uses the same cross-mode, period-filtered set).
-function renderModeHistory(sessions) {
-  const modeListEl = $("mode-history-list");
-  modeListEl.innerHTML = "";
-  if (!sessions.length) {
-    modeListEl.innerHTML = '<p class="history-empty">No sessions in this period.</p>';
-    return;
-  }
-  const byUser = new Map();
-  for (const s of sessions) {
-    if (!s?.user) continue;
-    if (!byUser.has(s.user)) byUser.set(s.user, new Map());
-    const modeId = sessionModeId(s);
-    const userModes = byUser.get(s.user);
-    if (!userModes.has(modeId)) userModes.set(modeId, { sessions: 0, total: 0 });
-    const entry = userModes.get(modeId);
-    entry.sessions += 1;
-    entry.total += sessionMetricValue(s);
-  }
-  const sessionCountFor = (userModes) => Array.from(userModes.values()).reduce((sum, e) => sum + e.sessions, 0);
-  const usersSorted = Array.from(byUser.keys()).sort((a, b) => sessionCountFor(byUser.get(b)) - sessionCountFor(byUser.get(a)));
-  for (const user of usersSorted) {
-    const modes = byUser.get(user);
-    const group = document.createElement("div");
-    group.className = "history-user-group";
-    const header = document.createElement("div");
-    header.className = "history-user-header";
-    header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${modes.size} mode${modes.size === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
-    header.addEventListener("click", () => group.classList.toggle("open"));
-    makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
-    const modesWrap = document.createElement("div");
-    modesWrap.className = "history-sessions";
-    const modesSorted = Array.from(modes.entries()).sort((a, b) => b[1].sessions - a[1].sessions);
-    for (const [modeId, entry] of modesSorted) {
-      const meta = MODE_META[modeId] || MODE_META.classic;
-      const row = document.createElement("div");
-      row.className = "history-session-row";
-      row.innerHTML = `<span>${meta.icon} ${meta.label}</span><span class="history-session-count">${entry.sessions} session${entry.sessions === 1 ? "" : "s"} · ${formatModeHistoryTotal(modeId, entry.total)}</span>`;
-      modesWrap.appendChild(row);
-    }
-    group.appendChild(header);
-    group.appendChild(modesWrap);
-    modeListEl.appendChild(group);
-  }
-}
-
-// Cumulative modifiers-by-user for the selected time horizon, same shape as
-// renderModeHistory but grouped by modifier instead of mode; returns whether
-// any tagged sessions exist so the Modifiers tab can be shown/hidden.
-function renderModifierHistory(sessions) {
-  const modifierListEl = $("modifier-history-list");
-  modifierListEl.innerHTML = "";
-  const tagged = sessions.filter((s) => s.modifier);
-  if (!tagged.length) return false;
-  // Sessions carrying the same modifier can span different modes (reps,
-  // seconds held, Holland cycles) with incompatible units, so unlike mode
-  // history this only tallies a session count — no cross-mode total.
-  const byUser = new Map();
-  for (const s of tagged) {
-    if (!s?.user) continue;
-    if (!byUser.has(s.user)) byUser.set(s.user, new Map());
-    const userModifiers = byUser.get(s.user);
-    userModifiers.set(s.modifier, (userModifiers.get(s.modifier) || 0) + 1);
-  }
-  const sessionCountFor = (userModifiers) => Array.from(userModifiers.values()).reduce((sum, n) => sum + n, 0);
-  const usersSorted = Array.from(byUser.keys()).sort((a, b) => sessionCountFor(byUser.get(b)) - sessionCountFor(byUser.get(a)));
-  for (const user of usersSorted) {
-    const modifiers = byUser.get(user);
-    const group = document.createElement("div");
-    group.className = "history-user-group";
-    const header = document.createElement("div");
-    header.className = "history-user-header";
-    header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${modifiers.size} modifier${modifiers.size === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
-    header.addEventListener("click", () => group.classList.toggle("open"));
-    makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
-    const modifiersWrap = document.createElement("div");
-    modifiersWrap.className = "history-sessions";
-    const modifiersSorted = Array.from(modifiers.entries()).sort((a, b) => b[1] - a[1]);
-    for (const [modifierId, count] of modifiersSorted) {
-      const meta = MODIFIERS.find((m) => m.id === modifierId);
-      const row = document.createElement("div");
-      row.className = "history-session-row";
-      row.innerHTML = `<span>${meta ? meta.icon : ""} ${meta ? meta.title : modifierId}</span><span class="history-session-count">${count} session${count === 1 ? "" : "s"}</span>`;
-      modifiersWrap.appendChild(row);
-    }
-    group.appendChild(header);
-    group.appendChild(modifiersWrap);
-    modifierListEl.appendChild(group);
-  }
-  return true;
-}
-
-$("history-view-select").addEventListener("click", (e) => {
-  const btn = e.target.closest(".segment");
-  if (!btn) return;
-  document.querySelectorAll("#history-view-select .segment").forEach((s) => s.classList.remove("active"));
-  btn.classList.add("active");
-  state.historyView = btn.dataset.view;
-  updateHistoryViewVisibility();
-});
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -8787,7 +8629,7 @@ function paintChallengeRecent(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-statement">
-        <span class="recent-name">${escapeHtml(s.user)}</span> completed ${sessionActivityPhrase(s)} ${timeAgoLabel(sessionTimestamp(s))}
+        <span class="recent-name">${escapeHtml(s.user)}</span> · ${escapeHtml(capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, "")))} · ${shortAgoLabel(sessionTimestamp(s))}
       </div>
       <div class="recent-count-col">
         <span class="recent-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>

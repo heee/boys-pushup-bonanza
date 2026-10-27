@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-27", text: "Simplified Board history to one line per session" },
   { date: "2026-10-27", text: "Redesigned the bottom menu as a floating glass bar" },
   { date: "2026-10-27", text: "Swipe left or right to flip between Settings pages, goals, challenges and Roadtrip places" },
   { date: "2026-10-27", text: "Back button moved to the top-left of the header" },
