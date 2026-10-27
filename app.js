@@ -9240,13 +9240,14 @@ function paintPokerShowcase() {
     const mid = (row.cards.length - 1) / 2;
     const cardsHTML = row.cards.map((c, i) => `<div class="poker-showcase-card" style="--i:${i - mid};background-image:url('${cardImageUrl(c)}')"></div>`).join("");
     return `
-      <div class="poker-showcase-tile${row.done ? "" : " poker-showcase-tile-empty"}${row.bonus ? " poker-showcase-tile-royal" : ""}">
+      <button type="button" class="poker-showcase-tile${row.done ? "" : " poker-showcase-tile-empty"}${row.bonus ? " poker-showcase-tile-royal" : ""}">
         <div class="poker-showcase-fan" aria-hidden="true">${cardsHTML}</div>
         <div class="poker-showcase-count">×${row.count}</div>
         <div class="poker-showcase-name">${escapeHtml(row.label)}</div>
-      </div>
+      </button>
     `;
   }).join("");
+  $("poker-showcase-grid").querySelectorAll(".poker-showcase-tile").forEach((btn) => btn.addEventListener("click", navigateToPokerHandRow));
 }
 
 $("btn-open-poker-showcase").addEventListener("click", () => {

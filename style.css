@@ -5130,7 +5130,11 @@ body:has(#screen-challenge-detail.active) #app {
   background: linear-gradient(160deg, #24603f, #173d29);
   box-shadow: var(--shadow);
   color: #fff;
+  border: none;
+  font: inherit;
+  cursor: pointer;
 }
+.poker-showcase-tile:active { transform: scale(0.97); }
 .poker-showcase-fan {
   position: relative;
   width: 100%;
