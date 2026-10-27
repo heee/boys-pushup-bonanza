@@ -25,6 +25,8 @@ import {
   KETTLEBELL_FINISH_NO_WEIGHT_LINE,
   FUN_MESSAGES,
   FUN_MESSAGES_PLANK,
+  FUN_MESSAGES_DEADHANG,
+  DEADHANG_RECORD_LINE,
   HOLLAND_27_LINE,
   HOLLAND_CIRCUIT_COMPLETE_LINE,
   HOLLAND_START_LINES,
@@ -75,7 +77,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=148";
+} from "./voice-lines.js?v=149";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -115,20 +117,20 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=143";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=6";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=144";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=7";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=151";
-import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=3";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=152";
+import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=4";
 import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=12";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=6";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=7";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -271,6 +273,12 @@ const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models
 // exactly where a squatter stands. Pose landmarks work at room scale.
 const POSE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 
+let deadhangModeModule = null;
+async function loadDeadhangMode() {
+  if (!deadhangModeModule) deadhangModeModule = await import("./modes/deadhang.js");
+  return deadhangModeModule;
+}
+
 let pullupModeModule = null;
 async function loadPullupMode() {
   if (!pullupModeModule) pullupModeModule = await import("./modes/pullup.js");
@@ -302,6 +310,7 @@ const LS = {
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
   plankUnlocked: "bpb-plank-unlocked",
+  deadhangTiming: "bpb-deadhang-timing",
   soundEnabled: "bpb-sound-enabled",
   weightedProfiles: "bpb-weighted-profiles",
   squatWeightedProfiles: "bpb-squat-weighted-profiles",
@@ -352,6 +361,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "pulse", label: "Pulse" },
   { id: "cock", label: "Cock" },
   { id: "pullups", label: "Pull-ups" },
+  { id: "deadhang", label: "Dead hang" },
   { id: "squats", label: "Squats" },
   { id: "situps", label: "Crunches" },
   { id: "planks", label: "Planks" },
@@ -365,6 +375,7 @@ const MY_SESSIONS_MODE_OPTIONS = [
   { id: "all", label: "All" },
   { id: "pushups", label: "Pushups" },
   { id: "pullups", label: "Pull-ups" },
+  { id: "deadhang", label: "Dead hang" },
   { id: "situps", label: "Crunches" },
   { id: "squats", label: "Squats" },
   { id: "planks", label: "Planks" },
@@ -374,11 +385,16 @@ const MY_SESSIONS_MODE_OPTIONS = [
 ];
 
 function sessionActivity(s) {
-  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups";
+  return s.type === "plank" ? "planks" : s.type === "deadhang" ? "deadhang" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups";
+}
+
+// Activities whose `count` is seconds held rather than reps.
+function isTimedActivity(activity) {
+  return activity === "planks" || activity === "deadhang";
 }
 
 function leaderboardActivity(mode) {
-  return ["planks", "pullups", "squats", "situps", "holland", "chainofpain", "kettlebell"].includes(mode) ? mode : "pushups";
+  return ["planks", "deadhang", "pullups", "squats", "situps", "holland", "chainofpain", "kettlebell"].includes(mode) ? mode : "pushups";
 }
 
 function activityLabel(activity, singular = false) {
@@ -388,6 +404,7 @@ function activityLabel(activity, singular = false) {
     squats: singular ? "squat" : "squats",
     situps: singular ? "crunch" : "crunches",
     planks: singular ? "plank" : "planks",
+    deadhang: singular ? "dead hang" : "dead hangs",
     holland: singular ? "Holland cycle" : "Holland cycles",
     chainofpain: singular ? "Chain of Pain cycle" : "Chain of Pain cycles",
     kettlebell: singular ? "kettlebell workout" : "kettlebell workouts",
@@ -405,6 +422,7 @@ function activityEmoji(activity) {
     squats: "🦵",
     situps: "🙇",
     planks: "🪵",
+    deadhang: "🙌",
     holland: "🇳🇱",
     chainofpain: "⛓️",
     kettlebell: "🏋️",
@@ -852,7 +870,7 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [], kettlebell: [] };
+  const byActivity = { pushups: [], planks: [], deadhang: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [], kettlebell: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
@@ -1504,6 +1522,11 @@ const state = {
   activityType: leaderboardActivity(savedLeaderboardMode()),
   lastSessionType: "pushup",
   plankActive: false,
+  deadhangActive: false,
+  deadhangBest: 0,
+  deadhangLast: 0,
+  deadhangStartedAt: null,
+  deadhangSessionLocation: null,
   plankBest: 0,
   plankLast: 0,
   plankStartedAt: null,
@@ -1765,6 +1788,7 @@ function renderStreakBadge() {
 const GOAL_TYPE_META = {
   pushups: { activity: "pushups", label: "Pushups", icon: "💪", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
   planks: { activity: "planks", label: "Planks", icon: "🪵", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
+  deadhang: { activity: "deadhang", label: "Dead hang", icon: "🙌", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
   squats: { activity: "squats", label: "Squats", icon: "🦵", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
   pullups: { activity: "pullups", label: "Pull-ups", icon: "💪", unit: "reps", defaults: { daily: 10, weekly: 50, monthly: 200, streak: 30 } },
   situps: { activity: "situps", label: "Crunches", icon: "🙇", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
@@ -1856,7 +1880,7 @@ function activeGoalsFor(user) {
 // exercise; tapping one already hit should jump to its leaderboard instead
 // — explore-mode ids are singular ("plank"/"squat"/"pullup") while goal
 // types and leaderboard mode ids share the plural GOAL_TYPES spelling.
-const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", squats: "squat", pullups: "pullup", situps: "situp" };
+const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", deadhang: "deadhang", squats: "squat", pullups: "pullup", situps: "situp" };
 
 // Split so the render side can force a line break after the number rather
 // than letting it wrap wherever the ~90px column happens to run out —
@@ -1931,6 +1955,7 @@ const TAB_FOR_SCREEN = {
   "screen-tow-summary": "btn-nav-home",
   "screen-modifier-picker": "btn-nav-home",
   "screen-plank-workout": "btn-nav-home",
+  "screen-deadhang-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
   "screen-squat-workout": "btn-nav-home",
   "screen-pullup-workout": "btn-nav-home",
@@ -2005,6 +2030,7 @@ function showScreen(id) {
   state.screen = id;
   const minimized = (id === "screen-workout" && state.workoutActive) ||
     (id === "screen-plank-workout" && state.plankActive) ||
+    (id === "screen-deadhang-workout" && state.deadhangActive) ||
     (id === "screen-squat-workout" && state.squatActive) ||
     (id === "screen-pullup-workout" && state.pullupActive) ||
     (id === "screen-situp-workout" && state.situpActive) ||
@@ -2091,6 +2117,10 @@ function showScreen(id) {
     $("plank-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("plank-avatar"), state.currentAvatar, "2rem");
   }
+  if (id === "screen-deadhang-workout" && !state.deadhangActive) {
+    renderDeadhangIdle();
+    if (savedDeadhangTiming() === "camera") deadhangCamera.ensureDetector().catch(() => {});
+  }
   if (id === "screen-squat-workout" && !state.squatActive) {
     squatCamera.ensureDetector().catch(() => {});
     $("squat-username").textContent = state.currentUser || "Friend";
@@ -2128,6 +2158,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this plank? Your in-progress time won't be saved.");
     if (!ok) return;
     stopPlankHard();
+  } else if (state.screen === "screen-deadhang-workout" && state.deadhangActive) {
+    const ok = confirm("Leave this dead hang? Your in-progress time won't be saved.");
+    if (!ok) return;
+    stopDeadhangHard();
   } else if (state.screen === "screen-squat-workout" && state.squatActive) {
     const ok = confirm("Leave this squat set? Your in-progress reps won't be saved.");
     if (!ok) return;
@@ -2854,7 +2888,7 @@ function selectHomeMode(type, modeId) {
   guardLeaveWorkout(() => showScreen("screen-workout"));
 }
 
-const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "situps", "planks"]);
+const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "deadhang", "situps", "planks"]);
 
 // Each Home selector segment: small caption over the current value, so
 // Type | Mode | Modifier fit side by side in one row.
@@ -3236,6 +3270,10 @@ async function openExploreMode(modeId, { onChaseIneligible } = {}) {
   // These are whole separate activities/screens, not pushupMode toggles.
   if (modeId === "plank") {
     guardLeaveWorkout(() => showScreen("screen-plank-workout"));
+    return;
+  }
+  if (modeId === "deadhang") {
+    guardLeaveWorkout(() => showScreen("screen-deadhang-workout"));
     return;
   }
   if (modeId === "squat") {
@@ -5434,7 +5472,7 @@ function renderMySessions() {
     row.innerHTML = `
       <span class="my-session-date">${formatSessionRowDate(s.timestamp)}</span>
       <span class="session-badge my-session-mode-badge">${sessionModeLabel(s)}</span>
-      <span class="my-session-count">${(s.type === "plank" || s.mode === "pulse") ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
+      <span class="my-session-count">${(s.type === "plank" || s.type === "deadhang" || s.mode === "pulse") ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
       <button type="button" class="icon-btn my-session-details-btn" aria-label="Session details">›</button>
     `;
     const open = () => openSessionDetail(s, "screen-settings");
@@ -6247,7 +6285,7 @@ function selectLeaderboardMode(mode) {
 // sub-modes. Landing back on pushups always resets to "All" rather than
 // restoring whichever sub-mode was last picked; Holland isn't in the cycle
 // (dropdown-only) but still needs a sane index to step from if it's active.
-const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "squats", "pullups", "situps", "holland", "chainofpain", "kettlebell"];
+const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "deadhang", "squats", "pullups", "situps", "holland", "chainofpain", "kettlebell"];
 // Only cycle through activities that actually have a session within the
 // selected time horizon (state.dashboardPeriod), scoped to the same user
 // pool the chart card itself is drawing from — no point swiping to an
@@ -7067,6 +7105,7 @@ function renderSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
+  const isDeadhang = session.type === "deadhang";
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
@@ -7077,12 +7116,12 @@ function renderSessionDetail() {
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
-  $("session-detail-count").textContent = (isPlank || isPulse) ? formatDuration(session.count * 1000)
+  $("session-detail-count").textContent = (isPlank || isDeadhang || isPulse) ? formatDuration(session.count * 1000)
     : isHolland ? hollandFormatCycles(Number(session.hollandCycles) || 0)
     : isChainOfPain ? chainOfPainFormatCycles(Number(session.chainOfPainCycles) || 0)
     : isKettlebell ? formatNumber(Number(session.kettlebellVolumeLbs) || 0)
     : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isKettlebell ? `LB MOVED · ${(kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "KETTLEBELL").toUpperCase()}` : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isDeadhang ? "DEAD HANG" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isKettlebell ? `LB MOVED · ${(kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "KETTLEBELL").toUpperCase()}` : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
 
   const badgeHTML = (badge) => `<span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>`;
   const allBadges = sessionBadges(session);
@@ -7136,6 +7175,7 @@ async function shareSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
+  const isDeadhang = session.type === "deadhang";
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
@@ -7144,7 +7184,7 @@ async function shareSessionDetail() {
   const isKettlebell = session.type === "kettlebell";
   const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isKettlebell ? `${formatNumber(Number(session.kettlebellVolumeLbs) || 0)} lb moved in ${kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "a kettlebell workout"}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isDeadhang ? `${formatDuration(session.count * 1000)} dead hang` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isKettlebell ? `${formatNumber(Number(session.kettlebellVolumeLbs) || 0)} lb moved in ${kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "a kettlebell workout"}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const modifierBadge = sessionBadges(session).find((b) => b.id === "modifier");
   const rings = sessionRings(session, getAllSessionsForDisplay());
   const statRing = [rings.find((r) => r.id === "vsPrior"), rings.find((r) => r.id === "vsAvg")].find((r) => r?.hasData && r.diffPct != null);
@@ -7158,7 +7198,7 @@ async function shareSessionDetail() {
     dateText: formatDateTime(session.timestamp),
     statLine,
   });
-  const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
+  const modeId = isPlank ? "plank" : isDeadhang ? "deadhang" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
   const url = modeShareUrl(modeId);
   if (navigator.share) {
     try { await navigator.share(sharePayload("Boys Pushup Bonanza", message, url)); } catch (e) { /* cancelled */ }
@@ -7182,7 +7222,7 @@ $("btn-session-detail-delete").addEventListener("click", async () => {
 });
 
 function paintMyBonanza(sessions) {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isHolland = state.activityType === "holland";
   const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
@@ -7366,7 +7406,7 @@ function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
 }
 
 function paintDashboard(sessions) {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isHolland = state.activityType === "holland";
   const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
@@ -7483,6 +7523,7 @@ function sessionActivityPhrase(s) {
   }
   const modeId = sessionModeId(s);
   if (modeId === "holland") return "a Holland round";
+  if (modeId === "deadhang") return "a dead hang";
   if (["planks", "squats", "pullups", "situps"].includes(modeId)) {
     return `a ${activityLabel(sessionActivity(s), true)}`;
   }
@@ -7490,7 +7531,7 @@ function sessionActivityPhrase(s) {
 }
 
 function renderRecentList(sessions) {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isHolland = state.activityType === "holland";
   const isPulse = state.leaderboardMode === "pulse";
   const currentActivity = activityLabel(state.activityType);
@@ -8372,7 +8413,7 @@ function pickLeaderboardTemplate(pool) {
 }
 
 async function shareLeaderboardStats() {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
   const fmt = (n) => ((isPlank || isPulse) ? formatDuration(n * 1000) : formatNumber(n));
@@ -8398,7 +8439,7 @@ async function shareLeaderboardStats() {
   // planks) that LEADERBOARD_MODE_OPTIONS shows, but the #mode= link and
   // EXPLORE_MODES use the singular exercise ids — translate; "all" has no
   // single mode to deep-link into, so it falls back to the bare app URL.
-  const leaderboardModeToShareId = { pullups: "pullup", squats: "squat", situps: "situp", planks: "plank" };
+  const leaderboardModeToShareId = { pullups: "pullup", squats: "squat", situps: "situp", planks: "plank", deadhang: "deadhang" };
   const shareModeId = state.leaderboardMode === "all" ? null : (leaderboardModeToShareId[state.leaderboardMode] || state.leaderboardMode);
   const url = modeShareUrl(shareModeId);
   if (navigator.share) {
@@ -8635,7 +8676,7 @@ function paintChallengeRecent(sessions) {
         <span class="recent-name">${escapeHtml(s.user)}</span> · ${escapeHtml(capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, "")))} · ${shortAgoLabel(sessionTimestamp(s))}
       </div>
       <div class="recent-count-col">
-        <span class="recent-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
+        <span class="recent-count">${(s.type === "plank" || s.type === "deadhang") ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
       </div>
     `;
     row.addEventListener("click", () => openSessionDetail(s, "screen-challenge-detail"));
@@ -9567,6 +9608,17 @@ function getPushupLast(name) {
 // ladderMaxRung field each Ladder session saves (see completeWorkout).
 function getLadderBestRung(name) {
   return bestFor(indexedSessionsForUser(name, "pushups"), name, (s) => s.mode === "ladder", "ladderMaxRung");
+}
+
+function getDeadhangBest(name) {
+  return bestFor(indexedSessionsForUser(name, "deadhang"), name, () => true);
+}
+
+function getDeadhangLast(name) {
+  const sessions = indexedSessionsForUser(name, "deadhang").filter((s) => s.user === name);
+  if (!sessions.length) return 0;
+  const latest = sessions.reduce((a, b) => (sessionTimestamp(b) > sessionTimestamp(a) ? b : a));
+  return latest.count || 0;
 }
 
 function getPlankBest(name) {
@@ -12154,17 +12206,18 @@ function modeShareUrl(modeId) {
 
 function buildShareContext(adjustedCount) {
   const isPlank = state.lastSessionType === "plank";
+  const isDeadhang = state.lastSessionType === "deadhang";
   const isPullup = state.lastSessionType === "pullup";
   const isSquat = state.lastSessionType === "squat";
   const isSitup = state.lastSessionType === "situp";
   const isHolland = state.lastSessionType === "holland";
   const isChainOfPain = state.lastSessionType === "chainofpain";
   const isPulse = state.lastSessionType === "pulse";
-  const isPushup = !isPlank && !isPullup && !isSquat && !isSitup && !isHolland && !isChainOfPain;
+  const isPushup = !isPlank && !isDeadhang && !isPullup && !isSquat && !isSitup && !isHolland && !isChainOfPain;
   // Pulse's `count` is seconds, not reps — filtered out of the generic
   // pushups aggregate the same way plank/pullup/squat/situp already live in
   // their own activity buckets, so a week total never mixes units.
-  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups")
+  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isDeadhang ? "deadhang" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups")
     .filter((s) => isPushup ? s.mode !== "pulse" || isPulse : true);
   const weekStart = periodStart("week");
   const weekStartTime = weekStart.getTime();
@@ -12172,8 +12225,9 @@ function buildShareContext(adjustedCount) {
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : state.pushupMode,
+    mode: isPlank ? "plank" : isDeadhang ? "deadhang" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : state.pushupMode,
     isPlank,
+    isDeadhang,
     isPullup,
     isSquat,
     isSitup,
@@ -12183,7 +12237,7 @@ function buildShareContext(adjustedCount) {
     streak: computeStreak(mine),
     todayRaw: adjustedCount,
     weekTotalRaw,
-    weekTotalDisplay: (isPlank || isPulse) ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
+    weekTotalDisplay: (isPlank || isDeadhang || isPulse) ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
     cardsCtx: (isPushup && state.pushupMode === "cards") ? buildCardsShareContext() : null,
     pokerCtx: (isPushup && state.pushupMode === "poker") ? buildPokerShareContext() : null,
     diceCtx: (isPushup && state.pushupMode === "dice") ? buildDiceShareContext() : null,
@@ -12211,7 +12265,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=151").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=152").then((module) => {
       workoutShareMessages = module;
       return module;
     });
@@ -12275,7 +12329,7 @@ $("btn-summary-again").addEventListener("click", () => {
     showScreen("screen-cock-setup");
     return;
   }
-  const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout", holland: "screen-holland-workout", chainofpain: "screen-chainofpain-workout" };
+  const screenByType = { plank: "screen-plank-workout", deadhang: "screen-deadhang-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout", holland: "screen-holland-workout", chainofpain: "screen-chainofpain-workout" };
   const screen = screenByType[state.lastSessionType];
   if (!screen) preserveNextModeSelection = true;
   showScreen(screen || "screen-workout");
@@ -12517,6 +12571,356 @@ async function completePlank() {
 
 $("btn-plank-start").addEventListener("click", startPlank);
 $("btn-plank-stop").addEventListener("click", completePlank);
+
+// ------------------- dead hang -------------------
+// Timed bar hang, one hang per session (see docs/deadhang-mode-plan.md).
+// Two timing sources, chosen on the start screen: Manual (3-second countdown,
+// then Stop) or Camera (Pull-ups' pose tracking starts the clock on a hang
+// and stops it on a drop, via modes/deadhang.js's createHangTimer). Both
+// feed the same per-second tick, which runs Planks' record/ghost/cheer flow.
+
+const DEADHANG_EMOJI = ["🙌", "🐒", "🦍", "🪝", "💪"];
+const DEADHANG_COUNTDOWN_SECONDS = 3;
+
+const deadhangState = {
+  timing: "manual",
+  phase: "idle", // idle | countdown | waiting | hanging
+  seconds: 0,
+  clockStartedAt: 0,
+  intervalId: null,
+  countdownId: null,
+  timer: null,
+  lastCheerAtSecond: 0,
+  recordBroken: false,
+  ghostActive: false,
+  ghostPassed: false,
+  nextGhostCueAt: 0,
+};
+
+function savedDeadhangTiming() {
+  return localStorage.getItem(LS.deadhangTiming) === "camera" ? "camera" : "manual";
+}
+
+function renderDeadhangIdle() {
+  const timing = savedDeadhangTiming();
+  deadhangState.timing = timing;
+  document.querySelectorAll("#deadhang-timing-select .segment").forEach((b) => b.classList.toggle("active", b.dataset.timing === timing));
+  $("deadhang-instructions").textContent = timing === "camera"
+    ? "Prop the phone facing the bar with your hands, head, and shoulders in frame. The clock starts when you hang and stops when you drop."
+    : "Tap start, get on the bar during the 3-second countdown, and hang as long as you can.";
+  $("deadhang-username").textContent = state.currentUser || "Friend";
+  setAvatarEl($("deadhang-avatar"), state.currentAvatar, "2rem");
+}
+
+$("deadhang-timing-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  localStorage.setItem(LS.deadhangTiming, btn.dataset.timing);
+  renderDeadhangIdle();
+});
+
+function deadhangInGhostPhase() {
+  return deadhangState.ghostActive && !deadhangState.ghostPassed;
+}
+
+function updateDeadhangThermometer(seconds) {
+  const wrap = $("deadhang-thermometer-wrap");
+  const inGhostPhase = deadhangInGhostPhase();
+  const target = inGhostPhase ? state.deadhangLast : state.deadhangBest;
+  if (!target) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const fill = $("deadhang-thermometer-fill");
+  fill.style.width = `${Math.min(100, Math.round((seconds / target) * 100))}%`;
+  fill.classList.toggle("thermometer-ghost", inGhostPhase);
+  fill.classList.toggle("thermometer-win", !inGhostPhase && seconds > target);
+  setThermometerSegments(fill, target);
+}
+
+function updateDeadhangHighscoreMessage(seconds) {
+  const el = $("deadhang-highscore-message");
+  const inGhostPhase = deadhangInGhostPhase();
+  el.classList.toggle("ghost-message", inGhostPhase);
+  const target = inGhostPhase ? state.deadhangLast : state.deadhangBest;
+  if (!target) {
+    el.textContent = "";
+    return;
+  }
+  const remaining = target - seconds;
+  if (inGhostPhase) {
+    el.textContent = remaining > 0
+      ? `${remaining} second${remaining === 1 ? "" : "s"} behind your ghost 👻`
+      : "Tied your ghost — don't let it catch up! 👻";
+  } else if (remaining > 0) {
+    el.textContent = `${remaining} second${remaining === 1 ? "" : "s"} away from your best hang!`;
+  } else if (remaining === 0) {
+    el.textContent = "Tied your best hang — hold on!";
+  } else {
+    el.textContent = "New dead hang record! 🔥";
+  }
+}
+
+function maybeEncourageDeadhang(seconds) {
+  if (!state.deadhangBest || state.deadhangBest <= 1) return null;
+  if (seconds - deadhangState.lastCheerAtSecond < 5) return null;
+  if (Math.random() < cheerProbability(seconds / state.deadhangBest)) {
+    deadhangState.lastCheerAtSecond = seconds;
+    return pickFrom(ENCOURAGE_LINES);
+  }
+  return null;
+}
+
+// One whole second of hang — Planks' per-second flow.
+function onDeadhangSecond(seconds) {
+  deadhangState.seconds = seconds;
+  $("deadhang-timer").textContent = formatDuration(seconds * 1000);
+  let ghostJustPassed = false;
+  if (deadhangState.ghostActive && !deadhangState.ghostPassed && seconds > state.deadhangLast) {
+    deadhangState.ghostPassed = true;
+    ghostJustPassed = true;
+    playGhostSurpassEffect($("deadhang-ghost-transition"), { sound: soundIsEnabled(), playSound: playGhostBoo });
+  }
+  maybePlayRecurringGhostCue(deadhangState, seconds, "seconds", "deadhang-ghost-transition", ghostJustPassed);
+  updateDeadhangThermometer(seconds);
+  updateDeadhangHighscoreMessage(seconds);
+  if (state.deadhangBest && seconds === state.deadhangBest + 1 && !deadhangState.recordBroken) {
+    deadhangState.recordBroken = true;
+    launchConfetti("deadhang-confetti", DEADHANG_EMOJI);
+    speak(DEADHANG_RECORD_LINE);
+  } else {
+    const cheer = maybeEncourageDeadhang(seconds);
+    if (cheer) speak(cheer);
+  }
+}
+
+function clearDeadhangTimers() {
+  if (deadhangState.intervalId) clearInterval(deadhangState.intervalId);
+  if (deadhangState.countdownId) clearInterval(deadhangState.countdownId);
+  deadhangState.intervalId = null;
+  deadhangState.countdownId = null;
+}
+
+function setDeadhangStatus(text) {
+  $("deadhang-status").textContent = text;
+}
+
+// Clock running: Manual drives seconds off wall time; Camera passes elapsed
+// time in from the hang timer on every frame instead.
+function beginDeadhangHang() {
+  deadhangState.phase = "hanging";
+  deadhangState.clockStartedAt = Date.now();
+  state.deadhangStartedAt = new Date();
+  setDeadhangStatus("HANGING");
+  $("btn-deadhang-cancel").classList.add("hidden");
+  $("btn-deadhang-stop").classList.remove("hidden");
+  if (deadhangState.timing === "manual") {
+    deadhangState.intervalId = setInterval(() => {
+      const seconds = Math.floor((Date.now() - deadhangState.clockStartedAt) / 1000);
+      if (seconds > deadhangState.seconds) onDeadhangSecond(seconds);
+    }, 200);
+  }
+}
+
+function deadhangPoseBox(bbox) {
+  const video = $("deadhang-camera-video");
+  const container = $("deadhang-camera-wrap");
+  const scale = Math.max(container.clientWidth / video.videoWidth, container.clientHeight / video.videoHeight);
+  const offsetX = (container.clientWidth - video.videoWidth * scale) / 2;
+  const offsetY = (container.clientHeight - video.videoHeight * scale) / 2;
+  const box = $("deadhang-pose-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+
+function advanceDeadhangCamera(hanging) {
+  if (!deadhangState.timer || (deadhangState.phase !== "waiting" && deadhangState.phase !== "hanging")) return;
+  const { phase, elapsedMs } = deadhangState.timer.advance(hanging, performance.now());
+  if (phase === "hanging" && deadhangState.phase === "waiting") beginDeadhangHang();
+  if (deadhangState.phase !== "hanging") return;
+  const seconds = Math.floor(elapsedMs / 1000);
+  if (seconds > deadhangState.seconds) onDeadhangSecond(seconds);
+  if (phase === "done") completeDeadhang();
+}
+
+const deadhangCamera = createCameraController({
+  moduleUrl: FACE_DETECTOR_MODULE_URL,
+  wasmUrl: FACE_DETECTOR_WASM_URL,
+  modelUrl: POSE_LANDMARKER_MODEL_URL,
+  detectorType: "pose",
+  getVideo: () => $("deadhang-camera-video"),
+  onDetection(landmarks) {
+    const bbox = squatBodyBBox(landmarks.slice(0, 25), $("deadhang-camera-video"));
+    if (bbox) deadhangPoseBox(bbox);
+    advanceDeadhangCamera(deadhangModeModule.deadhangFrameHanging(landmarks));
+  },
+  onNoDetection() {
+    $("deadhang-pose-box").classList.add("hidden");
+    advanceDeadhangCamera(false);
+  },
+});
+
+function resetDeadhangRun() {
+  state.deadhangBest = getDeadhangBest(state.currentUser);
+  state.deadhangLast = getDeadhangLast(state.currentUser);
+  state.deadhangSessionLocation = currentSessionLocationSnapshot();
+  deadhangState.seconds = 0;
+  deadhangState.lastCheerAtSecond = 0;
+  deadhangState.recordBroken = false;
+  deadhangState.ghostActive = ghostModeEnabled() && !!state.deadhangLast;
+  deadhangState.ghostPassed = false;
+  deadhangState.nextGhostCueAt = nextGhostCueAt(0, "seconds");
+  $("deadhang-ghost-transition").classList.remove("playing");
+  $("deadhang-timer").textContent = "0:00";
+  updateDeadhangThermometer(0);
+  updateDeadhangHighscoreMessage(0);
+}
+
+function showDeadhangActive(cameraVisible) {
+  $("deadhang-idle").classList.add("hidden");
+  $("deadhang-active").classList.remove("hidden");
+  $("deadhang-camera-wrap").classList.toggle("hidden", !cameraVisible);
+  $("btn-deadhang-stop").classList.add("hidden");
+  $("btn-deadhang-cancel").classList.remove("hidden");
+  setChromeMinimized(true);
+}
+
+async function startDeadhang() {
+  if (soundIsEnabled()) unlockVoice();
+  renderDeadhangIdle();
+  resetDeadhangRun();
+  hideStatusBanner();
+
+  if (deadhangState.timing === "camera") {
+    const detectorReady = deadhangCamera.ensureDetector();
+    await loadDeadhangMode();
+    let stream;
+    try { stream = await deadhangCamera.requestStream(); }
+    catch {
+      toast("Camera access is required for camera timing. Allow it, or switch to Manual.", 4500);
+      detectorReady.catch(() => {});
+      return;
+    }
+    toast("Loading body tracker…", 2000);
+    try { await detectorReady; }
+    catch {
+      toast("Couldn't load the body tracking model. Try again, or switch to Manual.", 4500);
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    const video = $("deadhang-camera-video");
+    video.srcObject = stream;
+    try { await video.play(); } catch { /* autoplay quirks */ }
+    await acquireWakeLock();
+    state.deadhangActive = true;
+    deadhangState.timer = deadhangModeModule.createHangTimer();
+    deadhangState.phase = "waiting";
+    showDeadhangActive(true);
+    setDeadhangStatus("GET ON THE BAR");
+    deadhangCamera.startDetection();
+    return;
+  }
+
+  await acquireWakeLock();
+  state.deadhangActive = true;
+  deadhangState.phase = "countdown";
+  showDeadhangActive(false);
+  setDeadhangStatus("GET ON THE BAR");
+  let remaining = DEADHANG_COUNTDOWN_SECONDS;
+  $("deadhang-timer").textContent = String(remaining);
+  deadhangState.countdownId = setInterval(() => {
+    remaining -= 1;
+    if (remaining > 0) {
+      $("deadhang-timer").textContent = String(remaining);
+      return;
+    }
+    clearInterval(deadhangState.countdownId);
+    deadhangState.countdownId = null;
+    $("deadhang-timer").textContent = "0:00";
+    speak("Hang!");
+    beginDeadhangHang();
+  }, 1000);
+}
+
+function stopDeadhangHard() {
+  clearDeadhangTimers();
+  deadhangCamera.stop();
+  releaseWakeLock();
+  state.deadhangActive = false;
+  deadhangState.phase = "idle";
+  deadhangState.timer = null;
+  $("deadhang-active").classList.add("hidden");
+  $("deadhang-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+let lastDeadhangFunMessageIndex = -1;
+function pickDeadhangFunMessage(seconds) {
+  let idx;
+  do { idx = Math.floor(Math.random() * FUN_MESSAGES_DEADHANG.length); }
+  while (idx === lastDeadhangFunMessageIndex && FUN_MESSAGES_DEADHANG.length > 1);
+  lastDeadhangFunMessageIndex = idx;
+  return FUN_MESSAGES_DEADHANG[idx](seconds);
+}
+
+async function completeDeadhang() {
+  if (deadhangState.phase !== "hanging") return;
+  const seconds = deadhangState.seconds;
+  stopDeadhangHard();
+  if (seconds < 1) {
+    toast("That hang was too short to log.");
+    return;
+  }
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count: seconds,
+    avatar: state.currentAvatar,
+    startedAt: state.deadhangStartedAt ? state.deadhangStartedAt.toISOString() : undefined,
+    type: "deadhang",
+    ...(state.deadhangSessionLocation ? { location: state.deadhangSessionLocation } : {}),
+  };
+
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  const message = pickDeadhangFunMessage(seconds);
+  state.lastSessionType = "deadhang";
+  state.summarySessionId = null;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = formatDuration(seconds * 1000);
+  $("missed-reps-wrap").classList.add("hidden");
+  $("summary-weighted-note").classList.add("hidden");
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", DEADHANG_EMOJI);
+  speak(`Dead hang complete. ${message}`);
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-deadhang-start").addEventListener("click", startDeadhang);
+$("btn-deadhang-stop").addEventListener("click", completeDeadhang);
+$("btn-deadhang-cancel").addEventListener("click", stopDeadhangHard);
 
 // ------------------- squat mode -------------------
 // Camera-counted free set, own screen (see docs/squat-mode-plan.md): an

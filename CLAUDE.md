@@ -2,7 +2,8 @@
 
 - **Mode roadmap:** Situps is in build (docs/situp-mode-plan.md). Further mode/exercise
   ideas are earmarked in docs/mode-ideas.md for later evaluation — **Tug-of-war is the
-  prioritized next build** after Situps.
+  prioritized next build** after Situps. **Dead hang** (docs/deadhang-mode-plan.md) shipped 2026-10-27 ahead of
+  that queue; its camera timing still needs on-device threshold tuning.
 
 - **Minimize dialogue.** Keep responses terse — critical messages and summaries only, no play-by-play narration.
 - **Always push live directly** after making a change — don't wait to be asked. Commit and `git push` (following the fetch/merge-check and `CACHE_NAME` bump rules below) as a normal part of finishing the change, without asking for confirmation first.

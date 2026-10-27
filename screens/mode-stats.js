@@ -85,6 +85,11 @@ const SPECS = {
     { id: "totalHold", label: "Total hold time", format: "seconds", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
     { id: "avgHold", label: "Avg hold time", format: "seconds", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
   ],
+  deadhang: [
+    { id: "hangs", label: "Hangs logged", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalHang", label: "Total hang time", format: "seconds", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
+    { id: "avgHang", label: "Avg hang time", format: "seconds", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
+  ],
   pullups: [
     { id: "sets", label: "Pull-up sets", format: "integer", qualifier: "total", value: (s) => s.length },
     { id: "totalReps", label: "Total pull-ups", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
@@ -156,7 +161,7 @@ export function modeStatsModel(sessions, mode) {
 // Modes that already surface their own time-based row (classic's session
 // duration, planks'/pulse's held time) — skipped here to avoid a near-
 // duplicate second "time" row for those.
-const MODES_WITH_TIME_METRIC = new Set(["classic", "planks", "pulse"]);
+const MODES_WITH_TIME_METRIC = new Set(["classic", "planks", "deadhang", "pulse"]);
 
 // Cross-mode: total wall-clock time spent across the already period+mode
 // filtered `sessions` passed in, so it reframes with whatever time horizon
@@ -227,7 +232,7 @@ export function modesUsedStat(sessions) {
 // modesUsedStat. Callers pass the full period-filtered session list (not
 // the mode-filtered one) for this.
 export function exerciseTypesUsedStat(sessions) {
-  const typeIdOf = (s) => (s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups");
+  const typeIdOf = (s) => (s.type === "plank" ? "planks" : s.type === "deadhang" ? "deadhang" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups");
   const allTypes = new Set();
   const byUser = new Map();
   for (const s of sessions) {

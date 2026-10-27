@@ -36,6 +36,7 @@ export function eligibleRoadtripSessions(sessions, period = "week", now = new Da
   const start = period === "all" ? -Infinity : periodStart(period, now).getTime();
   return (sessions || []).filter((session) =>
     session?.type !== "plank" &&
+    session?.type !== "deadhang" &&
     Number(session?.count) > 0 &&
     sessionTime(session) >= start &&
     normalizeTerritoryLocation(session?.location)
@@ -118,7 +119,7 @@ export function roadtripDetailRows(territory, currentUser, limit = 10) {
 export function detectRoadtripConquests(sessions, sessionId, { now } = {}) {
   const session = (sessions || []).find((item) => item.id === sessionId);
   const location = normalizeTerritoryLocation(session?.location);
-  if (!session || !location || session.type === "plank" || Number(session.count) <= 0) return [];
+  if (!session || !location || session.type === "plank" || session.type === "deadhang" || Number(session.count) <= 0) return [];
   const moment = now || new Date(session.timestamp);
   const before = sessions.filter((item) => item.id !== sessionId);
   const wins = [];

@@ -8,6 +8,7 @@ export const EXPLORE_MODES = [
   { id: "plank", icon: "🪵", title: "Plank", tagline: "Hold your ground, beat your own time", live: true },
   { id: "squat", icon: "🦵", title: "Squat", tagline: "Camera-counted squats, own your reps", live: true },
   { id: "pullup", icon: "💪", title: "Pull-ups", tagline: "Camera-counted pull-ups, own your reps", live: true },
+  { id: "deadhang", icon: "🙌", title: "Dead hang", tagline: "Hang on, beat your own time", live: true },
   { id: "situp", icon: "🙇", title: "Crunch", tagline: "Camera-counted crunches, own your reps", live: true },
   { id: "holland", icon: "🇳🇱", title: "Holland Mode", tagline: "Pull-ups, pushups, squats — nonstop", live: true },
   { id: "chainofpain", icon: "⛓️", title: "Chain of Pain", tagline: "Squats, pushups, planks — nonstop", live: true },
@@ -30,7 +31,7 @@ export const EXPLORE_MODES = [
 function usageByMode(sessions) {
   const counts = new Map();
   for (const session of sessions) {
-    const id = session.type === "plank" ? "plank" : session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : session.type === "holland" ? "holland" : session.type === "chainofpain" ? "chainofpain" : session.type === "kettlebell" ? `kb-${session.kettlebellWorkoutId}` : (session.mode || "classic");
+    const id = session.type === "plank" ? "plank" : session.type === "deadhang" ? "deadhang" : session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : session.type === "holland" ? "holland" : session.type === "chainofpain" ? "chainofpain" : session.type === "kettlebell" ? `kb-${session.kettlebellWorkoutId}` : (session.mode || "classic");
     if (id) counts.set(id, (counts.get(id) || 0) + 1);
   }
   return counts;
@@ -38,7 +39,7 @@ function usageByMode(sessions) {
 
 // Plank, Pull-ups, Squat, and Situp are separate activities, not pushup modes —
 // they get their own "Other exercises" bucket below the "Pushups" bucket.
-const OTHER_EXERCISE_IDS = new Set(["plank", "pullup", "squat", "situp", "holland", "chainofpain"]);
+const OTHER_EXERCISE_IDS = new Set(["plank", "deadhang", "pullup", "squat", "situp", "holland", "chainofpain"]);
 
 function orderBucket(bucket) {
   const playable = bucket.filter((item) => item.playable).sort((a, b) => {
@@ -96,13 +97,14 @@ export const WORKOUT_TYPES = [
   { id: "pushups", title: "Pushups", tagline: "Classic sets plus every pushup game", defaultMode: "classic" },
   { id: "squats", title: "Squats", tagline: "Camera-counted squats", defaultMode: "squat" },
   { id: "pullups", title: "Pull-ups", tagline: "Camera-counted pull-ups", defaultMode: "pullup" },
+  { id: "deadhang", title: "Dead hang", tagline: "Hang on, beat your time", defaultMode: "deadhang" },
   { id: "situps", title: "Crunches", tagline: "Camera-counted crunches", defaultMode: "situp" },
   { id: "planks", title: "Planks", tagline: "Hold your ground, beat your time", defaultMode: "plank" },
   { id: "circuits", title: "Circuits", tagline: "Holland Mode, Chain of Pain", defaultMode: "holland" },
   { id: "kettlebell", title: "Kettlebell", tagline: "Five Alive, Throne Room, Core Ten, Iron Grip", defaultMode: "kb-five-alive" },
 ];
 
-const TYPE_BY_SINGLE_MODE = { squat: "squats", pullup: "pullups", situp: "situps", plank: "planks", holland: "circuits", chainofpain: "circuits" };
+const TYPE_BY_SINGLE_MODE = { squat: "squats", pullup: "pullups", deadhang: "deadhang", situp: "situps", plank: "planks", holland: "circuits", chainofpain: "circuits" };
 
 export function workoutTypeForMode(modeId) {
   if (!modeId) return "pushups";

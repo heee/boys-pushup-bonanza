@@ -12,11 +12,12 @@
 //                              rather than the name/id sanitizeGeoapifyResult normally returns
 //   POST /session      -> validates and stores a completed session in D1
 //                          (type: omit or "pushup" for a normal session, "plank" for a plank-hold session,
+//                          "deadhang" for a timed bar hang (camera- or manually-timed, count = seconds),
 //                          "squat" for a camera-counted squat set, "situp" for a camera-counted situp set,
 //                          "holland" for a continuous pull-up/pushup/squat circuit, "chainofpain" for a
 //                          continuous TIME-driven squat/pushup/plank circuit (see AGENTS.md), "kettlebell" for a
 //                          timer-driven preset kettlebell workout with user-confirmed reps;
-//                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks,
+//                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks and dead hangs,
 //                          total raw reps across all three exercises for Holland, squats+pushups for Chain of
 //                          Pain (plank has its own chainOfPainPlankSeconds field instead), seconds held in
 //                          band for Pulse (mode: "pulse" — the actual rep count lives in pulseReps instead);
@@ -907,7 +908,7 @@ export function validateSession(body) {
   if (typeof body.startedAt === "string" && !isNaN(new Date(body.startedAt).getTime())) {
     session.startedAt = body.startedAt;
   }
-  if (body.type === "plank" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland" || body.type === "chainofpain" || body.type === "kettlebell") {
+  if (body.type === "plank" || body.type === "deadhang" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland" || body.type === "chainofpain" || body.type === "kettlebell") {
     session.type = body.type;
   }
   // Kettlebell's own fields (see docs/kettlebell-mode-plan.md): the set log is
@@ -1194,7 +1195,7 @@ function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
 
-const GOAL_TYPES = ["pushups", "planks", "squats", "pullups"];
+const GOAL_TYPES = ["pushups", "planks", "deadhang", "squats", "pullups", "situps"];
 const GOAL_PERIODS = ["daily", "weekly", "monthly", "streak"];
 
 function validateTypeGoal(value) {

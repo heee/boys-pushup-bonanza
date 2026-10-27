@@ -18,6 +18,7 @@ export const MODE_META = {
   fortune: { label: "Fortune", icon: "🥠" },
   chase: { label: "Chase", icon: "🏃" },
   planks: { label: "Planks", icon: "🪵" },
+  deadhang: { label: "Dead hang", icon: "🙌" },
   squats: { label: "Squats", icon: "🦵" },
   pullups: { label: "Pull-ups", icon: "💪" },
   situps: { label: "Crunches", icon: "🙇" },
@@ -29,6 +30,7 @@ export const MODE_META = {
 
 export function sessionModeId(session) {
   if (session?.type === "plank") return "planks";
+  if (session?.type === "deadhang") return "deadhang";
   if (session?.type === "squat") return "squats";
   if (session?.type === "pullup") return "pullups";
   if (session?.type === "situp") return "situps";
@@ -98,7 +100,7 @@ export function sessionKeyMetrics(session) {
   const modeId = sessionModeId(session);
   const metrics = [];
 
-  if (modeId !== "planks" && modeId !== "pulse") {
+  if (modeId !== "planks" && modeId !== "deadhang" && modeId !== "pulse") {
     metrics.push({ id: "duration", label: "Duration", format: "duration", value: sessionDurationMs(session) });
     if (modeId !== "holland" && modeId !== "chainofpain" && modeId !== "kettlebell") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
   }

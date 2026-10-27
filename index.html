@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=342">
+<link rel="stylesheet" href="style.css?v=343">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -956,6 +956,42 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: DEAD HANG ============ -->
+    <section id="screen-deadhang-workout" class="screen">
+      <div id="deadhang-confetti" class="confetti" aria-hidden="true"></div>
+      <div id="deadhang-idle" class="workout-idle">
+        <p class="workout-eyebrow">Boys Bonanza</p>
+        <p class="workout-hello"><span id="deadhang-avatar" class="avatar-circle"></span>
+          Ready to hang, <span id="deadhang-username">Friend</span><span class="tight-q">?</span></p>
+        <div id="deadhang-timing-select" class="segmented deadhang-timing-select" role="tablist" aria-label="Timing">
+          <button type="button" class="segment" data-timing="camera">📷 Camera</button>
+          <button type="button" class="segment" data-timing="manual">✋ Manual</button>
+        </div>
+        <p id="deadhang-instructions" class="workout-instructions"></p>
+        <button id="btn-deadhang-start" class="btn btn-giant btn-primary">START</button>
+      </div>
+      <div id="deadhang-active" class="workout-active hidden">
+        <div id="deadhang-ghost-transition" class="ghost-transition" aria-hidden="true"></div>
+        <div id="deadhang-camera-wrap" class="camera-wrap hidden">
+          <video id="deadhang-camera-video" playsinline muted autoplay></video>
+          <div id="deadhang-pose-box" class="face-box hidden"></div>
+        </div>
+        <div class="rep-count-wrap">
+          <div id="deadhang-status" class="squat-phase-indicator"></div>
+          <div id="deadhang-timer" class="rep-count">0:00</div>
+          <div class="rep-label">HANG TIME</div>
+          <div id="deadhang-thermometer-wrap" class="thermometer-wrap hidden">
+            <div class="thermometer-track thermometer-track-notched">
+              <div id="deadhang-thermometer-fill" class="thermometer-fill"></div>
+            </div>
+          </div>
+          <div id="deadhang-highscore-message" class="highscore-message personal-best-chase"></div>
+        </div>
+        <button id="btn-deadhang-cancel" type="button" class="btn btn-secondary btn-small-wide hidden">Cancel</button>
+        <button id="btn-deadhang-stop" class="btn btn-giant btn-complete">STOP</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: HOLLAND MODE ============ -->
     <section id="screen-holland-workout" class="screen">
       <div id="holland-confetti" class="confetti" aria-hidden="true"></div>
@@ -1360,6 +1396,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pulse"><span>Pulse</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="cock"><span>Cock</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="deadhang"><span>Dead hang</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1738,6 +1775,7 @@
             <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mysessions-mode="all"><span>All</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pushups"><span>Pushups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="deadhang"><span>Dead hang</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1948,6 +1986,13 @@
             <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="planks" aria-label="Track a Planks goal">
             <span class="settings-category-chevron" aria-hidden="true">›</span>
           </div>
+          <div class="settings-category-row goal-type-row" data-goal-type="deadhang">
+            <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">🙌</span>
+            <span class="settings-category-title">Dead hang</span>
+            <span id="goal-value-deadhang" class="settings-category-value"></span>
+            <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="deadhang" aria-label="Track a Dead hang goal">
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </div>
           <div class="settings-category-row goal-type-row" data-goal-type="squats">
             <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">🦵</span>
             <span class="settings-category-title">Squats</span>
@@ -2140,6 +2185,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=356"></script>
+<script type="module" src="app.js?v=357"></script>
 </body>
 </html>

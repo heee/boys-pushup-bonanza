@@ -871,6 +871,31 @@ const SHARE_MESSAGES_PLANK_UNHINGED = [
   (t) => `Held ${t} while every cell in my body drafted a resignation email.`,
 ];
 
+const SHARE_MESSAGES_DEADHANG = [
+  (t) => `Hung from a bar for ${t}. My forearms have filed a formal complaint 🙌`,
+  (t) => `${t} dead hang. Gravity tried everything and still lost.`,
+  (t) => `Dangled for ${t} like a very determined coat on a very tired hook.`,
+  (t) => `${t} of grip strength and pure spite. The bar blinked first.`,
+  (t) => `Dead hang: ${t}. My hands are now legally claws.`,
+  (t) => `${t} hanging around doing nothing, which turns out to be the hardest workout there is.`,
+  (t) => `Held on for ${t}. My fingers would like to speak to a manager.`,
+  (t) => `${t} off the ground and refusing to come down. The floor misses me.`,
+  (t) => `Hung for ${t}. Somewhere a monkey just nodded in respect 🐒`,
+  (t) => `${t} dead hang complete. My shoulders are three inches longer and furious about it.`,
+];
+
+const SHARE_MESSAGES_DEADHANG_STREAK = [
+  (t, ctx) => `${t} dead hang and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
+  (t, ctx) => `Day ${ctx.streak} of the streak, hung for ${t} today 🙌`,
+  (t, ctx) => `${ctx.streak} days straight, ${t} on the bar today 😤 Grip never quits.`,
+];
+
+const SHARE_MESSAGES_DEADHANG_WEEK = [
+  (t, ctx) => `${t} today, ${ctx.weekTotalDisplay} of hang time this week 📈 The bar never sleeps.`,
+  (t, ctx) => `Week total: ${ctx.weekTotalDisplay} on the bar 📊 ${t} of that just now.`,
+  (t, ctx) => `Weekly hang tally: ${ctx.weekTotalDisplay} ⏱️ ${t} of it fresh.`,
+];
+
 const SHARE_MESSAGES_SQUAT = [
   (n) => `${n} squats! 🦵 A recliner somewhere just filed for unemployment.`,
   (n) => `Did ${n} squats. My chair has been formally replaced.`,
@@ -2440,6 +2465,7 @@ function decorateShareMessage(message, ctx, displayCount) {
     // no streak/week bonus line for this mode
   } else if (ctx.streak >= 3) {
     const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK
+      : ctx.isDeadhang ? SHARE_MESSAGES_DEADHANG_STREAK
       : ctx.isSquat ? SHARE_MESSAGES_SQUAT_STREAK
       : ctx.isPullup ? SHARE_MESSAGES_PULLUP_STREAK
       : ctx.isSitup ? SHARE_MESSAGES_SITUP_STREAK
@@ -2447,6 +2473,7 @@ function decorateShareMessage(message, ctx, displayCount) {
     extras.push(pickFrom(pool)(displayCount, ctx));
   } else if (ctx.weekTotalRaw > 0 && ctx.todayRaw != null && ctx.weekTotalRaw > ctx.todayRaw) {
     const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_WEEK
+      : ctx.isDeadhang ? SHARE_MESSAGES_DEADHANG_WEEK
       : ctx.isSquat ? SHARE_MESSAGES_SQUAT_WEEK
       : ctx.isPullup ? SHARE_MESSAGES_PULLUP_WEEK
       : ctx.isSitup ? SHARE_MESSAGES_SITUP_WEEK
@@ -2559,6 +2586,8 @@ export function pickShareMessage(count, ctx) {
     pool = SHARE_MESSAGES_ZEN_UNHINGED;
   } else if (mode === "plank") {
     pool = SHARE_MESSAGES_PLANK_UNHINGED;
+  } else if (mode === "deadhang") {
+    pool = SHARE_MESSAGES_DEADHANG;
   } else if (mode === "pullup") {
     pool = SHARE_MESSAGES_PULLUP;
   } else if (mode === "squat") {

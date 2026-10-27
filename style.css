@@ -4746,6 +4746,10 @@ body:has(#screen-challenge-detail.active) #app {
 @media (prefers-reduced-motion: reduce) {
   .goal-thermo .thermometer-fill.thermometer-win { animation: none; }
 }
+/* Dead hang start screen: Camera / Manual timing toggle. */
+.deadhang-timing-select { width: 100%; max-width: 18rem; margin: 0.4rem 0 0; }
+#btn-deadhang-cancel { flex: none; align-self: center; padding: 0.6rem 1.6rem; }
+
 .goal-thermo-count { font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 0; }
 .goal-thermo-label { font-size: 0.72rem; font-weight: 400; color: var(--text-dim); margin: 0; }
 
