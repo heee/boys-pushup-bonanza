@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-27", text: "Swipe left or right to flip between Settings pages, goals, challenges and Roadtrip places" },
   { date: "2026-10-27", text: "Back button moved to the top-left of the header" },
   { date: "2026-10-27", text: "Reached goals now shimmer gold on Home" },
   { date: "2026-10-27", text: "Added Changelog in Settings" },

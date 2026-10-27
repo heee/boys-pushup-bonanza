@@ -128,7 +128,7 @@ import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/m
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=3";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=4";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -5654,6 +5654,7 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
     </span>
     ${state.roadtripTier === "neighborhood" ? "" : `<span class="roadtrip-users">${formatNumber(row.contributorCount)} ${row.contributorCount === 1 ? "user" : "users"}</span>`}
     <span class="roadtrip-score">${formatNumber(row.total)}</span>`;
+  button.dataset.siblingId = row.id;
   button.addEventListener("click", () => {
     state.roadtripDetailId = row.id;
     showScreen("screen-roadtrip-detail");
@@ -7699,8 +7700,8 @@ function startsInOwnHorizontalGesture(target, root) {
   }
   return false;
 }
-function attachTabSwipe(screenId, tabsSelector) {
-  const screen = $(screenId);
+// onSwipe(+1) for a swipe left (next), onSwipe(-1) for a swipe right.
+function attachHorizontalSwipe(screen, onSwipe) {
   let start = null;
   screen.addEventListener("touchstart", (event) => {
     const t = event.touches[0];
@@ -7714,12 +7715,56 @@ function attachTabSwipe(screenId, tabsSelector) {
     const dy = event.changedTouches[0].clientY - start.y;
     start = null;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    onSwipe(dx < 0 ? 1 : -1);
+  });
+}
+function attachTabSwipe(screenId, tabsSelector) {
+  attachHorizontalSwipe($(screenId), (dir) => {
     const segments = [...document.querySelectorAll(tabsSelector)].filter((s) => s.offsetParent !== null);
     const current = segments.findIndex((s) => s.classList.contains("active"));
-    const next = segments[current + (dx < 0 ? 1 : -1)];
+    const next = segments[current + dir];
     if (next) next.click();
   });
 }
+// Drill-in screens: a horizontal swipe opens the previous/next sibling from
+// the parent screen's list (clamped, no wrap) by clicking that list entry —
+// the parent list is still in the DOM, so its own handler does the work.
+// Each entry carries data-sibling-id; `current` names the open one.
+const DRILL_SIBLINGS = {
+  settings: {
+    screens: ["screen-settings-goals", "screen-settings-mysessions", "screen-mode-breakdown", "screen-poker-showcase", "screen-settings-workout", "screen-settings-appearance", "screen-changelog"],
+    items: () => document.querySelectorAll("#settings-category-list [data-sibling-id], #settings-category-list-app [data-sibling-id]"),
+    current: () => state.screen,
+  },
+  goal: { screens: ["screen-settings-goal-edit"], items: () => document.querySelectorAll("#goal-type-list .goal-type-row"), current: () => goalEditType, idOf: (el) => el.dataset.goalType },
+  challenge: { screens: ["screen-challenge-detail"], items: () => document.querySelectorAll("#challenge-list [data-sibling-id]"), current: () => state.openChallengeId },
+  roadtrip: { screens: ["screen-roadtrip-detail"], items: () => document.querySelectorAll("#screen-roadtrip [data-sibling-id]"), current: () => state.roadtripDetailId },
+};
+
+function stepDrillSibling(group, dir) {
+  const idOf = group.idOf || ((el) => el.dataset.siblingId);
+  const ids = [];
+  const items = [];
+  for (const el of group.items()) {
+    if (el.classList.contains("hidden") || ids.includes(idOf(el))) continue;
+    ids.push(idOf(el));
+    items.push(el);
+  }
+  const next = items[ids.indexOf(group.current()) + dir];
+  if (ids.indexOf(group.current()) === -1 || !next) return;
+  next.click();
+  const screen = document.querySelector(".screen.active");
+  screen.classList.remove("drill-slide-next", "drill-slide-prev");
+  void screen.offsetWidth;
+  screen.classList.add(dir > 0 ? "drill-slide-next" : "drill-slide-prev");
+  screen.addEventListener("animationend", () => screen.classList.remove("drill-slide-next", "drill-slide-prev"), { once: true });
+  window.scrollTo(0, 0);
+}
+
+for (const group of Object.values(DRILL_SIBLINGS)) {
+  for (const screenId of group.screens) attachHorizontalSwipe($(screenId), (dir) => stepDrillSibling(group, dir));
+}
+
 attachTabSwipe("screen-dashboard", "#period-select .segment");
 attachTabSwipe("screen-challenges", "#challenge-tab-select .segment");
 attachTabSwipe("screen-roadtrip", "#roadtrip-period-select .segment");
@@ -7992,6 +8037,7 @@ function buildChallengeCard(c, now) {
   const card = document.createElement("div");
   card.className = "challenge-card";
   card.style.setProperty("--challenge-color", c.gradient[0]);
+  card.dataset.siblingId = c.id;
   card.addEventListener("click", () => openChallengeDetail(c.id));
 
   let dateLabel;
@@ -8825,6 +8871,7 @@ function buildBingoCard(cycle, now) {
   const card = document.createElement("div");
   card.className = "challenge-card";
   card.style.setProperty("--challenge-color", "#4a2e6b");
+  card.dataset.siblingId = cycle.id;
   card.addEventListener("click", () => openBingoDetail(cycle.id));
 
   let dateLabel;
@@ -9103,6 +9150,7 @@ function buildPokerCollectionCard(cycle, now) {
   const card = document.createElement("div");
   card.className = "challenge-card";
   card.style.setProperty("--challenge-color", "#2e6b4a");
+  card.dataset.siblingId = cycle.id;
   card.addEventListener("click", () => openPokerCollectionDetail(cycle.id));
 
   let dateLabel;

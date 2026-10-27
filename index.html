@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=335">
+<link rel="stylesheet" href="style.css?v=336">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1676,25 +1676,25 @@
       </button>
 
       <div class="settings-block settings-category-list" id="settings-category-list">
-        <button type="button" class="settings-category-row" data-settings-category="goals">
+        <button type="button" class="settings-category-row" data-settings-category="goals" data-sibling-id="screen-settings-goals">
           <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
           <span class="settings-category-title">Personal goals</span>
           <span id="settings-category-goals-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button type="button" class="settings-category-row" data-settings-category="mysessions">
+        <button type="button" class="settings-category-row" data-settings-category="mysessions" data-sibling-id="screen-settings-mysessions">
           <span class="settings-category-icon settings-category-icon-mysessions" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
           <span class="settings-category-title">My sessions</span>
           <span id="settings-category-mysessions-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button id="btn-open-mode-breakdown" type="button" class="settings-category-row">
+        <button id="btn-open-mode-breakdown" data-sibling-id="screen-mode-breakdown" type="button" class="settings-category-row">
           <span class="settings-category-icon settings-category-icon-bonanza" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
           <span class="settings-category-title">Bonanza stats</span>
           <span class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button id="btn-open-poker-showcase" type="button" class="settings-category-row hidden">
+        <button id="btn-open-poker-showcase" data-sibling-id="screen-poker-showcase" type="button" class="settings-category-row hidden">
           <span class="settings-category-icon settings-category-icon-poker" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="11" height="16" rx="2" transform="rotate(-10 8.5 13)"/><rect x="10" y="3" width="11" height="16" rx="2" transform="rotate(8 15.5 11)"/></svg></span>
           <span class="settings-category-title">Poker collection</span>
           <span id="settings-category-poker-value" class="settings-category-value"></span>
@@ -1703,19 +1703,19 @@
       </div>
 
       <div class="settings-block settings-category-list" id="settings-category-list-app">
-        <button type="button" class="settings-category-row" data-settings-category="workout">
+        <button type="button" class="settings-category-row" data-settings-category="workout" data-sibling-id="screen-settings-workout">
           <span class="settings-category-icon settings-category-icon-workout" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
           <span class="settings-category-title">Preferences</span>
           <span class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button type="button" class="settings-category-row" data-settings-category="appearance">
+        <button type="button" class="settings-category-row" data-settings-category="appearance" data-sibling-id="screen-settings-appearance">
           <span class="settings-category-icon settings-category-icon-appearance" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
           <span class="settings-category-title">Appearance</span>
           <span id="settings-category-appearance-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button id="btn-open-changelog" type="button" class="settings-category-row">
+        <button id="btn-open-changelog" data-sibling-id="screen-changelog" type="button" class="settings-category-row">
           <span class="settings-category-icon settings-category-icon-changelog" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
           <span class="settings-category-title">Changelog</span>
           <span id="settings-changelog-dot" class="settings-new-dot hidden" aria-label="New"></span>
@@ -2149,6 +2149,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=350"></script>
+<script type="module" src="app.js?v=351"></script>
 </body>
 </html>

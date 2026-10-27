@@ -460,6 +460,15 @@ button, input {
 
 .screen { display: none; flex: 1; flex-direction: column; }
 .screen.active { display: flex; }
+/* Drill-in sibling swipe (see stepDrillSibling): the new page slides in
+   from the side the finger moved away from. */
+.screen.drill-slide-next { animation: drill-slide-next 0.24s ease-out; }
+.screen.drill-slide-prev { animation: drill-slide-prev 0.24s ease-out; }
+@keyframes drill-slide-next { from { transform: translateX(28%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes drill-slide-prev { from { transform: translateX(-28%); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .screen.drill-slide-next, .screen.drill-slide-prev { animation: none; }
+}
 
 .mascot-badge {
   width: 7.5rem;
