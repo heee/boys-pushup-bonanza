@@ -1,6 +1,6 @@
-import { MODIFIERS } from "./modifiers.js";
+import { ALL_MODIFIERS } from "./modifiers.js";
 
-const MODIFIERS_BY_ID = Object.fromEntries(MODIFIERS.map((m) => [m.id, m]));
+const MODIFIERS_BY_ID = Object.fromEntries(ALL_MODIFIERS.map((m) => [m.id, m]));
 
 const VALID_SESSION_MAX_MS = 30 * 60 * 1000;
 

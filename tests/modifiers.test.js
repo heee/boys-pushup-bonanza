@@ -20,3 +20,19 @@ test("every MODIFIERS entry except random carries cue copy", () => {
     assert.equal(typeof m.cueSub, "string");
   }
 });
+
+test("plank and crunch modifiers resolve random within their own type", async () => {
+  const { PLANK_MODIFIERS, CRUNCH_MODIFIERS, modifiersForType, findModifier } = await import("../screens/modifiers.js");
+  assert.equal(modifiersForType("planks"), PLANK_MODIFIERS);
+  assert.equal(modifiersForType("situps"), CRUNCH_MODIFIERS);
+  assert.deepEqual(modifiersForType("squats"), []);
+  for (let i = 0; i < 20; i++) {
+    assert.ok(resolveModifier("random", Math.random, PLANK_MODIFIERS).startsWith("plank-"));
+    assert.ok(resolveModifier("random", Math.random, CRUNCH_MODIFIERS).startsWith("crunch-"));
+  }
+  for (const m of [...PLANK_MODIFIERS, ...CRUNCH_MODIFIERS]) {
+    if (m.id === "random") continue;
+    assert.equal(findModifier(m.id), m);
+    assert.equal(typeof m.cueLabel, "string");
+  }
+});

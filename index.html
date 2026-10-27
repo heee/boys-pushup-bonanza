@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=343">
+<link rel="stylesheet" href="style.css?v=344">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -818,7 +818,7 @@
     <!-- ============ SCREEN: MODIFIER PICKER ============ -->
     <section id="screen-modifier-picker" class="screen">
       <h1 class="screen-title">Choose your modifier</h1>
-      <p class="screen-sub">Changes hand position — applies to any mode</p>
+      <p id="modifier-picker-sub" class="screen-sub">Changes hand position — applies to any mode</p>
       <div id="modifier-list" class="tier1-list explore-modes-list"></div>
     </section>
 
@@ -856,6 +856,13 @@
           <div id="plank-highscore-message" class="highscore-message personal-best-chase"></div>
         </div>
 
+        <div id="plank-modifier-cue" class="modifier-cue modifier-cue-inline hidden">
+          <span id="plank-modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="plank-modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="plank-modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
         <button id="btn-plank-stop" class="btn btn-giant btn-complete">STOP</button>
       </div>
     </section>
@@ -1245,6 +1252,13 @@
         </div>
 
         <button id="btn-situp-cancel" type="button" class="btn btn-secondary btn-small-wide">Cancel</button>
+        <div id="situp-modifier-cue" class="modifier-cue modifier-cue-inline hidden">
+          <span id="situp-modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="situp-modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="situp-modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
         <button id="btn-situp-stop" class="btn btn-giant btn-complete hidden">STOP</button>
       </div>
     </section>
@@ -2185,6 +2199,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=357"></script>
+<script type="module" src="app.js?v=358"></script>
 </body>
 </html>

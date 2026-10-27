@@ -837,7 +837,9 @@ function json(obj, status, cors) {
 
 // Cross-mode Modifier ids (how a pushup is physically executed) — module
 // scope so both validateSession and the /horse-turn handler can reuse it.
-const VALID_MODIFIERS = ["standard", "wide", "close", "diamond", "staggered", "archer", "incline", "decline"];
+const VALID_MODIFIERS = ["standard", "wide", "close", "diamond", "staggered", "archer", "incline", "decline",
+  "plank-standard", "plank-high", "plank-side", "plank-rkc", "plank-longlever", "plank-taps",
+  "crunch-standard", "crunch-crossbody", "crunch-pause", "crunch-weighted"];
 
 function sanitizeSessionProgression(raw, session) {
   if (!raw || raw.v !== 1 || raw.i !== 10 || !Array.isArray(raw.b) || raw.b.length < 1 || raw.b.length > 1080) return null;

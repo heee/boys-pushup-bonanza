@@ -126,11 +126,11 @@ import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycl
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=152";
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=4";
-import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
+import { CRUNCH_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=101";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=12";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=7";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=8";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -1490,6 +1490,11 @@ const state = {
   cockTraceSamples: [],
   cockFullTraceSamples: [],
   modifier: null,
+  // Plank / Crunch variation picked on Home (pushups keep `modifier` above),
+  // and the concrete one resolved at each session's start.
+  typeModifiers: { planks: null, situps: null },
+  plankResolvedModifier: null,
+  situpResolvedModifier: null,
   resolvedModifier: null,
   ladderRivals: [],
   ladderRivalsOffline: false,
@@ -2945,22 +2950,37 @@ $("home-type-btn").addEventListener("click", () => {
 // be set while Classic, Cards, Countdown, etc. are active in turn — it only
 // resets on a full app reload, never on a mode change). Disabled while Zen
 // is selected, since Zen deliberately strips down feedback/coaching.
+// The Home-selected modifier id for the current Type (pushup grips, plank or
+// crunch variations); null for types without modifiers.
+function homeModifierId() {
+  if (state.homeType === "pushups") return state.modifier;
+  return state.typeModifiers[state.homeType] ?? null;
+}
+
+function setHomeModifierId(id) {
+  if (state.homeType === "pushups") state.modifier = id;
+  else if (state.homeType in state.typeModifiers) state.typeModifiers[state.homeType] = id;
+}
+
 function renderModifierSlot() {
   const btn = $("pmode-modifier");
-  const picked = state.modifier ? MODIFIERS.find((m) => m.id === state.modifier) : null;
-  // Grips only apply to pushups, so other types show a locked "No modifier".
-  const notPushups = state.homeType !== "pushups";
-  btn.innerHTML = homeSelectorHTML("Modifier", picked && !notPushups ? `${picked.icon} ${picked.title}` : "None");
-  btn.classList.toggle("active", !!picked && !notPushups);
-  const disabled = notPushups || state.pushupMode === "zen";
+  const list = modifiersForType(state.homeType);
+  const picked = list.find((m) => m.id === homeModifierId()) || null;
+  btn.innerHTML = homeSelectorHTML("Modifier", picked ? `${picked.icon} ${picked.title}` : "None");
+  btn.classList.toggle("active", !!picked);
+  // Types without a modifier list show a locked "None"; Zen strips coaching.
+  const disabled = !list.length || (state.homeType === "pushups" && state.pushupMode === "zen");
   btn.classList.toggle("segment-disabled", disabled);
   btn.setAttribute("aria-disabled", String(disabled));
 }
 
 function renderModifierPicker() {
+  const subs = { pushups: "Changes hand position — applies to any mode", planks: "Changes how you hold the plank", situps: "Changes how you do each crunch" };
+  $("modifier-picker-sub").textContent = subs[state.homeType] || "";
   const list = $("modifier-list");
-  list.innerHTML = MODIFIERS.map((m) => {
-    const selected = m.id === state.modifier;
+  const current = homeModifierId();
+  list.innerHTML = modifiersForType(state.homeType).map((m) => {
+    const selected = m.id === current;
     const badge = selected
       ? '<span class="modifier-row-check" aria-hidden="true">✓</span>'
       : '<span class="explore-mode-chev">›</span>';
@@ -2981,7 +3001,7 @@ $("modifier-list").addEventListener("click", (e) => {
   const row = e.target.closest(".explore-mode-row");
   if (!row) return;
   const id = row.dataset.modifierId;
-  state.modifier = id === state.modifier ? null : id;
+  setHomeModifierId(id === homeModifierId() ? null : id);
   showScreen("screen-workout");
 });
 
@@ -7545,7 +7565,7 @@ function renderRecentList(sessions) {
   for (const s of recent) {
     const row = document.createElement("div");
     row.className = "recent-row compare-clickable";
-    const modifierMeta = s.modifier ? MODIFIERS.find((m) => m.id === s.modifier) : null;
+    const modifierMeta = s.modifier ? findModifier(s.modifier) : null;
     const modifierIcon = modifierMeta
       ? `<button type="button" class="recent-modifier" aria-label="${escapeHtml(modifierMeta.title)} modifier">${modifierMeta.icon}</button>`
       : "";
@@ -12430,6 +12450,17 @@ function maybePlayRecurringGhostCue(modeState, progress, unit, containerId, skip
   }
 }
 
+// Shows a Plank / Crunch screen's variation cue (see renderModifierCue in
+// the pushup HUD for the floating version).
+function renderTypeModifierCue(prefix, modifierId) {
+  const picked = modifierId ? findModifier(modifierId) : null;
+  $(`${prefix}-modifier-cue`).classList.toggle("hidden", !picked);
+  if (!picked) return;
+  $(`${prefix}-modifier-cue-icon`).textContent = picked.icon;
+  $(`${prefix}-modifier-cue-label`).textContent = picked.cueLabel;
+  $(`${prefix}-modifier-cue-sub`).textContent = picked.cueSub;
+}
+
 function stopPlankInterval() {
   if (plankState.intervalId) {
     clearInterval(plankState.intervalId);
@@ -12452,6 +12483,8 @@ function maybeEncouragePlank(seconds) {
 async function startPlank() {
   if (soundIsEnabled()) unlockVoice();
   state.plankSessionLocation = currentSessionLocationSnapshot();
+  state.plankResolvedModifier = resolveModifier(state.typeModifiers.planks, Math.random, PLANK_MODIFIERS);
+  renderTypeModifierCue("plank", state.plankResolvedModifier);
   state.plankBest = getPlankBest(state.currentUser);
   state.plankLast = getPlankLast(state.currentUser);
   plankState.seconds = 0;
@@ -12534,6 +12567,7 @@ async function completePlank() {
     startedAt: state.plankStartedAt ? state.plankStartedAt.toISOString() : undefined,
     type: "plank",
     sessionProgression: buildPlankProgression(seconds),
+    ...(state.plankResolvedModifier ? { modifier: state.plankResolvedModifier } : {}),
     ...(state.plankSessionLocation ? { location: state.plankSessionLocation } : {}),
   };
 
@@ -15103,6 +15137,8 @@ function beginSitupCounting(thresholds) {
 async function startSitup() {
   if (soundIsEnabled()) unlockVoice();
   state.situpSessionLocation = currentSessionLocationSnapshot();
+  state.situpResolvedModifier = resolveModifier(state.typeModifiers.situps, Math.random, CRUNCH_MODIFIERS);
+  renderTypeModifierCue("situp", state.situpResolvedModifier);
 
   const detectorReady = situpCamera.ensureDetector();
   let stream;
@@ -15174,6 +15210,7 @@ async function completeSitup() {
     avatar: state.currentAvatar,
     startedAt: state.situpStartedAt ? state.situpStartedAt.toISOString() : undefined,
     type: "situp",
+    ...(state.situpResolvedModifier ? { modifier: state.situpResolvedModifier } : {}),
     sessionProgression: finalizeRepProgression(
       state.situpProgression,
       state.situpStartedAt ? completedAt.getTime() - state.situpStartedAt.getTime() : 0,
