@@ -126,11 +126,11 @@ import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycl
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=152";
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=4";
-import { CRUNCH_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=101";
+import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=8";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=9";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -1492,9 +1492,12 @@ const state = {
   modifier: null,
   // Plank / Crunch variation picked on Home (pushups keep `modifier` above),
   // and the concrete one resolved at each session's start.
-  typeModifiers: { planks: null, situps: null },
+  typeModifiers: { planks: null, situps: null, pullups: null, squats: null, deadhang: null },
   plankResolvedModifier: null,
   situpResolvedModifier: null,
+  pullupResolvedModifier: null,
+  squatResolvedModifier: null,
+  deadhangResolvedModifier: null,
   resolvedModifier: null,
   ladderRivals: [],
   ladderRivalsOffline: false,
@@ -2975,7 +2978,7 @@ function renderModifierSlot() {
 }
 
 function renderModifierPicker() {
-  const subs = { pushups: "Changes hand position — applies to any mode", planks: "Changes how you hold the plank", situps: "Changes how you do each crunch" };
+  const subs = { pushups: "Changes hand position — applies to any mode", planks: "Changes how you hold the plank", situps: "Changes how you do each crunch", pullups: "Changes your grip on the bar", squats: "Changes your stance or tempo", deadhang: "Changes how you hang" };
   $("modifier-picker-sub").textContent = subs[state.homeType] || "";
   const list = $("modifier-list");
   const current = homeModifierId();
@@ -12825,6 +12828,8 @@ function showDeadhangActive(cameraVisible) {
 
 async function startDeadhang() {
   if (soundIsEnabled()) unlockVoice();
+  state.deadhangResolvedModifier = resolveModifier(state.typeModifiers.deadhang, Math.random, DEADHANG_MODIFIERS);
+  renderTypeModifierCue("deadhang", state.deadhangResolvedModifier);
   renderDeadhangIdle();
   resetDeadhangRun();
   hideStatusBanner();
@@ -12918,6 +12923,7 @@ async function completeDeadhang() {
     avatar: state.currentAvatar,
     startedAt: state.deadhangStartedAt ? state.deadhangStartedAt.toISOString() : undefined,
     type: "deadhang",
+    ...(state.deadhangResolvedModifier ? { modifier: state.deadhangResolvedModifier } : {}),
     ...(state.deadhangSessionLocation ? { location: state.deadhangSessionLocation } : {}),
   };
 
@@ -13308,6 +13314,8 @@ function beginSquatCounting(thresholds) {
 async function startSquat() {
   if (soundIsEnabled()) unlockVoice();
   state.squatSessionLocation = currentSessionLocationSnapshot();
+  state.squatResolvedModifier = resolveModifier(state.typeModifiers.squats, Math.random, SQUAT_MODIFIERS);
+  renderTypeModifierCue("squat", state.squatResolvedModifier);
 
   const detectorReady = squatCamera.ensureDetector();
   let stream;
@@ -13389,6 +13397,7 @@ async function completeSquat() {
     avatar: state.currentAvatar,
     startedAt: state.squatStartedAt ? state.squatStartedAt.toISOString() : undefined,
     type: "squat",
+    ...(state.squatResolvedModifier ? { modifier: state.squatResolvedModifier } : {}),
     sessionProgression: finalizeRepProgression(
       state.squatProgression,
       state.squatStartedAt ? completedAt.getTime() - state.squatStartedAt.getTime() : 0,
@@ -13641,6 +13650,8 @@ const pullupCamera = createCameraController({
 
 async function startPullup() {
   if (soundIsEnabled()) unlockVoice();
+  state.pullupResolvedModifier = resolveModifier(state.typeModifiers.pullups, Math.random, PULLUP_MODIFIERS);
+  renderTypeModifierCue("pullup", state.pullupResolvedModifier);
   const detectorReady = pullupCamera.ensureDetector();
   await loadPullupMode();
   state.pullupSessionLocation = currentSessionLocationSnapshot();
@@ -13721,6 +13732,7 @@ async function completePullup() {
     avatar: state.currentAvatar,
     startedAt: state.pullupStartedAt?.toISOString(),
     type: "pullup",
+    ...(state.pullupResolvedModifier ? { modifier: state.pullupResolvedModifier } : {}),
     sessionProgression: finalizeRepProgression(
       state.pullupProgression,
       state.pullupStartedAt ? completedAt.getTime() - state.pullupStartedAt.getTime() : 0,
