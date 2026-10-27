@@ -70,7 +70,7 @@
 :root {
   /* Kept in sync with #app-main's bottom padding so fixed tab-bar content
      never overlaps scrollable screen content. */
-  --tab-bar-height: 3.6rem;
+  --tab-bar-height: 4.4rem;
 }
 
 /* ===========================================================
@@ -163,6 +163,7 @@ html {
   background: var(--bg);
 }
 body::after {
+  display: none; /* retired: the floating glass tab bar no longer reaches the bottom edge */
   content: "";
   position: fixed;
   left: 0;
@@ -378,19 +379,24 @@ button, input {
 
 /* ---------------- Tab bar ---------------- */
 
+/* Floating glass pill (iOS 26 / Apple TV style): inset from the sides,
+   lifted off the bottom edge, content blurring through as it scrolls under.
+   The active tab sits on a darker inner pill (.tab-indicator) that slides
+   between tabs — positioned by syncTabIndicator() in app.js. */
 .tab-bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 1rem;
+  right: 1rem;
+  bottom: max(0.75rem, calc(env(safe-area-inset-bottom) - 0.4rem));
   z-index: 500;
   display: flex;
-  min-height: var(--tab-bar-height);
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border);
-  /* Extends the bar's own background all the way to the physical edge —
-     no gap of mismatched body/bg color behind the home indicator. */
-  padding: 0.5rem 0.4rem calc(0.5rem + env(safe-area-inset-bottom));
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-elevated) 62%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: opacity 0.25s ease, transform 0.25s ease;
   /* Forces its own GPU compositing layer at all times. Without this, iOS
      Safari occasionally loses track of this fixed element while the inner
@@ -399,28 +405,53 @@ button, input {
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
 }
+:root[data-theme="light"] .tab-bar {
+  background: color-mix(in srgb, #fff 58%, transparent);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(80, 60, 20, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
 .tab-bar.hidden {
   opacity: 0;
-  transform: translateY(100%) translateZ(0);
+  transform: translateY(calc(100% + 2rem)) translateZ(0);
   pointer-events: none;
 }
+.tab-indicator {
+  position: absolute;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: transform 0.32s cubic-bezier(0.3, 1.25, 0.5, 1), width 0.32s ease;
+  pointer-events: none;
+}
+.tab-indicator.no-anim { transition: none; }
+:root[data-theme="light"] .tab-indicator { background: rgba(80, 60, 20, 0.1); box-shadow: none; }
 .tab-item {
+  position: relative;
+  z-index: 1;
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.2rem;
   background: none;
   border: none;
-  padding: 0.3rem 0;
+  padding: 0.5rem 0;
   font-family: inherit;
-  color: var(--text-tertiary);
+  color: var(--text);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 .tab-item:active { transform: scale(0.94); }
+.tab-item:focus:not(:focus-visible) { outline: none; }
 .tab-item-icon { display: flex; position: relative; }
-.tab-item-icon svg { width: 18px; height: 18px; display: block; }
-.tab-item-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.01em; }
+.tab-item-icon svg { width: 24px; height: 24px; display: block; }
+.tab-item-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
 .tab-item.active { color: var(--primary); }
 .tab-item.active .tab-item-label { font-weight: 700; }
 /* Games tab's badge dot — carries the notification role the bell used to,

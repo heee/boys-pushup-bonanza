@@ -128,7 +128,7 @@ import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/m
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=4";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=5";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -1969,6 +1969,19 @@ function setChromeMinimized(minimized) {
   $("tab-bar").classList.toggle("hidden", minimized);
 }
 
+// Slides the glass tab bar's inner pill under the active tab; hidden when no
+// tab is active. `instant` skips the slide (first paint, resize).
+function syncTabIndicator(instant = false) {
+  const indicator = $("tab-indicator");
+  const active = document.querySelector("#tab-bar .tab-item.active");
+  indicator.style.opacity = active ? "1" : "0";
+  if (!active) return;
+  indicator.classList.toggle("no-anim", instant || !indicator.style.width);
+  indicator.style.width = `${active.offsetWidth}px`;
+  indicator.style.transform = `translateX(${active.offsetLeft}px)`;
+}
+window.addEventListener("resize", () => syncTabIndicator(true));
+
 // Drill-in screens keep their in-page back link (hidden by CSS, and still
 // the one place its click handler lives); the header swaps "Bonanza" for a
 // "‹ Parent" button that just forwards the tap to it.
@@ -2007,6 +2020,7 @@ function showScreen(id) {
     if (btn.id === activeTab) btn.setAttribute("aria-current", "page");
     else btn.removeAttribute("aria-current");
   });
+  syncTabIndicator();
   syncAccessibilityState();
   renderStreakBadge();
   renderGoalThermometers();
