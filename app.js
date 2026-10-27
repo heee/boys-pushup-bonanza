@@ -130,7 +130,7 @@ import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLU
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=9";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=10";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -2529,6 +2529,7 @@ function renderSettings() {
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
   $("chk-form-tips").checked = localStorage.getItem(LS.showFormTips) === "1";
   $("chk-pace-note").checked = localStorage.getItem(LS.showPaceNote) === "1";
+  document.querySelectorAll("[data-recap-opt]").forEach((chk) => { chk.checked = recapOptedIn(chk.dataset.recapOpt); });
   $("chk-ghost-mode").checked = ghostModeEnabled();
   $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
   renderVoicePresetSelect();
@@ -5648,6 +5649,10 @@ $("chk-highscore-message").addEventListener("change", (e) => {
 });
 $("chk-form-tips").addEventListener("change", (e) => {
   localStorage.setItem(LS.showFormTips, e.target.checked ? "1" : "0");
+});
+$("recap-opt-list").addEventListener("change", (e) => {
+  const chk = e.target.closest("[data-recap-opt]");
+  if (chk) localStorage.setItem(recapOptKey(chk.dataset.recapOpt), chk.checked ? "1" : "0");
 });
 $("chk-pace-note").addEventListener("change", (e) => {
   localStorage.setItem(LS.showPaceNote, e.target.checked ? "1" : "0");
@@ -15793,6 +15798,14 @@ function renderKettlebellDone(session, log, previous) {
 
 const RECAP_PALETTE_CLASSES = ["recap-week", "recap-month", "recap-quarter", "recap-year"];
 
+// Recap pop-ups are opt-in per tier (Settings → Preferences → Recaps).
+// Every tier is still marked seen when it comes due, so switching one on
+// later never dumps a backlog of old recaps.
+const recapOptKey = (tier) => `bpb-recap-opt-${tier}`;
+function recapOptedIn(tier) {
+  return localStorage.getItem(recapOptKey(tier)) === "1";
+}
+
 const recapStorage = {
   getItem: (key) => localStorage.getItem(`bpb-${key}`),
   setItem: (key, value) => localStorage.setItem(`bpb-${key}`, value),
@@ -15857,6 +15870,7 @@ async function maybeQueueGroupRecap(sessions) {
   const key = groupRecapSeenKey();
   if (recapStorage.getItem(key) === start.toISOString()) return false;
   recapStorage.setItem(key, start.toISOString());
+  if (!recapOptedIn("group-month")) return false;
 
   const startTime = start.getTime(), endTime = end.getTime();
   const hadActivity = sessions.some((s) => {
@@ -16229,7 +16243,7 @@ async function init() {
   // — not gated on the live fetch above succeeding.
   if (state.currentUser) {
     const sessionsForRecap = getAllSessionsForDisplay();
-    state.recapQueue = checkAndQueueRecaps(sessionsForRecap, state.currentUser, new Date(), recapStorage);
+    state.recapQueue = checkAndQueueRecaps(sessionsForRecap, state.currentUser, new Date(), recapStorage).filter(recapOptedIn);
     // Group card slots in right after the viewer's own personal Monthly
     // card (or at the front if Monthly isn't due this session).
     const groupDue = await maybeQueueGroupRecap(sessionsForRecap).catch(() => false);

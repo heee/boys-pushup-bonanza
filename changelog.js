@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-27", text: "Recap pop-ups are now opt-in, one switch each in Settings → Preferences" },
   { date: "2026-10-27", text: "Added modifiers for Pull-ups (chin-up, neutral, L-sit…), Squats (sumo, pause, jump…) and Dead hang (active, mixed, towel…)" },
   { date: "2026-10-27", text: "Added modifiers for Planks (side, RKC, long-lever and more) and Crunches (cross-body, pause, weighted)" },
   { date: "2026-10-27", text: "Added Dead hang: time your bar hangs with the camera or manually" },
