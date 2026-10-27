@@ -41,6 +41,11 @@ export const POKER_HAND_EXAMPLES = {
   9: [{ label: "10", suit: "spades" }, { label: "J", suit: "spades" }, { label: "Q", suit: "spades" }, { label: "K", suit: "spades" }, { label: "A", suit: "spades" }],
 };
 
+// How many leading cards of each example actually make the hand (the rest
+// are kickers) — e.g. a Pair's first two, Quads' first four. Examples list
+// the hand's cards first, so this is a prefix length.
+export const POKER_HAND_KEY_CARDS = { 1: 2, 2: 4, 3: 3, 4: 5, 5: 5, 6: 5, 7: 4, 8: 5, 9: 5 };
+
 function pad2(n) {
   return String(n).padStart(2, "0");
 }

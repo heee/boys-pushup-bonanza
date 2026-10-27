@@ -5197,9 +5197,19 @@ body:has(#screen-challenge-detail.active) #app {
   outline-offset: -2px;
   background: linear-gradient(160deg, #2e6b4a, #6b5a1c);
 }
+/* Kickers (cards that aren't part of the hand) sit greyed behind it. */
+.poker-showcase-card-kicker { filter: grayscale(1) brightness(0.45); }
+/* Never-collected hand: the whole tile goes grey — felt, cards and badge. */
+.poker-showcase-tile-empty,
+.poker-showcase-tile-empty.poker-showcase-tile-royal {
+  background: var(--bg-elevated-2);
+  outline-color: color-mix(in srgb, var(--text-tertiary) 50%, transparent);
+  color: var(--text-dim);
+  box-shadow: none;
+}
 .poker-showcase-tile-empty .poker-showcase-fan,
 .poker-showcase-tile-empty .poker-showcase-name { opacity: 0.45; filter: grayscale(1); }
-.poker-showcase-tile-empty .poker-showcase-count { background: rgba(255,255,255,.2); color: #fff; box-shadow: none; }
+.poker-showcase-tile-empty .poker-showcase-count { background: var(--border); color: var(--text-tertiary); box-shadow: none; }
 
 .challenge-pr-achieved { text-align: center; }
 .challenge-pr-achieved-title {

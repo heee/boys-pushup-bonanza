@@ -120,7 +120,7 @@ import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=6";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
-import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_SET_SIZE } from "./screens/poker-collection.js?v=3";
+import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=151";
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=3";
@@ -9191,7 +9191,7 @@ function paintPokerShowcase() {
   $("poker-showcase-summary").textContent = `${collected} of ${rows.length} hands collected · ${handsPlayed} hand${handsPlayed === 1 ? "" : "s"} played`;
   $("poker-showcase-grid").innerHTML = rows.map((row) => {
     const mid = (row.cards.length - 1) / 2;
-    const cardsHTML = row.cards.map((c, i) => `<div class="poker-showcase-card" style="--i:${i - mid};background-image:url('${cardImageUrl(c)}')"></div>`).join("");
+    const cardsHTML = row.cards.map((c, i) => `<div class="poker-showcase-card${i >= POKER_HAND_KEY_CARDS[row.rank] ? " poker-showcase-card-kicker" : ""}" style="--i:${i - mid};background-image:url('${cardImageUrl(c)}')"></div>`).join("");
     return `
       <button type="button" class="poker-showcase-tile${row.done ? "" : " poker-showcase-tile-empty"}${row.bonus ? " poker-showcase-tile-royal" : ""}">
         <div class="poker-showcase-fan" aria-hidden="true">${cardsHTML}</div>

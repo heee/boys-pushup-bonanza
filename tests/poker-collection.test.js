@@ -131,3 +131,16 @@ test("pokerLifetimeCollection counts every poker session regardless of date", as
   assert.equal(collected, 3);
   assert.equal(handsPlayed, 6);
 });
+
+test("POKER_HAND_KEY_CARDS prefix alone still evaluates to the hand's rank", async () => {
+  const { POKER_HAND_KEY_CARDS } = await import("../screens/poker-collection.js");
+  for (const rank of POKER_COLLECTION_RANKS) {
+    const n = POKER_HAND_KEY_CARDS[rank];
+    assert.ok(n >= 2 && n <= 5);
+    // Swapping any kicker for another card of an unused value must not change the rank.
+    if (n < 5) {
+      const cards = POKER_HAND_EXAMPLES[rank].slice(0, n).concat(POKER_HAND_EXAMPLES[rank].slice(n).map((c, i) => ({ ...c, label: ["2", "5", "Q"][i] })));
+      assert.equal(evaluatePokerHand(cards).rank, rank, `rank ${rank}`);
+    }
+  }
+});
