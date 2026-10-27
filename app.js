@@ -2021,6 +2021,11 @@ function showScreen(id) {
   }
   if (id === "screen-dashboard") renderDashboard();
   if (id === "screen-session-detail") renderSessionDetail();
+  if (id === "screen-summary") {
+    // Type/Mode actions show the current selection's own stroke icon.
+    $("summary-type-icon").innerHTML = typeIconSvg(state.homeType);
+    $("summary-mode-icon").innerHTML = modeIconSvg(state.homeMode) || modeIconSvg("classic");
+  }
   if (id === "screen-games") renderGamesScreen();
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") renderRoadtrip();
