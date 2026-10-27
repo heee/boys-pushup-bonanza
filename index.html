@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=330">
+<link rel="stylesheet" href="style.css?v=331">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1714,6 +1714,12 @@
           <span id="settings-category-appearance-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
+        <button id="btn-open-changelog" type="button" class="settings-category-row">
+          <span class="settings-category-icon settings-category-icon-changelog" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
+          <span class="settings-category-title">Changelog</span>
+          <span id="settings-changelog-dot" class="settings-new-dot hidden" aria-label="New"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
         <button id="btn-settings-switch-user" type="button" class="settings-category-row">
           <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
           <span class="settings-category-title">Switch user</span>
@@ -2025,6 +2031,15 @@
       <div id="mode-breakdown-list" class="mode-breakdown-list"></div>
     </section>
 
+    <!-- ============ SCREEN: CHANGELOG (Settings) ============ -->
+    <section id="screen-changelog" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-changelog-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Changelog</h1>
+      <div id="changelog-list"></div>
+    </section>
+
     <!-- ============ SCREEN: POKER COLLECTION (Settings) ============ -->
     <section id="screen-poker-showcase" class="screen">
       <div class="edit-profile-header">
@@ -2133,6 +2148,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=346"></script>
+<script type="module" src="app.js?v=347"></script>
 </body>
 </html>

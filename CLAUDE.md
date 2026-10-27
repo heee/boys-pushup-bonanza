@@ -11,6 +11,9 @@
 - Before any preview check: unregister service workers + clear caches, then reload.
 - Before `git push`: `git fetch` + check `origin/main` for new commits (the live app writes real gameplay data straight to `data.json` via the Worker, independent of this working tree) — merge if needed.
 - Bump `sw.js`'s `CACHE_NAME` on every shipped change.
+- **Changelog:** when shipping a major user-facing feature, add an entry at the top of
+  `CHANGELOG` in `changelog.js` (date + one short plain-English line, e.g. "Added X").
+  Skip small fixes and version bumps.
 - Spoken lines live in `voice-lines.js` (single source of truth). Adding one means
   rerunning `node scripts/generate-voice.js` (needs `OPENAI_API_KEY`) and committing
   `assets/voice/`; until then that line falls back to `speechSynthesis`.

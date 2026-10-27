@@ -3983,6 +3983,14 @@ body:has(#screen-dashboard.active) #app {
 .settings-category-icon-bonanza { color: var(--success); }
 .settings-category-icon-goals { color: var(--gold); }
 .settings-category-icon-poker { color: #2e9e5b; }
+.settings-category-icon-changelog { color: var(--text-dim); }
+.settings-new-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+
+/* Settings > Changelog — date-grouped one-liners, unseen ones tinted. */
+.changelog-group { list-style: none; margin: 0 0 1rem; padding: 0; overflow: hidden; }
+.changelog-entry { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+.changelog-entry:last-child { border-bottom: none; }
+.changelog-entry-new { background: color-mix(in srgb, var(--primary) 14%, transparent); font-weight: 700; }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-value-active { color: var(--gold); font-weight: 600; }

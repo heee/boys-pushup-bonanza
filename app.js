@@ -128,6 +128,7 @@ import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/m
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=1";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -290,6 +291,7 @@ const jsonStorage = createJsonStorage(localStorage);
 const LS = {
   theme: "bpb-theme",
   lastUser: "bpb-last-user",
+  changelogSeen: "bpb-changelog-seen",
   lastAvatar: "bpb-last-avatar",
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
@@ -1956,6 +1958,7 @@ const TAB_FOR_SCREEN = {
   "screen-edit-profile": "btn-nav-settings",
   "screen-mode-breakdown": "btn-nav-settings",
   "screen-poker-showcase": "btn-nav-settings",
+  "screen-changelog": "btn-nav-settings",
 };
 
 // Header and tab bar always minimize/hide together — an active rep-counting
@@ -2486,7 +2489,27 @@ function renderSettingsCategoryValues() {
   const poker = pokerLifetimeCollection(mine, state.currentUser, sessionTimestamp);
   $("btn-open-poker-showcase").classList.toggle("hidden", !mine.some((s) => s.mode === "poker"));
   $("settings-category-poker-value").textContent = `${poker.collected}/${POKER_COLLECTION_RANKS.length}`;
+  $("settings-changelog-dot").classList.toggle("hidden", !unseenChangelogCount(CHANGELOG, localStorage.getItem(LS.changelogSeen)));
 }
+
+// ------------------- settings > changelog -------------------
+
+function paintChangelog() {
+  const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  $("changelog-list").innerHTML = changelogGroups(CHANGELOG, localStorage.getItem(LS.changelogSeen)).map((g) => `
+    <div class="tier1-eyebrow">${fmt(g.date)}</div>
+    <ul class="changelog-group settings-block">
+      ${g.entries.map((e) => `<li class="changelog-entry${e.unseen ? " changelog-entry-new" : ""}">${escapeHtml(e.text)}</li>`).join("")}
+    </ul>
+  `).join("");
+  if (CHANGELOG.length) localStorage.setItem(LS.changelogSeen, changelogEntryKey(CHANGELOG[0]));
+}
+
+$("btn-open-changelog").addEventListener("click", () => {
+  showScreen("screen-changelog");
+  paintChangelog();
+});
+$("btn-changelog-back").addEventListener("click", () => showScreen("screen-settings"));
 
 for (const listId of ["settings-category-list", "settings-category-list-app"]) {
   $(listId).addEventListener("click", (e) => {
