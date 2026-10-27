@@ -13,15 +13,15 @@ export const EXPLORE_MODES = [
   { id: "holland", icon: "🇳🇱", title: "Holland Mode", tagline: "Pull-ups, pushups, squats — nonstop", live: true },
   { id: "chainofpain", icon: "⛓️", title: "Chain of Pain", tagline: "Squats, pushups, planks — nonstop", live: true },
   { id: "ladder", icon: "🪜", title: "Ladder", tagline: "Climb the ladder, cash out anytime", live: true },
-  { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Hunt the first board you don't already lead", live: true },
+  { id: "chase", icon: "👑", title: "Chase the leader", tagline: "Pass the first leader you can catch", live: true },
   { id: "poker", icon: "♠️", title: "Poker hands", tagline: "Clear seven cards, play your best five", live: true },
   { id: "wheel", icon: "🎯", title: "Wheel of pain", tagline: "Spin every set for your next number", live: true },
   { id: "sharpshooter", icon: "🏹", title: "Sharpshooter", tagline: "Destroy targets, one shot at a time", live: true },
   { id: "pyramid", icon: "🔺", title: "Pyramid", tagline: "Descend the base, conquer the apex", live: true },
   { id: "pulse", icon: "❤️‍🔥", title: "Pulse", tagline: "Hold your pace, not your reps", live: true },
-  { id: "cock", icon: "🐓", title: "Cock Mode", tagline: "Outpace the cock before it outpaces you", live: true },
+  { id: "cock", icon: "🐓", title: "Cock Mode", tagline: "Outpace the cock before it wins", live: true },
   { id: "zen", icon: "🧘", title: "Zen Mode", tagline: "No counters, no noise — just push", live: true },
-  { id: "horse", icon: "🐴", title: "Horse", tagline: "Beat the set before you, or take a letter", live: true },
+  { id: "horse", icon: "🐴", title: "Horse", tagline: "Beat the last set or take a letter", live: true },
   { id: "tow", icon: "🪢", title: "Tug of war", tagline: "Two teams race to the target, together", live: true },
   // One card per preset kettlebell workout, in their own "Kettlebell" section
   // (see docs/kettlebell-mode-plan.md). Ids are "kb-<workout id>".

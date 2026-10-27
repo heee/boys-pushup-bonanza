@@ -276,6 +276,12 @@ button, input {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Type / Mode pickers: room between the title and the first section label
+   or row (the modifier picker gets it from its subtitle). */
+.screen-title.picker-title { margin-bottom: 1rem; }
+/* Type and Mode pickers: one line per row. */
+#explore-modes-list .explore-mode-tagline,
+#type-list .explore-mode-tagline { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .header-back-chev { font-size: 1.6rem; line-height: 1; margin-top: -0.15rem; }
 .header-back:focus:not(:focus-visible) { outline: none; }
 

@@ -124,7 +124,7 @@ import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, 
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=152";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=153";
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=4";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
@@ -3378,7 +3378,17 @@ $("explore-modes-list").addEventListener("click", async (e) => {
     openExploreMode(modeId);
     return;
   }
-  selectHomeMode(workoutTypeForMode(modeId), modeId);
+  // Modes that run on Home go back there (Home is their Let's go screen);
+  // every other mode opens its own screen straight away, as Let's go would.
+  const type = workoutTypeForMode(modeId);
+  if (type === "pushups" && HOME_START_MODES.has(modeId)) {
+    selectHomeMode(type, modeId);
+    return;
+  }
+  applyHomeSelection(type, modeId);
+  localStorage.setItem(LS.homeType, type);
+  localStorage.setItem(LS.homeMode, modeId);
+  openExploreMode(modeId);
 });
 
 // ------------------- Horse mode -------------------
