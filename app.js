@@ -128,7 +128,7 @@ import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/m
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=1";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=2";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";

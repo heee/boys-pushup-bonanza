@@ -4662,6 +4662,25 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .goal-thermo .thermometer-wrap { max-width: none; margin: 0; }
 .goal-thermo .thermometer-track { height: 7px; background: var(--bg-elevated-2); }
+/* Reached goal: gold bar with a light band sliding along it — the same
+   moving-gradient treatment as Tug of War's rope (tow-rope-flow). */
+.goal-thermo .thermometer-fill.thermometer-win {
+  background-color: var(--gold);
+  background-image: repeating-linear-gradient(
+    100deg,
+    var(--gold) 0%,
+    var(--gold) 30%,
+    color-mix(in srgb, var(--gold) 25%, #fff) 50%,
+    var(--gold) 70%,
+    var(--gold) 100%
+  );
+  background-size: 6rem 100%;
+  animation: goal-thermo-shimmer 1.6s linear infinite;
+}
+@keyframes goal-thermo-shimmer { from { background-position: 0 0; } to { background-position: 6rem 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .goal-thermo .thermometer-fill.thermometer-win { animation: none; }
+}
 .goal-thermo-count { font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 0; }
 .goal-thermo-label { font-size: 0.72rem; font-weight: 400; color: var(--text-dim); margin: 0; }
 

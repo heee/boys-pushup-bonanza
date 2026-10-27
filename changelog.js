@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-27", text: "Reached goals now shimmer gold on Home" },
   { date: "2026-10-27", text: "Added Changelog in Settings" },
   { date: "2026-10-27", text: "Reordered Settings options for efficiency, with your profile up top" },
   { date: "2026-10-27", text: "Removed viewing and deleting other users from Settings" },
