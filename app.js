@@ -130,7 +130,7 @@ import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLU
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=10";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=11";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -15307,9 +15307,21 @@ function getKettlebellProfiles() {
     return {};
   }
 }
+// `baseWeight` is the main bell weight shared by every kettlebell move;
+// `weights` holds only per-move overrides. Profiles saved before the main
+// weight existed adopt their most common per-move weight as the base, and
+// entries matching it stop counting as overrides.
 function getKettlebellProfile(user) {
   const profile = getKettlebellProfiles()[user] || {};
-  return { weights: profile.weights || {}, paces: profile.paces || {}, nudges: profile.nudges || {} };
+  const weights = { ...(profile.weights || {}) };
+  let baseWeight = Number(profile.baseWeight);
+  if (!Number.isFinite(baseWeight)) {
+    const counts = new Map();
+    for (const lbs of Object.values(weights)) counts.set(lbs, (counts.get(lbs) || 0) + 1);
+    baseWeight = counts.size ? [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0] : KETTLEBELL_DEFAULT_WEIGHT_LBS;
+    for (const [id, lbs] of Object.entries(weights)) if (lbs === baseWeight) delete weights[id];
+  }
+  return { baseWeight, weights, paces: profile.paces || {}, nudges: profile.nudges || {} };
 }
 function saveKettlebellProfile(user, profile) {
   const profiles = getKettlebellProfiles();
@@ -15328,7 +15340,9 @@ const kbState = {
   intervalId: null,
   log: [],
   startedAt: null,
-  weights: {},
+  baseWeight: KETTLEBELL_DEFAULT_WEIGHT_LBS,
+  weights: {}, // per-move overrides of baseWeight
+  editingWeight: null,
   paces: {},
   nudges: {},
   lastCueSecond: null,
@@ -15339,7 +15353,11 @@ const kbState = {
 function kbWeightFor(exerciseId) {
   if (kettlebellExercise(exerciseId).bodyweight) return 0;
   const saved = Number(kbState.weights[exerciseId]);
-  return Number.isFinite(saved) ? saved : KETTLEBELL_DEFAULT_WEIGHT_LBS;
+  return Number.isFinite(saved) ? saved : kbState.baseWeight;
+}
+
+function kbHasOverride(exerciseId) {
+  return Number.isFinite(Number(kbState.weights[exerciseId]));
 }
 function kbPaceForSet(set) {
   return kettlebellPaceFor(kbState.paces, set.exerciseId, kbWeightFor(set.exerciseId));
@@ -15357,7 +15375,9 @@ function openKettlebellPreview(workoutId) {
   const profile = getKettlebellProfile(state.currentUser);
   kbState.workout = workout;
   kbState.sets = kettlebellExpandSets(workout);
+  kbState.baseWeight = profile.baseWeight;
   kbState.weights = { ...profile.weights };
+  kbState.editingWeight = null;
   kbState.paces = profile.paces;
   kbState.nudges = profile.nudges;
   renderKettlebellPreview();
@@ -15367,7 +15387,11 @@ function openKettlebellPreview(workoutId) {
 function renderKettlebellPreview() {
   const workout = kbState.workout;
   if (!workout) return;
-  $("kettlebell-preview-title").textContent = `${workout.icon} ${workout.name}`;
+  $("kettlebell-preview-icon").innerHTML = modeIconSvg(`kb-${workout.id}`);
+  $("kettlebell-preview-title").textContent = workout.name;
+  const usesBell = workout.exercises.some((entry) => !kettlebellExercise(entry.exerciseId).bodyweight);
+  $("kettlebell-base-weight").classList.toggle("hidden", !usesBell);
+  $("kettlebell-base-weight-value").textContent = `${kbState.baseWeight} lb`;
   const estimate = kettlebellEstimateSeconds(kbState.sets, kbPaceForSet);
   const format = workout.format === "circuit" ? `Circuit × ${workout.rounds}` : workout.rounds > 1 ? `${workout.rounds} sets each` : "One pass";
   const rest = workout.format === "circuit" && workout.roundRestSec !== workout.restSec
@@ -15384,16 +15408,29 @@ function renderKettlebellPreview() {
     const nudgeChip = !exercise.bodyweight && Number.isFinite(nudge) && nudge > weight
       ? `<button type="button" class="kb-nudge" data-kb-nudge="${entry.exerciseId}" data-lbs="${nudge}">Try ${nudge} lb?</button>`
       : "";
+    // Quiet weight text by default (follows the main bell weight); tapping
+    // it opens a small stepper that overrides just this move.
+    const overridden = kbHasOverride(entry.exerciseId);
+    const editing = kbState.editingWeight === entry.exerciseId;
+    const resetBtn = overridden
+      ? `<button type="button" class="kb-weight-reset" data-kb-reset="${entry.exerciseId}" aria-label="Use the main bell weight for ${escapeHtml(exercise.name)}">↺</button>`
+      : "";
     const weightControl = exercise.bodyweight
       ? `<div class="kb-preview-bw">Bodyweight</div>`
-      : `<div class="kb-preview-weight">
-          <div class="stepper-row">
-            <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="-1" aria-label="Lighter ${escapeHtml(exercise.name)}">−</button>
-            <div class="stepper-value">${weight} lb</div>
-            <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="1" aria-label="Heavier ${escapeHtml(exercise.name)}">+</button>
-          </div>
-          ${nudgeChip}
-        </div>`;
+      : editing
+        ? `<div class="kb-preview-weight">
+            <div class="stepper-row">
+              <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="-1" aria-label="Lighter ${escapeHtml(exercise.name)}">−</button>
+              <button type="button" class="stepper-value kb-weight-text${overridden ? " is-override" : ""}" data-kb-edit="${entry.exerciseId}">${weight} lb</button>
+              <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="1" aria-label="Heavier ${escapeHtml(exercise.name)}">+</button>
+            </div>
+            ${nudgeChip}
+          </div>`
+        : `<div class="kb-preview-weight kb-preview-weight-compact">
+            <button type="button" class="kb-weight-text${overridden ? " is-override" : ""}" data-kb-edit="${entry.exerciseId}" aria-label="Change weight for ${escapeHtml(exercise.name)}">${weight} lb</button>
+            ${resetBtn}
+            ${nudgeChip}
+          </div>`;
     return `<div class="kb-preview-row">
       <div class="kb-preview-num">${index + 1}</div>
       <div class="kb-preview-copy">
@@ -15417,10 +15454,33 @@ $("kettlebell-preview-list").addEventListener("click", (e) => {
     renderKettlebellPreview();
     return;
   }
+  const edit = e.target.closest("[data-kb-edit]");
+  if (edit) {
+    kbState.editingWeight = kbState.editingWeight === edit.dataset.kbEdit ? null : edit.dataset.kbEdit;
+    renderKettlebellPreview();
+    return;
+  }
+  const reset = e.target.closest("[data-kb-reset]");
+  if (reset) {
+    delete kbState.weights[reset.dataset.kbReset];
+    renderKettlebellPreview();
+    return;
+  }
   const btn = e.target.closest("[data-kb-weight]");
   if (!btn) return;
   const id = btn.dataset.kbWeight;
-  kbState.weights[id] = kettlebellStepWeight(kbWeightFor(id), Number(btn.dataset.dir));
+  const next = kettlebellStepWeight(kbWeightFor(id), Number(btn.dataset.dir));
+  if (next === kbState.baseWeight) delete kbState.weights[id];
+  else kbState.weights[id] = next;
+  renderKettlebellPreview();
+});
+
+$("kettlebell-base-weight").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-kb-base]");
+  if (!btn) return;
+  kbState.baseWeight = kettlebellStepWeight(kbState.baseWeight, Number(btn.dataset.kbBase));
+  // An override that now matches the main weight is no longer an override.
+  for (const [id, lbs] of Object.entries(kbState.weights)) if (lbs === kbState.baseWeight) delete kbState.weights[id];
   renderKettlebellPreview();
 });
 $("btn-kettlebell-preview-back").addEventListener("click", () => showScreen("screen-explore-modes"));
@@ -15515,6 +15575,8 @@ async function startKettlebell() {
   // note) — the screen dimming mid-rest would stall the timers' UI.
   await acquireWakeLock();
   const profile = getKettlebellProfile(state.currentUser);
+  profile.baseWeight = kbState.baseWeight;
+  for (const entry of kbState.workout.exercises) delete profile.weights[entry.exerciseId];
   profile.weights = { ...profile.weights, ...kbState.weights };
   saveKettlebellProfile(state.currentUser, profile);
   kbState.log = [];

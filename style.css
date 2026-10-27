@@ -6032,8 +6032,8 @@ body:has(#screen-challenge-detail.active) #app {
 #screen-summary:has(#summary-chainofpain-result:not(.hidden)) :is(#btn-summary-different-mode, #btn-summary-share) { font-weight: 400; }
 
 /* ---- Kettlebell workouts (docs/kettlebell-mode-plan.md) ---- */
-.kb-preview-list { background: var(--bg-elevated); border-radius: 16px; margin-bottom: 1rem; }
-.kb-preview-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+.kb-preview-list { margin-bottom: 1rem; }
+.kb-preview-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
 .kb-preview-row:last-child { border-bottom: none; }
 .kb-preview-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--bg-elevated-2); color: var(--text-dim); font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .kb-preview-copy { flex: 1; min-width: 0; }
@@ -6044,6 +6044,16 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-preview-weight .stepper-btn { width: 1.9rem; height: 1.9rem; font-size: 1rem; }
 .kb-preview-weight .stepper-value { min-width: 3.2rem; font-size: 0.95rem; }
 .kb-preview-bw { font-size: 0.75rem; color: var(--text-tertiary); }
+/* Main bell weight (applies to every bell move unless a row overrides it). */
+.kb-base-weight { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0 0.8rem; border-bottom: 1px solid var(--border); }
+.kb-base-weight-label { font-weight: 700; font-size: 0.95rem; }
+.kb-base-weight .stepper-row { gap: 0.4rem; }
+.kb-base-weight .stepper-btn { width: 2.1rem; height: 2.1rem; font-size: 1.05rem; }
+.kb-base-weight .stepper-value { min-width: 3.6rem; font-size: 1rem; }
+.kb-preview-weight-compact { flex-direction: row; align-items: center; gap: 0.35rem; }
+.kb-weight-text { background: none; border: none; padding: 0.3rem 0.2rem; font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--text-dim); cursor: pointer; }
+.kb-weight-text.is-override { color: var(--primary); font-weight: 800; }
+.kb-weight-reset { background: none; border: none; padding: 0.2rem; font: inherit; font-size: 1rem; color: var(--text-tertiary); cursor: pointer; }
 .kb-nudge { border: none; border-radius: 999px; padding: 0.2rem 0.55rem; background: var(--primary); color: var(--text-on-accent); font-size: 0.7rem; font-weight: 800; cursor: pointer; }
 .kb-stage { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; padding-top: 1rem; }
 .kb-exercise-name { font-size: 1.7rem; font-weight: 900; margin: 0; line-height: 1.15; }

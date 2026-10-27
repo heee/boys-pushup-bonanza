@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=345">
+<link rel="stylesheet" href="style.css?v=346">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1176,11 +1176,19 @@
 
     <!-- ============ SCREEN: KETTLEBELL PREVIEW ============ -->
     <section id="screen-kettlebell-preview" class="screen">
-      <div class="horse-header-row">
-        <button id="btn-kettlebell-preview-back" type="button" class="icon-btn" aria-label="Back">←</button>
-        <h1 id="kettlebell-preview-title" class="screen-title">Kettlebell</h1>
+      <div class="edit-profile-header">
+        <button id="btn-kettlebell-preview-back" type="button" class="challenge-detail-back">← Modes</button>
       </div>
+      <h1 class="screen-title screen-title-with-icon"><span id="kettlebell-preview-icon" class="screen-title-icon" aria-hidden="true"></span><span id="kettlebell-preview-title">Kettlebell</span></h1>
       <p id="kettlebell-preview-meta" class="screen-sub"></p>
+      <div id="kettlebell-base-weight" class="kb-base-weight hidden">
+        <span class="kb-base-weight-label">Bell weight</span>
+        <div class="stepper-row">
+          <button type="button" class="stepper-btn" data-kb-base="-1" aria-label="Lighter bell">−</button>
+          <div id="kettlebell-base-weight-value" class="stepper-value">20 lb</div>
+          <button type="button" class="stepper-btn" data-kb-base="1" aria-label="Heavier bell">+</button>
+        </div>
+      </div>
       <div id="kettlebell-preview-list" class="kb-preview-list"></div>
       <p id="kettlebell-preview-best" class="pulse-best-run"></p>
       <button id="btn-kettlebell-start" type="button" class="btn btn-giant btn-primary">Start</button>
@@ -2257,6 +2265,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=361"></script>
+<script type="module" src="app.js?v=362"></script>
 </body>
 </html>
