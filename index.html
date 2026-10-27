@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=334">
+<link rel="stylesheet" href="style.css?v=335">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -47,6 +47,7 @@
   <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
   <header id="app-header" class="app-header">
     <button id="btn-home" class="brand" aria-label="Home">Bonanza</button>
+    <button id="btn-header-back" type="button" class="header-back hidden"><span class="header-back-chev" aria-hidden="true">‹</span><span id="header-back-label"></span></button>
     <nav class="header-actions">
       <button id="streak-badge" type="button" class="streak-badge hidden" aria-label="My Bonanza" title="My Bonanza"></button>
       <button id="btn-header-settings" type="button" class="header-settings-btn" aria-label="Settings" title="Settings">
@@ -2148,6 +2149,6 @@
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=349"></script>
+<script type="module" src="app.js?v=350"></script>
 </body>
 </html>

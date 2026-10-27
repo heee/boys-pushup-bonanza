@@ -258,6 +258,26 @@ button, input {
 }
 
 
+.header-back {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primary);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-back-chev { font-size: 1.6rem; line-height: 1; margin-top: -0.15rem; }
+.header-back:focus:not(:focus-visible) { outline: none; }
+
 .brand {
   background: none;
   border: none;
@@ -4457,16 +4477,16 @@ body:has(#screen-challenge-detail.active) #app {
 .challenge-detail-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.6rem;
   margin-bottom: 1rem;
 }
-.challenge-detail-back {
-  background: none;
-  padding: 0;
-  font-weight: 700;
-  color: var(--text-tertiary);
-}
+/* Replaced by the header's back button (see syncHeaderBack) — kept in the
+   DOM only as the click target it forwards to. A header row left holding
+   just the back link collapses; any remaining actions sit on the right. */
+.screen .challenge-detail-back { display: none; }
+.edit-profile-header:not(:has(> :not(.challenge-detail-back))),
+.challenge-detail-header:not(:has(> :not(.challenge-detail-back))) { display: none; }
 .challenge-detail-share {
   flex: none;
 }
@@ -4721,7 +4741,7 @@ body:has(#screen-challenge-detail.active) #app {
 
 .edit-profile-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 0.5rem;
 }
