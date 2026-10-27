@@ -1,0 +1,29 @@
+# Deploys worker/index.js to Cloudflare whenever it changes on main (or on
+# demand from the Actions tab), replacing the manual dashboard Quick Edit
+# paste. Needs two repository secrets: CLOUDFLARE_API_TOKEN (a token with
+# "Edit Cloudflare Workers" permissions) and CLOUDFLARE_ACCOUNT_ID.
+# Bindings and vars come from worker/wrangler.toml; secrets set in the
+# dashboard (APP_KEY, GEOAPIFY_API_KEY) are left untouched by a deploy.
+name: Deploy Worker
+
+on:
+  push:
+    branches: [main]
+    paths: ["worker/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy
