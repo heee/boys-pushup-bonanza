@@ -4015,11 +4015,12 @@ body:has(#screen-dashboard.active) #app {
 .settings-category-icon-changelog { color: var(--text-dim); }
 .settings-new-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
 
-/* Settings > Changelog — date-grouped one-liners, unseen ones tinted. */
-.changelog-group { list-style: none; margin: 0 0 1rem; padding: 0; overflow: hidden; }
-.changelog-entry { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
-.changelog-entry:last-child { border-bottom: none; }
-.changelog-entry-new { background: color-mix(in srgb, var(--primary) 14%, transparent); font-weight: 700; }
+/* Settings > Changelog — plain bullet list per date. Unseen entries get an
+   accent-colored bullet; everything else stays quiet. */
+.changelog-group { margin: 0 0 1.1rem; padding-left: 1.2rem; }
+.changelog-entry { padding: 0.2rem 0; font-size: 0.92rem; line-height: 1.4; color: var(--text); }
+.changelog-entry::marker { color: var(--text-tertiary); }
+.changelog-entry-new::marker { color: var(--primary); }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-value-active { color: var(--gold); font-weight: 600; }

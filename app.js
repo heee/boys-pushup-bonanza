@@ -2513,7 +2513,7 @@ function paintChangelog() {
   const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   $("changelog-list").innerHTML = changelogGroups(CHANGELOG, localStorage.getItem(LS.changelogSeen)).map((g) => `
     <div class="tier1-eyebrow">${fmt(g.date)}</div>
-    <ul class="changelog-group settings-block">
+    <ul class="changelog-group">
       ${g.entries.map((e) => `<li class="changelog-entry${e.unseen ? " changelog-entry-new" : ""}">${escapeHtml(e.text)}</li>`).join("")}
     </ul>
   `).join("");
