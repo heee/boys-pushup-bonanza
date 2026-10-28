@@ -130,7 +130,7 @@ import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLU
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=11";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=12";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -1447,6 +1447,7 @@ const state = {
   pokerHandsCompleted: [],
   pokerAchievementsUnlocked: [],
   pokerResolving: false,
+  pokerDealing: false,
   currentDice: null,
   diceTarget: 0,
   diceRepsDone: 0,
@@ -10224,6 +10225,28 @@ function setCardFace(el, card) {
   el.setAttribute("aria-label", `${card.label} of ${card.suit}`);
 }
 
+// Deal intro: a face-down deck riffles, the cards fly out left to right and
+// flip face up, then the active card rises front and center. Timings mirror
+// the poker-deal-* keyframes in style.css.
+const POKER_DEAL_MS = 1500;
+let pokerDealTimer = null;
+function pokerReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+function endPokerDeal() {
+  if (!state.pokerDealing) return;
+  clearTimeout(pokerDealTimer);
+  pokerDealTimer = null;
+  state.pokerDealing = false;
+  $("poker-hand")?.classList.remove("dealing");
+  renderPokerHand();
+}
+function startPokerDeal() {
+  clearTimeout(pokerDealTimer);
+  state.pokerDealing = !pokerReducedMotion();
+  if (state.pokerDealing) pokerDealTimer = setTimeout(endPokerDeal, POKER_DEAL_MS);
+}
+
 function renderPokerHand() {
   const hand = $("poker-hand");
   if (!hand) return;
@@ -10234,14 +10257,37 @@ function renderPokerHand() {
   // Once the hand resolves, the five scoring cards stay lit and the other
   // two fade out, so it's clear which cards made the hand.
   const used = state.pokerResolvedUsed ? new Set(state.pokerResolvedUsed) : null;
-  hand.classList.toggle("poker-hand-seven", state.pokerHand.length > 5);
-  hand.innerHTML = state.pokerHand.map((card, index) => {
-    const status = used ? (used.has(index) ? " scoring" : " unused")
-      : index < state.pokerCardIndex ? " completed" : index === state.pokerCardIndex ? " active" : "";
-    const check = index < state.pokerCardIndex ? '<span class="poker-card-check" aria-hidden="true">✓</span>' : "";
-    const counter = index === state.pokerCardIndex ? '<span id="poker-counter-badge" class="mode-counter-badge" aria-hidden="true"></span>' : "";
-    return `<div class="poker-card${status}" style="--poker-x:${offsets[index]}rem;--poker-rotate:${rotations[index]}deg;background-image:url('${cardImageUrl(card)}')" aria-label="${card.label} of ${card.suit}${index === state.pokerCardIndex ? ", active" : ""}">${check}${counter}</div>`;
-  }).join("");
+  // Same hand → update the existing card elements in place so the active
+  // card's move to/from front-and-center animates; a new hand rebuilds.
+  const key = state.pokerHand.map((c) => `${c.label}${c.suit[0]}`).join(",");
+  if (hand.dataset.key !== key) {
+    hand.dataset.key = key;
+    hand.classList.toggle("poker-hand-seven", state.pokerHand.length > 5);
+    hand.classList.toggle("dealing", !!state.pokerDealing);
+    const deck = state.pokerDealing ? '<div class="poker-deck" aria-hidden="true"><div class="poker-card-back"></div><div class="poker-card-back"></div><div class="poker-card-back"></div></div>' : "";
+    hand.innerHTML = deck + state.pokerHand.map((card, index) =>
+      `<div class="poker-card" style="--poker-x:${offsets[index]}rem;--poker-rotate:${rotations[index]}deg;--deal-i:${index}"></div>`).join("");
+  }
+  const focus = !used && !state.pokerDealing && state.pokerCardIndex < state.pokerHand.length;
+  hand.classList.toggle("has-focus", focus);
+  hand.querySelectorAll(".poker-card").forEach((el, index) => {
+    const card = state.pokerHand[index];
+    const done = index < state.pokerCardIndex;
+    const current = index === state.pokerCardIndex;
+    el.classList.toggle("scoring", !!used && used.has(index));
+    el.classList.toggle("unused", !!used && !used.has(index));
+    el.classList.toggle("completed", !used && done);
+    el.classList.toggle("active", focus && current);
+    el.style.backgroundImage = `url('${cardImageUrl(card)}')`;
+    el.setAttribute("aria-label", `${card.label} of ${card.suit}${current ? ", active" : ""}`);
+    const check = done ? '<span class="poker-card-check" aria-hidden="true">✓</span>' : "";
+    const counter = current ? '<span id="poker-counter-badge" class="mode-counter-badge" aria-hidden="true"></span>' : "";
+    const markup = check + counter;
+    if (el.dataset.markup !== markup) {
+      el.dataset.markup = markup;
+      el.innerHTML = markup;
+    }
+  });
 }
 
 function priorPokerAchievements() {
@@ -10270,6 +10316,9 @@ function dealNextPokerHand() {
   state.pokerResolving = false;
   state.pokerResolvedUsed = null;
   $("poker-result").classList.add("hidden");
+  const handEl = $("poker-hand");
+  if (handEl) delete handEl.dataset.key;
+  startPokerDeal();
   renderPokerHand();
   state.pokerHand.forEach(preloadCard);
 }
@@ -10304,6 +10353,12 @@ function completePokerHand() {
 }
 
 function advancePokerCard() {
+  // Finishing card 1 mid-intro skips the rest of the deal animation.
+  if (state.pokerDealing) {
+    clearTimeout(pokerDealTimer);
+    state.pokerDealing = false;
+    $("poker-hand")?.classList.remove("dealing");
+  }
   state.pokerCardIndex += 1;
   state.pokerCardRepsDone = 0;
   if (state.pokerCardIndex >= state.pokerHand.length) completePokerHand();

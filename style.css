@@ -1700,6 +1700,35 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 @keyframes poker-reveal { to { transform: translate(-50%,-50%) scale(1); } }
 @media (max-height: 700px) { .poker-hud { min-height: 13rem; } .poker-hand { height: 11.5rem; } .poker-card { width: min(25vw, 6.8rem); } }
 @media (prefers-reduced-motion: reduce) { .poker-card, .poker-result { transition: none; animation: none; } }
+/* Active card comes front and center (scaled over the fan, which dims);
+   when it's cleared it floats back to its slot and the next one rises. */
+.poker-card { transition: transform 380ms cubic-bezier(.3,.7,.3,1.15), opacity 300ms ease, filter 300ms ease; }
+.poker-hand.has-focus .poker-card:not(.active):not(.completed) { filter: brightness(.6) drop-shadow(0 .35rem .35rem rgba(0,0,0,.4)); }
+.poker-hand .poker-card.active { z-index: 8; transform: translateX(-50%) translateY(.4rem) scale(1.5); filter: drop-shadow(0 0 .5rem color-mix(in srgb, var(--gold) 80%, transparent)) drop-shadow(0 .8rem 1rem rgba(0,0,0,.6)); }
+.poker-card-back, .poker-card::after { border-radius: 7%; border: 2px solid var(--gold); background:
+  radial-gradient(circle at center, color-mix(in srgb, var(--gold) 85%, transparent) 0 .55rem, transparent .6rem),
+  repeating-linear-gradient(45deg, color-mix(in srgb, var(--gold) 28%, transparent) 0 2px, transparent 2px 9px),
+  repeating-linear-gradient(-45deg, color-mix(in srgb, var(--gold) 28%, transparent) 0 2px, transparent 2px 9px),
+  #1b1d24; box-shadow: inset 0 0 0 4px #1b1d24, inset 0 0 0 5px color-mix(in srgb, var(--gold) 60%, transparent); }
+.poker-card::after { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+/* Deal intro (~1.5s, see POKER_DEAL_MS): deck riffles 0–400ms, cards fly
+   out left→right 100ms apart and flip face up, deck fades as the last leaves. */
+.poker-deck { position: absolute; top: 1rem; left: 50%; width: min(29vw, 8.5rem); aspect-ratio: 136 / 208; transform: translateX(-50%); z-index: 9; animation: poker-deck-out 200ms ease 1050ms forwards; }
+.poker-hand-seven .poker-deck { width: min(24vw, 7rem); }
+.poker-deck .poker-card-back { position: absolute; inset: 0; filter: drop-shadow(0 .3rem .4rem rgba(0,0,0,.5)); }
+.poker-deck .poker-card-back:nth-child(1) { animation: poker-riffle-l 400ms ease-in-out; }
+.poker-deck .poker-card-back:nth-child(2) { animation: poker-riffle-r 400ms ease-in-out; }
+.poker-hand.dealing .poker-card { animation: poker-deal-fly 320ms cubic-bezier(.2,.8,.3,1) calc(400ms + var(--deal-i) * 100ms) backwards, poker-deal-flip 220ms ease-in-out calc(660ms + var(--deal-i) * 100ms) backwards; }
+.poker-hand.dealing .poker-card::after { animation: poker-back-hide 220ms linear calc(660ms + var(--deal-i) * 100ms) backwards; }
+.poker-hand.dealing .mode-counter-badge, .poker-hand.dealing .poker-card-check { opacity: 0; }
+@keyframes poker-riffle-l { 0%, 100% { transform: none; } 30% { transform: translateX(-55%) rotate(-8deg); } 60% { transform: translateX(-10%) rotate(-2deg); } }
+@keyframes poker-riffle-r { 0%, 100% { transform: none; } 30% { transform: translateX(55%) rotate(8deg); } 60% { transform: translateX(10%) rotate(2deg); } }
+@keyframes poker-deck-out { to { opacity: 0; visibility: hidden; } }
+@keyframes poker-deal-fly { from { transform: translateX(-50%) translateY(0) rotate(0deg); opacity: 0; } 1% { opacity: 1; } }
+@keyframes poker-deal-flip { 50% { scale: 0 1; } }
+@keyframes poker-back-hide { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .poker-card, .poker-hand.dealing .poker-card, .poker-hand.dealing .poker-card::after, .poker-deck, .poker-card-back { transition: none; animation: none; } }
+
 
 /* ---------------- Dice mode HUD ---------------- */
 /* Mirrors Cards mode's structure (see above): a focal-point visual for the

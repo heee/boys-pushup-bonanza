@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-28", text: "Poker hands now shuffle and deal in, with the current card front and center" },
   { date: "2026-10-27", text: "Kettlebell workouts: one main bell weight, with per-move overrides" },
   { date: "2026-10-27", text: "Recap pop-ups are now opt-in, one switch each in Settings → Preferences" },
   { date: "2026-10-27", text: "Added modifiers for Pull-ups (chin-up, neutral, L-sit…), Squats (sumo, pause, jump…) and Dead hang (active, mixed, towel…)" },
