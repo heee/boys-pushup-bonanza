@@ -6735,7 +6735,20 @@ function syncChartFlipHeight(scope) {
   const flipEl = $(`${scope}-chart-flip`);
   if (!flipEl) return;
   const face = flipEl.querySelector(".chart-face-front");
-  if (face) flipEl.closest(".chart-flip-scene").style.height = `${face.scrollHeight}px`;
+  if (!face) return;
+  const height = face.scrollHeight;
+  // Hidden screen (display:none) measures 0 — skip, or the next open would
+  // animate the card up from 0 and shove the leaderboard below it down.
+  if (!height) return;
+  const scene = flipEl.closest(".chart-flip-scene");
+  // First real measurement snaps into place; only later changes animate.
+  const snap = !parseFloat(scene.style.height);
+  if (snap) scene.style.transition = "none";
+  scene.style.height = `${height}px`;
+  if (snap) {
+    void scene.offsetHeight;
+    scene.style.transition = "";
+  }
 }
 
 // Shared by the back face's own arrows and whole-card swipe (see the
