@@ -6337,3 +6337,16 @@ body:has(#screen-challenge-detail.active) #app {
 .roadtrip-scope-empty { margin: 0.6rem 1rem; font-size: 0.85rem; color: var(--text-tertiary); }
 .roadtrip-map-dot.is-dimmed { opacity: 0.4; }
 .roadtrip-map-dot.is-selected { border-color: var(--primary); background: var(--text); }
+
+/* Challenges list: flat rows like Games/Roadtrip (see challengeRowEl). */
+.challenge-list { gap: 0; padding: 0; scrollbar-gutter: auto; }
+.challenge-row .games-row-subtitle { font-size: 0.74rem; }
+.challenge-row-join {
+  border: none; border-radius: 999px; padding: 0.42rem 0.95rem; cursor: pointer;
+  background: var(--primary); color: var(--text-on-accent); font: inherit; font-size: 0.78rem; font-weight: 800;
+}
+.challenge-row-join:active { transform: scale(0.96); }
+.challenge-row-progress { font-size: 0.85rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.challenge-row-winner { font-size: 0.78rem; font-weight: 700; color: var(--text-dim); max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.challenge-row-bar { grid-column: 2 / -1; margin-top: -0.45rem; }
+.challenge-row-bar .thermometer-wrap { margin: 0; max-width: none; }

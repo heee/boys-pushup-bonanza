@@ -8847,17 +8847,47 @@ function modeStatIcon(metric) {
   return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";
 }
 
+// One row per challenge, matching the Games/Roadtrip lists: icon, title,
+// one meta line, and on the right either a Join pill, your progress (with a
+// thin bar under the row) or, once it's over, the winner.
+function challengeRowEl({ id, icon, title, meta, onOpen, onJoin, joined, status, progress, winner }) {
+  const row = document.createElement("div");
+  row.className = "games-row challenge-row";
+  row.dataset.siblingId = id;
+  row.setAttribute("role", "button");
+  row.tabIndex = 0;
+  row.addEventListener("click", onOpen);
+  const right = status === "past"
+    ? (winner ? `<span class="challenge-row-winner">🥇 ${winner}</span>` : "")
+    : joined
+      ? `<span class="challenge-row-progress">${progress?.text || "Joined"}</span>`
+      : `<button type="button" class="challenge-row-join">Join</button>`;
+  const bar = status !== "past" && joined && progress
+    ? `<div class="challenge-row-bar" role="progressbar" aria-label="${escapeHtml(progress.label)}" aria-valuemin="0" aria-valuemax="${progress.goal}" aria-valuenow="${Math.min(progress.current, progress.goal)}">${buildProgressThermometer(progress.current, progress.goal)}</div>`
+    : "";
+  row.innerHTML = `
+    <span class="games-row-icon is-stroke" aria-hidden="true">${icon}</span>
+    <span class="games-row-info">
+      <span class="games-row-title">${escapeHtml(title)}</span>
+      <span class="games-row-subtitle">${meta}</span>
+    </span>
+    ${right}${bar}`;
+  row.querySelector(".challenge-row-join")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onJoin();
+  });
+  return row;
+}
+
+function challengeRowTiming(status, dateLabel, dateRange, participantCount) {
+  const joinedText = `${participantCount} joined`;
+  return status === "past" ? `${dateRange} · ${joinedText}` : `${dateLabel} · ${joinedText}`;
+}
+
 function buildChallengeCard(c, now) {
   const status = challengeStatus(c, now);
   const participants = challengeParticipantsOf(c);
   const joined = participants.includes(state.currentUser);
-  const total = challengeTotal(c);
-
-  const card = document.createElement("div");
-  card.className = "challenge-card";
-  card.style.setProperty("--challenge-color", c.gradient[0]);
-  card.dataset.siblingId = c.id;
-  card.addEventListener("click", () => openChallengeDetail(c.id));
 
   let dateLabel;
   if (status === "active") {
@@ -8868,77 +8898,48 @@ function buildChallengeCard(c, now) {
     dateLabel = `in ${d} day${d === 1 ? "" : "s"}`;
   }
 
-  let metaLine;
   let prAchievedCount = 0;
-  if (c.goalType === "pr") {
-    prAchievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${prAchievedCount} new PR${prAchievedCount === 1 ? "" : "s"} this week`;
-  } else if (c.goalType === "plankGauntlet") {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatDuration(total * 1000)} total plank time logged`;
-  } else {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatNumber(total)} total ${challengeActivity(c)} so far`;
-  }
+  if (c.goalType === "pr") prAchievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
 
-  let winnerChipHTML = "";
+  let winner = "";
   if (status === "past") {
     const winners = challengeWinners(c);
-    if (winners.length) {
-      const board = challengeLeaderboard(c);
-      const scoreText = c.goalType === "streak" ? `${formatNumber(board[0].score)} days` : c.goalType === "plankGauntlet" ? formatDuration(board[0].score * 1000) : formatNumber(board[0].score);
-      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${winners.map(escapeHtml).join(" & ")} — ${scoreText}</span>`;
-    }
+    if (winners.length) winner = winners.map(escapeHtml).join(" & ");
   }
 
-  // The top-right badge already shows the date label once the user has joined
-  // (see challenge-joined-chip below), and past challenges get no date pill
-  // at all (their top-right badge shows the winner instead) — so skip the
-  // inline chip in both cases to avoid showing the same text twice.
-  const showInlineChip = status !== "past" && !joined;
-  let html = `
-    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji is-stroke">${typeIconSvg(challengeActivity(c))}</div>
-      <div class="challenge-card-heading">
-        <div class="challenge-card-title">${escapeHtml(c.title)}</div>
-        <div class="challenge-card-dates">${formatChallengeDates(c, undefined, { includeYear: status === "past" })}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
-      </div>
-    </div>
-    <div class="challenge-card-meta">${metaLine}</div>
-  `;
-
-  // Mini progress bar so status is scannable from the list without opening.
-  // PR bars show group success rate; Plank has no fixed target, so it shows elapsed time.
+  // Your progress, shown on the right (and as a thin bar) once you've joined.
+  // PR shows the group's success rate; Plank has no fixed target, so it
+  // shows how much of the window has elapsed.
   const isPrProgress = c.goalType === "pr";
   const isWindowProgress = c.goalType === "plankGauntlet";
-  const progressCurrent = isPrProgress ? challengePrProgress(prAchievedCount, participants.length)
+  const current = isPrProgress ? challengePrProgress(prAchievedCount, participants.length)
     : isWindowProgress ? challengeWindowProgress(c, now)
     : challengeListProgress(c);
-  const progressGoal = isPrProgress || isWindowProgress ? 100 : c.goal;
-  const progressLabel = isPrProgress ? `${prAchievedCount} of ${participants.length} participants set a new PR`
-    : isWindowProgress ? `${progressCurrent}% of challenge window elapsed`
-    : `${formatNumber(progressCurrent)} of ${formatNumber(progressGoal)}`;
-  html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="${progressGoal}" aria-valuenow="${Math.min(progressCurrent, progressGoal)}">${buildProgressThermometer(progressCurrent, progressGoal)}</div>`;
+  const goal = isPrProgress || isWindowProgress ? 100 : c.goal;
+  const progress = {
+    current,
+    goal,
+    text: isPrProgress ? `${prAchievedCount}/${participants.length} PRs`
+      : isWindowProgress ? `${current}%`
+      : c.goalType === "streak" ? `${formatNumber(current)}/${formatNumber(goal)} days`
+      : `${formatNumber(current)}/${formatNumber(goal)}`,
+    label: isPrProgress ? `${prAchievedCount} of ${participants.length} participants set a new PR`
+      : isWindowProgress ? `${current}% of challenge window elapsed`
+      : `${formatNumber(current)} of ${formatNumber(goal)}`,
+  };
 
-  if (status !== "past" && joined) {
-    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
-  } else if (winnerChipHTML) {
-    html += winnerChipHTML;
-  }
-
-  card.innerHTML = html;
-
-  if (status !== "past" && !joined) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-primary challenge-join-btn";
-    btn.textContent = "JOIN";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      joinChallenge(c.id);
-    });
-    card.appendChild(btn);
-  }
-
-  return card;
+  return challengeRowEl({
+    id: c.id,
+    icon: typeIconSvg(challengeActivity(c)),
+    title: c.title,
+    meta: challengeRowTiming(status, dateLabel, formatChallengeDates(c, undefined, { includeYear: true }), participants.length),
+    onOpen: () => openChallengeDetail(c.id),
+    onJoin: () => joinChallenge(c.id),
+    joined,
+    status,
+    progress,
+    winner,
+  });
 }
 
 function openChallengeDetail(id) {
@@ -9700,12 +9701,6 @@ function buildBingoCard(cycle, now) {
   const joined = participants.includes(state.currentUser);
   const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
 
-  const card = document.createElement("div");
-  card.className = "challenge-card";
-  card.style.setProperty("--challenge-color", "#4a2e6b");
-  card.dataset.siblingId = cycle.id;
-  card.addEventListener("click", () => openBingoDetail(cycle.id));
-
   let dateLabel;
   if (status === "active") {
     const d = Math.max(0, Math.ceil((cycle.endDate - now) / 86400000));
@@ -9717,60 +9712,35 @@ function buildBingoCard(cycle, now) {
 
   const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
-  const showInlineChip = status !== "past" && !joined;
 
-  let metaLine;
-  let winnerChipHTML = "";
+  let winner = "";
   if (status === "past") {
     const sessions = bingoSessionsForCycle(cycle, participants);
     const result = bingoWinners(board, participants, sessions, cycle, sessionTimestamp);
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined`;
     if (result.winners.length) {
-      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${result.winners.map(escapeHtml).join(" & ")}</span>`;
+      winner = result.winners.map(escapeHtml).join(" & ");
     }
-  } else {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · 5×5 shared board`;
   }
 
-  let html = `
-    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji is-stroke">${BINGO_GRID_ICON}</div>
-      <div class="challenge-card-heading">
-        <div class="challenge-card-title">Reps Bingo</div>
-        <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
-      </div>
-    </div>
-    <div class="challenge-card-meta">${metaLine}</div>
-  `;
-
+  let progress = null;
   if (joined && status !== "past") {
     const sessions = bingoSessionsForCycle(cycle, participants);
     const mySquares = bingoSquaresChecked(bingoCompletionForUser(board, sessions, state.currentUser, cycle, sessionTimestamp));
-    const progressLabel = `${mySquares} of 25 squares`;
-    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="25" aria-valuenow="${mySquares}">${buildProgressThermometer(mySquares, 25)}</div>`;
+    progress = { current: mySquares, goal: 25, text: `${mySquares}/25`, label: `${mySquares} of 25 squares` };
   }
 
-  if (status !== "past" && joined) {
-    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
-  } else if (winnerChipHTML) {
-    html += winnerChipHTML;
-  }
-
-  card.innerHTML = html;
-
-  if (status !== "past" && !joined) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-primary challenge-join-btn";
-    btn.textContent = "JOIN";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      joinChallenge(cycle.id);
-    });
-    card.appendChild(btn);
-  }
-
-  return card;
+  return challengeRowEl({
+    id: cycle.id,
+    icon: BINGO_GRID_ICON,
+    title: "Reps Bingo",
+    meta: challengeRowTiming(status, dateLabel, dateRange, participants.length),
+    onOpen: () => openBingoDetail(cycle.id),
+    onJoin: () => joinChallenge(cycle.id),
+    joined,
+    status,
+    progress,
+    winner,
+  });
 }
 
 function openBingoDetail(cycleId) {
@@ -9979,12 +9949,6 @@ function buildPokerCollectionCard(cycle, now) {
   const joined = participants.includes(state.currentUser);
   const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
 
-  const card = document.createElement("div");
-  card.className = "challenge-card";
-  card.style.setProperty("--challenge-color", "#2e6b4a");
-  card.dataset.siblingId = cycle.id;
-  card.addEventListener("click", () => openPokerCollectionDetail(cycle.id));
-
   let dateLabel;
   if (status === "active") {
     const d = Math.max(0, Math.ceil((cycle.endDate - now) / 86400000));
@@ -9996,61 +9960,36 @@ function buildPokerCollectionCard(cycle, now) {
 
   const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
-  const showInlineChip = status !== "past" && !joined;
 
-  let metaLine;
-  let winnerChipHTML = "";
+  let winner = "";
   if (status === "past") {
     const sessions = pokerCollectionSessionsForCycle(cycle, participants);
     const result = pokerCollectionWinners(participants, sessions, cycle, sessionTimestamp);
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined`;
     if (result.winners.length) {
-      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${result.winners.map(escapeHtml).join(" & ")}</span>`;
+      winner = result.winners.map(escapeHtml).join(" & ");
     }
-  } else {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${POKER_SET_SIZE}-hand set + Royal bonus`;
   }
 
-  let html = `
-    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji is-stroke">${modeIconSvg("poker")}</div>
-      <div class="challenge-card-heading">
-        <div class="challenge-card-title">Royal Flush Rush</div>
-        <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
-      </div>
-    </div>
-    <div class="challenge-card-meta">${metaLine}</div>
-  `;
-
+  let progress = null;
   if (joined && status !== "past") {
     const sessions = pokerCollectionSessionsForCycle(cycle, participants);
     const rows = pokerCollectionRowsForUser(sessions, state.currentUser, cycle, sessionTimestamp);
     const myHands = pokerCollectionHandsCollected(rows);
-    const progressLabel = `${myHands} of ${POKER_SET_SIZE} hands`;
-    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="${POKER_SET_SIZE}" aria-valuenow="${myHands}">${buildProgressThermometer(myHands, POKER_SET_SIZE)}</div>`;
+    progress = { current: myHands, goal: POKER_SET_SIZE, text: `${myHands}/${POKER_SET_SIZE}`, label: `${myHands} of ${POKER_SET_SIZE} hands` };
   }
 
-  if (status !== "past" && joined) {
-    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
-  } else if (winnerChipHTML) {
-    html += winnerChipHTML;
-  }
-
-  card.innerHTML = html;
-
-  if (status !== "past" && !joined) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-primary challenge-join-btn";
-    btn.textContent = "JOIN";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      joinChallenge(cycle.id);
-    });
-    card.appendChild(btn);
-  }
-
-  return card;
+  return challengeRowEl({
+    id: cycle.id,
+    icon: modeIconSvg("poker"),
+    title: "Royal Flush Rush",
+    meta: challengeRowTiming(status, dateLabel, dateRange, participants.length),
+    onOpen: () => openPokerCollectionDetail(cycle.id),
+    onJoin: () => joinChallenge(cycle.id),
+    joined,
+    status,
+    progress,
+    winner,
+  });
 }
 
 function openPokerCollectionDetail(cycleId) {
