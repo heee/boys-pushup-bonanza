@@ -8792,10 +8792,35 @@ function paintChallengeList() {
   // rather than curated, so it always leads whichever tab its current/next/
   // previous cycle belongs to.
   if (derived) el.appendChild(derived.type === "bingo" ? buildBingoCard(derived.cycle, now) : buildPokerCollectionCard(derived.cycle, now));
-  for (const c of list) {
-    el.appendChild(buildChallengeCard(c, now));
+  // Ten rows at first, then ten more each time the end of the list scrolls
+  // into view — Upcoming alone runs to 200+ scheduled challenges.
+  let shown = 0;
+  const sentinel = document.createElement("div");
+  sentinel.className = "challenge-list-sentinel";
+  const appendPage = () => {
+    for (const c of list.slice(shown, shown + CHALLENGE_PAGE_SIZE)) el.insertBefore(buildChallengeCard(c, now), sentinel);
+    shown = Math.min(list.length, shown + CHALLENGE_PAGE_SIZE);
+    if (shown >= list.length) {
+      challengeListObserver?.disconnect();
+      sentinel.remove();
+    }
+  };
+  challengeListObserver?.disconnect();
+  el.appendChild(sentinel);
+  appendPage();
+  if (shown < list.length) {
+    challengeListObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) appendPage();
+    }, { root: el, rootMargin: "0px 0px 80px 0px" });
+    // Ten rows nearly fill the screen and the list's tab-bar padding keeps
+    // the end in view, so only start loading once the user scrolls.
+    const observer = challengeListObserver;
+    el.addEventListener("scroll", () => observer.observe(sentinel), { once: true, passive: true });
   }
 }
+
+const CHALLENGE_PAGE_SIZE = 10;
+let challengeListObserver = null;
 
 // Floating confirmation above the tab bar, instead of a banner inserted
 // inline between cards. Checkmark glyph built from CSS borders.

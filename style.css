@@ -6352,3 +6352,4 @@ body:has(#screen-challenge-detail.active) #app {
 .challenge-row-right .challenge-row-progress { text-align: right; }
 .challenge-row-bar { display: block; height: 4px; border-radius: 999px; background: var(--bg-elevated-2); overflow: hidden; }
 .challenge-row-bar > span { display: block; height: 100%; min-width: 4px; border-radius: inherit; background: var(--primary); }
+.challenge-list-sentinel { height: 1px; flex-shrink: 0; }
