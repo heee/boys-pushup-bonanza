@@ -7853,16 +7853,31 @@ function paintMyBonanza(sessions) {
   const { allTimeTotal, personalBest, avgPerSession } = personalStatsModel(mine, streak, metricOf, !isHolland);
   const fmt = (isPlank || isPulse) ? (n) => formatDuration(n * 1000) : isHolland ? (n) => n.toFixed(1) : formatNumber;
 
-  // The 4 key metrics always form the 2x2 tile grid, streak first as a ring.
-  tilesEl.innerHTML = `
-    <div class="stat-tile stat-tile-ring">
-      ${streakRingSvg(streak)}
-      <div><div class="stat-tile-value">${streak}</div><div class="stat-tile-label">day streak</div></div>
-    </div>
-    <div class="stat-tile"><div class="stat-tile-value">${fmt(allTimeTotal)}</div><div class="stat-tile-label">all-time total</div></div>
-    <div class="stat-tile"><div class="stat-tile-value">${fmt(personalBest)}</div><div class="stat-tile-label">personal best</div></div>
-    <div class="stat-tile"><div class="stat-tile-value">${fmt(avgPerSession)}</div><div class="stat-tile-label">avg / session</div></div>
-  `;
+  // The 4 key metrics sit on one line as mini tiles: icon, number, label.
+  // A quarter-width tile can't fit "14,421" or "1:02:45", so big values
+  // abbreviate (14.4k, 3.2h) and the full value lives in the title.
+  const compact = (n) => {
+    if (isPlank || isPulse) return n >= 3600 ? `${(n / 3600).toFixed(1).replace(/\.0$/, "")}h` : fmt(n);
+    if (isHolland || n < 10000) return fmt(n);
+    return n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M` : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  };
+  const tile = (icon, value, label, extraClass = "") => `
+    <div class="stat-tile${extraClass}" title="${escapeHtml(`${fmt(value)} ${label}`)}">
+      <span class="stat-tile-icon" aria-hidden="true">${icon}</span>
+      <div class="stat-tile-value">${compact(value)}</div>
+      <div class="stat-tile-label">${label}</div>
+    </div>`;
+  const svg = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  tilesEl.innerHTML = [
+    `<div class="stat-tile stat-tile-streak" title="${streak} day streak">
+      <span class="stat-tile-icon" aria-hidden="true">${svg('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>')}</span>
+      <div class="stat-tile-value">${streak}</div>
+      <div class="stat-tile-label">day streak</div>
+    </div>`,
+    tile(svg('<path d="M18 4H6l6 8-6 8h12"/>'), allTimeTotal, "all-time total"),
+    tile(svg('<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'), personalBest, "personal best"),
+    tile(svg('<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>'), avgPerSession, "avg / session"),
+  ].join("");
 
   const periodStartTime = periodStart(state.dashboardPeriod).getTime();
   const periodMine = mine.filter((s) => sessionTimestamp(s) >= periodStartTime);

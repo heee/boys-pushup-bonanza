@@ -6288,3 +6288,12 @@ body:has(#screen-challenge-detail.active) #app {
 #recent-list .recent-name { font-weight: 400; color: var(--text); }
 #recent-list .recent-count { font-size: 1.05rem; color: var(--text); }
 #recent-list .recent-count-col { width: auto; min-width: 3.6rem; }
+
+/* My Bonanza key stats: four mini tiles on one line (icon, number, label). */
+#personal-stats-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; }
+#personal-stats-tiles .stat-tile { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.75rem 0.3rem 0.7rem; min-width: 0; }
+#personal-stats-tiles .stat-tile-icon { width: 1.15rem; height: 1.15rem; color: var(--text-tertiary); margin-bottom: 0.4rem; }
+#personal-stats-tiles .stat-tile-icon svg { width: 100%; height: 100%; display: block; }
+#personal-stats-tiles .stat-tile-streak .stat-tile-icon { color: var(--primary); }
+#personal-stats-tiles .stat-tile-value { font-size: 1.15rem; line-height: 1.1; white-space: nowrap; }
+#personal-stats-tiles .stat-tile-label { font-size: 0.62rem; margin-top: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
