@@ -1734,6 +1734,16 @@
         <button class="segment" data-roadtrip-period="year">Year</button>
         <button class="segment" data-roadtrip-period="all">All-time</button>
       </div>
+      <div id="roadtrip-map-card" class="tier2-card roadtrip-map-card hidden">
+        <div class="roadtrip-map-head">
+          <span id="roadtrip-map-title" class="roadtrip-map-title"></span>
+          <button id="btn-roadtrip-map-zoom" type="button" class="roadtrip-map-btn"></button>
+        </div>
+        <div id="roadtrip-map-stage" class="roadtrip-map-stage">
+          <svg id="roadtrip-map-svg" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet" aria-label="Map of reps by country"><g id="roadtrip-map-zoom"></g></svg>
+          <div id="roadtrip-map-marks" class="roadtrip-map-marks"></div>
+        </div>
+      </div>
       <div id="roadtrip-location-needed" class="roadtrip-location-needed hidden">
         <div class="roadtrip-empty-icon">📍</div>
         <h2>Pick your turf</h2>

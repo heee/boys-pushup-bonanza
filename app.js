@@ -175,7 +175,8 @@ import {
   roadtripOverviewRows,
 } from "./roadtrip.js";
 import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, completedPeriodRange, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js?v=2";
-import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey } from "./group-recap.js?v=1";
+import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey, HOUSTON_COORDS } from "./group-recap.js?v=1";
+import { compactCount, cullLabels, fitTransform, heatLevel, ISO2_TO_NUMERIC, shouldShowWorld, unionBounds } from "./roadtrip-map.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { createClapGestureDetector } from "./modes/clap-gesture.js";
 import { KETTLEBELL_WORKOUTS, kettlebellExercise, kettlebellWorkoutById } from "./modes/kettlebell-workouts.js";
@@ -6299,6 +6300,229 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
   return button;
 }
 
+// ------------------- roadtrip map (docs/roadtrip-map-plan.md) -------------------
+// Countries heat-shaded by reps for the selected period; tap one to zoom in
+// and see its cities. d3-geo/topojson + the world atlas are vendored and
+// only loaded the first time Roadtrip opens.
+
+// Width is fixed; height is cropped to the projected land once the atlas
+// loads (no Antarctica, so a fixed 2:1 box left dead space at the bottom).
+const MAP_W = 1000;
+let MAP_H = 520;
+let roadtripMapGeo = null;
+let roadtripMapGeoLoading = null;
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[data-src="${src}"]`)) return resolve();
+    const el = document.createElement("script");
+    el.src = src;
+    el.dataset.src = src;
+    el.onload = resolve;
+    el.onerror = reject;
+    document.head.appendChild(el);
+  });
+}
+
+async function loadRoadtripMapGeo() {
+  if (roadtripMapGeo) return roadtripMapGeo;
+  roadtripMapGeoLoading ||= (async () => {
+    await loadScriptOnce("vendor/d3-array.min.js");
+    await loadScriptOnce("vendor/d3-geo.min.js");
+    await loadScriptOnce("vendor/topojson-client.min.js");
+    const atlas = await fetch("vendor/countries-110m.json").then((r) => r.json());
+    const { d3, topojson } = window;
+    const features = topojson.feature(atlas, atlas.objects.countries).features.filter((f) => f.id && f.id !== "010");
+    const collection = { type: "FeatureCollection", features };
+    const projection = d3.geoNaturalEarth1().fitWidth(MAP_W - 12, collection);
+    const path = d3.geoPath(projection);
+    const [[, top], [, bottom]] = path.bounds(collection);
+    projection.translate([projection.translate()[0] + 6, projection.translate()[1] - top + 6]);
+    MAP_H = Math.round(bottom - top + 12);
+    $("roadtrip-map-svg").setAttribute("viewBox", `0 0 ${MAP_W} ${MAP_H}`);
+    $("roadtrip-map-stage").style.aspectRatio = `${MAP_W} / ${MAP_H}`;
+    const byId = new Map();
+    for (const feature of features) {
+      // Fit and label on the biggest landmass (contiguous US, not Alaska +
+      // Hawaii), so a zoom doesn't shrink the main country to fit outliers.
+      const polygons = feature.geometry.type === "MultiPolygon"
+        ? feature.geometry.coordinates.map((coordinates) => ({ type: "Polygon", coordinates }))
+        : [feature.geometry];
+      const mainland = polygons.reduce((best, poly) => (d3.geoArea(poly) > d3.geoArea(best) ? poly : best));
+      byId.set(feature.id, {
+        feature,
+        d: path(feature),
+        mainlandBounds: path.bounds(mainland),
+        labelPoint: projection(d3.geoCentroid(mainland)),
+      });
+    }
+    const svg = $("roadtrip-map-zoom");
+    svg.innerHTML = [...byId.entries()].map(([id, c]) => `<path class="roadtrip-map-country" data-country-id="${id}" d="${c.d}"></path>`).join("");
+    roadtripMapGeo = { projection, byId };
+    return roadtripMapGeo;
+  })();
+  return roadtripMapGeoLoading;
+}
+
+const NUMERIC_TO_ISO2 = Object.fromEntries(Object.entries(ISO2_TO_NUMERIC).map(([a2, num]) => [num, a2]));
+let roadtripMapView = { k: 1, tx: 0, ty: 0 };
+let roadtripMapAnim = 0;
+
+function applyRoadtripMapView(target, animate) {
+  const g = $("roadtrip-map-zoom");
+  const set = (v) => g.setAttribute("transform", `translate(${v.tx} ${v.ty}) scale(${v.k})`);
+  cancelAnimationFrame(roadtripMapAnim);
+  const from = roadtripMapView;
+  roadtripMapView = target;
+  if (!animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return set(target);
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / 450);
+    const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    set({ k: from.k + (target.k - from.k) * e, tx: from.tx + (target.tx - from.tx) * e, ty: from.ty + (target.ty - from.ty) * e });
+    if (t < 1) roadtripMapAnim = requestAnimationFrame(step);
+  };
+  roadtripMapAnim = requestAnimationFrame(step);
+}
+
+function cityCoordsFor(territory, cache) {
+  if (territory.countryCode === "US" && territory.name.trim().toLowerCase() === "houston") return HOUSTON_COORDS;
+  return cache[territory.id] || null;
+}
+
+async function renderRoadtripMap({ animate = false } = {}) {
+  const card = $("roadtrip-map-card");
+  const sessions = getAllSessionsForDisplay();
+  const countries = buildRoadtripTerritories(sessions, { tier: "country", period: state.roadtripPeriod });
+  if (!countries.length) {
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  let geo;
+  try {
+    geo = await loadRoadtripMapGeo();
+  } catch (e) {
+    card.classList.add("hidden");
+    return;
+  }
+  const drilled = state.roadtripMapCountry;
+  const totals = new Map(countries.map((c) => [ISO2_TO_NUMERIC[c.countryCode], c]));
+  const max = Math.max(...countries.map((c) => c.total));
+  for (const el of $("roadtrip-map-zoom").children) {
+    const country = totals.get(el.dataset.countryId);
+    const level = country ? heatLevel(country.total, max) : 0;
+    el.classList.toggle("active", !!country);
+    el.classList.toggle("dimmed", !!drilled && ISO2_TO_NUMERIC[drilled] !== el.dataset.countryId);
+    // Zoomed into a country, its fill steps back so the city dots read.
+    el.style.fillOpacity = country ? String(drilled ? Math.min(level, 0.35) : level) : "";
+  }
+
+  // Marks: country pills (world) or city dots + pills (drilled).
+  const stage = $("roadtrip-map-stage");
+  const pxPerUnit = (stage.clientWidth || 358) / MAP_W;
+  let view;
+  let marks = [];
+  if (drilled) {
+    const id = ISO2_TO_NUMERIC[drilled];
+    const cities = buildRoadtripTerritories(sessions, { tier: "city", period: state.roadtripPeriod }).filter((t) => t.countryCode === drilled);
+    const cache = loadCityCoordsCache();
+    const cityMax = Math.max(1, ...cities.map((c) => c.total));
+    const points = cities.map((city) => {
+      const coords = cityCoordsFor(city, cache);
+      const xy = coords && geo.projection([coords.lon, coords.lat]);
+      return xy ? { city, xy } : null;
+    }).filter(Boolean);
+    const cityBounds = points.length ? [[Math.min(...points.map((p) => p.xy[0])), Math.min(...points.map((p) => p.xy[1]))], [Math.max(...points.map((p) => p.xy[0])), Math.max(...points.map((p) => p.xy[1]))]] : null;
+    view = fitTransform(unionBounds([geo.byId.get(id)?.mainlandBounds, cityBounds]), MAP_W, MAP_H, { pad: 0.1, maxScale: 12 });
+    marks = points.map(({ city, xy }) => ({ kind: "city", id: city.id, total: city.total, xy, r: 5 + 9 * Math.sqrt(city.total / cityMax), label: compactCount(city.total), name: city.name }));
+    // Cities not geocoded yet resolve in the background and appear next render.
+    const missing = cities.filter((c) => !cityCoordsFor(c, cache));
+    if (missing.length && !renderRoadtripMap.resolving) {
+      renderRoadtripMap.resolving = true;
+      resolveCityCoords(missing).catch(() => {}).finally(() => {
+        renderRoadtripMap.resolving = false;
+        if (state.screen === "screen-roadtrip" && state.roadtripMapCountry === drilled && missing.some((c) => loadCityCoordsCache()[c.id])) renderRoadtripMap();
+      });
+    }
+  } else {
+    const activity = unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds));
+    view = state.roadtripMapWorld || shouldShowWorld(activity, MAP_W)
+      ? { k: 1, tx: 0, ty: 0 }
+      : fitTransform(activity, MAP_W, MAP_H, { pad: 0.12, maxScale: 6 });
+    marks = countries.map((c) => {
+      const entry = geo.byId.get(ISO2_TO_NUMERIC[c.countryCode]);
+      return entry && { kind: "country", id: c.countryCode, total: c.total, xy: entry.labelPoint, label: compactCount(c.total), name: c.name };
+    }).filter(Boolean);
+  }
+  applyRoadtripMapView(view, animate);
+
+  // Labels in screen space: position = base projection × view transform.
+  const placed = marks.map((m) => {
+    const x = m.xy[0] * view.k + view.tx;
+    const y = m.xy[1] * view.k + view.ty;
+    const w = (m.label.length * 7.4 + 14) / pxPerUnit;
+    const h = 18 / pxPerUnit;
+    return { ...m, x, y: y - (m.kind === "city" ? m.r + 12 : 13) / pxPerUnit, w, h };
+  }).filter((m) => m.x > 0 && m.x < MAP_W && m.y > 0 && m.y < MAP_H);
+  const labelled = new Set(cullLabels(placed).map((m) => m.id));
+  const pct = (v, total) => `${((v / total) * 100).toFixed(2)}%`;
+  $("roadtrip-map-marks").innerHTML = placed.map((m) => {
+    const dot = m.kind === "city"
+      ? `<button type="button" class="roadtrip-map-dot" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
+      : "";
+    const pill = labelled.has(m.id)
+      ? `<span class="roadtrip-map-pill${m.kind === "country" ? " is-country" : ""}" style="left:${pct(m.x, MAP_W)};top:${pct(m.y, MAP_H)}">${m.label}</span>`
+      : "";
+    return dot + pill;
+  }).join("");
+  $("roadtrip-map-marks").classList.toggle("is-animating", animate);
+
+  const drilledCountry = drilled && countries.find((c) => c.countryCode === drilled);
+  $("roadtrip-map-title").textContent = drilled
+    ? `${drilledCountry?.flag ? `${drilledCountry.flag} ` : ""}${drilledCountry?.name || drilled}`
+    : `${countries.length} ${countries.length === 1 ? "country" : "countries"}`;
+  $("btn-roadtrip-map-zoom").textContent = drilled ? "‹ All countries" : (state.roadtripMapWorld ? "Fit" : "World");
+  $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled && shouldShowWorld(unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds)), MAP_W));
+}
+
+function drillRoadtripMap(countryCode) {
+  if (!state.roadtripMapCountry) state.roadtripTierBeforeMap = state.roadtripTier;
+  state.roadtripMapCountry = countryCode;
+  state.roadtripTier = "city";
+  renderRoadtripAnimated();
+}
+
+function leaveRoadtripMapDrill() {
+  state.roadtripMapCountry = null;
+  state.roadtripTier = state.roadtripTierBeforeMap || state.roadtripTier;
+  renderRoadtripAnimated();
+}
+
+// A drill in/out animates the zoom; ordinary repaints snap.
+function renderRoadtripAnimated() {
+  state.roadtripMapAnimate = true;
+  renderRoadtrip();
+}
+
+$("roadtrip-map-zoom").addEventListener("click", (e) => {
+  const el = e.target.closest(".roadtrip-map-country.active");
+  if (!el || state.roadtripMapCountry) return;
+  const code = NUMERIC_TO_ISO2[el.dataset.countryId];
+  if (code) drillRoadtripMap(code);
+});
+$("roadtrip-map-marks").addEventListener("click", (e) => {
+  const dot = e.target.closest("[data-map-city]");
+  if (!dot || !state.roadtripTerritories.some((t) => t.id === dot.dataset.mapCity)) return;
+  state.roadtripDetailId = dot.dataset.mapCity;
+  showScreen("screen-roadtrip-detail");
+});
+$("btn-roadtrip-map-zoom").addEventListener("click", () => {
+  if (state.roadtripMapCountry) return leaveRoadtripMapDrill();
+  state.roadtripMapWorld = !state.roadtripMapWorld;
+  renderRoadtripMap({ animate: true });
+});
+
 function renderRoadtrip() {
   $("roadtrip-tier-label").textContent = ROADTRIP_TIER_LABELS[state.roadtripTier] || "City";
   document.querySelectorAll("[data-roadtrip-tier]").forEach((option) => {
@@ -6311,10 +6535,24 @@ function renderRoadtrip() {
   $("roadtrip-location-needed").classList.toggle("hidden", !locationMissing);
   const list = $("roadtrip-list");
   list.innerHTML = "";
-  state.roadtripTerritories = buildRoadtripTerritories(getAllSessionsForDisplay(), {
+  // A drilled-into country with no reps in the newly picked period falls
+  // back to the world view rather than an empty map + list.
+  if (state.roadtripMapCountry && !buildRoadtripTerritories(getAllSessionsForDisplay(), { tier: "country", period: state.roadtripPeriod })
+    .some((c) => c.countryCode === state.roadtripMapCountry)) {
+    state.roadtripMapCountry = null;
+    state.roadtripTier = state.roadtripTierBeforeMap || state.roadtripTier;
+  }
+  const allTerritories = buildRoadtripTerritories(getAllSessionsForDisplay(), {
     tier: state.roadtripTier,
     period: state.roadtripPeriod,
   });
+  // Map drill-down (a tapped country) narrows the list to that country,
+  // re-ranked within it.
+  state.roadtripTerritories = state.roadtripMapCountry
+    ? allTerritories.filter((t) => t.countryCode === state.roadtripMapCountry).map((t, i) => ({ ...t, rank: i + 1 }))
+    : allTerritories;
+  renderRoadtripMap({ animate: !!state.roadtripMapAnimate });
+  state.roadtripMapAnimate = false;
   const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
   if (!top.length) {
     list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One pushup with a selected location can fix that.</span></div>`;
