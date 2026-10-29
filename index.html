@@ -448,11 +448,11 @@
         <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
         Session type
       </p>
-      <div id="horse-session-select" class="segmented" role="tablist">
-        <button type="button" class="segment active" id="horse-session-live" data-horse-session="live">Live</button>
-        <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite">Invite</button>
-        <button type="button" class="segment" id="horse-session-open" data-horse-session="open">Open</button>
-        <button type="button" class="segment hidden" id="horse-session-public" data-horse-session="public">Public</button>
+      <div id="horse-session-select" class="segmented session-type-bar" role="tablist">
+        <button type="button" class="segment active" id="horse-session-live" data-horse-session="live"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg><span>Live</span></button>
+        <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16.1a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg><span>Invite</span></button>
+        <button type="button" class="segment" id="horse-session-open" data-horse-session="open"><svg class="session-icon session-icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><svg class="session-icon session-icon-group hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg><span id="horse-session-open-label">Open</span></button>
+        <button type="button" class="segment hidden" id="horse-session-public" data-horse-session="public"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg><span>Public</span></button>
       </div>
       <p id="horse-session-note" class="screen-sub hidden">Other players get a bell notification on Home when it's their turn.</p>
 
@@ -608,28 +608,19 @@
       </div>
 
       <div id="tow-session-type-section">
-        <p class="pyramid-setup-section-label">Session type</p>
-        <div id="tow-session-select" class="tow-icon-tabs" role="tablist">
-          <button type="button" class="tow-icon-tab active" data-tow-session="live" role="tab" aria-selected="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg>
-            Live
-          </button>
-          <button type="button" class="tow-icon-tab" data-tow-session="online" role="tab" aria-selected="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16.1a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg>
-            <span id="tow-session-online-label">Pick team</span>
-          </button>
-          <button type="button" class="tow-icon-tab" data-tow-session="open" role="tab" aria-selected="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-            <span id="tow-session-open-label">Open</span>
-          </button>
-          <button type="button" class="tow-icon-tab hidden" id="tow-session-public-tab" data-tow-session="public" role="tab" aria-selected="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg>
-            Public
-          </button>
+        <p class="pyramid-setup-section-label horse-section-label">
+          <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Session type
+        </p>
+        <div id="tow-session-select" class="segmented session-type-bar" role="tablist">
+          <button type="button" class="segment active" data-tow-session="live" role="tab" aria-selected="true"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg><span>Live</span></button>
+          <button type="button" class="segment" data-tow-session="online" role="tab" aria-selected="false"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16.1a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg><span id="tow-session-online-label">Pick team</span></button>
+          <button type="button" class="segment" data-tow-session="open" role="tab" aria-selected="false"><svg class="session-icon session-icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><svg class="session-icon session-icon-group hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg><span id="tow-session-open-label">Open</span></button>
+          <button type="button" class="segment hidden" id="tow-session-public-tab" data-tow-session="public" role="tab" aria-selected="false"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg><span>Public</span></button>
         </div>
         <p id="tow-session-note" class="screen-sub"></p>
         <div id="tow-max-players-section" class="hidden">
-          <p class="pyramid-setup-section-label">Max players</p>
+          <p class="pyramid-setup-section-label horse-section-label">Max players</p>
           <div id="tow-max-players" class="segmented max-players-select" role="tablist"></div>
         </div>
       </div>

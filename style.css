@@ -2375,7 +2375,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 /* "Live"/"Invite"/"Open" read cleaner as plain labels than as another bold
    competing-for-attention control — de-emphasize like the other secondary
    segmented toggles (period/pushup-mode selects) above. */
-#horse-session-select .segment:not(.active) { font-weight: 400; }
+#horse-session-select .segment:not(.active),
+#tow-session-select .segment:not(.active) { font-weight: 400; }
 #horse-time-select .segment:not(.active) { font-weight: 400; }
 #horse-session-note, #horse-time-note { font-style: italic; }
 
@@ -2686,7 +2687,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-stepper-sm:active { transform: scale(0.92); }
 
 #tow-shuffle-hint, #tow-session-note, #tow-open-hint { font-style: italic; }
-#tow-shuffle-hint, #tow-session-note { font-size: 0.8rem; color: var(--text-tertiary); }
+#tow-shuffle-hint { font-size: 0.8rem; color: var(--text-tertiary); }
 
 .tow-team-actions-row { display: flex; gap: 0.6rem; margin: 0.6rem 0; }
 .tow-labeled-btn {
@@ -6261,6 +6262,12 @@ body:has(#screen-challenge-detail.active) #app {
 .max-players-select .segment { padding-left: 0; padding-right: 0; }
 .games-public-eyebrow { margin-top: 1.2rem; }
 #horse-session-select .segment:disabled,
-#tow-session-select .tow-icon-tab:disabled { opacity: 0.4; }
+#tow-session-select .segment:disabled { opacity: 0.4; }
 .group-onboard-actions { display: flex; flex-direction: column; gap: 0.7rem; width: 100%; max-width: 22rem; margin-top: 1rem; }
 .group-claim-new { margin-top: 1.4rem; }
+
+/* Session type (Horse + Tug of war): one segmented bar, icon beside label. */
+.session-type-bar .segment { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; min-width: 0; }
+.session-type-bar .segment.hidden { display: none; }
+.session-type-bar .session-icon { width: 0.95rem; height: 0.95rem; flex-shrink: 0; }
+.session-type-bar .session-icon.hidden { display: none; }

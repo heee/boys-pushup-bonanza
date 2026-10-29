@@ -3813,6 +3813,13 @@ function lobbySessionNote(type, legacyNotes) {
   }[type];
 }
 
+// The open-lobby tab shows a link icon as "Open" and a people icon as "Group".
+function syncSessionTypeIcons(barId, groupsAreOn) {
+  const bar = $(barId);
+  bar.querySelector(".session-icon-link").classList.toggle("hidden", groupsAreOn);
+  bar.querySelector(".session-icon-group").classList.toggle("hidden", !groupsAreOn);
+}
+
 function isLobbyType(type) {
   return type === "open" || type === "public";
 }
@@ -3834,7 +3841,8 @@ function lobbyAudiencePayload(type, maxPlayers) {
 
 function renderHorseSessionUI() {
   const on = groupsOn();
-  $("horse-session-open").textContent = on ? "Group" : "Open";
+  $("horse-session-open-label").textContent = on ? "Group" : "Open";
+  syncSessionTypeIcons("horse-session-select", on);
   $("horse-session-open").disabled = on && !activeGroup();
   $("horse-session-public").classList.toggle("hidden", !on);
   document.querySelectorAll("#horse-session-select .segment[data-horse-session]").forEach((s) => {
@@ -4629,7 +4637,7 @@ function renderTowStatUI() {
 }
 
 function renderTowSessionUI() {
-  document.querySelectorAll("#tow-session-select .tow-icon-tab[data-tow-session]").forEach((s) => {
+  document.querySelectorAll("#tow-session-select .segment[data-tow-session]").forEach((s) => {
     const active = s.dataset.towSession === state.towSessionType;
     s.classList.toggle("active", active);
     s.setAttribute("aria-selected", String(active));
@@ -4637,6 +4645,7 @@ function renderTowSessionUI() {
   const on = groupsOn();
   $("tow-session-online-label").textContent = on ? "Invite" : "Pick team";
   $("tow-session-open-label").textContent = on ? "Group" : "Open";
+  syncSessionTypeIcons("tow-session-select", on);
   document.querySelector('#tow-session-select [data-tow-session="open"]').disabled = on && !activeGroup();
   $("tow-session-public-tab").classList.toggle("hidden", !on);
   const type = state.towSessionType === "online" ? "invite" : state.towSessionType;
@@ -4786,7 +4795,7 @@ $("btn-tow-death-match").addEventListener("click", () => {
 });
 
 $("tow-session-select").addEventListener("click", (e) => {
-  const btn = e.target.closest(".tow-icon-tab[data-tow-session]");
+  const btn = e.target.closest(".segment[data-tow-session]");
   if (!btn || btn.disabled) return;
   state.towSessionType = btn.dataset.towSession;
   renderTowSessionUI();
