@@ -6271,3 +6271,10 @@ body:has(#screen-challenge-detail.active) #app {
 .session-type-bar .segment.hidden { display: none; }
 .session-type-bar .session-icon { width: 0.95rem; height: 0.95rem; flex-shrink: 0; }
 .session-type-bar .session-icon.hidden { display: none; }
+.horse-word-form { margin-top: 0.7rem; }
+#horse-word-input { text-transform: uppercase; letter-spacing: 0.2em; font-weight: 700; }
+.horse-word-lives { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--text-tertiary); }
+/* Up to 8 letters + 3 buttons on one row: chips shrink to fit. */
+.horse-word-preview-row .horse-word-preview { flex: 0 1 auto; min-width: 0; }
+.horse-word-preview-row .horse-word-chip { flex: 0 1 30px; min-width: 22px; }
+#horse-word-input::placeholder { text-transform: none; letter-spacing: normal; font-weight: 400; }

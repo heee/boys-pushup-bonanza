@@ -1597,7 +1597,7 @@ async function fetchGroupData(db) {
 export function validateHorseCreate(body) {
   if (!body || typeof body !== "object") return null;
   const word = typeof body.word === "string" ? body.word.trim().toUpperCase() : "";
-  if (!/^[A-Z]{5}$/.test(word)) return null;
+  if (!/^[A-Z]{3,8}$/.test(word)) return null;
   const sessionType = ["invite", "open"].includes(body.sessionType) ? body.sessionType : "live";
   const createdBy = typeof body.createdBy === "string" ? body.createdBy.trim().slice(0, 40) : "";
   if (!createdBy) return null;
@@ -1752,11 +1752,12 @@ function horseAdvanceTurn(game, now) {
   return { turnIndex: idx, round, turnStartedAt: now };
 }
 
-function horseAwardLetter(players, user, now) {
+function horseAwardLetter(players, user, now, lives = 5) {
   const next = { ...players, [user]: { ...players[user] } };
   const p = next[user];
   p.letters += 1;
-  if (p.letters >= 5) {
+  // The word's length is the number of lives (3–8 letters; HORSE = 5).
+  if (p.letters >= lives) {
     p.out = true;
     p.outAt = now;
   }
@@ -1805,7 +1806,7 @@ export function applyTurn(game, { user, reps, modifier = null, now = Date.now() 
   const needed = game.target;
   const success = needed == null || reps >= needed;
   let players = game.players;
-  if (!success) players = horseAwardLetter(players, user, now);
+  if (!success) players = horseAwardLetter(players, user, now, game.word.length);
 
   const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
   const next = { ...game, players, sets };

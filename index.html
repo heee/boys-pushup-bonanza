@@ -470,10 +470,18 @@
         <button id="btn-horse-randomize-word" type="button" class="horse-reshuffle-btn" aria-label="Randomize word">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
         </button>
+        <button id="btn-horse-edit-word" type="button" class="horse-reshuffle-btn" aria-label="Type your own word">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
+        </button>
         <button id="btn-horse-reset-word" type="button" class="horse-reshuffle-btn hidden" aria-label="Reset to HORSE">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
         </button>
       </div>
+      <form id="horse-word-form" class="group-form horse-word-form hidden">
+        <input id="horse-word-input" type="text" maxlength="8" placeholder="3–8 letters" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Your word">
+        <button type="submit" class="btn btn-primary">Use</button>
+      </form>
+      <p id="horse-word-lives" class="screen-sub horse-word-lives"></p>
 
       <div id="horse-time-limit-section" class="hidden">
         <p class="pyramid-setup-section-label horse-section-label">

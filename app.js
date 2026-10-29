@@ -3797,6 +3797,7 @@ function horseMiniStripHTML(word, lettersCollected) {
 function renderHorseWordUI() {
   $("horse-word-preview").innerHTML = state.horseWord.split("").map((l) => `<span class="horse-word-chip">${escapeHtml(l)}</span>`).join("");
   $("btn-horse-reset-word").classList.toggle("hidden", state.horseWord === "HORSE");
+  $("horse-word-lives").textContent = `${state.horseWord.length} letters = ${state.horseWord.length} lives`;
 }
 
 // Session-type copy shared by Horse and Tug of war once groups are on
@@ -3921,6 +3922,7 @@ function renderHorsePlayerList() {
 // resetting to just the current user.
 function renderHorseSetup(keepPlayers = false) {
   state.horseWord = "HORSE";
+  $("horse-word-form").classList.add("hidden");
   state.horseSessionType = "live";
   state.horseMaxPlayers = 4;
   state.horseTimeLimit = "48h";
@@ -3938,6 +3940,34 @@ $("btn-horse-setup-back").addEventListener("click", () => {
 
 $("btn-horse-randomize-word").addEventListener("click", () => {
   state.horseWord = randomHorseWord(state.horseWord);
+  $("horse-word-form").classList.add("hidden");
+  renderHorseWordUI();
+});
+
+// Custom word: letters only, 3–8 long — its length is everyone's lives.
+const HORSE_WORD_MIN = 3;
+const HORSE_WORD_MAX = 8;
+
+$("btn-horse-edit-word").addEventListener("click", () => {
+  const form = $("horse-word-form");
+  form.classList.toggle("hidden");
+  if (form.classList.contains("hidden")) return;
+  $("horse-word-input").value = "";
+  $("horse-word-input").focus();
+});
+$("horse-word-input").addEventListener("input", (e) => {
+  const clean = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, HORSE_WORD_MAX);
+  if (clean !== e.target.value) e.target.value = clean;
+});
+$("horse-word-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const word = $("horse-word-input").value.toUpperCase().replace(/[^A-Z]/g, "");
+  if (word.length < HORSE_WORD_MIN || word.length > HORSE_WORD_MAX) {
+    toast(`Pick a word with ${HORSE_WORD_MIN}–${HORSE_WORD_MAX} letters.`);
+    return;
+  }
+  state.horseWord = word;
+  $("horse-word-form").classList.add("hidden");
   renderHorseWordUI();
 });
 
@@ -4477,7 +4507,7 @@ function renderHorseLetterScreen() {
   const evt = state.horseLetterEvent;
   const game = state.horseGame;
   $("horse-letter-summary-line").textContent = evt.needed == null ? `You got ${evt.reps}` : `Needed ${evt.needed}+ · you got ${evt.reps}`;
-  const collected = 5 - evt.lettersLeft;
+  const collected = game.word.length - evt.lettersLeft;
   const letter = game.word[collected - 1];
   $("horse-letter-badge").textContent = letter;
   $("horse-letter-headline").textContent = `${evt.forUser === state.currentUser ? "You" : evt.forUser} picked up letter ${letter}`;
@@ -4509,7 +4539,7 @@ $("btn-horse-letter-share").addEventListener("click", async () => {
   const evt = state.horseLetterEvent;
   const game = state.horseGame;
   const nextName = game.status === "complete" ? null : currentTurnPlayer(game);
-  const message = pickHorseLetterFailMessage({ name: evt.forUser, letter: game.word[4 - evt.lettersLeft], nextName });
+  const message = pickHorseLetterFailMessage({ name: evt.forUser, letter: game.word[game.word.length - 1 - evt.lettersLeft], nextName });
   const url = game.sessionType === "open" ? horseInviteUrl(game.id) : location.href;
   if (navigator.share) {
     try {
@@ -11751,7 +11781,7 @@ async function completeHorseTurn(rawCount) {
       forUser: user,
       needed: game.target,
       reps: rawCount,
-      lettersLeft: 5 - updated.players[user].letters,
+      lettersLeft: updated.word.length - updated.players[user].letters,
       justWentOut: updated.players[user].out,
     };
     renderHorseLetterScreen();

@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-29", text: "Horse: type your own 3–8 letter word — its length sets everyone's lives" },
   { date: "2026-10-29", text: "Roadtrip alerts now only fire when you steal a territory, naming what, when and from whom" },
   { date: "2026-10-28", text: "Poker hands now shuffle and deal in, with the current card front and center" },
   { date: "2026-10-27", text: "Kettlebell workouts: one main bell weight, with per-move overrides" },
