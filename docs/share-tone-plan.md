@@ -1,6 +1,6 @@
 # Share message tone — plan
 
-Status: **draft, awaiting confirmation** (2026-10-29)
+Status: **shipped** (2026-10-29)
 
 A Settings → Preferences control that sets how unhinged share texts are.
 
