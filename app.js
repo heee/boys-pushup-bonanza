@@ -134,7 +134,7 @@ import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } f
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
-import { challengeVisibleTo, groupMemberNames, groupsForUser, isGroupAdmin, LEGACY_GROUP_ID, resolveActiveGroupId, scopeUserNames } from "./groups.js";
+import { challengeVisibleTo, groupMemberNames, groupsForUser, isGroupAdmin, pickerUserNames, resolveActiveGroupId, scopeUserNames } from "./groups.js";
 import {
   applyBurst as applyTowBurst,
   autoBalanceTeams as towAutoBalanceTeams,
@@ -334,6 +334,8 @@ const LS = {
   homeType: "bpb-home-type",
   homeMode: "bpb-home-mode",
   activeGroups: "bpb-active-groups",
+  deviceProfiles: "bpb-device-profiles",
+  pendingJoin: "bpb-pending-join",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -2469,8 +2471,19 @@ $("group-join-form").addEventListener("submit", async (e) => {
   await joinGroupByCode(code);
 });
 
+// The code is parked in localStorage as soon as it's seen: a first visit's
+// service-worker takeover reloads the page, and the hash is gone by then.
 function groupJoinLinkCode() {
-  return location.hash.match(/^#join=([A-Za-z0-9]{6})$/)?.[1]?.toUpperCase() || null;
+  const fromHash = location.hash.match(/^#join=([A-Za-z0-9]{6})$/)?.[1]?.toUpperCase();
+  if (fromHash) {
+    localStorage.setItem(LS.pendingJoin, fromHash);
+    history.replaceState(null, "", location.pathname);
+  }
+  return fromHash || localStorage.getItem(LS.pendingJoin) || null;
+}
+
+function clearPendingJoinCode() {
+  localStorage.removeItem(LS.pendingJoin);
 }
 
 // A group invite link (#join=CODE) for a device that already has a profile:
@@ -2478,7 +2491,7 @@ function groupJoinLinkCode() {
 async function openGroupJoinFromHash() {
   const code = groupJoinLinkCode();
   if (!code || !groupsOn()) return false;
-  history.replaceState(null, "", location.pathname);
+  clearPendingJoinCode();
   const existing = allGroups().find((g) => g.inviteCode === code);
   if (existing?.members.some((m) => m.name === state.currentUser)) {
     openGroupDetail(existing.id);
@@ -2498,6 +2511,39 @@ async function joinGroupByCode(code) {
   openGroupDetail(group.id);
   return group;
 }
+
+// New device opening a group invite (#join=CODE, no profile yet): tap your
+// name if you're already in the group, or create a new player who joins it.
+function openGroupClaim(code) {
+  const group = allGroups().find((g) => g.inviteCode === code);
+  state.pendingJoinCode = code;
+  if (!group) {
+    showScreen("screen-user");
+    return;
+  }
+  $("group-claim-title").textContent = `Join ${group.name}`;
+  const list = $("group-claim-list");
+  list.innerHTML = "";
+  for (const m of group.members) {
+    const btn = userChoiceButton(m.name);
+    list.appendChild(btn);
+  }
+  showScreen("screen-group-claim");
+}
+
+$("btn-group-claim-new").addEventListener("click", () => {
+  showScreen("screen-user");
+  openNewUserForm();
+});
+
+function openSettingsGroupsForm(form) {
+  showScreen("screen-settings-groups");
+  $(form).classList.remove("hidden");
+  $(form).querySelector("input").focus();
+}
+$("btn-onboard-create").addEventListener("click", () => openSettingsGroupsForm("group-create-form"));
+$("btn-onboard-join").addEventListener("click", () => openSettingsGroupsForm("group-join-form"));
+$("btn-onboard-solo").addEventListener("click", () => showScreen("screen-workout"));
 
 $("btn-group-make-active").addEventListener("click", () => {
   setActiveGroup(state.groupDetailId);
@@ -2571,9 +2617,22 @@ function openNewUserForm() {
   $("new-user-input").focus();
 }
 
+// Profiles picked or created on this device — the seed for the groups-era
+// picker (see pickerUserNames). The remembered last user always counts.
+function deviceProfiles() {
+  const stored = jsonStorage.read(LS.deviceProfiles, []);
+  const last = localStorage.getItem(LS.lastUser);
+  return [...new Set([...(Array.isArray(stored) ? stored : []), ...(last ? [last] : [])])];
+}
+
+function rememberDeviceProfile(name) {
+  jsonStorage.write(LS.deviceProfiles, [...new Set([...deviceProfiles(), name])]);
+}
+
 function renderUserList() {
   const sessions = getAllSessionsForDisplay();
-  const names = orderedUserNames(sessions, state.currentUser);
+  const ordered = orderedUserNames(sessions, state.currentUser);
+  const names = groupsOn() ? pickerUserNames(ordered, { deviceProfiles: deviceProfiles(), groups: allGroups() }) : ordered;
   const savedLastUser = localStorage.getItem(LS.lastUser) || "";
   const model = userSelectionModel(names, savedLastUser, { expanded: userSelectionExpanded, creating: userCreationOpen });
   if (model.staleRecentUser) {
@@ -2600,7 +2659,9 @@ function renderUserList() {
   if (!model.creating && !names.length) {
     const p = document.createElement("p");
     p.className = "screen-sub";
-    p.textContent = "No one's flexed yet — be the first!";
+    p.textContent = groupsOn()
+      ? "New here? Create your player — or open an invite link from your group."
+      : "No one's flexed yet — be the first!";
     list.appendChild(p);
   }
   if (!model.creating) {
@@ -2643,15 +2704,29 @@ $("new-user-avatar-btn").addEventListener("click", () => {
 });
 
 function selectUser(name, avatarId) {
+  const isNew = !!avatarId && !getAllSessionsForDisplay().some((s) => s.user === name);
   state.currentUser = name;
   state.currentAvatar = avatarId || avatarForUser(name).id;
   localStorage.setItem(LS.lastUser, name);
+  rememberDeviceProfile(name);
+  if (state.pendingJoinCode) {
+    const code = state.pendingJoinCode;
+    state.pendingJoinCode = null;
+    clearPendingJoinCode();
+    showScreen("screen-workout");
+    if (!myGroups().some((g) => g.inviteCode === code)) joinGroupByCode(code);
+    return;
+  }
   if (horseLinkGameId()) {
     openHorseGameFromHash();
     return;
   }
   if (towLinkGameId()) {
     openTowGameFromHash();
+    return;
+  }
+  if (isNew && groupsOn() && !myGroups().length) {
+    showScreen("screen-group-onboard");
     return;
   }
   showScreen("screen-workout");
@@ -16905,6 +16980,7 @@ async function init() {
   if (state.currentUser) await openHorseGameFromHash();
   if (state.currentUser) await openTowGameFromHash();
   if (state.currentUser) await openGroupJoinFromHash();
+  else if (groupJoinLinkCode() && groupsOn()) openGroupClaim(groupJoinLinkCode());
 
   // A shared challenge link (#challenge=id) jumps straight to that challenge's
   // detail screen — but only if this device already has a remembered name;

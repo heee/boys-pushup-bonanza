@@ -35,3 +35,12 @@ test("challenge visibility", () => {
   assert.ok(!challengeVisibleTo({ createdBy: "Henning", visibility: "personal" }, ctx("Nelson")));
   assert.ok(challengeVisibleTo({ createdBy: "Henning", visibility: "public" }, ctx("Ada")));
 });
+
+test("picker shows device profiles plus their groups' rosters", async () => {
+  const { pickerUserNames } = await import("../groups.js");
+  const ordered = ["Henning", "Ada", "Nelson", "Stranger"];
+  assert.deepEqual(pickerUserNames(ordered, { deviceProfiles: ["Henning"], groups }), ["Henning", "Nelson"]);
+  assert.deepEqual(pickerUserNames(ordered, { deviceProfiles: ["Nelson"], groups }), ["Henning", "Ada", "Nelson"]);
+  assert.deepEqual(pickerUserNames(ordered, { deviceProfiles: [], groups }), []);
+  assert.deepEqual(pickerUserNames(ordered, { deviceProfiles: ["Newbie"], groups }), ["Newbie"]);
+});

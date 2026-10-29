@@ -43,3 +43,19 @@ export function challengeVisibleTo(challenge, { user, groups, participants = [] 
   if (challenge.visibility === "group") return groupsForUser(groups, user).some((g) => g.id === challenge.groupId);
   return false;
 }
+
+// "Who's flexing today?" once groups are on (docs/groups-plan.md): profiles
+// used on this device, plus every member of any group one of them belongs
+// to — so a Boys 2.1 phone keeps its full roster while a brand-new install
+// only sees itself. Keeps the incoming order; members with no sessions yet
+// go last.
+export function pickerUserNames(orderedNames, { deviceProfiles, groups }) {
+  const mine = new Set(deviceProfiles);
+  const roster = new Set(deviceProfiles);
+  for (const group of groups || []) {
+    if (group.members.some((m) => mine.has(m.name))) for (const m of group.members) roster.add(m.name);
+  }
+  const ordered = orderedNames.filter((name) => roster.has(name));
+  for (const name of roster) if (!ordered.includes(name)) ordered.push(name);
+  return ordered;
+}

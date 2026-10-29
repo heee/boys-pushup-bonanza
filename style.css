@@ -6262,3 +6262,5 @@ body:has(#screen-challenge-detail.active) #app {
 .games-public-eyebrow { margin-top: 1.2rem; }
 #horse-session-select .segment:disabled,
 #tow-session-select .tow-icon-tab:disabled { opacity: 0.4; }
+.group-onboard-actions { display: flex; flex-direction: column; gap: 0.7rem; width: 100%; max-width: 22rem; margin-top: 1rem; }
+.group-claim-new { margin-top: 1.4rem; }

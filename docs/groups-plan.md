@@ -1,6 +1,6 @@
 # Groups + expanded game session types — plan
 
-Status: **approved, building** (2026-10-29). Phases 1–3 shipped dark: everything is gated on `/data`'s `groupsEnabled`, which turns true only once the 0009 SQL has run — until then the app behaves exactly as before.
+Status: **built, shipped dark** (2026-10-29). All six phases are live in code but everything is gated on `/data`'s `groupsEnabled`, which turns true only once the 0009 SQL has run — until then the app behaves exactly as before.
 
 Groundwork for a broader App Store launch. Real groups replace the single
 implicit "Boys Bonanza" pool; every current user lands in **The Boys 2.1**.
@@ -69,3 +69,12 @@ endpoints validate group membership and `maxPlayers`.
 ## Out of scope / later
 
 - Accounts / Sign in with Apple, push notifications, group avatars, discoverable/searchable groups, Roadtrip per-group view.
+
+## Go-live checklist
+
+1. Run `worker/migrations/0009_groups.sql` in the D1 console.
+2. Get the Worker deployed (repo secret `CLOUDFLARE_API_TOKEN` is missing, so
+   the Deploy Worker action fails — add it and re-run, or paste
+   `worker/index.js` into Quick Edit).
+3. `/data` then returns `groupsEnabled: true` and every surface switches on.
+   Add the Changelog entry at that point.
