@@ -1649,6 +1649,16 @@
           </div>
         </div>
 
+        <div id="create-visibility-section" class="hidden">
+          <label class="field-label">Who can see it</label>
+          <div id="create-visibility" class="segmented" role="tablist">
+            <button type="button" class="segment" data-visibility="personal">Personal</button>
+            <button type="button" class="segment" id="create-visibility-group" data-visibility="group">Group</button>
+            <button type="button" class="segment" data-visibility="public">Public</button>
+          </div>
+          <p id="create-visibility-note" class="screen-sub create-visibility-note"></p>
+        </div>
+
         <label class="field-label">Title</label>
         <input id="create-title" class="text-input" type="text" maxlength="60" required placeholder="e.g. Labor Day Lockout">
 

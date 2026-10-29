@@ -8047,8 +8047,28 @@ attachTabSwipe("screen-roadtrip", "#roadtrip-period-select .segment");
 
 // Dates are YYYY-MM-DD, inclusive, in the device's local timezone.
 
+// Built-in (seasonal) challenges are global, so their standings default to
+// the active group's members (plus you); "Everyone" on the detail screen
+// lifts that. Custom challenges are already scoped by who can see them.
+function challengeScopeNames(c) {
+  if (c.createdBy || !groupsOn() || state.challengeScopeAll) return null;
+  const group = activeGroup();
+  return group ? new Set(groupMemberNames(group)) : null;
+}
+
+function challengeScopeKey(c) {
+  return challengeScopeNames(c) ? `${c.id}|${activeGroupId()}` : c.id;
+}
+
 function challengeParticipantsOf(c) {
-  return getCachedData().challengeParticipants[c.id] || [];
+  const all = getCachedData().challengeParticipants[c.id] || [];
+  const names = challengeScopeNames(c);
+  return names ? all.filter((name) => names.has(name) || name === state.currentUser) : all;
+}
+
+function challengeVisible(c) {
+  if (!groupsOn()) return true;
+  return challengeVisibleTo(c, { user: state.currentUser, groups: allGroups(), participants: getCachedData().challengeParticipants[c.id] || [] });
 }
 
 // Which logged-session bucket a challenge tracks. plankGauntlet is always
@@ -8059,7 +8079,7 @@ function challengeActivity(c) {
 }
 
 function challengeSessions(c) {
-  const cached = challengeSessionCache.get(c.id);
+  const cached = challengeSessionCache.get(challengeScopeKey(c));
   if (cached) return cached;
   const participants = new Set(challengeParticipantsOf(c));
   if (!participants.size) return [];
@@ -8074,7 +8094,7 @@ function challengeSessions(c) {
       if (timestamp >= startTime && timestamp <= endTime) sessions.push(session);
     }
   }
-  challengeSessionCache.set(c.id, sessions);
+  challengeSessionCache.set(challengeScopeKey(c), sessions);
   return sessions;
 }
 
@@ -8223,7 +8243,7 @@ function paintChallengeList() {
   const now = new Date();
   const tab = state.challengeTab;
   // Past challenges nobody joined are dead entries — leave them off the list.
-  const list = challengeDefs.filter((c) => challengeStatus(c, now) === tab && (tab !== "past" || challengeParticipantsOf(c).length > 0));
+  const list = challengeDefs.filter((c) => challengeVisible(c) && challengeStatus(c, now) === tab && (tab !== "past" || challengeParticipantsOf(c).length > 0));
   if (tab === "active") list.sort((a, b) => daysLeft(a, now) - daysLeft(b, now));
   else if (tab === "upcoming") list.sort((a, b) => daysUntilStart(a, now) - daysUntilStart(b, now));
   else list.sort((a, b) => challengeWindow(b).endDate - challengeWindow(a).endDate);
@@ -8891,6 +8911,13 @@ function renderChallengeDetail() {
     </div>
   `;
 
+  if (!c.createdBy && groupsOn() && activeGroup()) {
+    html += `<div id="challenge-scope-select" class="segmented segmented-subtle challenge-scope-select" role="tablist">
+      <button type="button" class="segment${state.challengeScopeAll ? "" : " active"}" data-challenge-scope="group">${escapeHtml(activeGroup().name)}</button>
+      <button type="button" class="segment${state.challengeScopeAll ? " active" : ""}" data-challenge-scope="all">Everyone</button>
+    </div>`;
+  }
+
   if (status !== "past" && !joined) {
     html += `<button type="button" id="btn-challenge-join" class="btn btn-primary btn-large">JOIN this challenge</button>`;
   }
@@ -8989,6 +9016,12 @@ function renderChallengeDetail() {
 
   body.innerHTML = html;
 
+  $("challenge-scope-select")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-challenge-scope]");
+    if (!btn) return;
+    state.challengeScopeAll = btn.dataset.challengeScope === "all";
+    renderChallengeDetail();
+  });
   if (status !== "past" && !joined) {
     $("btn-challenge-join").addEventListener("click", () => joinChallenge(c.id));
   }
@@ -9671,6 +9704,8 @@ function openCreateChallenge() {
   $("create-goal").value = "";
   state.createGoalType = "individual";
   document.querySelectorAll("#create-goal-type .segment").forEach((s, i) => s.classList.toggle("active", i === 0));
+  state.createVisibility = activeGroup() ? "group" : "public";
+  renderCreateVisibility();
 
   const today = new Date();
   const inTwoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -9689,6 +9724,27 @@ $("btn-challenge-create").addEventListener("click", () => {
   openCreateChallenge();
 });
 $("btn-create-back").addEventListener("click", () => showScreen("screen-challenges"));
+
+function renderCreateVisibility() {
+  $("create-visibility-section").classList.toggle("hidden", !groupsOn());
+  // "Group" now means visibility — the shared-goal type reads as Team instead.
+  document.querySelector('#create-goal-type [data-goaltype="collective"]').textContent = groupsOn() ? "Team" : "Group";
+  const group = activeGroup();
+  $("create-visibility-group").disabled = !group;
+  document.querySelectorAll("#create-visibility .segment").forEach((s) => s.classList.toggle("active", s.dataset.visibility === state.createVisibility));
+  $("create-visibility-note").textContent = state.createVisibility === "personal"
+    ? "Only you can see and join it."
+    : state.createVisibility === "group"
+      ? `Only ${group?.name || "your group"} can see and join it.`
+      : "Anyone on the app can see and join it.";
+}
+
+$("create-visibility").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn || btn.disabled) return;
+  state.createVisibility = btn.dataset.visibility;
+  renderCreateVisibility();
+});
 
 $("create-goal-type").addEventListener("click", (e) => {
   const btn = e.target.closest(".segment");
@@ -9727,6 +9783,10 @@ $("create-challenge-form").addEventListener("submit", async (e) => {
     end,
     gradient: gradientForIcon(emoji),
     createdBy: state.currentUser,
+    ...(groupsOn() ? {
+      visibility: state.createVisibility,
+      groupId: state.createVisibility === "group" ? activeGroupId() : null,
+    } : {}),
   };
 
   const submitBtn = e.target.querySelector('button[type="submit"]');

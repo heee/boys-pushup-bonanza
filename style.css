@@ -6255,3 +6255,6 @@ body:has(#screen-challenge-detail.active) #app {
 .group-danger-actions { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.4rem; }
 .group-delete-btn { color: var(--danger, #e5534b); }
 .brand-wrap:not(.groups-on) .brand-chevron { display: none; }
+.create-visibility-note { margin: -0.6rem 0 1rem; font-size: 0.82rem; }
+#create-visibility .segment:disabled { opacity: 0.4; }
+.challenge-scope-select { margin: 0.9rem 0 1rem; }
