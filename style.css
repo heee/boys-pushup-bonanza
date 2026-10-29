@@ -6197,3 +6197,29 @@ body:has(#screen-challenge-detail.active) #app {
    as their own section below it. */
 #workout-idle .workout-eyebrow { margin-bottom: -0.35rem; }
 #workout-idle .workout-hello { margin-bottom: 1.6rem; }
+
+/* Main tab screens (Games, Challenges, Roadtrip, Board) share one header
+   geometry so the title and tab row don't jump when switching tabs: a
+   fixed-height row, every right-side control at the same height, and the
+   same gap down to the first tab label. */
+.games-header,
+.challenges-header,
+.roadtrip-header,
+.dashboard-header { height: 2.4rem; margin-bottom: 0; }
+#screen-dashboard .dashboard-header { margin-bottom: 0; }
+.games-header .screen-title,
+.challenges-header .screen-title,
+.roadtrip-header .screen-title,
+.dashboard-header .screen-title { margin: 0; line-height: 1; }
+.games-start-btn,
+.challenges-create-btn,
+.roadtrip-header .leaderboard-mode-trigger,
+.dashboard-header-actions .leaderboard-mode-trigger,
+.dashboard-header-actions .icon-btn { height: 2.4rem; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
+#games-tab-select,
+#challenge-tab-select,
+#roadtrip-period-select,
+#period-select { margin-top: 0.8rem; padding-top: 0; }
+/* Underline sits on the divider, as on the other tab rows. */
+#period-select { padding-bottom: 0; }
+#games-tab-select.hidden + #games-list { margin-top: 1.2rem; }
