@@ -1623,6 +1623,7 @@ const state = {
   towTarget: 300,
   towRounds: 5,
   towSessionType: "live",
+  towMaxPlayers: 4,
   towDeathMatch: false,
   towSetupTeams: { a: [], b: [] },
   towTeamNames: { a: "", b: "" },
@@ -3723,21 +3724,67 @@ function renderHorseWordUI() {
   $("btn-horse-reset-word").classList.toggle("hidden", state.horseWord === "HORSE");
 }
 
+// Session-type copy shared by Horse and Tug of war once groups are on
+// (docs/groups-plan.md). "open" is the Group lobby; "public" is an open
+// lobby anyone on the app can find.
+function lobbySessionNote(type, legacyNotes) {
+  if (!groupsOn()) return legacyNotes[type];
+  const group = activeGroup();
+  return {
+    live: "Pass the phone around in person — everyone plays on this device.",
+    invite: "Pick specific players; they compete on their own devices.",
+    open: group ? `Everyone in ${group.name} gets notified and can join on their own device.` : "Join or create a group to host a group session.",
+    public: "Anyone on the app can find and join on their own device.",
+  }[type];
+}
+
+function isLobbyType(type) {
+  return type === "open" || type === "public";
+}
+
+const MAX_PLAYER_CHOICES = [2, 3, 4, 5, 6, 7, 8];
+
+function maxPlayersHTML(selected, attr) {
+  return MAX_PLAYER_CHOICES.map((n) => `<button type="button" class="segment${n === selected ? " active" : ""}" ${attr}="${n}">${n}</button>`).join("");
+}
+
+// What an open lobby is created with: audience + group + cap once groups
+// are on; nothing extra (today's link-only lobby) before that.
+function lobbyAudiencePayload(type, maxPlayers) {
+  if (!groupsOn() || !isLobbyType(type)) return {};
+  return type === "public"
+    ? { audience: "public", maxPlayers }
+    : { audience: "group", groupId: activeGroupId(), maxPlayers };
+}
+
 function renderHorseSessionUI() {
+  const on = groupsOn();
+  $("horse-session-open").textContent = on ? "Group" : "Open";
+  $("horse-session-open").disabled = on && !activeGroup();
+  $("horse-session-public").classList.toggle("hidden", !on);
   document.querySelectorAll("#horse-session-select .segment[data-horse-session]").forEach((s) => {
     s.classList.toggle("active", s.dataset.horseSession === state.horseSessionType);
   });
   const note = $("horse-session-note");
   note.classList.remove("hidden");
-  note.textContent = state.horseSessionType === "open"
-    ? "Create a private link. Up to three players can join in link order, even after play starts."
-    : state.horseSessionType === "invite"
-    ? "Other players get a bell notification on Home when it's their turn."
-    : "Everyone plays in turn on this device, one shot after another.";
+  note.textContent = lobbySessionNote(state.horseSessionType, {
+    open: "Create a private link. Up to three players can join in link order, even after play starts.",
+    invite: "Other players get a bell notification on Home when it's their turn.",
+    live: "Everyone plays in turn on this device, one shot after another.",
+  });
+  $("horse-max-players-section").classList.toggle("hidden", !on || !isLobbyType(state.horseSessionType));
+  $("horse-max-players").innerHTML = maxPlayersHTML(state.horseMaxPlayers, "data-horse-max");
   // A match timer only makes sense for async play — Live is one shared
   // device, played through in a single sitting.
   $("horse-time-limit-section").classList.toggle("hidden", state.horseSessionType === "live");
 }
+
+$("horse-max-players").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-horse-max]");
+  if (!btn) return;
+  state.horseMaxPlayers = Number(btn.dataset.horseMax);
+  renderHorseSessionUI();
+});
 
 function renderHorseTimeUI() {
   document.querySelectorAll("#horse-time-select .segment[data-horse-time]").forEach((s) => {
@@ -3766,7 +3813,7 @@ function renderHorsePlayerList() {
   const known = orderedUserNames(getAllSessionsForDisplay(), state.currentUser)
     .filter((name) => !state.horseSetupPlayers.includes(name));
   const candidates = $("horse-invite-candidates");
-  const isOpen = state.horseSessionType === "open";
+  const isOpen = isLobbyType(state.horseSessionType);
   $("btn-horse-invite-more").classList.toggle("hidden", isOpen);
   candidates.classList.toggle("hidden", isOpen || !horseInviteExpanded);
   if (horseInviteExpanded) {
@@ -3783,7 +3830,7 @@ function renderHorsePlayerList() {
   const enoughPlayers = isOpen || state.horseSetupPlayers.length >= 2;
   startBtn.disabled = !enoughPlayers;
   startBtn.textContent = isOpen
-    ? "Create open session"
+    ? (groupsOn() ? (state.horseSessionType === "public" ? "Create public session" : "Create group session") : "Create open session")
     : enoughPlayers ? "Do your set — sets the bar" : "Add at least one more player";
 }
 
@@ -3792,6 +3839,7 @@ function renderHorsePlayerList() {
 function renderHorseSetup(keepPlayers = false) {
   state.horseWord = "HORSE";
   state.horseSessionType = "live";
+  state.horseMaxPlayers = 4;
   state.horseTimeLimit = "48h";
   if (!keepPlayers || !state.horseSetupPlayers?.length) state.horseSetupPlayers = [state.currentUser];
   horseInviteExpanded = false;
@@ -3817,9 +3865,9 @@ $("btn-horse-reset-word").addEventListener("click", () => {
 
 $("horse-session-select").addEventListener("click", (e) => {
   const btn = e.target.closest(".segment[data-horse-session]");
-  if (!btn) return;
+  if (!btn || btn.disabled) return;
   state.horseSessionType = btn.dataset.horseSession;
-  if (state.horseSessionType === "open") {
+  if (isLobbyType(state.horseSessionType)) {
     state.horseSetupPlayers = [state.currentUser];
     horseInviteExpanded = false;
   }
@@ -3870,31 +3918,33 @@ function beginHorseTurn(name) {
 }
 
 $("btn-horse-start").addEventListener("click", async () => {
-  if (state.horseSessionType !== "open" && state.horseSetupPlayers.length < 2) return;
+  const lobby = isLobbyType(state.horseSessionType);
+  if (!lobby && state.horseSetupPlayers.length < 2) return;
   // Live is pass-the-phone, played through in one sitting — the match timer
   // only applies to async (invite/open) play, whatever the setup UI shows.
   const timeLimitKey = state.horseSessionType === "live" ? "unlimited" : state.horseTimeLimit;
   const input = {
     id: `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     word: state.horseWord,
-    sessionType: state.horseSessionType,
+    sessionType: lobby ? "open" : state.horseSessionType,
     createdBy: state.currentUser,
     players: state.horseSetupPlayers,
     timeLimit: HORSE_TIME_LIMITS[timeLimitKey],
     timeLimitKey,
+    ...lobbyAudiencePayload(state.horseSessionType, state.horseMaxPlayers),
   };
   state.horseLetterEvent = null;
   // Invite games are server-authoritative from the start (other players read
   // them via /data on their own devices) — Live games stay purely local
   // until the game finishes, same as any other pushup mode's session.
-  if (state.horseSessionType === "invite" || state.horseSessionType === "open") {
+  if (state.horseSessionType === "invite" || lobby) {
     const btn = $("btn-horse-start");
     btn.disabled = true;
     try {
       const { game } = await workerCreateHorseGame(input);
       state.horseGame = game;
       upsertLocalHorseGame(game);
-      if (state.horseSessionType === "open") await openHorseTurnOrder();
+      if (lobby) await openHorseTurnOrder();
       else beginHorseTurn(state.currentUser);
     } catch (e) {
       toast("Couldn't create the game — check your connection and try again.", 4000);
@@ -3990,7 +4040,7 @@ function renderHorseTurnOrder() {
     </div>`;
   }).join("");
   const openSlotsHTML = game.sessionType === "open"
-    ? Array.from({ length: Math.max(0, 8 - rows.length) }, () => `
+    ? Array.from({ length: Math.max(0, (game.maxPlayers || 8) - rows.length) }, () => `
       <div class="tier1-row horse-player-row horse-open-slot">
         <span class="horse-open-slot-icon">＋</span>
         <span class="horse-player-name horse-open-slot-name">Open player slot</span>
@@ -4015,7 +4065,7 @@ function renderHorseTurnOrder() {
   openControls.classList.toggle("hidden", !isOpen);
   if (isOpen) {
     const started = game.startedAt != null;
-    const slotsLeft = 8 - game.turnOrder.length;
+    const slotsLeft = (game.maxPlayers || 8) - game.turnOrder.length;
     $("horse-open-slots").textContent = started
       ? `${game.turnOrder.length} player${game.turnOrder.length === 1 ? "" : "s"} · started`
       : `${game.turnOrder.length}/8 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
@@ -4141,7 +4191,7 @@ function renderOpenHorseJoin(game) {
       <span class="horse-player-tag">${name === game.createdBy ? "Host" : "Joined"}</span>
     </div>`).join("");
   const slots = game?.sessionType === "open"
-    ? Array.from({ length: Math.max(0, 8 - names.length) }, () => `
+    ? Array.from({ length: Math.max(0, (game.maxPlayers || 8) - names.length) }, () => `
       <div class="tier1-row horse-player-row horse-open-slot">
         <span class="horse-open-slot-icon">＋</span><span class="horse-player-name">Open slot</span>
       </div>`).join("")
@@ -4509,12 +4559,27 @@ function renderTowSessionUI() {
     s.classList.toggle("active", active);
     s.setAttribute("aria-selected", String(active));
   });
-  $("tow-session-note").textContent = state.towSessionType === "live"
-    ? "Pass one phone around the room, turn by turn."
-    : state.towSessionType === "online"
-      ? "Everyone gets a turn notification, take your burst whenever."
-      : "Share a join link, anyone taps in until both teams fill or you hit Start.";
+  const on = groupsOn();
+  $("tow-session-online-label").textContent = on ? "Invite" : "Pick team";
+  $("tow-session-open-label").textContent = on ? "Group" : "Open";
+  document.querySelector('#tow-session-select [data-tow-session="open"]').disabled = on && !activeGroup();
+  $("tow-session-public-tab").classList.toggle("hidden", !on);
+  const type = state.towSessionType === "online" ? "invite" : state.towSessionType;
+  $("tow-session-note").textContent = lobbySessionNote(type, {
+    live: "Pass one phone around the room, turn by turn.",
+    invite: "Everyone gets a turn notification, take your burst whenever.",
+    open: "Share a join link, anyone taps in until both teams fill or you hit Start.",
+  });
+  $("tow-max-players-section").classList.toggle("hidden", !on || !isLobbyType(state.towSessionType));
+  $("tow-max-players").innerHTML = maxPlayersHTML(state.towMaxPlayers, "data-tow-max");
 }
+
+$("tow-max-players").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-tow-max]");
+  if (!btn) return;
+  state.towMaxPlayers = Number(btn.dataset.towMax);
+  renderTowSessionUI();
+});
 
 // Renders the TEAMS section for both the normal setup state and the Open
 // "filling up" lobby state (screen 1b) — same screen, different data source
@@ -4522,7 +4587,7 @@ function renderTowSessionUI() {
 function renderTowTeamsUI() {
   const game = state.towGame;
   const inLobby = !!(game && game.sessionType === "open" && game.status === "lobby");
-  const isOpenSetup = state.towSessionType === "open";
+  const isOpenSetup = isLobbyType(state.towSessionType);
   const isHost = inLobby ? game.createdBy === state.currentUser : true;
   const nameA = inLobby ? game.teams.a.name : state.towTeamNames.a;
   const nameB = inLobby ? game.teams.b.name : state.towTeamNames.b;
@@ -4647,7 +4712,7 @@ $("btn-tow-death-match").addEventListener("click", () => {
 
 $("tow-session-select").addEventListener("click", (e) => {
   const btn = e.target.closest(".tow-icon-tab[data-tow-session]");
-  if (!btn) return;
+  if (!btn || btn.disabled) return;
   state.towSessionType = btn.dataset.towSession;
   renderTowSessionUI();
   renderTowTeamsUI();
@@ -4774,7 +4839,7 @@ $("btn-tow-start").addEventListener("click", async (e) => {
     return;
   }
 
-  if (state.towSessionType === "open") {
+  if (isLobbyType(state.towSessionType)) {
     btn.disabled = true;
     try {
       const res = await workerCreateTowGame({
@@ -4784,6 +4849,7 @@ $("btn-tow-start").addEventListener("click", async (e) => {
         createdBy: state.currentUser,
         deathMatch: state.towDeathMatch,
         teams: { a: { name: state.towTeamNames.a }, b: { name: state.towTeamNames.b } },
+        ...lobbyAudiencePayload(state.towSessionType, state.towMaxPlayers),
       });
       state.towGame = res.game;
       upsertLocalTowGame(res.game);
@@ -5412,8 +5478,46 @@ function pendingGamesItems() {
   return [...pendingHorseItems(), ...pendingTowItems()];
 }
 
+// Group/Public lobbies you're not in yet (docs/groups-plan.md): Group ones
+// for any group you belong to, Public ones for everyone. Stale lobbies
+// (a week old, never started) drop off.
+const LOBBY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function lobbyGamesItems() {
+  const user = state.currentUser;
+  if (!groupsOn() || !user) return [];
+  const myGroupIds = new Set(myGroups().map((g) => g.id));
+  const fresh = (game) => Date.now() - (game.createdAt || 0) < LOBBY_MAX_AGE_MS;
+  const listed = (game) => game.audience === "public" || (game.audience === "group" && myGroupIds.has(game.groupId));
+  const items = [];
+  for (const game of getCachedData().horseGames || []) {
+    if (game.sessionType !== "open" || game.status !== "active" || game.startedAt != null || !listed(game) || !fresh(game)) continue;
+    if (game.turnOrder.includes(user) || game.turnOrder.length >= (game.maxPlayers || 8)) continue;
+    items.push({ kind: `lobby-${game.audience}`, mode: "horse", gameId: game.id, host: game.createdBy, groupId: game.groupId, count: game.turnOrder.length, max: game.maxPlayers || 8 });
+  }
+  for (const game of getCachedData().towGames || []) {
+    if (game.sessionType !== "open" || game.status !== "lobby" || !listed(game) || !fresh(game)) continue;
+    const players = [...game.teams.a.players, ...game.teams.b.players];
+    if (players.includes(user) || players.length >= game.rosterSize) continue;
+    items.push({ kind: `lobby-${game.audience}`, mode: "tow", gameId: game.id, host: game.createdBy, groupId: game.groupId, count: players.length, max: game.rosterSize });
+  }
+  return items;
+}
+
+function lobbyRowHTML(item) {
+  const where = item.kind === "lobby-public" ? "Public" : (allGroups().find((g) => g.id === item.groupId)?.name || "Group");
+  const title = `${escapeHtml(item.host)}'s ${item.mode === "tow" ? "Tug of war" : "Horse"} lobby`;
+  return `<button type="button" class="games-row" data-games-lobby="${item.mode}:${escapeHtml(item.gameId)}">
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg(item.mode === "tow" ? "tow" : "horse")}</span>
+        <span class="games-row-info">
+          <span class="games-row-title">${title}</span>
+          <span class="games-row-subtitle">${escapeHtml(where)} · ${item.count}/${item.max} joined · tap to join</span>
+        </span>
+      </button>`;
+}
+
 function gamesOpenItems() {
-  return pendingGamesItems().filter((item) => item.kind === "invite");
+  return [...pendingGamesItems().filter((item) => item.kind === "invite"), ...lobbyGamesItems()];
 }
 
 // "A turn due" (turn/choosing) sorts first within Active and keeps the
@@ -5433,7 +5537,7 @@ function gamesActiveItems() {
 // can start (ready/joined), or a new invite waiting to be joined. "Waiting
 // on someone else" and "expired, needs tallying" both stay quiet.
 function gamesNeedsAttention(items) {
-  return items.some((item) => !item.muted && ["turn", "choosing", "ready", "joined", "invite"].includes(item.kind));
+  return items.some((item) => !item.muted && ["turn", "choosing", "ready", "joined", "invite", "lobby-group"].includes(item.kind));
 }
 
 function lastArrayActivityAt(arr) {
@@ -5511,7 +5615,7 @@ function viewFinishedTowGame(game) {
 // screen, not just Games) so the badge stays current without repainting the
 // full list each time.
 function renderGamesNavDot() {
-  $("games-nav-dot").classList.toggle("hidden", !gamesNeedsAttention(pendingGamesItems()));
+  $("games-nav-dot").classList.toggle("hidden", !gamesNeedsAttention([...pendingGamesItems(), ...lobbyGamesItems()]));
 }
 
 function renderGamesScreen() {
@@ -5553,8 +5657,11 @@ function renderGamesScreen() {
   }
   toggleEl.querySelectorAll(".segment").forEach((s) => s.classList.toggle("active", s.dataset.gtab === state.gamesTab));
 
+  const rowHTML = (item) => (item.kind.startsWith("lobby-") ? lobbyRowHTML(item) : item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item));
+  const publicItems = openItems.filter((item) => item.kind === "lobby-public");
   const html = state.gamesTab === "open"
-    ? openItems.map((item) => (item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item))).join("")
+    ? openItems.filter((item) => item.kind !== "lobby-public").map(rowHTML).join("")
+      + (publicItems.length ? `<p class="tier1-eyebrow games-public-eyebrow">Public</p>${publicItems.map(rowHTML).join("")}` : "")
     : state.gamesTab === "active"
       ? activeItems.map((item) => (item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item))).join("")
       : finished.length ? finished.map(finishedGameRowHTML).join("") : `<p class="screen-sub horse-bell-empty">No completed games yet.</p>`;
@@ -5577,6 +5684,20 @@ $("btn-games-start").addEventListener("click", () => {
 });
 
 async function handleGamesListClick(e) {
+  const lobbyBtn = e.target.closest("[data-games-lobby]");
+  if (lobbyBtn) {
+    const [mode, gameId] = lobbyBtn.dataset.gamesLobby.split(":");
+    if (mode === "tow") {
+      state.towGame = getCachedData().towGames.find((g) => g.id === gameId) || null;
+      renderTowJoin(state.towGame);
+      showScreen("screen-tow-join");
+    } else {
+      state.horseGame = getCachedData().horseGames.find((g) => g.id === gameId) || null;
+      renderOpenHorseJoin(state.horseGame);
+      showScreen("screen-horse-join");
+    }
+    return;
+  }
   const joinBtn = e.target.closest("[data-bell-join]");
   if (joinBtn) {
     const game = getCachedData().horseGames.find((g) => g.id === joinBtn.dataset.bellJoin);

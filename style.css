@@ -6258,3 +6258,7 @@ body:has(#screen-challenge-detail.active) #app {
 .create-visibility-note { margin: -0.6rem 0 1rem; font-size: 0.82rem; }
 #create-visibility .segment:disabled { opacity: 0.4; }
 .challenge-scope-select { margin: 0.9rem 0 1rem; }
+.max-players-select .segment { padding-left: 0; padding-right: 0; }
+.games-public-eyebrow { margin-top: 1.2rem; }
+#horse-session-select .segment:disabled,
+#tow-session-select .tow-icon-tab:disabled { opacity: 0.4; }

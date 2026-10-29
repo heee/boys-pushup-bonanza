@@ -39,7 +39,7 @@ keeps today's name-based identity.
 | **Public** | Anyone on the app can find and join on their own device. |
 
 Group disabled (with hint "Join or create a group") when the user has no group.
-Existing `open` games are treated as `group` for The Boys 2.1 (read-time alias, no rewrite).
+Under the hood Group and Public are the existing "open" lobby with `audience` (`group`/`public`), `groupId` and `maxPlayers` on the game JSON. Older open lobbies without an audience stay link-only (not listed).
 
 ## Data
 

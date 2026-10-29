@@ -125,3 +125,18 @@ test("after the 0009 migration, /data reports groups with members", async () => 
   assert.equal(data.groupsEnabled, true);
   assert.deepEqual(data.groups.map((g) => [g.name, g.members.map((m) => m.name)]), [["The Boys 2.1", ["Henning"]]]);
 });
+
+test("open lobbies carry audience + max players; joins respect the cap", async () => {
+  const { validateHorseCreate, validateTowCreate, createHorseGame, joinOpenPlayer, validateLobbyAudience } = await import("../worker/index.js");
+  const input = validateHorseCreate({ word: "HORSE", sessionType: "open", createdBy: "Ada", players: ["Ada"], audience: "group", groupId: "g1", maxPlayers: 2 });
+  assert.deepEqual([input.audience, input.groupId, input.maxPlayers], ["group", "g1", 2]);
+  assert.deepEqual(validateLobbyAudience({ audience: "group" }, "open"), {}, "group without id is dropped");
+  assert.deepEqual(validateLobbyAudience({ audience: "public", maxPlayers: 9 }, "open"), { audience: "public", groupId: null });
+  assert.deepEqual(validateLobbyAudience({ audience: "public" }, "invite"), {});
+  let game = { ...createHorseGame(input), maxPlayers: 2 };
+  game = joinOpenPlayer(game, { user: "Ben" });
+  assert.throws(() => joinOpenPlayer(game, { user: "Cy" }), /full/);
+  const tow = validateTowCreate({ target: 100, rounds: 3, sessionType: "open", createdBy: "Ada", audience: "public", maxPlayers: 4 });
+  assert.equal(tow.rosterSize, 4);
+  assert.equal(tow.audience, "public");
+});

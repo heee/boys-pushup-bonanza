@@ -70,7 +70,7 @@ export function joinOpenPlayer(game, { user, now = Date.now() }) {
   if (!name) throw new Error("Player name is required");
   if (game.turnOrder.includes(name)) return game;
   if (game.startedAt != null) throw new Error("This session has already started");
-  if (game.turnOrder.length >= 8) throw new Error("Open game is full");
+  if (game.turnOrder.length >= (game.maxPlayers || 8)) throw new Error("Open game is full");
 
   const turnOrder = [...game.turnOrder, name];
   const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };

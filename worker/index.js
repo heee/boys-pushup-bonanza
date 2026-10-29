@@ -455,7 +455,8 @@ export default {
       if (!input) return json({ error: "invalid game payload" }, 400, cors);
 
       try {
-        const game = createHorseGame(input);
+        const game = withLobbyAudience(createHorseGame(input), input);
+        await assertLobbyAudience(env.DB, game, input.createdBy);
         await upsertHorseGame(env.DB, game);
         return json({ ok: true, game }, 200, cors);
       } catch (e) {
@@ -550,6 +551,7 @@ export default {
         for (let attempt = 0; attempt < 3; attempt += 1) {
           const game = await loadHorseGame(env.DB, gameId);
           if (!game) return json({ error: "game not found" }, 404, cors);
+          await assertLobbyAudience(env.DB, game, user);
           const updated = joinOpenPlayer(game, { user, now: Date.now() });
           if (updated === game || await replaceHorseGameIfUnchanged(env.DB, game, updated)) {
             return json({ ok: true, game: updated }, 200, cors);
@@ -685,7 +687,8 @@ export default {
       if (!input) return json({ error: "invalid game payload" }, 400, cors);
 
       try {
-        const game = createTowGame(input);
+        const game = withLobbyAudience(createTowGame(input), input);
+        await assertLobbyAudience(env.DB, game, input.createdBy);
         await upsertTowGame(env.DB, game);
         return json({ ok: true, game }, 200, cors);
       } catch (e) {
@@ -711,6 +714,7 @@ export default {
         for (let attempt = 0; attempt < 3; attempt += 1) {
           const game = await loadTowGame(env.DB, gameId);
           if (!game) return json({ error: "game not found" }, 404, cors);
+          await assertLobbyAudience(env.DB, game, user);
           const updated = joinTowOpenPlayer(game, { user, now: Date.now() });
           if (updated === game || await replaceTowGameIfUnchanged(env.DB, game, updated)) {
             return json({ ok: true, game: updated }, 200, cors);
@@ -1609,7 +1613,35 @@ export function validateHorseCreate(body) {
   const timeLimit = Object.prototype.hasOwnProperty.call(HORSE_TIME_LIMITS, body.timeLimitKey)
     ? HORSE_TIME_LIMITS[body.timeLimitKey]
     : null;
-  return { id, word, sessionType, createdBy, players, timeLimit };
+  return { id, word, sessionType, createdBy, players, timeLimit, ...validateLobbyAudience(body, sessionType) };
+}
+
+// Open lobbies (Horse "open", Tug of war "open") can be listed to a group or
+// to everyone (docs/groups-plan.md). No audience = the original link-only
+// lobby. maxPlayers (2–8) caps the roster; Tug of war maps it to rosterSize.
+export function validateLobbyAudience(body, sessionType) {
+  if (sessionType !== "open") return {};
+  const audience = ["group", "public"].includes(body.audience) ? body.audience : null;
+  const groupId = audience === "group" && typeof body.groupId === "string" ? body.groupId.trim().slice(0, 40) : null;
+  const maxPlayers = Math.floor(Number(body.maxPlayers));
+  return {
+    ...(audience && (audience === "public" || groupId) ? { audience, groupId } : {}),
+    ...(maxPlayers >= 2 && maxPlayers <= 8 ? { maxPlayers } : {}),
+  };
+}
+
+function withLobbyAudience(game, input) {
+  if (!input.audience && !input.maxPlayers) return game;
+  return {
+    ...game,
+    ...(input.audience ? { audience: input.audience, groupId: input.groupId || null } : {}),
+    ...(input.maxPlayers ? { maxPlayers: input.maxPlayers } : {}),
+  };
+}
+
+async function assertLobbyAudience(db, game, user) {
+  if (game.audience !== "group") return;
+  if (!(await groupRole(db, game.groupId, user))) throw new GroupError("This session is only open to its group");
 }
 
 // Match-length timer options for the setup screen — a whole-game deadline,
@@ -1685,7 +1717,7 @@ export function joinOpenPlayer(game, { user, now = Date.now() }) {
   if (!name) throw new Error("Player name is required");
   if (game.turnOrder.includes(name)) return game;
   if (game.startedAt != null) throw new Error("This session has already started");
-  if (game.turnOrder.length >= 8) throw new Error("Open game is full");
+  if (game.turnOrder.length >= (game.maxPlayers || 8)) throw new Error("Open game is full");
   const turnOrder = [...game.turnOrder, name];
   const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };
   return { ...game, turnOrder, players };
@@ -1880,7 +1912,8 @@ export function validateTowCreate(body) {
   if (sessionType === "open") {
     const nameA = typeof body.teams?.a?.name === "string" ? body.teams.a.name.trim().slice(0, 60) || "Team A" : "Team A";
     const nameB = typeof body.teams?.b?.name === "string" ? body.teams.b.name.trim().slice(0, 60) || "Team B" : "Team B";
-    return { id, target, rounds, sessionType, createdBy, rosterSize, deathMatch, teams: { a: { name: nameA }, b: { name: nameB } } };
+    const lobby = validateLobbyAudience(body, sessionType);
+    return { id, target, rounds, sessionType, createdBy, rosterSize: lobby.maxPlayers || rosterSize, deathMatch, teams: { a: { name: nameA }, b: { name: nameB } }, ...lobby };
   }
 
   const cleanNames = (list) => Array.isArray(list)
