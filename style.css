@@ -4479,7 +4479,8 @@ body:has(#screen-challenges.active) #app {
 
 /* Floating join confirmation — sits just above the tab bar and fades out.
    Same glass, width and corner radius as .tab-bar so the two read as a pair. */
-.challenge-join-toast {
+.challenge-join-toast,
+.glass-toast {
   position: fixed;
   left: 1rem;
   right: 1rem;
@@ -4502,13 +4503,16 @@ body:has(#screen-challenges.active) #app {
   opacity: 1;
   transition: opacity 0.4s ease;
 }
-:root[data-theme="light"] .challenge-join-toast {
+:root[data-theme="light"] .challenge-join-toast,
+:root[data-theme="light"] .glass-toast {
   background: color-mix(in srgb, #fff 58%, transparent);
   border-color: rgba(0, 0, 0, 0.08);
   box-shadow: 0 10px 30px rgba(80, 60, 20, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
-.challenge-join-toast.hidden { display: none; }
-.challenge-join-toast.challenge-join-toast-fade { opacity: 0; }
+.challenge-join-toast.hidden,
+.glass-toast.hidden { display: none; }
+.challenge-join-toast.challenge-join-toast-fade,
+.glass-toast.glass-toast-fade { opacity: 0; }
 
 /* Mini progress bar on the list card — sits on an arbitrary hero gradient,
    so it uses a dark semi-opaque fill rather than the standard surface
@@ -6373,3 +6377,12 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .share-tone-shuffle svg { width: 1rem; height: 1rem; }
 .share-tone-shuffle:active { transform: scale(0.92); }
+
+/* Poker hand result: glass toast instead of a centred banner over the cards
+   (pointer-events off so it never blocks a tap). */
+.glass-toast { pointer-events: none; }
+.poker-toast-suit { flex-shrink: 0; font-size: 1.05rem; line-height: 1; }
+.poker-toast-hand { font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold); }
+.poker-toast-hand.rank-3, .poker-toast-hand.rank-4, .poker-toast-hand.rank-5 { color: var(--primary); }
+.poker-toast-hand.rank-6, .poker-toast-hand.rank-7, .poker-toast-hand.rank-8, .poker-toast-hand.rank-9 { color: var(--success); }
+.poker-toast-sub { color: var(--text-dim); }

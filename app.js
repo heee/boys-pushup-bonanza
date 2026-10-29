@@ -11273,21 +11273,41 @@ function completePokerHand() {
   const achieved = priorPokerAchievements();
   const newIds = pokerAchievementIds(result.rank).filter((id) => !achieved.has(id));
   state.pokerAchievementsUnlocked.push(...newIds);
-  const resultEl = $("poker-result");
-  resultEl.className = `poker-result rank-${result.rank}`;
-  resultEl.innerHTML = `${result.label}${newIds.length ? "<small>NEW ACHIEVEMENT UNLOCKED</small>" : "<small>HAND COMPLETE</small>"}`;
-  announce(`${result.label}${newIds.length ? ", new achievement unlocked" : ""}`);
+  showPokerHandToast(result, newIds.length > 0);
   if (result.rank >= 1) {
     const line = pokerCallout(result);
     if (line) speak(line);
     launchConfetti("workout-confetti", result.rank >= 6 ? ["♠️", "♥️", "♦️", "♣️", "🔥", "👑"] : ["♠️", "♥️", "♦️", "♣️"], result.rank >= 6 ? 34 : 18);
   }
-  setTimeout(() => {
-    if (state.workoutActive && state.pushupMode === "poker") {
-      dealNextPokerHand();
-      renderHeroForCount(repState.count);
-    }
-  }, 2000);
+  // A short beat to see the scoring cards light up, then the next hand —
+  // and a rep landing sooner deals it immediately (see the rep handler).
+  clearTimeout(pokerNextHandTimer);
+  pokerNextHandTimer = setTimeout(dealPokerHandAfterResult, 1200);
+}
+
+let pokerNextHandTimer = null;
+function dealPokerHandAfterResult() {
+  clearTimeout(pokerNextHandTimer);
+  if (!state.workoutActive || state.pushupMode !== "poker" || !state.pokerResolving) return;
+  dealNextPokerHand();
+  renderHeroForCount(repState.count);
+}
+
+// Hand result as a glass toast above the Complete button (same look as the
+// challenge-join toast) instead of a banner over the cards.
+function showPokerHandToast(result, newAchievement) {
+  const el = $("poker-hand-toast");
+  const suit = ["♠️", "♥️", "♦️", "♣️"][result.rank % 4];
+  el.innerHTML = `<span class="poker-toast-suit" aria-hidden="true">${suit}</span>`
+    + `<span><span class="poker-toast-hand rank-${result.rank}">${escapeHtml(result.label)}</span>`
+    + `<span class="poker-toast-sub"> · ${newAchievement ? "New achievement unlocked" : "Hand complete"}</span></span>`;
+  clearTimeout(showPokerHandToast._fadeT);
+  clearTimeout(showPokerHandToast._hideT);
+  el.classList.remove("hidden", "glass-toast-fade");
+  showPokerHandToast._fadeT = setTimeout(() => {
+    el.classList.add("glass-toast-fade");
+    showPokerHandToast._hideT = setTimeout(() => el.classList.add("hidden"), 400);
+  }, 2400);
 }
 
 function advancePokerCard() {
@@ -11457,7 +11477,9 @@ function onRepCounted(count) {
     if (state.cardRepsDone >= state.cardTarget) {
       flippedCard = advanceToNextCard();
     }
-  } else if (state.pushupMode === "poker" && !state.pokerResolving) {
+  } else if (state.pushupMode === "poker") {
+    // Don't make the next rep wait for the result beat — deal now.
+    if (state.pokerResolving) dealPokerHandAfterResult();
     state.pokerCardRepsDone += 1;
     if (state.pokerCardRepsDone >= state.pokerCardTarget) advancePokerCard();
   } else if (state.pushupMode === "dice") {
