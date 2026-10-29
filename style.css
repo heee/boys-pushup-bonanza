@@ -1967,8 +1967,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   width: min(68vw, 19rem);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #f7f2e8;
-  box-shadow: 0 0.9rem 1.6rem rgba(0, 0, 0, 0.38), inset 0 0 0 3px rgba(28, 25, 23, 0.2);
+  background: #a8743e;
+  box-shadow: 0 0.9rem 1.6rem rgba(0, 0, 0, 0.38), inset 0 0 0 3px rgba(60, 35, 15, 0.45);
   isolation: isolate;
 }
 .sharpshooter-ring {
@@ -1979,7 +1979,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   transform: translate(-50%, -50%);
   box-shadow: inset 0 0 0 2px rgba(35, 28, 25, 0.2);
 }
-.ring-outer { width: 100%; height: 100%; background: #f9f5ed; }
+/* Painted on a wooden target: grain on the outer band, rings painted over it. */
+.ring-outer {
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(97deg, rgba(92, 56, 24, 0.12) 0 3px, transparent 3px 9px),
+    radial-gradient(circle, #c4935a 0%, #a8743e 100%);
+}
 .ring-red-outer { width: 78%; height: 78%; background: #c9252d; }
 .ring-white-inner { width: 53%; height: 53%; background: #fffaf0; }
 .ring-bullseye { width: 29%; height: 29%; background: #c9252d; box-shadow: inset 0 0 0 2px #8f131d, 0 0 1.2rem rgba(201, 37, 45, 0.3); }
@@ -2014,22 +2021,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-weight: 800;
   text-align: center;
 }
-.sharpshooter-impact {
-  position: absolute;
-  z-index: 6;
-  left: 50%;
-  top: 50%;
-  width: 18%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.2);
-  background: #ffd84d;
-  box-shadow: 0 0 0 0.45rem rgba(255, 216, 77, 0.8), 0 0 2.4rem 1.3rem rgba(255, 89, 32, 0.8);
-  pointer-events: none;
-}
 .sharpshooter-target.rep-hit { animation: sharpshooter-rep-hit 240ms ease-out; }
-.sharpshooter-target.shatter .sharpshooter-impact { animation: sharpshooter-impact 650ms ease-out; }
 
 /* One hole punched per rep, placed at a random point on the target by JS
    (inline left/top) and cleared quietly (no fly-apart) when the target
@@ -2056,71 +2048,49 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   45% { transform: scale(0.965); filter: brightness(1.16); }
   100% { transform: scale(1); }
 }
-@keyframes sharpshooter-impact {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
-  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  55% { opacity: 0.8; transform: translate(-50%, -50%) scale(3.6); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
-}
 
-/* Target break-apart: 8 pie-slice wedges + 4 crosshair fragments fly outward
-   on completion, replacing the old bullseye pulse. Wedges reproduce the ring
-   color bands via a radial-gradient (sized to closest-side == outer ring
-   radius) so each slice shows the correct band regardless of its rotation
-   (radial gradients are angle-symmetric, so rotating the wedge doesn't shift
-   the bands). */
+/* Target break-apart (celebrateSharpshooterHit builds these per hit): jagged
+   shards cut from the painted target, thin splinters and a sawdust puff,
+   thrown outward with gravity. Shards reuse the target's paint via a radial
+   gradient, so every slice shows the right ring bands. */
 .sharpshooter-shatter { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
-.ss-wedge {
+.ss-shard {
   position: absolute;
   inset: 0;
-  opacity: 0;
-  clip-path: polygon(50% 50%, 29.3% 0%, 70.7% 0%);
-  transform: rotate(var(--wedge-ang, 0deg));
-  transform-origin: 50% 50%;
-  background: radial-gradient(circle closest-side at 50% 50%,
-    #c9252d 0%, #c9252d 29%,
-    #fffaf0 29%, #fffaf0 53%,
-    #c9252d 53%, #c9252d 78%,
-    #f9f5ed 78%, #f9f5ed 100%);
+  background:
+    repeating-linear-gradient(97deg, rgba(92, 56, 24, 0.10) 0 3px, transparent 3px 9px),
+    radial-gradient(circle closest-side at 50% 50%,
+      #c9252d 0%, #c9252d 29%,
+      #fffaf0 29%, #fffaf0 53%,
+      #c9252d 53%, #c9252d 78%,
+      #b9874f 78%, #a8743e 100%);
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.35));
 }
-.ss-frag { position: absolute; left: 50%; top: 50%; opacity: 0; background: rgba(55, 45, 41, 0.35); }
-.ss-frag-top,
-.ss-frag-bottom { width: 2px; height: 47%; }
-.ss-frag-left,
-.ss-frag-right { width: 47%; height: 2px; }
-.ss-frag-top { transform: translate(-50%, -100%); transform-origin: 50% 100%; }
-.ss-frag-bottom { transform: translate(-50%, 0); transform-origin: 50% 0%; }
-.ss-frag-left { transform: translate(-100%, -50%); transform-origin: 100% 50%; }
-.ss-frag-right { transform: translate(0, -50%); transform-origin: 0% 50%; }
-
+.ss-splinter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8a5a2b, #c99a62);
+}
+.ss-dust {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin: -30% 0 0 -30%;
+  background: radial-gradient(circle, rgba(214, 185, 140, 0.8) 0%, rgba(176, 140, 96, 0.45) 45%, transparent 70%);
+  filter: blur(3px);
+}
+/* The disc itself is gone while it's in pieces, and fades back on rebuild. */
+.sharpshooter-target { transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+.sharpshooter-target.shatter { background-color: transparent; box-shadow: none; transition: none; }
 .sharpshooter-target.shatter .sharpshooter-ring,
 .sharpshooter-target.shatter .sharpshooter-crosshair,
 .sharpshooter-target.shatter .sharpshooter-count { opacity: 0; transition: opacity 70ms ease-out; }
-.sharpshooter-target.shatter .ss-wedge { animation: ss-wedge-fly 650ms cubic-bezier(.25,.7,.4,1) forwards; }
-.sharpshooter-target.shatter .ss-frag-top { animation: ss-frag-fly-top 600ms ease-out forwards; }
-.sharpshooter-target.shatter .ss-frag-bottom { animation: ss-frag-fly-bottom 600ms ease-out forwards; }
-.sharpshooter-target.shatter .ss-frag-left { animation: ss-frag-fly-left 600ms ease-out forwards; }
-.sharpshooter-target.shatter .ss-frag-right { animation: ss-frag-fly-right 600ms ease-out forwards; }
-@keyframes ss-wedge-fly {
-  0% { transform: rotate(var(--wedge-ang)) translateY(0) rotate(0deg) scale(1); opacity: 1; }
-  100% { transform: rotate(var(--wedge-ang)) translateY(-85%) rotate(160deg) scale(0.6); opacity: 0; }
-}
-@keyframes ss-frag-fly-top {
-  0% { transform: translate(-50%, -100%) translateY(0); opacity: 1; }
-  100% { transform: translate(-50%, -100%) translateY(-160%); opacity: 0; }
-}
-@keyframes ss-frag-fly-bottom {
-  0% { transform: translate(-50%, 0) translateY(0); opacity: 1; }
-  100% { transform: translate(-50%, 0) translateY(160%); opacity: 0; }
-}
-@keyframes ss-frag-fly-left {
-  0% { transform: translate(-100%, -50%) translateX(0); opacity: 1; }
-  100% { transform: translate(-100%, -50%) translateX(-160%); opacity: 0; }
-}
-@keyframes ss-frag-fly-right {
-  0% { transform: translate(0, -50%) translateX(0); opacity: 1; }
-  100% { transform: translate(0, -50%) translateX(160%); opacity: 0; }
-}
 
 .sharpshooter-target.rebuild .sharpshooter-ring,
 .sharpshooter-target.rebuild .sharpshooter-crosshair { animation: ss-rebuild 260ms ease-out; }
@@ -2135,12 +2105,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 @media (prefers-reduced-motion: reduce) {
   .sharpshooter-shot,
   .sharpshooter-target.rep-hit,
-  .sharpshooter-target.shatter .sharpshooter-impact,
-  .sharpshooter-target.shatter .ss-wedge,
-  .sharpshooter-target.shatter .ss-frag-top,
-  .sharpshooter-target.shatter .ss-frag-bottom,
-  .sharpshooter-target.shatter .ss-frag-left,
-  .sharpshooter-target.shatter .ss-frag-right,
   .sharpshooter-target.rebuild .sharpshooter-ring,
   .sharpshooter-target.rebuild .sharpshooter-crosshair { animation-duration: 1ms; }
 }

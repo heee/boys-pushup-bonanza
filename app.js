@@ -11442,6 +11442,81 @@ function clearSharpshooterShots() {
   $("sharpshooter-shots")?.replaceChildren();
 }
 
+// Wooden target breaking apart: jagged shards cut from the painted target
+// (random every hit), thin splinters and a sawdust puff, thrown outward past
+// the target's edge with a little lift and then gravity, plus a short shake.
+const SHARPSHOOTER_BREAK_MS = 1100;
+
+function buildSharpshooterBreak(target) {
+  const layer = $("sharpshooter-shatter");
+  layer.replaceChildren();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const size = target.getBoundingClientRect().width || 280;
+  const rand = (min, max) => min + Math.random() * (max - min);
+  const polar = (deg, r) => [50 + r * Math.cos((deg * Math.PI) / 180), 50 + r * Math.sin((deg * Math.PI) / 180)];
+  const pct = ([x, y]) => `${x.toFixed(1)}% ${y.toFixed(1)}%`;
+
+  const count = 9;
+  const cuts = Array.from({ length: count }, (_, i) => (i * 360) / count + rand(-10, 10));
+  cuts.forEach((a0, i) => {
+    const a1 = i === count - 1 ? cuts[0] + 360 : cuts[i + 1];
+    const mid = (a0 + a1) / 2;
+    const center = [50 + rand(-7, 7), 50 + rand(-7, 7)];
+    const points = [center, polar(a0 + rand(-4, 4), rand(22, 40)), polar(a0, 52), polar(mid + rand(-8, 8), rand(50, 53)), polar(a1, 52), polar(a1 + rand(-4, 4), rand(22, 40))];
+    const cx = points.reduce((sum, p) => sum + p[0], 0) / points.length;
+    const cy = points.reduce((sum, p) => sum + p[1], 0) / points.length;
+    const shard = document.createElement("div");
+    shard.className = "ss-shard";
+    shard.style.clipPath = `polygon(${points.map(pct).join(", ")})`;
+    shard.style.transformOrigin = `${cx.toFixed(1)}% ${cy.toFixed(1)}%`;
+    layer.appendChild(shard);
+    const rad = (mid * Math.PI) / 180;
+    const distance = size * rand(0.45, 0.85);
+    const dx = Math.cos(rad) * distance;
+    const dy = Math.sin(rad) * distance;
+    const spin = rand(180, 540) * (Math.random() < 0.5 ? -1 : 1);
+    shard.animate([
+      { transform: "translate(0, 0) rotate(0deg) scale(1)", opacity: 1 },
+      { offset: 0.12, transform: `translate(${dx * 0.25}px, ${dy * 0.25 - size * 0.06}px) rotate(${spin * 0.12}deg) scale(1.12)`, opacity: 1 },
+      { offset: 0.45, transform: `translate(${dx * 0.7}px, ${dy * 0.7 - size * 0.12}px) rotate(${spin * 0.5}deg) scale(1.05)`, opacity: 1 },
+      { offset: 0.8, opacity: 1 },
+      { transform: `translate(${dx}px, ${dy + size * 0.7}px) rotate(${spin}deg) scale(0.95)`, opacity: 0 },
+    ], { duration: rand(950, SHARPSHOOTER_BREAK_MS), easing: "cubic-bezier(.3,.6,.5,1)", fill: "forwards" });
+  });
+
+  for (let i = 0; i < 10; i++) {
+    const splinter = document.createElement("div");
+    splinter.className = "ss-splinter";
+    const angle = rand(0, 360);
+    splinter.style.width = `${rand(6, 15)}%`;
+    layer.appendChild(splinter);
+    const rad = (angle * Math.PI) / 180;
+    const distance = size * rand(0.55, 1.1);
+    const spin = rand(360, 1080) * (Math.random() < 0.5 ? -1 : 1);
+    splinter.animate([
+      { transform: `translate(-50%, -50%) rotate(${angle}deg)`, opacity: 1 },
+      { offset: 0.7, opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(rad) * distance}px), calc(-50% + ${Math.sin(rad) * distance + size * 0.4}px)) rotate(${angle + spin}deg)`, opacity: 0 },
+    ], { duration: rand(750, 1000), easing: "cubic-bezier(.25,.6,.45,1)", fill: "forwards" });
+  }
+
+  const dust = document.createElement("div");
+  dust.className = "ss-dust";
+  layer.appendChild(dust);
+  dust.animate([
+    { transform: "scale(0.35)", opacity: 0.9 },
+    { transform: "scale(2.6)", opacity: 0 },
+  ], { duration: 900, easing: "ease-out", fill: "forwards" });
+
+  target.animate([
+    { transform: "translate(0, 0)" },
+    { transform: "translate(-6px, 3px)" },
+    { transform: "translate(5px, -4px)" },
+    { transform: "translate(-3px, 2px)" },
+    { transform: "translate(0, 0)" },
+  ], { duration: 240, easing: "ease-out" });
+}
+
 function celebrateSharpshooterHit() {
   const target = $("sharpshooter-target");
   clearTimeout(state.sharpshooterAnimationTimer);
@@ -11450,10 +11525,12 @@ function celebrateSharpshooterHit() {
   void target.offsetWidth;
   $("sharpshooter-count").textContent = "0";
   target.classList.add("shatter");
+  buildSharpshooterBreak(target);
   if (soundIsEnabled()) playSharpshooterHit();
-  vibrate(120);
+  vibrate([60, 30, 90]);
   state.sharpshooterAnimationTimer = setTimeout(() => {
     target.classList.remove("shatter");
+    $("sharpshooter-shatter").replaceChildren();
     clearSharpshooterShots();
     void target.offsetWidth;
     target.classList.add("rebuild");
@@ -11462,7 +11539,7 @@ function celebrateSharpshooterHit() {
     state.sharpshooterRebuildTimer = setTimeout(() => {
       target.classList.remove("rebuild");
     }, 280);
-  }, 650);
+  }, SHARPSHOOTER_BREAK_MS);
 }
 
 function onRepCounted(count) {

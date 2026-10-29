@@ -713,40 +713,71 @@ export function playZenGong() {
 // A compact bow-release, impact thump, and bright bullseye ping. Synthesized
 // through the already-unlocked workout audio graph so it remains instant and
 // available offline without adding a separate sound asset.
+// White-noise buffer shared by the synthesized impact sounds below.
+let noiseBuffer = null;
+function getNoiseBuffer() {
+  if (!noiseBuffer) {
+    noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.6), ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuffer;
+}
+
+// One filtered noise burst — the building block for crack, split and clatter.
+function noiseBurst({ at, duration, peak, type = "bandpass", freq, q = 1, freqEnd }) {
+  const src = ctx.createBufferSource();
+  src.buffer = getNoiseBuffer();
+  const filter = ctx.createBiquadFilter();
+  filter.type = type;
+  filter.frequency.setValueAtTime(freq, at);
+  if (freqEnd) filter.frequency.exponentialRampToValueAtTime(freqEnd, at + duration);
+  filter.Q.value = q;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peak, at + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(masterGain);
+  src.start(at, Math.random() * 0.3);
+  src.stop(at + duration + 0.02);
+  activeSources.push(src);
+}
+
+// Sharpshooter target destroyed: a gunshot crack, a wooden target splitting,
+// then splinters clattering down (replaces the old synth zap + ping).
 export function playSharpshooterHit() {
   if (!ctx || !masterGain) return 0;
   unlockVoice();
   try {
     const start = ctx.currentTime + 0.01;
-    const strike = ctx.createOscillator();
-    const strikeGain = ctx.createGain();
-    strike.type = "triangle";
-    strike.frequency.setValueAtTime(185, start);
-    strike.frequency.exponentialRampToValueAtTime(58, start + 0.16);
-    strikeGain.gain.setValueAtTime(0.0001, start);
-    strikeGain.gain.exponentialRampToValueAtTime(0.28, start + 0.008);
-    strikeGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
-    strike.connect(strikeGain);
-    strikeGain.connect(masterGain);
-    strike.start(start);
-    strike.stop(start + 0.22);
-    activeSources.push(strike);
-
-    const ping = ctx.createOscillator();
-    const pingGain = ctx.createGain();
-    ping.type = "sine";
-    ping.frequency.setValueAtTime(980, start + 0.045);
-    ping.frequency.exponentialRampToValueAtTime(1320, start + 0.28);
-    pingGain.gain.setValueAtTime(0.0001, start + 0.045);
-    pingGain.gain.exponentialRampToValueAtTime(0.12, start + 0.06);
-    pingGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.34);
-    ping.connect(pingGain);
-    pingGain.connect(masterGain);
-    ping.start(start + 0.045);
-    ping.stop(start + 0.36);
-    activeSources.push(ping);
-    scheduleRouteRelease(400);
-    return 260;
+    // Gunshot: bright crack falling into a low thump.
+    noiseBurst({ at: start, duration: 0.18, peak: 0.55, type: "lowpass", freq: 9000, freqEnd: 900 });
+    const thump = ctx.createOscillator();
+    const thumpGain = ctx.createGain();
+    thump.type = "sine";
+    thump.frequency.setValueAtTime(110, start);
+    thump.frequency.exponentialRampToValueAtTime(38, start + 0.18);
+    thumpGain.gain.setValueAtTime(0.0001, start);
+    thumpGain.gain.exponentialRampToValueAtTime(0.45, start + 0.006);
+    thumpGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+    thump.connect(thumpGain);
+    thumpGain.connect(masterGain);
+    thump.start(start);
+    thump.stop(start + 0.24);
+    activeSources.push(thump);
+    // Wood splitting: a few dry, mid-high cracks right after the shot.
+    [0.035, 0.07, 0.11].forEach((offset, i) => {
+      noiseBurst({ at: start + offset, duration: 0.05 + i * 0.015, peak: 0.32 - i * 0.07, freq: 1800 + Math.random() * 1400, q: 3.5 });
+    });
+    // Splinters and chunks landing: sparse woody ticks fading out.
+    for (let i = 0; i < 7; i++) {
+      const at = start + 0.22 + i * 0.045 + Math.random() * 0.04;
+      noiseBurst({ at, duration: 0.025 + Math.random() * 0.03, peak: 0.16 * (1 - i / 9), freq: 900 + Math.random() * 2600, q: 6 });
+    }
+    scheduleRouteRelease(700);
+    return 600;
   } catch (e) {
     return 0;
   }
