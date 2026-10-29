@@ -176,6 +176,9 @@ import {
 } from "./roadtrip.js";
 import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, completedPeriodRange, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js?v=2";
 import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey, HOUSTON_COORDS } from "./group-recap.js?v=1";
+import { SHARE_TONE_KEY, SHARE_TONES, addTonedLines, currentShareTone, tagTones, tonedChoices } from "./share-tone.js";
+import { SHARE_TONE_RATINGS } from "./share-tone-ratings.js";
+import { APP_SHARE_EXTRA_LINES } from "./share-lines-app.js";
 import { compactCount, cullLabels, fitTransform, heatLevel, ISO2_TO_NUMERIC, shouldShowWorld, unionBounds } from "./roadtrip-map.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { createClapGestureDetector } from "./modes/clap-gesture.js";
@@ -2910,7 +2913,28 @@ $("location-search-form").addEventListener("submit", async (event) => {
 
 // ------------------- settings screen -------------------
 
+// Share message tone (docs/share-tone-plan.md) — one sample line per level.
+const SHARE_TONE_SAMPLES = {
+  chill: "Friendly brags, safe for family or coworkers — e.g. \u201c120 pushups today 💪 Your turn!\u201d",
+  spicy: "Trash talk for the group chat — e.g. \u201c120 pushups. Pay rent in reps, losers.\u201d",
+  unhinged: "Absurd and over the top — e.g. \u201c120 pushups and my pecs have filed for independence. Paperwork is sweaty.\u201d",
+};
+
+function renderShareToneSetting() {
+  const tone = currentShareTone();
+  document.querySelectorAll("#share-tone-select [data-share-tone]").forEach((btn) => btn.classList.toggle("active", btn.dataset.shareTone === tone));
+  $("share-tone-preview").textContent = SHARE_TONE_SAMPLES[tone];
+}
+
+$("share-tone-select").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-share-tone]");
+  if (!btn || !SHARE_TONES.includes(btn.dataset.shareTone)) return;
+  localStorage.setItem(SHARE_TONE_KEY, btn.dataset.shareTone);
+  renderShareToneSetting();
+});
+
 function renderSettings() {
+  renderShareToneSetting();
   $("range-down").value = getThresholdDown();
   $("range-up").value = getThresholdUp();
   $("val-down").textContent = getThresholdDown().toFixed(2);
@@ -10364,8 +10388,11 @@ function applyCameraPreviewSetting() {
   document.querySelector(".camera-wrap").classList.toggle("preview-hidden", !show);
 }
 
+// Share pools carry tone ratings (share-tone.js); everything else passes
+// through untouched.
 function pickFrom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  const choices = tonedChoices(arr);
+  return choices[Math.floor(Math.random() * choices.length)];
 }
 
 // Chance of a random cheer, as a function of progress toward personal best
@@ -17377,5 +17404,11 @@ document.addEventListener("visibilitychange", () => {
 if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", nudgeSafeAreaLayout);
 }
+
+// Tone ratings + fill lines for the share pools defined in this file
+// (share-tone-ratings.js, share-lines-app.js).
+const APP_SHARE_POOLS = { ROADTRIP_SHARE_GENERIC, ROADTRIP_SHARE_LEADING, ROADTRIP_SHARE_ABSENT, ROADTRIP_SHARE_ABSENT_SOLO, COMPARE_SHARE_LEADING, COMPARE_SHARE_TIED, CHALLENGE_INVITE_MESSAGES, SHARE_MESSAGES_MY_BONANZA, SHARE_MESSAGES_BOYS_GENERIC, SHARE_MESSAGES_BOYS_LEADING, SHARE_MESSAGES_BOYS_NO_RANK };
+tagTones(APP_SHARE_POOLS, SHARE_TONE_RATINGS);
+addTonedLines(APP_SHARE_POOLS, APP_SHARE_EXTRA_LINES);
 
 init();
