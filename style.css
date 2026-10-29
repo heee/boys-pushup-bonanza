@@ -3324,13 +3324,11 @@ body:has(#screen-challenges.active) .challenge-list {
   color: var(--text);
 }
 .leaderboard-mode-option.selected { background: var(--primary); color: #fff; }
-/* Leaderboard's own mode dropdown and Roadtrip's timeframe dropdown unbold
-   non-selected options; the other reuses of this shared component (compare
-   mode, my-sessions mode) keep every option at the same weight. */
-#leaderboard-mode-menu .leaderboard-mode-option,
-#roadtrip-tier-menu .leaderboard-mode-option { font-weight: 500; }
-#leaderboard-mode-menu .leaderboard-mode-option.selected,
-#roadtrip-tier-menu .leaderboard-mode-option.selected { font-weight: 650; }
+/* Leaderboard's own mode dropdown unbolds non-selected options; the other
+   reuses of this shared component (compare mode, my-sessions mode) keep
+   every option at the same weight. */
+#leaderboard-mode-menu .leaderboard-mode-option { font-weight: 500; }
+#leaderboard-mode-menu .leaderboard-mode-option.selected { font-weight: 650; }
 .leaderboard-mode-check { visibility: hidden; }
 .leaderboard-mode-option.selected .leaderboard-mode-check { visibility: visible; }
 
@@ -6324,3 +6322,12 @@ body:has(#screen-challenge-detail.active) #app {
   position: absolute; transform: translate(-50%, -50%); padding: 0; border-radius: 50%; pointer-events: auto; cursor: pointer;
   background: var(--primary); border: 2px solid var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
+.roadtrip-scope-link {
+  display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.6rem;
+  margin: 0 0 0.5rem; padding: 0.6rem 1rem; border: none; border-radius: 12px; background: var(--bg-elevated);
+  color: var(--text); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-align: left;
+}
+.roadtrip-scope-link span:last-child { color: var(--text-tertiary); font-size: 1.1rem; }
+.roadtrip-scope-empty { margin: 0.6rem 1rem; font-size: 0.85rem; color: var(--text-tertiary); }
+.roadtrip-map-dot.is-dimmed { opacity: 0.4; }
+.roadtrip-map-dot.is-selected { border-color: var(--primary); background: var(--text); }

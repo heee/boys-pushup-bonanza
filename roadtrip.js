@@ -29,6 +29,8 @@ function locationMeta(location, tier) {
     countryCode,
     flag: tier === "country" ? flagEmoji(countryCode) : "",
     parent: parentParts.filter(Boolean).join(" · "),
+    // Lets the map drill-down list a city's neighborhoods.
+    ...(tier === "neighborhood" ? { cityId: location.city?.id || "" } : {}),
   };
 }
 

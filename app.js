@@ -327,7 +327,6 @@ const LS = {
   leaderboardMode: "bpb-leaderboard-mode",
   deviceLocation: "bpb-device-location",
   roadtripPeriod: "bpb-roadtrip-period",
-  roadtripTier: "bpb-roadtrip-tier",
   roadtripPrompted: "bpb-roadtrip-location-prompted",
   hollandDifficulty: "bpb-holland-difficulty",
   chainOfPainDuration: "bpb-chainofpain-duration",
@@ -1594,7 +1593,8 @@ const state = {
   summaryChaseResult: null,
   summaryRoadtripConquests: [],
   roadtripPeriod: ["day", "week", "month", "quarter", "year", "all"].includes(localStorage.getItem(LS.roadtripPeriod)) ? localStorage.getItem(LS.roadtripPeriod) : "week",
-  roadtripTier: ["neighborhood", "city", "country"].includes(localStorage.getItem(LS.roadtripTier)) ? localStorage.getItem(LS.roadtripTier) : "city",
+  // Derived from the map drill-down: country (world) → city → neighborhood.
+  roadtripTier: "country",
   roadtripTerritories: [],
   roadtripDetailId: null,
   recapQueue: [],
@@ -6244,10 +6244,6 @@ function capitalize(word) {
 
 // Roadtrip: the place tier (Neighborhood/City/Country) is the header
 // dropdown; the timeframe is the always-visible underline tab row.
-function setRoadtripTierMenuOpen(open) {
-  $("roadtrip-tier-trigger").setAttribute("aria-expanded", String(open));
-  $("roadtrip-tier-menu").classList.toggle("hidden", !open);
-}
 
 async function openRoadtrip() {
   showScreen("screen-roadtrip");
@@ -6275,6 +6271,10 @@ function roadtripAge(timestamp) {
   return months < 12 ? `${months}mo ago` : `${Math.floor(months / 12)}y ago`;
 }
 
+function roadtripPlaceText(row) {
+  return `${row.flag ? `${row.flag} ` : ""}${row.name}`;
+}
+
 function roadtripPlaceLabel(row) {
   const prefix = row.flag ? `${row.flag} ` : "";
   return `${prefix}${escapeHtml(row.name)}`;
@@ -6294,8 +6294,9 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
     <span class="roadtrip-score">${formatNumber(row.total)}</span>`;
   button.dataset.siblingId = row.id;
   button.addEventListener("click", () => {
-    state.roadtripDetailId = row.id;
-    showScreen("screen-roadtrip-detail");
+    if (row.tier === "country") drillRoadtripMap(row.countryCode);
+    else if (row.tier === "city") drillRoadtripCity(row.id);
+    else openRoadtripDetail(row.id);
   });
   return button;
 }
@@ -6469,7 +6470,7 @@ async function renderRoadtripMap({ animate = false } = {}) {
   const pct = (v, total) => `${((v / total) * 100).toFixed(2)}%`;
   $("roadtrip-map-marks").innerHTML = placed.map((m) => {
     const dot = m.kind === "city"
-      ? `<button type="button" class="roadtrip-map-dot" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
+      ? `<button type="button" class="roadtrip-map-dot${state.roadtripMapCity ? (m.id === state.roadtripMapCity ? " is-selected" : " is-dimmed") : ""}" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
       : "";
     const pill = labelled.has(m.id)
       ? `<span class="roadtrip-map-pill${m.kind === "country" ? " is-country" : ""}" style="left:${pct(m.x, MAP_W)};top:${pct(m.y, MAP_H)}">${m.label}</span>`
@@ -6479,24 +6480,66 @@ async function renderRoadtripMap({ animate = false } = {}) {
   $("roadtrip-map-marks").classList.toggle("is-animating", animate);
 
   const drilledCountry = drilled && countries.find((c) => c.countryCode === drilled);
-  $("roadtrip-map-title").textContent = drilled
-    ? `${drilledCountry?.flag ? `${drilledCountry.flag} ` : ""}${drilledCountry?.name || drilled}`
-    : `${countries.length} ${countries.length === 1 ? "country" : "countries"}`;
-  $("btn-roadtrip-map-zoom").textContent = drilled ? "‹ All countries" : (state.roadtripMapWorld ? "Fit" : "World");
+  const drilledCity = state.roadtripScope?.city;
+  $("roadtrip-map-title").textContent = drilledCity
+    ? drilledCity.name
+    : drilled
+      ? `${drilledCountry?.flag ? `${drilledCountry.flag} ` : ""}${drilledCountry?.name || drilled}`
+      : `${countries.length} ${countries.length === 1 ? "country" : "countries"}`;
+  $("btn-roadtrip-map-zoom").textContent = drilledCity
+    ? `‹ ${drilledCountry?.name || drilled}`
+    : drilled ? "‹ All countries" : (state.roadtripMapWorld ? "Fit" : "World");
   $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled && shouldShowWorld(unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds)), MAP_W));
 }
 
 function drillRoadtripMap(countryCode) {
-  if (!state.roadtripMapCountry) state.roadtripTierBeforeMap = state.roadtripTier;
   state.roadtripMapCountry = countryCode;
-  state.roadtripTier = "city";
+  state.roadtripMapCity = null;
   renderRoadtripAnimated();
 }
 
+function drillRoadtripCity(cityId) {
+  state.roadtripMapCity = cityId;
+  renderRoadtrip();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Up one level: city → its country, country → the world.
 function leaveRoadtripMapDrill() {
+  if (state.roadtripMapCity) {
+    state.roadtripMapCity = null;
+    renderRoadtrip();
+    return;
+  }
   state.roadtripMapCountry = null;
-  state.roadtripTier = state.roadtripTierBeforeMap || state.roadtripTier;
   renderRoadtripAnimated();
+}
+
+// The detail screen can show the list's rows or the drilled-into country/city.
+function findRoadtripTerritory(id) {
+  return state.roadtripTerritories.find((row) => row.id === id)
+    || [state.roadtripScope?.country, state.roadtripScope?.city].find((row) => row?.id === id)
+    || null;
+}
+
+// A shared #roadtrip=id link: find which level the id lives at, drill the
+// map/list down to it, then open its detail.
+function openRoadtripLink(id) {
+  const sessions = getAllSessionsForDisplay();
+  for (const tier of ["country", "city", "neighborhood"]) {
+    const place = buildRoadtripTerritories(sessions, { tier, period: state.roadtripPeriod }).find((t) => t.id === id);
+    if (!place) continue;
+    state.roadtripMapCountry = tier === "country" ? null : place.countryCode;
+    state.roadtripMapCity = tier === "neighborhood" ? place.cityId : null;
+    renderRoadtrip();
+    if (findRoadtripTerritory(id)) openRoadtripDetail(id);
+    return;
+  }
+}
+
+function openRoadtripDetail(id) {
+  state.roadtripDetailId = id;
+  showScreen("screen-roadtrip-detail");
 }
 
 // A drill in/out animates the zoom; ordinary repaints snap.
@@ -6513,9 +6556,9 @@ $("roadtrip-map-zoom").addEventListener("click", (e) => {
 });
 $("roadtrip-map-marks").addEventListener("click", (e) => {
   const dot = e.target.closest("[data-map-city]");
-  if (!dot || !state.roadtripTerritories.some((t) => t.id === dot.dataset.mapCity)) return;
-  state.roadtripDetailId = dot.dataset.mapCity;
-  showScreen("screen-roadtrip-detail");
+  if (!dot) return;
+  if (dot.dataset.mapCity === state.roadtripMapCity) openRoadtripDetail(dot.dataset.mapCity);
+  else drillRoadtripCity(dot.dataset.mapCity);
 });
 $("btn-roadtrip-map-zoom").addEventListener("click", () => {
   if (state.roadtripMapCountry) return leaveRoadtripMapDrill();
@@ -6524,36 +6567,45 @@ $("btn-roadtrip-map-zoom").addEventListener("click", () => {
 });
 
 function renderRoadtrip() {
-  $("roadtrip-tier-label").textContent = ROADTRIP_TIER_LABELS[state.roadtripTier] || "City";
-  document.querySelectorAll("[data-roadtrip-tier]").forEach((option) => {
-    const selected = option.dataset.roadtripTier === state.roadtripTier;
-    option.classList.toggle("selected", selected);
-    option.setAttribute("aria-selected", String(selected));
-  });
   document.querySelectorAll("[data-roadtrip-period]").forEach((option) => option.classList.toggle("active", option.dataset.roadtripPeriod === state.roadtripPeriod));
   const locationMissing = !state.deviceLocationProfile.location;
   $("roadtrip-location-needed").classList.toggle("hidden", !locationMissing);
   const list = $("roadtrip-list");
   list.innerHTML = "";
-  // A drilled-into country with no reps in the newly picked period falls
-  // back to the world view rather than an empty map + list.
-  if (state.roadtripMapCountry && !buildRoadtripTerritories(getAllSessionsForDisplay(), { tier: "country", period: state.roadtripPeriod })
-    .some((c) => c.countryCode === state.roadtripMapCountry)) {
-    state.roadtripMapCountry = null;
-    state.roadtripTier = state.roadtripTierBeforeMap || state.roadtripTier;
-  }
-  const allTerritories = buildRoadtripTerritories(getAllSessionsForDisplay(), {
-    tier: state.roadtripTier,
-    period: state.roadtripPeriod,
-  });
-  // Map drill-down (a tapped country) narrows the list to that country,
-  // re-ranked within it.
-  state.roadtripTerritories = state.roadtripMapCountry
-    ? allTerritories.filter((t) => t.countryCode === state.roadtripMapCountry).map((t, i) => ({ ...t, rank: i + 1 }))
-    : allTerritories;
+  const sessions = getAllSessionsForDisplay();
+  const period = state.roadtripPeriod;
+  // The list follows the map: world → countries, a country → its cities,
+  // a city → its neighborhoods. A drilled-into place with no reps in the
+  // newly picked period steps back up rather than showing an empty level.
+  const countries = buildRoadtripTerritories(sessions, { tier: "country", period });
+  const country = state.roadtripMapCountry && countries.find((c) => c.countryCode === state.roadtripMapCountry);
+  if (!country) state.roadtripMapCountry = null;
+  const cities = country ? buildRoadtripTerritories(sessions, { tier: "city", period }).filter((t) => t.countryCode === country.countryCode) : [];
+  const city = state.roadtripMapCity && cities.find((c) => c.id === state.roadtripMapCity);
+  if (!city) state.roadtripMapCity = null;
+  state.roadtripScope = { country: country || null, city: city || null };
+  state.roadtripTier = city ? "neighborhood" : country ? "city" : "country";
+  const rows = city
+    ? buildRoadtripTerritories(sessions, { tier: "neighborhood", period }).filter((t) => t.cityId === city.id)
+    : country ? cities : countries;
+  state.roadtripTerritories = rows.map((t, i) => ({ ...t, rank: i + 1 }));
   renderRoadtripMap({ animate: !!state.roadtripMapAnimate });
   state.roadtripMapAnimate = false;
+
+  const scopePlace = city || country;
+  if (scopePlace) {
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "roadtrip-scope-link";
+    link.innerHTML = `<span>${escapeHtml(roadtripPlaceText(scopePlace))} leaderboard</span><span aria-hidden="true">›</span>`;
+    link.addEventListener("click", () => openRoadtripDetail(scopePlace.id));
+    list.appendChild(link);
+  }
   const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
+  if (!top.length && city) {
+    list.insertAdjacentHTML("beforeend", `<p class="roadtrip-scope-empty">No neighborhood-level reps in ${escapeHtml(city.name)} for this period.</p>`);
+    return;
+  }
   if (!top.length) {
     list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One pushup with a selected location can fix that.</span></div>`;
     return;
@@ -6571,7 +6623,7 @@ function renderRoadtrip() {
 }
 
 function renderRoadtripDetail() {
-  const territory = state.roadtripTerritories.find((row) => row.id === state.roadtripDetailId);
+  const territory = findRoadtripTerritory(state.roadtripDetailId);
   if (!territory) {
     showScreen("screen-roadtrip");
     return;
@@ -6669,7 +6721,7 @@ function pickRoadtripShareTemplate(pool) {
 }
 
 async function shareRoadtripDetail() {
-  const territory = state.roadtripTerritories.find((row) => row.id === state.roadtripDetailId);
+  const territory = findRoadtripTerritory(state.roadtripDetailId);
   if (!territory) return;
   const flavor = TIER_SHARE_FLAVOR[territory.tier] || TIER_SHARE_FLAVOR.city;
   const placeLabel = `${territory.flag ? `${territory.flag} ` : ""}${territory.name}`;
@@ -6727,21 +6779,6 @@ $("roadtrip-period-select").addEventListener("click", (event) => {
   localStorage.setItem(LS.roadtripPeriod, state.roadtripPeriod);
   renderRoadtrip();
   option.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
-});
-$("roadtrip-tier-trigger").addEventListener("click", () => setRoadtripTierMenuOpen($("roadtrip-tier-trigger").getAttribute("aria-expanded") !== "true"));
-$("roadtrip-tier-menu").addEventListener("click", (event) => {
-  const option = event.target.closest("[data-roadtrip-tier]");
-  if (!option) return;
-  state.roadtripTier = option.dataset.roadtripTier;
-  localStorage.setItem(LS.roadtripTier, state.roadtripTier);
-  setRoadtripTierMenuOpen(false);
-  renderRoadtrip();
-});
-document.addEventListener("click", (event) => {
-  if (!event.target.closest("#roadtrip-tier-picker")) setRoadtripTierMenuOpen(false);
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") setRoadtripTierMenuOpen(false);
 });
 $("btn-roadtrip-location").addEventListener("click", openLocationSheet);
 $("btn-roadtrip-back").addEventListener("click", () => showScreen("screen-roadtrip"));
@@ -17308,13 +17345,12 @@ async function init() {
   // A shared roadtrip territory link (#roadtrip=id, or plain #roadtrip for a
   // conquest with no single territory) opens the Roadtrip screen, drilling
   // into that territory's detail if the id still exists.
-  const roadtripMatch = location.hash.match(/^#roadtrip(?:=([a-z0-9-]{1,64}))?$/);
+  // Territory ids look like "city:us:texas:houston" and the share link
+  // percent-encodes the colons, so decode before matching.
+  const roadtripMatch = decodeURIComponent(location.hash).match(/^#roadtrip(?:=([a-z0-9:-]{1,180}))?$/);
   if (roadtripMatch && state.currentUser) {
     showScreen("screen-roadtrip");
-    if (roadtripMatch[1] && state.roadtripTerritories.some((t) => t.id === roadtripMatch[1])) {
-      state.roadtripDetailId = roadtripMatch[1];
-      showScreen("screen-roadtrip-detail");
-    }
+    if (roadtripMatch[1]) openRoadtripLink(roadtripMatch[1]);
   }
 
   if ("serviceWorker" in navigator) {
