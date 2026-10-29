@@ -3372,7 +3372,13 @@ body:has(#screen-challenges.active) .challenge-list {
 .roadtrip-location-needed h2 { margin: 0; font-size: 1.05rem; }
 .roadtrip-location-needed p, .roadtrip-empty span { max-width: 20rem; color: var(--text-dim); font-size: 0.78rem; line-height: 1.4; }
 .roadtrip-empty-icon { font-size: 1.7rem; }
-.roadtrip-detail-title { margin-bottom: 1rem; font-size: 1.35rem; }
+/* Title and share share one row, like the main tab headers. */
+.challenge-detail-header.roadtrip-detail-header { justify-content: space-between; align-items: center; min-height: 2.4rem; }
+.roadtrip-detail-title {
+  margin: 0; font-size: 1.35rem; line-height: 1.2; min-width: 0; flex: 1;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.roadtrip-detail-header .icon-btn { flex-shrink: 0; }
 .roadtrip-detail-summary { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; padding: 1.1rem; border-radius: 16px; background: var(--bg-elevated); }
 .roadtrip-crown { display: grid; place-items: center; flex: 0 0 3.5rem; width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--gold); font-size: 1.45rem; }
 .roadtrip-summary-copy { min-width: 0; display: flex; flex-direction: column; gap: 0.22rem; }
