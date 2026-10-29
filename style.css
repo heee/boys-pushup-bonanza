@@ -5360,23 +5360,10 @@ body:has(#screen-challenge-detail.active) #app {
 
 /* ---------------- Toast ---------------- */
 
-.toast {
-  position: fixed;
-  bottom: calc(1.2rem + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-elevated-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.7rem 1.1rem;
-  border-radius: 999px;
-  box-shadow: var(--shadow);
-  font-size: 0.9rem;
-  font-weight: 700;
-  z-index: 999;
-  max-width: 90vw;
-  text-align: center;
-}
+/* App-wide message toast: the same glass bar as the challenge-join and
+   poker toasts (.glass-toast) — it used to be a pill that sat on top of the
+   tab bar. Only the stacking order differs, so it stays above everything. */
+#toast { z-index: 999; transition: opacity 0.25s ease; }
 
 /* ---------------- Holland mode ---------------- */
 

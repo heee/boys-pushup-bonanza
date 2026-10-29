@@ -652,9 +652,13 @@ function setAvatarEl(el, avatarId, size) {
 function toast(msg, ms = 2600) {
   const el = $("toast");
   el.textContent = msg;
-  el.classList.remove("hidden");
+  el.classList.remove("hidden", "glass-toast-fade");
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add("hidden"), ms);
+  clearTimeout(toast._hideT);
+  toast._t = setTimeout(() => {
+    el.classList.add("glass-toast-fade");
+    toast._hideT = setTimeout(() => el.classList.add("hidden"), 300);
+  }, ms);
 }
 
 // Prefers the pre-rendered clips in assets/voice (see voice.js); falls back to
