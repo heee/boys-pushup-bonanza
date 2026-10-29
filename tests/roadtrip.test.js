@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   buildRoadtripTerritories,
   detectRoadtripConquests,
+  roadtripConquestShareMessage,
+  roadtripPeriodPhrase,
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "../roadtrip.js";
@@ -53,11 +55,9 @@ test("overview and local lists pin the user's out-of-range rows", () => {
   assert.equal(roadtripDetailRows(territory, "U11", 10).pinned.rank, 12);
 });
 
-test("detects first claims and groups every period and tier", () => {
+test("a first claim on an empty board is not a conquest", () => {
   const fresh = session("new", "Ada", 10, 10);
-  const wins = detectRoadtripConquests([fresh], "new", { now });
-  assert.equal(wins.length, 3);
-  assert.ok(wins.every((win) => win.kind === "claimed" && win.periods.length === 6));
+  assert.equal(detectRoadtripConquests([fresh], "new", { now }).length, 0);
 });
 
 test("detects overtakes, names the incumbent, and rejects a tie", () => {
@@ -67,5 +67,21 @@ test("detects overtakes, names the incumbent, and rejects a tie", () => {
   const win = session("win", "Ada", 21, 10);
   const wins = detectRoadtripConquests([prior, win], "win", { now });
   assert.equal(wins.length, 3);
-  assert.ok(wins.every((item) => item.overtaken === "Ben" && item.kind === "conquered"));
+  assert.ok(wins.every((item) => item.overtaken === "Ben" && item.kind === "conquered" && item.periods.length === 6));
+  assert.ok(wins.every((item) => item.flag === "🇺🇸"));
+});
+
+test("share message breaks into blocks with flags and plain-English periods", () => {
+  assert.equal(roadtripPeriodPhrase(["day"]), "today");
+  assert.equal(roadtripPeriodPhrase(["day", "week", "all"]), "today, this week & all-time");
+  const message = roadtripConquestShareMessage("Ada", [
+    { name: "Downtown", flag: "🇺🇸", periods: ["day", "week"], overtaken: "Ben" },
+    { name: "Washington", flag: "🇺🇸", periods: ["month"], overtaken: "Cy" },
+  ]);
+  assert.equal(message, [
+    "🚨 TERRITORY THEFT 🚨\nAda just stole:",
+    "🇺🇸 Downtown — today & this week\nRipped out of Ben's sweaty little hands.",
+    "🇺🇸 Washington — this month\nRipped out of Cy's sweaty little hands.",
+    "The Roadtrip map has a new landlord. Pay rent in pushups, losers. 🌍👑",
+  ].join("\n\n"));
 });

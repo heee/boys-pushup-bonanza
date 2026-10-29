@@ -169,6 +169,7 @@ import {
   buildRoadtripTerritories,
   detectRoadtripConquests,
   roadtripConquestShareMessage,
+  roadtripPeriodPhrase,
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
@@ -12283,10 +12284,14 @@ function renderSummaryRoadtripResult() {
     return;
   }
   cue.classList.remove("hidden");
-  const label = wins.length === 1
-    ? `${wins[0].flag ? `${wins[0].flag} ` : ""}${escapeHtml(wins[0].name)}`
-    : `${wins.length} territories`;
-  cue.innerHTML = `<span class="cue-icon" aria-hidden="true">🏆</span>${label} taken — tap to share`;
+  const lines = wins.slice(0, 3).map((win) =>
+    `Stole ${win.flag ? `${win.flag} ` : ""}${escapeHtml(win.name)} <span class="nowrap">(${roadtripPeriodPhrase(win.periods)})</span> from <span class="nowrap">${escapeHtml(win.overtaken)}</span>`
+  );
+  if (wins.length > 3) lines.push(`+${wins.length - 3} more`);
+  lines.push("tap to share");
+  if (wins.length === 1) lines.splice(0, 2, `${lines[0]} — ${lines[1]}`);
+  lines[0] = `<span class="cue-icon" aria-hidden="true">🏆</span>${lines[0]}`;
+  cue.innerHTML = lines.map((line) => `<span class="summary-roadtrip-cue-line">${line}</span>`).join("");
 }
 
 function refreshSummaryRoadtripConquests() {
@@ -12409,11 +12414,11 @@ async function shareRoadtripConquest() {
   const message = roadtripConquestShareMessage(state.currentUser, wins);
   const url = `${location.origin}${location.pathname}#roadtrip=${encodeURIComponent(wins[0].id)}`;
   if (navigator.share) {
-    try { await navigator.share(sharePayload("Roadtrip conquered", message, url)); } catch (e) { /* cancelled */ }
+    try { await navigator.share({ title: "Roadtrip conquered", text: `${message}\n\n${url}` }); } catch (e) { /* cancelled */ }
     return;
   }
   try {
-    await navigator.clipboard.writeText(`${message} ${url}`);
+    await navigator.clipboard.writeText(`${message}\n\n${url}`);
     toast("Conquest copied — go ruin someone's day.");
   } catch (e) {
     toast("Couldn't share automatically.", 4000);

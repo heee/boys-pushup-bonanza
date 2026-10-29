@@ -3106,6 +3106,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   text-align: center;
   cursor: pointer;
 }
+.summary-roadtrip-cue-line { display: block; text-wrap: balance; }
+.summary-roadtrip-cue .nowrap { white-space: nowrap; }
 .summary-actions {
   display: flex;
   flex-direction: column;

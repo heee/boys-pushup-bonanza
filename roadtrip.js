@@ -130,16 +130,17 @@ export function detectRoadtripConquests(sessions, sessionId, { now } = {}) {
     for (const period of ROADTRIP_PERIODS) {
       const prior = buildRoadtripTerritories(before, { tier, period, now: moment }).find((row) => row.id === place.id);
       const after = buildRoadtripTerritories(sessions, { tier, period, now: moment }).find((row) => row.id === place.id);
-      if (!after || after.holder !== session.user || prior?.holder === session.user) continue;
+      // Only a steal counts — being first on an empty board isn't news.
+      if (!after || !prior?.holder || after.holder !== session.user || prior.holder === session.user) continue;
       wins.push({
         tier,
         period,
         id: place.id,
         name: after.name,
         parent: after.parent,
-        flag: after.flag,
-        kind: prior ? "conquered" : "claimed",
-        overtaken: prior?.holder || "",
+        flag: flagEmoji(after.countryCode),
+        kind: "conquered",
+        overtaken: prior.holder,
         total: after.holderTotal,
       });
     }
@@ -150,7 +151,7 @@ export function detectRoadtripConquests(sessions, sessionId, { now } = {}) {
 export function groupRoadtripConquests(wins) {
   const grouped = new Map();
   for (const win of wins || []) {
-    const key = `${win.tier}:${win.id}:${win.kind}:${win.overtaken || ""}`;
+    const key = `${win.tier}:${win.id}:${win.overtaken || ""}`;
     const existing = grouped.get(key) || { ...win, periods: [] };
     if (!existing.periods.includes(win.period)) existing.periods.push(win.period);
     grouped.set(key, existing);
@@ -161,12 +162,30 @@ export function groupRoadtripConquests(wins) {
   }));
 }
 
+const PERIOD_PHRASES = {
+  day: "today",
+  week: "this week",
+  month: "this month",
+  quarter: "this quarter",
+  year: "this year",
+  all: "all-time",
+};
+
+// ["day", "week", "month"] → "today, this week & this month"
+export function roadtripPeriodPhrase(periods) {
+  const phrases = (periods || []).map((period) => PERIOD_PHRASES[period] || period);
+  return phrases.length > 1
+    ? `${phrases.slice(0, -1).join(", ")} & ${phrases[phrases.length - 1]}`
+    : phrases[0] || "";
+}
+
 export function roadtripConquestShareMessage(user, wins) {
-  const territoryText = (wins || []).map((win) => {
-    const periods = win.periods.map((period) => period.toUpperCase()).join("/");
-    return win.kind === "claimed"
-      ? `${win.name} (${periods}) — planted my flag before the other cowards showed up`
-      : `${win.name} (${periods}) — ripped it out of ${win.overtaken}'s sweaty little hands`;
-  }).join("; ");
-  return `🚨 TERRITORY THEFT 🚨 ${user} just ${wins?.some((win) => win.kind === "conquered") ? "conquered" : "claimed"} ${territoryText}. The Roadtrip map has a new landlord. Pay rent in pushups, losers. 🌍👑`;
+  const blocks = (wins || []).map((win) =>
+    `${win.flag ? `${win.flag} ` : ""}${win.name} — ${roadtripPeriodPhrase(win.periods)}\nRipped out of ${win.overtaken}'s sweaty little hands.`
+  );
+  return [
+    `🚨 TERRITORY THEFT 🚨\n${user} just stole:`,
+    ...blocks,
+    "The Roadtrip map has a new landlord. Pay rent in pushups, losers. 🌍👑",
+  ].join("\n\n");
 }
