@@ -45,6 +45,44 @@ export function addTonedLines(pools, extras) {
   }
 }
 
+// Many original lines are one punchline behind several lead-ins ("Did 120
+// classic pushups." / "Kept it classic: 120 reps." + the same joke). Keyed
+// on the last few words of the final sentence, so those variants group.
+export function punchlineKey(template) {
+  const text = String(template)
+    .replace(/\$\{(?:[^{}]|\{[^{}]*\})*\}/g, " ")
+    .replace(/[^\p{L}\p{N}\s.!?']/gu, " ");
+  const sentences = text.split(/(?<=[.!?])\s+/).filter((part) => /\p{L}{3,}/u.test(part));
+  const words = (sentences.at(-1) || text).toLowerCase().match(/[\p{L}']+/gu) || [];
+  return words.slice(-5).join(" ");
+}
+
+const groupCache = new WeakMap();
+
+// Picks a punchline first, then one of its lead-ins, so a joke written five
+// ways is no likelier than a one-off. Only lines at the chosen tone count.
+export function pickToned(pool, tone = currentShareTone(), random = Math.random) {
+  const choices = tonedChoices(pool, tone);
+  let cached = groupCache.get(pool);
+  if (!cached || cached.size !== pool.length) {
+    cached = { size: pool.length, byTone: new Map() };
+    groupCache.set(pool, cached);
+  }
+  let groups = cached.byTone.get(tone);
+  if (!groups) {
+    const byKey = new Map();
+    for (const template of choices) {
+      const key = typeof template === "function" ? punchlineKey(template) : template;
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key).push(template);
+    }
+    groups = [...byKey.values()];
+    cached.byTone.set(tone, groups);
+  }
+  const group = groups[Math.floor(random() * groups.length)];
+  return group[Math.floor(random() * group.length)];
+}
+
 // Spread-joining two pools keeps their ratings.
 export function concatToned(...pools) {
   const out = pools.flat();

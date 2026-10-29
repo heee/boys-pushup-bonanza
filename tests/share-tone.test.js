@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { SHARE_POOLS } from "../share-messages.js";
 import { SHARE_TONE_RATINGS } from "../share-tone-ratings.js";
 import { APP_SHARE_EXTRA_LINES } from "../share-lines-app.js";
-import { addTonedLines, concatToned, tonedChoices } from "../share-tone.js";
+import { addTonedLines, concatToned, pickToned, punchlineKey, tonedChoices } from "../share-tone.js";
 
 // Any field a template reads gets a plausible value, so a typo'd field
 // shows up as "undefined" in the rendered text.
@@ -67,4 +67,16 @@ test("picking stays inside the chosen tone", () => {
   assert.deepEqual(tonedChoices(["x"], "chill"), ["x"], "untagged arrays pass through");
   const joined = concatToned(Object.assign(["a"], { tones: "c" }), Object.assign(["b"], { tones: "u" }));
   assert.equal(joined.tones, "cu");
+});
+
+test("a punchline repeated behind several lead-ins counts once when picking", () => {
+  const a1 = (n) => `Did ${n} pushups. Your move, cowards.`;
+  const a2 = (n) => `Kept it classic: ${n} reps. Your move, cowards.`;
+  const a3 = (n) => `${n} reps in the original flavor. Your move, cowards. 😤`;
+  const b = (n) => `${n} pushups. Pay rent in reps, losers.`;
+  assert.equal(punchlineKey(a1), punchlineKey(a3), "trailing emoji doesn't split a group");
+  const pool = Object.assign([a1, a2, a3, b], { tones: "ssss" });
+  let hitsB = 0;
+  for (let i = 0; i < 400; i++) if (pickToned(pool, "spicy", () => (i % 2 ? 0.75 : 0.25)) === b) hitsB++;
+  assert.equal(hitsB, 200, "the one-off joke gets half the picks, not a quarter");
 });

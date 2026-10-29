@@ -176,7 +176,7 @@ import {
 } from "./roadtrip.js";
 import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, completedPeriodRange, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js?v=2";
 import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey, HOUSTON_COORDS } from "./group-recap.js?v=1";
-import { SHARE_TONE_KEY, SHARE_TONES, addTonedLines, currentShareTone, tagTones, tonedChoices } from "./share-tone.js";
+import { SHARE_TONE_KEY, SHARE_TONES, addTonedLines, currentShareTone, pickToned, tagTones } from "./share-tone.js";
 import { SHARE_TONE_RATINGS } from "./share-tone-ratings.js";
 import { APP_SHARE_EXTRA_LINES } from "./share-lines-app.js";
 import { compactCount, cullLabels, fitTransform, heatLevel, ISO2_TO_NUMERIC, shouldShowWorld, unionBounds } from "./roadtrip-map.js";
@@ -10391,8 +10391,7 @@ function applyCameraPreviewSetting() {
 // Share pools carry tone ratings (share-tone.js); everything else passes
 // through untouched.
 function pickFrom(arr) {
-  const choices = tonedChoices(arr);
-  return choices[Math.floor(Math.random() * choices.length)];
+  return arr.tones ? pickToned(arr) : arr[Math.floor(Math.random() * arr.length)];
 }
 
 // Chance of a random cheer, as a function of progress toward personal best

@@ -1,14 +1,13 @@
 // Workout-completion share copy and mode-priority selection.
 // Loaded only when Share is tapped so startup does not parse the large message library.
 
-import { addTonedLines, concatToned, tagTones, tonedChoices } from "./share-tone.js";
+import { addTonedLines, concatToned, pickToned, tagTones } from "./share-tone.js";
 import { SHARE_TONE_RATINGS } from "./share-tone-ratings.js";
 import { SHARE_EXTRA_LINES } from "./share-messages-extra.js";
 
 // Picks only from lines at the chosen share tone (see share-tone.js).
 function pickFrom(arr) {
-  const choices = tonedChoices(arr);
-  return choices[Math.floor(Math.random() * choices.length)];
+  return arr.tones ? pickToned(arr) : arr[Math.floor(Math.random() * arr.length)];
 }
 
 const SHARE_MESSAGES = [
