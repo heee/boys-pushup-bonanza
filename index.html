@@ -46,7 +46,10 @@
 
   <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
   <header id="app-header" class="app-header">
-    <button id="btn-home" class="brand" aria-label="Home">Bonanza</button>
+    <div id="brand-wrap" class="brand-wrap">
+      <button id="btn-home" class="brand" aria-label="Groups" aria-haspopup="menu" aria-expanded="false" aria-controls="group-menu">Bonanza<span class="brand-chevron leaderboard-mode-chevron" aria-hidden="true"></span></button>
+      <div id="group-menu" class="leaderboard-mode-menu group-menu hidden" role="menu" aria-label="Groups"></div>
+    </div>
     <button id="btn-header-back" type="button" class="header-back hidden"><span class="header-back-chev" aria-hidden="true">‹</span><span id="header-back-label"></span></button>
     <nav class="header-actions">
       <button id="streak-badge" type="button" class="streak-badge hidden" aria-label="My Bonanza" title="My Bonanza"></button>
@@ -1412,10 +1415,7 @@
               <span id="bonanza-mode-label">Boys Bonanza</span>
               <span class="leaderboard-mode-chevron" aria-hidden="true"></span>
             </button>
-            <div id="bonanza-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Board view">
-              <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mode="boys"><span>Boys Bonanza</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-              <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mode="mine"><span>My Bonanza</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            </div>
+            <div id="bonanza-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Board view"></div>
           </div>
           <button id="btn-leaderboard-share" type="button" class="icon-btn" aria-label="Share stats" title="Share stats"><span class="icon-share" aria-hidden="true"></span></button>
         </div>
@@ -1746,6 +1746,12 @@
       </button>
 
       <div class="settings-block settings-category-list" id="settings-category-list">
+        <button type="button" class="settings-category-row" data-settings-category="groups" data-sibling-id="screen-settings-groups">
+          <span class="settings-category-icon settings-category-icon-groups" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg></span>
+          <span class="settings-category-title">Groups</span>
+          <span id="settings-category-groups-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
         <button type="button" class="settings-category-row" data-settings-category="goals" data-sibling-id="screen-settings-goals">
           <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
           <span class="settings-category-title">Personal goals</span>
@@ -2038,6 +2044,50 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > GROUPS ============ -->
+    <section id="screen-settings-groups" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-groups-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Groups</h1>
+      <p class="screen-sub">Your Board, Challenges and Games follow the active group.</p>
+      <div id="groups-list" class="settings-block settings-category-list"></div>
+      <div class="groups-actions">
+        <button id="btn-group-create-open" type="button" class="btn btn-primary">Create group</button>
+        <button id="btn-group-join-open" type="button" class="btn btn-secondary">Join with code</button>
+      </div>
+      <form id="group-create-form" class="group-form hidden">
+        <input id="group-create-name" type="text" maxlength="40" placeholder="Group name" autocomplete="off" required>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </form>
+      <form id="group-join-form" class="group-form hidden">
+        <input id="group-join-code" type="text" maxlength="6" placeholder="Invite code" autocomplete="off" autocapitalize="characters" required>
+        <button type="submit" class="btn btn-primary">Join</button>
+      </form>
+    </section>
+
+    <!-- ============ SCREEN: GROUP DETAIL ============ -->
+    <section id="screen-group-detail" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-group-detail-back" type="button" class="challenge-detail-back">← Groups</button>
+      </div>
+      <h1 id="group-detail-title" class="screen-title"></h1>
+      <p id="group-detail-sub" class="screen-sub"></p>
+      <button id="btn-group-make-active" type="button" class="btn btn-primary group-make-active hidden">Make active group</button>
+      <div class="group-invite-card">
+        <span class="group-invite-label">Invite code</span>
+        <span id="group-invite-code" class="group-invite-code"></span>
+        <button id="btn-group-share-invite" type="button" class="btn btn-secondary btn-small">Share invite</button>
+      </div>
+      <p class="pyramid-setup-section-label">Members</p>
+      <div id="group-member-list" class="tier1-list"></div>
+      <div class="group-danger-actions">
+        <button id="btn-group-rename" type="button" class="btn btn-secondary hidden">Rename group</button>
+        <button id="btn-group-leave" type="button" class="btn btn-secondary">Leave group</button>
+        <button id="btn-group-delete" type="button" class="btn btn-secondary group-delete-btn hidden">Delete group</button>
       </div>
     </section>
 

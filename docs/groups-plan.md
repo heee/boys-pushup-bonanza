@@ -1,6 +1,6 @@
 # Groups + expanded game session types — plan
 
-Status: **draft, awaiting confirmation** (2026-10-29)
+Status: **approved, building** (2026-10-29). Phases 1–3 shipped dark: everything is gated on `/data`'s `groupsEnabled`, which turns true only once the 0009 SQL has run — until then the app behaves exactly as before.
 
 Groundwork for a broader App Store launch. Real groups replace the single
 implicit "Boys Bonanza" pool; every current user lands in **The Boys 2.1**.
@@ -43,31 +43,18 @@ Existing `open` games are treated as `group` for The Boys 2.1 (read-time alias, 
 
 ## Data
 
-New D1 tables (DDL — **Henning runs this SQL in the Cloudflare D1 console**;
-the MCP credential can't run DDL):
-
-```sql
-CREATE TABLE groups (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, invite_code TEXT UNIQUE NOT NULL,
-  created_by TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE group_members (
-  group_id TEXT NOT NULL, user_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member',
-  joined_at TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (group_id, user_id)
-);
-ALTER TABLE custom_challenges ADD COLUMN group_id TEXT;
-ALTER TABLE custom_challenges ADD COLUMN visibility TEXT NOT NULL DEFAULT 'group';
-```
-
-Seed (DML — Claude runs via MCP): insert The Boys 2.1, every existing user as
-member, Henning as admin; set existing custom challenges' `group_id`.
+New D1 tables + seed, all in `worker/migrations/0009_groups.sql` (DDL —
+**Henning runs it in the Cloudflare D1 console**; the MCP credential can't run
+DDL): `groups`, `group_members`, and `challenge_scopes` (a side table rather
+than an ALTER on `custom_challenges`). The seed puts every existing user in
+The Boys 2.1 (Henning admin, invite code BOYS21) and scopes existing custom
+challenges to it.
 
 Horse / Tug of war games are JSON blobs — `sessionType`, `groupId`,
 `maxPlayers` added in the JSON, no schema change.
 
-Worker: `/data` returns `groups` + `groupMembers`; new endpoints
-`/group-create`, `/group-join` (by code), `/group-leave`, `/group-remove-member`,
-`/group-rename`, `/group-promote`, `/group-delete`; challenge + game create/join
+Worker: `/data` returns `groups` (with members) and `groupsEnabled`; one
+`/group-action` endpoint (create/join/leave/rename/promote/remove/delete); challenge + game create/join
 endpoints validate group membership and `maxPlayers`.
 
 ## Build phases (each shipped + verified separately)

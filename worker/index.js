@@ -69,6 +69,11 @@
 //   POST /join-challenge  -> { user, challengeId } -> adds user to that challenge's participant list
 //   POST /create-challenge -> { title, tagline, emoji, goalType, goal, start, end, gradient?, createdBy }
 //                              -> stores a user-created challenge in D1, server-assigns the id
+//   POST /group-action -> { action, user, ... } -> create/join/leave/rename/promote/remove/delete
+//                          a group (see groupAction below; docs/groups-plan.md). /data
+//                          returns `groups` (with members + inviteCode) and each custom
+//                          challenge's `visibility`/`groupId`; /create-challenge accepts
+//                          visibility ("personal"/"group"/"public") + groupId
 //   POST /horse-create -> { id?, word, sessionType, createdBy, players, timeLimitKey? } -> creates
 //                          a Horse game; timeLimitKey is one of "24h"/"48h"/"72h"/"unlimited"
 //                          (defaults to "unlimited" if omitted/unrecognized)
@@ -410,10 +415,29 @@ export default {
       if (!challenge) return json({ error: "invalid challenge payload" }, 400, cors);
 
       try {
+        await assertChallengeScope(env.DB, challenge);
         await createChallenge(env.DB, challenge);
         return json({ ok: true, challenge }, 200, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/group-action" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      try {
+        const result = await groupAction(env.DB, body);
+        return json({ ok: true, ...result }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, e instanceof GroupError ? 400 : 502, cors);
       }
     }
 
@@ -1243,7 +1267,14 @@ function validateChallenge(body) {
   const requestedId = typeof body.id === "string" && /^[a-z0-9-]{1,64}$/.test(body.id) ? body.id : "";
   const id = requestedId || `${slug}-${Date.now().toString(36)}`;
 
-  return { id, title, tagline, emoji, goalType, goal, start, end, gradient, createdBy };
+  // Scope (docs/groups-plan.md): personal = creator only, group = one
+  // group's members, public = everyone. Omitted (older cached clients) =
+  // public, matching what they did before groups existed.
+  const visibility = ["personal", "group", "public"].includes(body.visibility) ? body.visibility : "public";
+  const groupId = visibility === "group" && typeof body.groupId === "string" ? body.groupId.trim().slice(0, 40) : null;
+  if (visibility === "group" && !groupId) return null;
+
+  return { id, title, tagline, emoji, goalType, goal, start, end, gradient, createdBy, visibility, groupId };
 }
 
 class RenameCollisionError extends Error {}
@@ -1285,7 +1316,7 @@ export function sessionFromRow(row) {
   return session;
 }
 
-async function fetchData(db) {
+export async function fetchData(db) {
   if (!db) throw new Error("D1 database binding is not configured");
   const [sessionRows, avatarRows, membershipRows, challengeRows, horseGameRows, towGameRows, goalRows] = await db.batch([
     db.prepare("SELECT s.*, u.name AS user FROM sessions s JOIN users u ON u.id = s.user_id ORDER BY s.rowid"),
@@ -1300,12 +1331,13 @@ async function fetchData(db) {
   for (const row of avatarRows.results) avatars[row.name] = row.avatar;
   const challengeParticipants = {};
   for (const row of membershipRows.results) (challengeParticipants[row.challenge_id] ||= []).push(row.name);
-  const customChallenges = challengeRows.results.map((row) => ({ id: row.id, title: row.title, tagline: row.tagline, emoji: row.emoji, goalType: row.goal_type, goal: row.goal, start: row.start, end: row.end, gradient: parseStoredJson(row.gradient_json, ["#4a2a5e", "#e8762e"]), createdBy: row.created_by }));
+  const { groupsEnabled, groups, scopes } = await fetchGroupData(db);
+  const customChallenges = challengeRows.results.map((row) => ({ id: row.id, title: row.title, tagline: row.tagline, emoji: row.emoji, goalType: row.goal_type, goal: row.goal, start: row.start, end: row.end, gradient: parseStoredJson(row.gradient_json, ["#4a2a5e", "#e8762e"]), createdBy: row.created_by, visibility: scopes[row.id]?.visibility || "personal", groupId: scopes[row.id]?.groupId || null }));
   const horseGames = horseGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
   const towGames = towGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
   const goals = {};
   for (const row of goalRows.results) goals[row.name] = parseStoredJson(row.data_json, null);
-  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames, towGames, goals };
+  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames, towGames, goals, groups, groupsEnabled };
 }
 
 async function loadHorseGame(db, id) {
@@ -1351,15 +1383,19 @@ export async function insertSession(db, session) {
 async function deleteUser(db, name) {
   const user = await db.prepare("SELECT id FROM users WHERE name = ?").bind(name).first();
   if (!user) return;
+  // Tolerates a database without the 0009 groups migration yet.
+  await db.prepare("DELETE FROM group_members WHERE user_id = ?").bind(user.id).run().catch(() => {});
   await db.batch([db.prepare("DELETE FROM challenge_memberships WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM avatars WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM goals WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM users WHERE id = ?").bind(user.id)]);
 }
 
-async function deleteSession(db, id) {
+export async function deleteSession(db, id) {
   const row = await db.prepare("SELECT user_id FROM sessions WHERE id = ?").bind(id).first();
   if (!row) return;
   await db.prepare("DELETE FROM sessions WHERE id = ?").bind(id).run();
-  await db.prepare(`DELETE FROM users WHERE id = ? AND NOT EXISTS (SELECT 1 FROM sessions WHERE user_id = ?) AND NOT EXISTS (SELECT 1 FROM avatars WHERE user_id = ?) AND NOT EXISTS (SELECT 1 FROM challenge_memberships WHERE user_id = ?)`)
-    .bind(row.user_id, row.user_id, row.user_id, row.user_id).run();
+  await db.prepare(`DELETE FROM users WHERE id = ? AND NOT EXISTS (SELECT 1 FROM sessions WHERE user_id = ?) AND NOT EXISTS (SELECT 1 FROM avatars WHERE user_id = ?) AND NOT EXISTS (SELECT 1 FROM challenge_memberships WHERE user_id = ?) AND NOT EXISTS (SELECT 1 FROM group_members WHERE user_id = ?)`)
+    .bind(row.user_id, row.user_id, row.user_id, row.user_id, row.user_id).run()
+    .catch(() => db.prepare(`DELETE FROM users WHERE id = ? AND NOT EXISTS (SELECT 1 FROM sessions WHERE user_id = ?) AND NOT EXISTS (SELECT 1 FROM avatars WHERE user_id = ?) AND NOT EXISTS (SELECT 1 FROM challenge_memberships WHERE user_id = ?)`)
+      .bind(row.user_id, row.user_id, row.user_id, row.user_id).run());
 }
 
 async function setAvatar(db, name, avatar) {
@@ -1386,6 +1422,167 @@ async function joinChallenge(db, name, challengeId) {
 
 async function createChallenge(db, challenge) {
   await db.prepare(`INSERT OR IGNORE INTO custom_challenges (id,title,tagline,emoji,goal_type,goal,start,end,gradient_json,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(challenge.id, challenge.title, challenge.tagline, challenge.emoji, challenge.goalType, challenge.goal, challenge.start, challenge.end, JSON.stringify(challenge.gradient), challenge.createdBy).run();
+  // Pre-migration (no challenge_scopes table) the challenge just stays unscoped.
+  await db.prepare("INSERT OR IGNORE INTO challenge_scopes (challenge_id, visibility, group_id) VALUES (?, ?, ?)").bind(challenge.id, challenge.visibility, challenge.groupId).run().catch(() => {});
+}
+
+async function assertChallengeScope(db, challenge) {
+  if (challenge.visibility !== "group") return;
+  if (!(await groupRole(db, challenge.groupId, challenge.createdBy))) throw new GroupError("not a member of that group");
+}
+
+// ------------------- Groups -------------------
+// docs/groups-plan.md. Membership is keyed by users.id, so /rename-user
+// carries it along for free. One endpoint, many actions:
+//   create  { user, name }                      -> { group } (caller = admin)
+//   join    { user, code }                      -> { group }
+//   leave   { user, groupId }                   -> last admin out promotes the
+//                                                  longest-standing member; last
+//                                                  member out deletes the group
+//   rename  { user, groupId, name }             (admin)
+//   promote { user, groupId, target }           (admin)
+//   remove  { user, groupId, target }           (admin; not yourself — use leave)
+//   delete  { user, groupId }                   (admin; its group challenges
+//                                                  fall back to personal)
+
+export class GroupError extends Error {}
+
+const GROUP_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export function randomGroupCode(random = Math.random) {
+  return Array.from({ length: 6 }, () => GROUP_CODE_ALPHABET[Math.floor(random() * GROUP_CODE_ALPHABET.length)]).join("");
+}
+
+function cleanGroupName(value) {
+  const name = typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, 40) : "";
+  if (!name) throw new GroupError("invalid group name");
+  return name;
+}
+
+function cleanUserName(value) {
+  const name = typeof value === "string" ? value.trim().slice(0, 40) : "";
+  if (!name) throw new GroupError("invalid user");
+  return name;
+}
+
+async function groupRole(db, groupId, name) {
+  return db.prepare("SELECT m.role FROM group_members m JOIN users u ON u.id = m.user_id WHERE m.group_id = ? AND u.name = ?")
+    .bind(groupId, name).first("role");
+}
+
+async function loadGroup(db, groupId) {
+  const group = await db.prepare("SELECT * FROM groups WHERE id = ?").bind(groupId).first();
+  if (!group) return null;
+  const members = await db.prepare("SELECT u.name, m.role, m.joined_at FROM group_members m JOIN users u ON u.id = m.user_id WHERE m.group_id = ? ORDER BY m.joined_at, m.rowid")
+    .bind(groupId).all();
+  return groupFromRows(group, members.results);
+}
+
+function groupFromRows(group, members) {
+  return {
+    id: group.id,
+    name: group.name,
+    inviteCode: group.invite_code,
+    createdBy: group.created_by,
+    createdAt: group.created_at,
+    members: members.map((m) => ({ name: m.name, role: m.role, joinedAt: m.joined_at })),
+  };
+}
+
+export async function groupAction(db, body) {
+  const action = body?.action;
+  const user = cleanUserName(body?.user);
+  if (action === "create") {
+    const name = cleanGroupName(body.name);
+    const userId = await ensureUser(db, user);
+    const id = `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await db.batch([
+          db.prepare("INSERT INTO groups (id, name, invite_code, created_by) VALUES (?, ?, ?, ?)").bind(id, name, randomGroupCode(), user),
+          db.prepare("INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, 'admin')").bind(id, userId),
+        ]);
+        break;
+      } catch (e) {
+        if (attempt >= 4 || !/UNIQUE/i.test(e.message)) throw e;
+      }
+    }
+    return { group: await loadGroup(db, id) };
+  }
+  if (action === "join") {
+    const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
+    const group = code && await db.prepare("SELECT id FROM groups WHERE invite_code = ?").bind(code).first();
+    if (!group) throw new GroupError("invite code not found");
+    const userId = await ensureUser(db, user);
+    await db.prepare("INSERT OR IGNORE INTO group_members (group_id, user_id, role) VALUES (?, ?, 'member')").bind(group.id, userId).run();
+    return { group: await loadGroup(db, group.id) };
+  }
+
+  const groupId = typeof body.groupId === "string" ? body.groupId : "";
+  const role = groupId && await groupRole(db, groupId, user);
+  if (!role) throw new GroupError("not a member of that group");
+
+  if (action === "leave") {
+    const userId = await db.prepare("SELECT id FROM users WHERE name = ?").bind(user).first("id");
+    await db.prepare("DELETE FROM group_members WHERE group_id = ? AND user_id = ?").bind(groupId, userId).run();
+    const remaining = await db.prepare("SELECT user_id, role FROM group_members WHERE group_id = ? ORDER BY joined_at, rowid").bind(groupId).all();
+    if (!remaining.results.length) {
+      await deleteGroup(db, groupId);
+      return { group: null };
+    }
+    if (!remaining.results.some((m) => m.role === "admin")) {
+      await db.prepare("UPDATE group_members SET role = 'admin' WHERE group_id = ? AND user_id = ?").bind(groupId, remaining.results[0].user_id).run();
+    }
+    return { group: await loadGroup(db, groupId) };
+  }
+
+  if (role !== "admin") throw new GroupError("only a group admin can do that");
+  if (action === "rename") {
+    await db.prepare("UPDATE groups SET name = ? WHERE id = ?").bind(cleanGroupName(body.name), groupId).run();
+    return { group: await loadGroup(db, groupId) };
+  }
+  if (action === "promote" || action === "remove") {
+    const target = cleanUserName(body.target);
+    if (action === "remove" && target === user) throw new GroupError("use leave to remove yourself");
+    const targetId = await db.prepare("SELECT u.id FROM group_members m JOIN users u ON u.id = m.user_id WHERE m.group_id = ? AND u.name = ?").bind(groupId, target).first("id");
+    if (!targetId) throw new GroupError("not a member of that group");
+    await (action === "promote"
+      ? db.prepare("UPDATE group_members SET role = 'admin' WHERE group_id = ? AND user_id = ?")
+      : db.prepare("DELETE FROM group_members WHERE group_id = ? AND user_id = ?")).bind(groupId, targetId).run();
+    return { group: await loadGroup(db, groupId) };
+  }
+  if (action === "delete") {
+    await deleteGroup(db, groupId);
+    return { group: null };
+  }
+  throw new GroupError("unknown action");
+}
+
+async function deleteGroup(db, groupId) {
+  await db.batch([
+    db.prepare("UPDATE challenge_scopes SET visibility = 'personal', group_id = NULL WHERE group_id = ?").bind(groupId),
+    db.prepare("DELETE FROM group_members WHERE group_id = ?").bind(groupId),
+    db.prepare("DELETE FROM groups WHERE id = ?").bind(groupId),
+  ]);
+}
+
+// Groups + challenge scopes for /data. Kept out of fetchData's main batch so
+// /data keeps working if the 0009 migration hasn't been applied yet.
+async function fetchGroupData(db) {
+  try {
+    const [groupRows, memberRows, scopeRows] = await db.batch([
+      db.prepare("SELECT * FROM groups ORDER BY created_at, rowid"),
+      db.prepare("SELECT m.group_id, u.name, m.role, m.joined_at FROM group_members m JOIN users u ON u.id = m.user_id ORDER BY m.joined_at, m.rowid"),
+      db.prepare("SELECT * FROM challenge_scopes"),
+    ]);
+    const byGroup = {};
+    for (const row of memberRows.results) (byGroup[row.group_id] ||= []).push(row);
+    const scopes = {};
+    for (const row of scopeRows.results) scopes[row.challenge_id] = { visibility: row.visibility, groupId: row.group_id };
+    return { groupsEnabled: true, groups: groupRows.results.map((g) => groupFromRows(g, byGroup[g.id] || [])), scopes };
+  } catch (e) {
+    return { groupsEnabled: false, groups: [], scopes: {} };
+  }
 }
 
 // ------------------- Horse mode rules engine -------------------

@@ -134,6 +134,7 @@ import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } f
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
+import { challengeVisibleTo, groupMemberNames, groupsForUser, isGroupAdmin, LEGACY_GROUP_ID, resolveActiveGroupId, scopeUserNames } from "./groups.js";
 import {
   applyBurst as applyTowBurst,
   autoBalanceTeams as towAutoBalanceTeams,
@@ -332,6 +333,7 @@ const LS = {
   kettlebellProfiles: "bpb-kettlebell-profiles",
   homeType: "bpb-home-type",
   homeMode: "bpb-home-mode",
+  activeGroups: "bpb-active-groups",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -795,6 +797,10 @@ async function workerJoinChallenge(user, challengeId) {
 
 async function workerCreateChallenge(challenge) {
   return workerApi.createChallenge(challenge);
+}
+
+async function workerGroupAction(payload) {
+  return workerApi.groupAction(payload);
 }
 
 async function workerCreateHorseGame(input) {
@@ -1516,6 +1522,8 @@ const state = {
   highScore: 0,
   pushupLast: 0,
   bonanzaMode: "boys",
+  boardScope: null,
+  boardSessionsAll: [],
   modeBreakdownScope: "group",
   modeBreakdownPeriod: "week",
   lastSessions: [],
@@ -1993,6 +2001,8 @@ const TAB_FOR_SCREEN = {
   "screen-mode-breakdown": "btn-nav-settings",
   "screen-poker-showcase": "btn-nav-settings",
   "screen-changelog": "btn-nav-settings",
+  "screen-settings-groups": "btn-nav-settings",
+  "screen-group-detail": "btn-nav-settings",
 };
 
 // Header and tab bar always minimize/hide together — an active rep-counting
@@ -2024,7 +2034,9 @@ function activeInPageBack() {
 }
 function syncHeaderBack() {
   const inPage = activeInPageBack();
-  $("btn-home").classList.toggle("hidden", !!inPage);
+  $("brand-wrap").classList.toggle("hidden", !!inPage);
+  $("brand-wrap").classList.toggle("groups-on", groupsOn() && !!state.currentUser);
+  document.querySelector('[data-settings-category="groups"]').classList.toggle("hidden", !groupsOn());
   $("btn-header-back").classList.toggle("hidden", !inPage);
   if (inPage) $("header-back-label").textContent = inPage.textContent.replace(/^←\s*/, "");
 }
@@ -2096,6 +2108,8 @@ function showScreen(id) {
   if (id === "screen-settings" || id === "screen-settings-mysessions" ||
     id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") renderSettings();
   if (id === "screen-settings-goals") renderGoalsSettingsScreen();
+  if (id === "screen-settings-groups") renderSettingsGroups();
+  if (id === "screen-group-detail") renderGroupDetail();
   if (id === "screen-settings-goal-edit") renderGoalEditScreen();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
@@ -2200,18 +2214,48 @@ function guardLeaveWorkout(next) {
   next();
 }
 
-// Board's Boys/My Bonanza dropdown (header, beside share) — keeps the
-// trigger label, menu selection and visible view in sync.
+// Board's scope dropdown (header, beside share): each of my groups, All
+// players, and Just me. A group / All players paint the shared "boys" view
+// filtered to that pool; Just me is the personal view. Board-only — it never
+// changes the app-wide active group (docs/groups-plan.md).
+function boardScopeOptions() {
+  if (!groupsOn()) {
+    return [
+      { mode: "boys", scope: "all", label: "Boys Bonanza" },
+      { mode: "mine", scope: "me", label: "My Bonanza" },
+    ];
+  }
+  return [
+    ...myGroups().map((g) => ({ mode: "boys", scope: g.id, label: g.name })),
+    { mode: "boys", scope: "all", label: "All players" },
+    { mode: "mine", scope: "me", label: "Just me" },
+  ];
+}
+
+function boardScopeLabel() {
+  if (state.bonanzaMode === "mine") return groupsOn() ? "Just me" : "My Bonanza";
+  return boardScopeOptions().find((o) => o.scope === state.boardScope)?.label || "All players";
+}
+
 function syncBonanzaModeControl() {
   const mode = state.bonanzaMode;
-  document.querySelectorAll("#bonanza-mode-menu .leaderboard-mode-option").forEach((option) => {
-    const isSelected = option.dataset.mode === mode;
-    option.classList.toggle("selected", isSelected);
-    option.setAttribute("aria-selected", String(isSelected));
-  });
-  $("bonanza-mode-label").textContent = mode === "mine" ? "My Bonanza" : "Boys Bonanza";
+  const current = mode === "mine" ? "me" : state.boardScope;
+  $("bonanza-mode-menu").innerHTML = boardScopeOptions().map((o) => {
+    const selected = o.scope === current;
+    return `<button type="button" class="leaderboard-mode-option${selected ? " selected" : ""}" role="option" aria-selected="${selected}" data-mode="${o.mode}" data-scope="${escapeHtml(o.scope)}"><span>${escapeHtml(o.label)}</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>`;
+  }).join("");
+  $("bonanza-mode-label").textContent = boardScopeLabel();
   $("boys-bonanza-view").classList.toggle("hidden", mode !== "boys");
   $("my-bonanza-view").classList.toggle("hidden", mode !== "mine");
+}
+
+// The pool every Board surface reads (state.lastSessions): the selected
+// group's members, or everyone for All players / Just me (which filters to
+// the viewer itself downstream).
+function applyBoardScope() {
+  const names = state.bonanzaMode === "boys" ? scopeUserNames(state.boardScope, { groups: allGroups(), user: state.currentUser }) : null;
+  const all = state.boardSessionsAll || [];
+  state.lastSessions = names ? all.filter((s) => names.has(s.user)) : all;
 }
 
 function setBonanzaModeMenuOpen(open) {
@@ -2221,6 +2265,7 @@ function setBonanzaModeMenuOpen(open) {
 
 function goToDashboard(mode) {
   state.bonanzaMode = mode;
+  state.boardScope = activeGroupId() || "all";
   syncBonanzaModeControl();
   showScreen("screen-dashboard");
 }
@@ -2228,7 +2273,272 @@ function goToDashboard(mode) {
 function goHome() {
   showScreen(state.currentUser ? "screen-workout" : "screen-user");
 }
-$("btn-home").addEventListener("click", () => guardLeaveWorkout(goHome));
+// ------------------- groups (docs/groups-plan.md) -------------------
+
+// Off until the Worker reports the 0009 migration has run — until then every
+// group surface falls back to exactly today's behavior.
+function groupsOn() {
+  return getCachedData().groupsEnabled === true;
+}
+
+function allGroups() {
+  return groupsOn() ? getCachedData().groups : [];
+}
+
+function myGroups() {
+  return groupsForUser(allGroups(), state.currentUser);
+}
+
+function activeGroupId() {
+  const stored = jsonStorage.read(LS.activeGroups, {})[state.currentUser];
+  return resolveActiveGroupId(allGroups(), state.currentUser, stored);
+}
+
+function activeGroup() {
+  const id = activeGroupId();
+  return allGroups().find((g) => g.id === id) || null;
+}
+
+function setActiveGroup(id) {
+  const map = jsonStorage.read(LS.activeGroups, {});
+  map[state.currentUser] = id;
+  jsonStorage.write(LS.activeGroups, map);
+  rerenderGroupScopedScreen();
+}
+
+// The Board/Challenges/Games each read the active group when they render, so
+// switching just repaints whichever of them is showing.
+function rerenderGroupScopedScreen() {
+  if (["screen-dashboard", "screen-games", "screen-challenges", "screen-settings-groups", "screen-group-detail"].includes(state.screen)) {
+    showScreen(state.screen);
+  }
+}
+
+function upsertLocalGroup(group, removedId = null) {
+  const cached = getCachedData();
+  cached.groups = cached.groups.filter((g) => g.id !== (group?.id || removedId));
+  if (group) cached.groups.push(group);
+  cacheData(cached);
+}
+
+async function runGroupAction(payload, { failMessage = "Couldn't reach the server — try again." } = {}) {
+  try {
+    const { group } = await workerGroupAction({ user: state.currentUser, ...payload });
+    upsertLocalGroup(group, payload.groupId);
+    return group;
+  } catch (e) {
+    toast(e?.status === 400 && e.message ? e.message.charAt(0).toUpperCase() + e.message.slice(1) : failMessage, 3600);
+    return undefined;
+  }
+}
+
+function groupInviteUrl(group) {
+  return `${location.origin}${location.pathname}#join=${encodeURIComponent(group.inviteCode)}`;
+}
+
+async function shareGroupInvite(group) {
+  const url = groupInviteUrl(group);
+  const text = `Join ${group.name} on Bonanza — code ${group.inviteCode}`;
+  if (navigator.share) {
+    try { await navigator.share({ title: group.name, text: `${text}\n\n${url}` }); } catch (e) { /* cancelled */ }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    toast("Invite copied — paste it in the group chat!");
+  } catch (e) {
+    toast(`Invite code: ${group.inviteCode}`, 5000);
+  }
+}
+
+function setGroupMenuOpen(open) {
+  $("group-menu").classList.toggle("hidden", !open);
+  $("btn-home").setAttribute("aria-expanded", String(open));
+  if (!open) return;
+  const activeId = activeGroupId();
+  const groups = myGroups();
+  $("group-menu").innerHTML = `
+    ${groups.map((g) => `<button type="button" class="leaderboard-mode-option${g.id === activeId ? " selected" : ""}" role="menuitemradio" aria-checked="${g.id === activeId}" data-group-switch="${escapeHtml(g.id)}"><span>${escapeHtml(g.name)}</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>`).join("")}
+    ${groups.length ? '<div class="group-menu-divider"></div>' : '<p class="group-menu-empty">Playing solo — no group yet.</p>'}
+    <button type="button" class="leaderboard-mode-option" role="menuitem" data-group-manage="1"><span>${groups.length ? "Manage groups" : "Create or join a group"}</span></button>`;
+}
+
+$("btn-home").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!state.currentUser || !groupsOn()) return guardLeaveWorkout(goHome);
+  setGroupMenuOpen($("group-menu").classList.contains("hidden"));
+});
+$("group-menu").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const option = e.target.closest(".leaderboard-mode-option");
+  if (!option) return;
+  setGroupMenuOpen(false);
+  if (option.dataset.groupSwitch) {
+    setActiveGroup(option.dataset.groupSwitch);
+    toast(`Switched to ${allGroups().find((g) => g.id === option.dataset.groupSwitch)?.name || "group"}`);
+  } else if (option.dataset.groupManage) {
+    guardLeaveWorkout(() => showScreen("screen-settings-groups"));
+  }
+});
+document.addEventListener("click", () => {
+  if (!$("group-menu").classList.contains("hidden")) setGroupMenuOpen(false);
+});
+
+function renderSettingsGroups() {
+  const activeId = activeGroupId();
+  const groups = myGroups();
+  $("groups-list").innerHTML = groups.length
+    ? groups.map((g) => {
+      const meta = `${g.members.length} ${g.members.length === 1 ? "member" : "members"}${isGroupAdmin(g, state.currentUser) ? " · Admin" : ""}`;
+      return `<button type="button" class="settings-category-row" data-group-open="${escapeHtml(g.id)}">
+          <span class="settings-category-title">${escapeHtml(g.name)}${g.id === activeId ? ' <span class="group-active-tag">Active</span>' : ""}</span>
+          <span class="settings-category-value">${meta}</span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>`;
+    }).join("")
+    : `<p class="screen-sub groups-empty">You're playing solo. Create a group or join one with an invite code.</p>`;
+  $("group-create-form").classList.add("hidden");
+  $("group-join-form").classList.add("hidden");
+}
+
+function renderGroupDetail() {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (!group || !group.members.some((m) => m.name === state.currentUser)) {
+    showScreen("screen-settings-groups");
+    return;
+  }
+  const admin = isGroupAdmin(group, state.currentUser);
+  const isActive = group.id === activeGroupId();
+  $("group-detail-title").textContent = group.name;
+  $("group-detail-sub").textContent = `${group.members.length} ${group.members.length === 1 ? "member" : "members"}${isActive ? " · Active group" : ""}`;
+  $("btn-group-make-active").classList.toggle("hidden", isActive);
+  $("group-invite-code").textContent = group.inviteCode;
+  $("group-member-list").innerHTML = group.members.map((m) => {
+    const isSelf = m.name === state.currentUser;
+    const tag = m.role === "admin" ? '<span class="horse-player-tag">Admin</span>' : "";
+    const manage = admin && !isSelf
+      ? `<button type="button" class="icon-btn group-member-more" data-group-member="${escapeHtml(m.name)}" aria-label="Manage ${escapeHtml(m.name)}">⋯</button>`
+      : "";
+    return `<div class="tier1-row horse-player-row${isSelf ? " horse-row-active" : ""}">
+        <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(m.name).id}"></span>
+        <span class="horse-player-name">${escapeHtml(m.name)}</span>
+        ${tag}${manage}
+      </div>`;
+  }).join("");
+  $("group-member-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  $("btn-group-rename").classList.toggle("hidden", !admin);
+  $("btn-group-delete").classList.toggle("hidden", !admin);
+}
+
+function openGroupDetail(id) {
+  state.groupDetailId = id;
+  showScreen("screen-group-detail");
+}
+
+$("btn-settings-groups-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-group-detail-back").addEventListener("click", () => showScreen("screen-settings-groups"));
+$("groups-list").addEventListener("click", (e) => {
+  const row = e.target.closest("[data-group-open]");
+  if (row) openGroupDetail(row.dataset.groupOpen);
+});
+$("btn-group-create-open").addEventListener("click", () => {
+  $("group-join-form").classList.add("hidden");
+  $("group-create-form").classList.toggle("hidden");
+  if (!$("group-create-form").classList.contains("hidden")) $("group-create-name").focus();
+});
+$("btn-group-join-open").addEventListener("click", () => {
+  $("group-create-form").classList.add("hidden");
+  $("group-join-form").classList.toggle("hidden");
+  if (!$("group-join-form").classList.contains("hidden")) $("group-join-code").focus();
+});
+$("group-create-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("group-create-name").value.trim();
+  if (!name) return;
+  const group = await runGroupAction({ action: "create", name });
+  if (!group) return;
+  $("group-create-name").value = "";
+  setActiveGroup(group.id);
+  openGroupDetail(group.id);
+});
+$("group-join-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const code = $("group-join-code").value.trim().toUpperCase();
+  if (!code) return;
+  await joinGroupByCode(code);
+});
+
+function groupJoinLinkCode() {
+  return location.hash.match(/^#join=([A-Za-z0-9]{6})$/)?.[1]?.toUpperCase() || null;
+}
+
+// A group invite link (#join=CODE) for a device that already has a profile:
+// already a member → open the group; otherwise confirm, then join.
+async function openGroupJoinFromHash() {
+  const code = groupJoinLinkCode();
+  if (!code || !groupsOn()) return false;
+  history.replaceState(null, "", location.pathname);
+  const existing = allGroups().find((g) => g.inviteCode === code);
+  if (existing?.members.some((m) => m.name === state.currentUser)) {
+    openGroupDetail(existing.id);
+    return true;
+  }
+  if (!confirm(`Join ${existing?.name || "this group"} as ${state.currentUser}?`)) return false;
+  await joinGroupByCode(code);
+  return true;
+}
+
+async function joinGroupByCode(code) {
+  const group = await runGroupAction({ action: "join", code }, { failMessage: "Couldn't join — check the code and your connection." });
+  if (!group) return null;
+  $("group-join-code").value = "";
+  setActiveGroup(group.id);
+  toast(`Joined ${group.name}`);
+  openGroupDetail(group.id);
+  return group;
+}
+
+$("btn-group-make-active").addEventListener("click", () => {
+  setActiveGroup(state.groupDetailId);
+  toast("Active group updated");
+});
+$("btn-group-share-invite").addEventListener("click", () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (group) shareGroupInvite(group);
+});
+$("btn-group-rename").addEventListener("click", async () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  const name = group && prompt("Rename group", group.name)?.trim();
+  if (!name || name === group.name) return;
+  if (await runGroupAction({ action: "rename", groupId: group.id, name })) renderGroupDetail();
+});
+$("btn-group-leave").addEventListener("click", async () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (!group || !confirm(`Leave ${group.name}?${group.members.length === 1 ? " You're the last member, so the group will be deleted." : ""}`)) return;
+  if (await runGroupAction({ action: "leave", groupId: group.id }) === undefined) return;
+  upsertLocalGroup(null, group.id);
+  showScreen("screen-settings-groups");
+});
+$("btn-group-delete").addEventListener("click", async () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (!group || !confirm(`Delete ${group.name} for everyone? Members keep their reps; the group's challenges become personal.`)) return;
+  if (await runGroupAction({ action: "delete", groupId: group.id }) === undefined) return;
+  upsertLocalGroup(null, group.id);
+  showScreen("screen-settings-groups");
+});
+$("group-member-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-group-member]");
+  if (!btn) return;
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  const target = btn.dataset.groupMember;
+  const member = group?.members.find((m) => m.name === target);
+  if (!member) return;
+  if (member.role !== "admin" && confirm(`Make ${target} an admin of ${group.name}?`)) {
+    if (await runGroupAction({ action: "promote", groupId: group.id, target })) renderGroupDetail();
+  } else if (confirm(`Remove ${target} from ${group.name}?`)) {
+    if (await runGroupAction({ action: "remove", groupId: group.id, target })) renderGroupDetail();
+  }
+});
 $("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(goHome));
 $("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
 $("btn-nav-challenges").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-challenges")));
@@ -2558,6 +2868,7 @@ function renderSettingsCategoryValues() {
   $("settings-category-mysessions-value").textContent = `${mySessionCount} ${mySessionCount === 1 ? "session" : "sessions"}`;
   const activeGoalCount = GOAL_TYPES.filter((type) => goalsFor(state.currentUser)[type].enabled).length;
   $("settings-category-goals-value").textContent = activeGoalCount ? `${activeGoalCount} active` : "Off";
+  $("settings-category-groups-value").textContent = activeGroup()?.name || "Solo";
   const mine = indexedSessionsForUser(state.currentUser);
   const poker = pokerLifetimeCollection(mine, state.currentUser, sessionTimestamp);
   $("btn-open-poker-showcase").classList.toggle("hidden", !mine.some((s) => s.mode === "poker"));
@@ -6228,7 +6539,12 @@ $("btn-download-situp-trace").addEventListener("click", () => {
 async function renderDashboard() {
   await flushQueue().catch(() => {});
   const sessions = await refreshFromRemote();
-  state.lastSessions = sessions;
+  state.boardSessionsAll = sessions;
+  if (!state.boardScope || (state.boardScope !== "all" && !myGroups().some((g) => g.id === state.boardScope))) {
+    state.boardScope = activeGroupId() || "all";
+  }
+  syncBonanzaModeControl();
+  applyBoardScope();
   // The mode dropdown is gone from the header; the chart cards' arrows/swipe
   // only step whole exercises, so a saved pushup sub-mode (e.g. Dice) would
   // be unreachable — fall back to All.
@@ -6264,10 +6580,13 @@ $("bonanza-mode-menu").addEventListener("click", (e) => {
   const option = e.target.closest(".leaderboard-mode-option");
   if (!option) return;
   setBonanzaModeMenuOpen(false);
-  if (option.dataset.mode === state.bonanzaMode) return;
+  const scope = option.dataset.scope;
+  if (option.dataset.mode === state.bonanzaMode && (state.bonanzaMode === "mine" || scope === state.boardScope)) return;
   state.bonanzaMode = option.dataset.mode;
+  if (state.bonanzaMode === "boys") state.boardScope = scope;
   state.dashboardBucketOffset = null;
   syncBonanzaModeControl();
+  applyBoardScope();
   updateLeaderboardModeMenuVisibility();
   paintActiveBonanzaView();
 });
@@ -6275,7 +6594,7 @@ $("bonanza-mode-menu").addEventListener("click", (e) => {
 function syncLeaderboardModeControl() {
   const selected = LEADERBOARD_MODE_OPTIONS.find((option) => option.id === state.leaderboardMode) || LEADERBOARD_MODE_OPTIONS[0];
   $("leaderboard-mode-label").textContent = selected.label;
-  document.querySelectorAll(".leaderboard-mode-option").forEach((option) => {
+  document.querySelectorAll("#leaderboard-mode-menu .leaderboard-mode-option").forEach((option) => {
     const isSelected = option.dataset.leaderboardMode === selected.id;
     option.classList.toggle("selected", isSelected);
     option.setAttribute("aria-selected", String(isSelected));
@@ -7687,7 +8006,7 @@ function attachTabSwipe(screenId, tabsSelector) {
 // Each entry carries data-sibling-id; `current` names the open one.
 const DRILL_SIBLINGS = {
   settings: {
-    screens: ["screen-settings-goals", "screen-settings-mysessions", "screen-mode-breakdown", "screen-poker-showcase", "screen-settings-workout", "screen-settings-appearance", "screen-changelog"],
+    screens: ["screen-settings-groups", "screen-settings-goals", "screen-settings-mysessions", "screen-mode-breakdown", "screen-poker-showcase", "screen-settings-workout", "screen-settings-appearance", "screen-changelog"],
     items: () => document.querySelectorAll("#settings-category-list [data-sibling-id], #settings-category-list-app [data-sibling-id]"),
     current: () => state.screen,
   },
@@ -16379,6 +16698,7 @@ async function init() {
       renderStreakBadge();
       renderGoalThermometers();
       renderGamesNavDot();
+      syncHeaderBack();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }
@@ -16403,6 +16723,7 @@ async function init() {
   // normal profile picker; selecting or creating a profile resumes this link.
   if (state.currentUser) await openHorseGameFromHash();
   if (state.currentUser) await openTowGameFromHash();
+  if (state.currentUser) await openGroupJoinFromHash();
 
   // A shared challenge link (#challenge=id) jumps straight to that challenge's
   // detail screen — but only if this device already has a remembered name;

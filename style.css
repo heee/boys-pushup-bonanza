@@ -6225,3 +6225,33 @@ body:has(#screen-challenge-detail.active) #app {
 /* Underline sits on the divider, as on the other tab rows. */
 #period-select { padding-bottom: 0; }
 #games-tab-select.hidden + #games-list { margin-top: 1.2rem; }
+
+/* Groups: the wordmark doubles as the group switcher. */
+.brand-wrap { position: relative; min-width: 0; flex-shrink: 1; display: flex; }
+.brand { display: inline-flex; align-items: center; gap: 0.4rem; }
+.brand-chevron { color: var(--text-tertiary); flex-shrink: 0; }
+.brand[aria-expanded="true"] .brand-chevron { transform: rotate(180deg); }
+.group-menu { left: 0; right: auto; width: min(15rem, calc(100vw - 2rem)); z-index: 60; }
+.group-menu-divider { height: 1px; margin: 0.3rem 0.4rem; background: var(--border); }
+.group-menu-empty { margin: 0.4rem 0.7rem 0.2rem; font-size: 0.78rem; color: var(--text-tertiary); }
+.group-active-tag { margin-left: 0.4rem; font-size: 0.7rem; font-weight: 700; color: var(--primary); }
+.groups-empty { padding: 0.8rem 1rem; margin: 0; }
+.groups-actions { display: flex; gap: 0.6rem; margin-top: 1rem; }
+.groups-actions .btn { flex: 1; }
+.group-form { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
+.group-form input {
+  flex: 1; min-width: 0; padding: 0.7rem 0.9rem; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--bg-elevated); color: var(--text); font: inherit;
+}
+#group-join-code { text-transform: uppercase; letter-spacing: 0.15em; }
+.group-make-active { width: 100%; margin-bottom: 1rem; }
+.group-invite-card {
+  display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem; padding: 0.9rem 1rem;
+  border-radius: 14px; background: var(--bg-elevated);
+}
+.group-invite-label { font-size: 0.78rem; color: var(--text-tertiary); }
+.group-invite-code { flex: 1; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.18em; }
+.group-member-more { margin-left: 0.4rem; flex-shrink: 0; }
+.group-danger-actions { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.4rem; }
+.group-delete-btn { color: var(--danger, #e5534b); }
+.brand-wrap:not(.groups-on) .brand-chevron { display: none; }

@@ -1,6 +1,6 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v497";
+const CACHE_NAME = "bpb-shell-v498";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -22,6 +22,7 @@ const SHELL_FILES = [
   "./storage.js",
   "./territory-location.js",
   "./roadtrip.js",
+  "./groups.js",
   "./recap.js?v=2",
   "./group-recap.js?v=1",
   "./sync.js",
