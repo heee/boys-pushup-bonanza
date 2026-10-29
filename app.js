@@ -8157,7 +8157,7 @@ function renderRecentList(sessions) {
       ? `<button type="button" class="recent-modifier" aria-label="${escapeHtml(modifierMeta.title)} modifier">${modifierMeta.icon}</button>`
       : "";
     row.innerHTML = `
-      ${avatarCircleHTML(avatarForUser(s.user), "1.3rem")}
+      ${avatarCircleHTML(avatarForUser(s.user), "1.15rem")}
       <div class="recent-statement">
         <span class="recent-name">${escapeHtml(s.user)}</span> · ${escapeHtml(capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, "")))} · ${shortAgoLabel(sessionTimestamp(s))}
       </div>
