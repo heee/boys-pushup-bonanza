@@ -6362,4 +6362,14 @@ body:has(#screen-challenge-detail.active) #app {
 .challenge-list-sentinel { height: 1px; flex-shrink: 0; }
 #share-tone-select { margin-bottom: 0.5rem; }
 #share-tone-select .segment:not(.active) { font-weight: 400; }
-.share-tone-preview { margin: 0 0.2rem; font-style: italic; }
+.share-tone-preview-card {
+  display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.8rem 0.9rem;
+  border-radius: 14px; background: var(--bg-elevated);
+}
+.share-tone-preview { flex: 1; margin: 0; font-size: 0.86rem; line-height: 1.4; color: var(--text-dim); white-space: pre-line; min-height: 2.8em; }
+.share-tone-shuffle {
+  flex-shrink: 0; width: 2rem; height: 2rem; display: grid; place-items: center; border: none; border-radius: 50%;
+  background: var(--bg-elevated-2); color: var(--text-dim); cursor: pointer;
+}
+.share-tone-shuffle svg { width: 1rem; height: 1rem; }
+.share-tone-shuffle:active { transform: scale(0.92); }

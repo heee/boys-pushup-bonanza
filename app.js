@@ -2913,18 +2913,45 @@ $("location-search-form").addEventListener("submit", async (event) => {
 
 // ------------------- settings screen -------------------
 
-// Share message tone (docs/share-tone-plan.md) — one sample line per level.
+// Share message tone (docs/share-tone-plan.md). The preview is a real line
+// from the share library at the chosen tone; the fixed sample covers the
+// moment before the (lazy-loaded) library arrives, or if it can't load.
 const SHARE_TONE_SAMPLES = {
-  chill: "Friendly brags, safe for family or coworkers — e.g. \u201c120 pushups today 💪 Your turn!\u201d",
-  spicy: "Trash talk for the group chat — e.g. \u201c120 pushups. Pay rent in reps, losers.\u201d",
-  unhinged: "Absurd and over the top — e.g. \u201c120 pushups and my pecs have filed for independence. Paperwork is sweaty.\u201d",
+  chill: "120 pushups today 💪 Your turn!",
+  spicy: "120 pushups. Pay rent in reps, losers.",
+  unhinged: "120 pushups and my pecs have filed for independence. Paperwork is sweaty.",
 };
+const SHARE_TONE_PREVIEW_CASES = [
+  [120, { mode: "classic" }],
+  [80, { mode: "squat", isSquat: true }],
+  [15, { mode: "pullup", isPullup: true }],
+  [60, { mode: "situp", isSitup: true }],
+  ["2:30", { mode: "plank", isPlank: true }],
+];
+let shareTonePreviewRequest = 0;
+
+async function renderShareTonePreview() {
+  const tone = currentShareTone();
+  const request = ++shareTonePreviewRequest;
+  const el = $("share-tone-preview");
+  if (!el.textContent) el.textContent = SHARE_TONE_SAMPLES[tone];
+  try {
+    const { pickShareMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+    if (request !== shareTonePreviewRequest) return;
+    const [count, ctx] = SHARE_TONE_PREVIEW_CASES[Math.floor(Math.random() * SHARE_TONE_PREVIEW_CASES.length)];
+    el.textContent = pickShareMessage(count, ctx);
+  } catch (e) {
+    el.textContent = SHARE_TONE_SAMPLES[tone];
+  }
+}
 
 function renderShareToneSetting() {
   const tone = currentShareTone();
   document.querySelectorAll("#share-tone-select [data-share-tone]").forEach((btn) => btn.classList.toggle("active", btn.dataset.shareTone === tone));
-  $("share-tone-preview").textContent = SHARE_TONE_SAMPLES[tone];
+  renderShareTonePreview();
 }
+
+$("btn-share-tone-shuffle").addEventListener("click", () => renderShareTonePreview());
 
 $("share-tone-select").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-share-tone]");
