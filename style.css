@@ -6348,5 +6348,7 @@ body:has(#screen-challenge-detail.active) #app {
 .challenge-row-join:active { transform: scale(0.96); }
 .challenge-row-progress { font-size: 0.85rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .challenge-row-winner { font-size: 0.78rem; font-weight: 700; color: var(--text-dim); max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.challenge-row-bar { grid-column: 2 / -1; margin-top: -0.45rem; }
-.challenge-row-bar .thermometer-wrap { margin: 0; max-width: none; }
+.challenge-row-right { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; min-width: 4.5rem; }
+.challenge-row-right .challenge-row-progress { text-align: right; }
+.challenge-row-bar { display: block; height: 4px; border-radius: 999px; background: var(--bg-elevated-2); overflow: hidden; }
+.challenge-row-bar > span { display: block; height: 100%; min-width: 4px; border-radius: inherit; background: var(--primary); }

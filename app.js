@@ -8849,7 +8849,7 @@ function modeStatIcon(metric) {
 
 // One row per challenge, matching the Games/Roadtrip lists: icon, title,
 // one meta line, and on the right either a Join pill, your progress (with a
-// thin bar under the row) or, once it's over, the winner.
+// slim bar under the number) or, once it's over, the winner.
 function challengeRowEl({ id, icon, title, meta, onOpen, onJoin, joined, status, progress, winner }) {
   const row = document.createElement("div");
   row.className = "games-row challenge-row";
@@ -8860,23 +8860,26 @@ function challengeRowEl({ id, icon, title, meta, onOpen, onJoin, joined, status,
   const right = status === "past"
     ? (winner ? `<span class="challenge-row-winner">🥇 ${winner}</span>` : "")
     : joined
-      ? `<span class="challenge-row-progress">${progress?.text || "Joined"}</span>`
+      ? `<span class="challenge-row-right"><span class="challenge-row-progress">${progress?.text || "Joined"}</span>${progress ? challengeRowBarHTML(progress) : ""}</span>`
       : `<button type="button" class="challenge-row-join">Join</button>`;
-  const bar = status !== "past" && joined && progress
-    ? `<div class="challenge-row-bar" role="progressbar" aria-label="${escapeHtml(progress.label)}" aria-valuemin="0" aria-valuemax="${progress.goal}" aria-valuenow="${Math.min(progress.current, progress.goal)}">${buildProgressThermometer(progress.current, progress.goal)}</div>`
-    : "";
   row.innerHTML = `
     <span class="games-row-icon is-stroke" aria-hidden="true">${icon}</span>
     <span class="games-row-info">
       <span class="games-row-title">${escapeHtml(title)}</span>
       <span class="games-row-subtitle">${meta}</span>
     </span>
-    ${right}${bar}`;
+    ${right}`;
   row.querySelector(".challenge-row-join")?.addEventListener("click", (e) => {
     e.stopPropagation();
     onJoin();
   });
   return row;
+}
+
+// Slim bar under the progress number — lighter than the full thermometer.
+function challengeRowBarHTML({ current, goal, label }) {
+  const pct = goal > 0 ? Math.max(0, Math.min(100, (current / goal) * 100)) : 0;
+  return `<span class="challenge-row-bar" role="progressbar" aria-label="${escapeHtml(label)}" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${Math.min(current, goal)}"><span style="width:${pct.toFixed(1)}%"></span></span>`;
 }
 
 function challengeRowTiming(status, dateLabel, dateRange, participantCount) {
