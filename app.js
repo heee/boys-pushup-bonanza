@@ -1137,6 +1137,15 @@ async function refreshFromRemote() {
   return getAllSessionsForDisplay();
 }
 
+// Cache-first screens: paint now from what's on the device, then repaint
+// once if a background refresh brings back new data while still showing.
+function repaintAfterBackgroundRefresh(id, render) {
+  render();
+  refreshFromRemoteIfStale().then((fetched) => {
+    if (fetched && state.screen === id) render();
+  });
+}
+
 // Tab switches reuse a fetch made moments ago (e.g. Board → Challenges)
 // instead of downloading the whole dataset again. Resolves to whether a
 // fetch actually ran, so callers know if a repaint is worthwhile.
@@ -2155,10 +2164,10 @@ function showScreen(id) {
     $("summary-type-icon").innerHTML = typeIconSvg(state.homeType);
     $("summary-mode-icon").innerHTML = modeIconSvg(state.homeMode) || modeIconSvg("classic");
   }
-  if (id === "screen-games") renderGamesScreen();
+  if (id === "screen-games") repaintAfterBackgroundRefresh(id, renderGamesScreen);
   if (id === "screen-challenges") renderChallengesScreen();
-  if (id === "screen-roadtrip") renderRoadtrip();
-  if (id === "screen-roadtrip-detail") renderRoadtripDetail();
+  if (id === "screen-roadtrip") repaintAfterBackgroundRefresh(id, renderRoadtrip);
+  if (id === "screen-roadtrip-detail") repaintAfterBackgroundRefresh(id, renderRoadtripDetail);
   if (id === "screen-settings" || id === "screen-settings-mysessions" ||
     id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") renderSettings();
   if (id === "screen-settings-goals") renderGoalsSettingsScreen();
