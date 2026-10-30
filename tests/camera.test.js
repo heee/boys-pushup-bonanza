@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCameraController } from "../camera.js";
+import { createCameraController, createDetectorPool } from "../camera.js";
 
 test("camera controller requests the existing constraints and stops every track", async () => {
   let constraints;
@@ -121,4 +121,35 @@ test("detector runs one warm-up detection on a blank frame while loading", async
   });
   await camera.ensureDetector();
   assert.deepEqual(frames, [frame]);
+});
+
+test("controllers on one pool share a detector per type instead of booting one each", async () => {
+  const built = [];
+  const vision = {
+    FaceDetector: { createFromOptions: async () => { built.push("face"); return { detectForVideo: () => ({}) }; } },
+    PoseLandmarker: { createFromOptions: async () => { built.push("pose"); return { detectForVideo: () => ({}) }; } },
+    FilesetResolver: { forVisionTasks: async () => ({}) },
+  };
+  const pool = createDetectorPool();
+  const make = (detectorType, modelUrl) => createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl, detectorType, detectorPool: pool,
+    getVideo: () => ({}), loadVisionModule: async () => vision,
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  const pushups = make("face", "face-model");
+  const situps = make("face", "face-model");
+  const squats = make("pose", "pose-model");
+  const pullups = make("pose", "pose-model");
+  const [a, b] = await Promise.all([pushups.ensureDetector(), situps.ensureDetector()]);
+  assert.equal(a, b);
+  assert.equal(await squats.ensureDetector(), await pullups.ensureDetector());
+  assert.deepEqual(built, ["face", "pose"]);
+  // Without a pool each controller still keeps its own.
+  const solo = createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl: "face-model",
+    getVideo: () => ({}), loadVisionModule: async () => vision,
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  await solo.ensureDetector();
+  assert.deepEqual(built, ["face", "pose", "face"]);
 });

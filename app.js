@@ -112,7 +112,7 @@ import {
   recordProgression,
   progressionChartModel,
 } from "./session-progression.js?v=1";
-import { createCameraController } from "./camera.js?v=2";
+import { createCameraController, createDetectorPool } from "./camera.js?v=3";
 import { createFramingTracker, mapRect, IDENTITY_FRAMING } from "./camera-framing.js?v=1";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
@@ -272,6 +272,9 @@ import {
   chainOfPainTickPlank,
 } from "./modes/chain-of-pain.js";
 
+// Every camera controller shares this, so each detector type (face, pose)
+// boots MediaPipe's engine once per launch instead of once per mode.
+const trackerPool = createDetectorPool();
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
@@ -6998,6 +7001,7 @@ function updateSquatTestFaceBox(bbox) {
 }
 
 const squatTestCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
@@ -7115,6 +7119,7 @@ function updateSitupTestFaceBox(bbox) {
 }
 
 const situpTestCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
@@ -11820,6 +11825,7 @@ function checkFaceLostTimeout() {
 }
 
 const camera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
@@ -14014,6 +14020,7 @@ function advanceDeadhangCamera(hanging) {
 }
 
 const deadhangCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: POSE_LANDMARKER_MODEL_URL,
@@ -14454,6 +14461,7 @@ function squatBodyBBox(landmarks, video) {
 }
 
 const squatCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: POSE_LANDMARKER_MODEL_URL,
@@ -14888,6 +14896,7 @@ function tickPullupWarmup() {
 }
 
 const pullupCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: POSE_LANDMARKER_MODEL_URL,
@@ -15099,6 +15108,7 @@ async function ensureHollandCamera(detectorType) {
   if (hollandCamera && hollandState.detectorType === detectorType) return hollandCamera;
   if (hollandCamera) hollandCamera.stop();
   hollandCamera = createCameraController({
+    detectorPool: trackerPool,
     moduleUrl: FACE_DETECTOR_MODULE_URL,
     wasmUrl: FACE_DETECTOR_WASM_URL,
     modelUrl: detectorType === "pose" ? POSE_LANDMARKER_MODEL_URL : FACE_DETECTOR_MODEL_URL,
@@ -15596,6 +15606,7 @@ async function ensureChainOfPainCamera(detectorType) {
   if (chainOfPainCamera && chainOfPainState.detectorType === detectorType) return chainOfPainCamera;
   if (chainOfPainCamera) chainOfPainCamera.stop();
   chainOfPainCamera = createCameraController({
+    detectorPool: trackerPool,
     moduleUrl: FACE_DETECTOR_MODULE_URL,
     wasmUrl: FACE_DETECTOR_WASM_URL,
     modelUrl: detectorType === "pose" ? POSE_LANDMARKER_MODEL_URL : FACE_DETECTOR_MODEL_URL,
@@ -16301,6 +16312,7 @@ function processSitupRatio(ratio) {
 }
 
 const situpCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
