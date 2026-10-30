@@ -124,13 +124,13 @@ import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, 
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=153";
-import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=4";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=154";
+import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=5";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=12";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=13";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";

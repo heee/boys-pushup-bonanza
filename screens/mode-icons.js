@@ -38,6 +38,8 @@ export const MODE_ICONS = {
   "kb-throne-room": S('<path d="M7 11V4a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 17 4v7"/><path d="M5 11h14v4H5Z"/><path d="M6.5 15v6"/><path d="M17.5 15v6"/><path d="M5 11V9"/><path d="M19 11V9"/>'),
   // Iron Grip: clenched fist, knuckles up.
   "kb-iron-grip": S('<path d="M7 11V8.5a1.5 1.5 0 0 1 3 0V10"/><path d="M10 10V7.5a1.5 1.5 0 0 1 3 0V10"/><path d="M13 10V8a1.5 1.5 0 0 1 3 0v2"/><path d="M16 10.5V9.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.5A5.5 5.5 0 0 1 6 15.5V13a2 2 0 0 1 2-2h3.5a1.5 1.5 0 0 1 0 3H9.5"/>'),
+  // Windmill: four blades on a hub atop a tapered tower.
+  "kb-windmill": S('<circle cx="12" cy="9" r="1.2"/><path d="M11.2 8.2 7.5 3.5l2.5-1 2 5.4"/><path d="M12.8 8.2l4.7-3.7 1 2.5-5.4 2"/><path d="M12.8 9.8l3.7 4.7-2.5 1-2-5.4"/><path d="M11.2 9.8l-4.7 3.7-1-2.5 5.4-2"/><path d="m10.6 21 .9-10.8"/><path d="m13.4 21-.9-10.8"/><path d="M8.5 21h7"/>'),
   "kb-core-ten": S('<path d="M8.5 9.5V8a3.5 3.5 0 0 1 7 0v1.5"/><path d="M7.5 9.5h9c1.6 1.4 2.5 3.5 2.5 5.7 0 2.3-1 4.3-2.6 5.8H7.6C6 19.5 5 17.5 5 15.2c0-2.2.9-4.3 2.5-5.7Z"/><path d="M10 13v5"/><circle cx="13.6" cy="15.5" r="1.6"/>'),
 };
 

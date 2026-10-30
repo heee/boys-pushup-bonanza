@@ -59,6 +59,14 @@ test("Core Ten is ten one-minute windows with 10 s transitions and two holds", (
   assert.deepEqual(sets.slice(0, -1).map((s) => s.restAfterSec), Array(9).fill(10));
 });
 
+test("Windmill is a four-round, three-move circuit, every move per side", () => {
+  const sets = kettlebellExpandSets(kettlebellWorkoutById("windmill"));
+  assert.equal(sets.length, 12);
+  assert.ok(sets.every((s) => s.perSide));
+  assert.deepEqual(sets.slice(0, 3).map((s) => kettlebellTargetLabel(s)), ["10/side", "6/side", "8/side"]);
+  assert.deepEqual(sets.slice(0, 3).map((s) => s.restAfterSec), [15, 15, 60]);
+});
+
 test("Iron Grip is a two-round, seven-move circuit with a left and right hold", () => {
   const sets = kettlebellExpandSets(kettlebellWorkoutById("iron-grip"));
   assert.equal(sets.length, 14);

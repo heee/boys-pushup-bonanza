@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-29", text: "Added Windmill kettlebell workout" },
   { date: "2026-10-29", text: "Settings → Preferences: pick how unhinged your share messages are — Chill, Spicy or Unhinged" },
   { date: "2026-10-29", text: "Roadtrip map: countries shaded by reps — tap one to see its cities" },
   { date: "2026-10-29", text: "Horse: type your own 3–8 letter word — its length sets everyone's lives" },

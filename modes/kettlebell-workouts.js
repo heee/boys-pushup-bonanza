@@ -81,6 +81,9 @@ export const KETTLEBELL_EXERCISES = {
     name: "Alternating One-Arm Pull", spoken: "Alternating one arm pulls", paceSec: 2.0,
     clip: { base: "assets/kettlebell/alt-one-arm-pull", loopSec: 5.95, repsPerLoop: 2, aspect: "3 / 4", zoom: 1.5, origin: "47% 59%" },
   },
+  "bear-pull-through": { name: "Bear Plank Pull-Through", spoken: "Bear plank pull throughs", paceSec: 2.5 },
+  "hk-windmill": { name: "Half-Kneeling Windmill", spoken: "Half kneeling windmills", paceSec: 4.0 },
+  "around-world-stops": { name: "Around the World Stops", spoken: "Around the world stops", paceSec: 2.5 },
 };
 
 export const KETTLEBELL_WORKOUTS = [
@@ -157,6 +160,23 @@ export const KETTLEBELL_WORKOUTS = [
       { exerciseId: "static-hold-left", kind: "hold", windowSec: 40 },
       { exerciseId: "static-hold-right", kind: "hold", windowSec: 40 },
       { exerciseId: "alt-one-arm-pull", reps: 20 },
+    ],
+  },
+  {
+    // Core / anti-rotation, mostly on the knees. Around the World's "side"
+    // is its direction (clockwise, then counter-clockwise).
+    id: "windmill",
+    name: "Windmill",
+    icon: "🌬️",
+    tagline: "Kneeling core circuit, four rounds",
+    format: "circuit",
+    rounds: 4,
+    restSec: 15,
+    roundRestSec: 60,
+    exercises: [
+      { exerciseId: "bear-pull-through", reps: 20, perSide: true },
+      { exerciseId: "hk-windmill", reps: 12, perSide: true },
+      { exerciseId: "around-world-stops", reps: 16, perSide: true },
     ],
   },
 ];
