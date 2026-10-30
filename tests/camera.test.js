@@ -49,7 +49,7 @@ test("pose detector requests a higher-resolution stream than the default face de
   });
 });
 
-test("camera controller preserves GPU detection and frame callback behavior", async () => {
+test("face detector builds on CPU and keeps frame callback behavior", async () => {
   let frameCallback;
   let detected;
   const delegates = [];
@@ -82,6 +82,43 @@ test("camera controller preserves GPU detection and frame callback behavior", as
   await camera.ensureDetector();
   camera.startDetection();
   frameCallback(30);
-  assert.deepEqual(delegates, ["GPU"]);
+  assert.deepEqual(delegates, ["CPU"]);
   assert.deepEqual(detected, { box: { height: 200 }, inferenceMs: 5 });
+});
+
+test("pose detector prefers the GPU and falls back to CPU", async () => {
+  const delegates = [];
+  const PoseLandmarker = {
+    async createFromOptions(_vision, options) {
+      delegates.push(options.baseOptions.delegate);
+      if (options.baseOptions.delegate === "GPU") throw new Error("no webgl");
+      return { detectForVideo: () => ({}) };
+    },
+  };
+  const camera = createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl: "model", detectorType: "pose",
+    getVideo: () => ({}),
+    loadVisionModule: async () => ({ PoseLandmarker, FilesetResolver: { forVisionTasks: async () => ({}) } }),
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  await camera.ensureDetector();
+  assert.deepEqual(delegates, ["GPU", "CPU"]);
+});
+
+test("detector runs one warm-up detection on a blank frame while loading", async () => {
+  const frames = [];
+  const frame = { blank: true };
+  const camera = createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl: "model",
+    getVideo: () => ({}),
+    now: () => 1,
+    createWarmupFrame: () => frame,
+    loadVisionModule: async () => ({
+      FaceDetector: { createFromOptions: async () => ({ detectForVideo: (input) => { frames.push(input); throw new Error("ignored"); } }) },
+      FilesetResolver: { forVisionTasks: async () => ({}) },
+    }),
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  await camera.ensureDetector();
+  assert.deepEqual(frames, [frame]);
 });

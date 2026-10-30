@@ -112,7 +112,7 @@ import {
   recordProgression,
   progressionChartModel,
 } from "./session-progression.js?v=1";
-import { createCameraController } from "./camera.js";
+import { createCameraController } from "./camera.js?v=2";
 import { createFramingTracker, mapRect, IDENTITY_FRAMING } from "./camera-framing.js?v=1";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
@@ -287,7 +287,7 @@ function warmTrackerForHomeType(type) {
   tracker?.ensureDetector().catch(() => {});
 }
 
-// Pre-downloads the body-tracker runtime + model into the service worker's
+// Pre-downloads the tracker runtime + pose and face models into the service worker's
 // tracker cache, once per launch, when idle on Wi-Fi. iOS Safari doesn't
 // expose connection type, so there this never fires and the first
 // body-tracked workout downloads them instead (cached for good after that).
@@ -296,6 +296,7 @@ const BODY_TRACKER_ASSET_URLS = [
   `${FACE_DETECTOR_WASM_URL}/vision_wasm_internal.js`,
   `${FACE_DETECTOR_WASM_URL}/vision_wasm_internal.wasm`,
   POSE_LANDMARKER_MODEL_URL,
+  FACE_DETECTOR_MODEL_URL,
 ];
 let bodyTrackerPrefetchScheduled = false;
 function scheduleBodyTrackerPrefetch() {

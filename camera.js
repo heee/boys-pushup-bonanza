@@ -12,6 +12,14 @@ export function createCameraController({
   requestFrame = (callback) => requestAnimationFrame(callback),
   getUserMedia = (constraints) => navigator.mediaDevices.getUserMedia(constraints),
   loadVisionModule = () => import(moduleUrl),
+  // Blank frame for the warm-up detection (null skips it, e.g. in Node).
+  createWarmupFrame = () => {
+    if (typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    return canvas;
+  },
   onDetection,
   onNoDetection,
 }) {
@@ -52,13 +60,18 @@ export function createCameraController({
       const vision = await FilesetResolver.forVisionTasks(wasmUrl);
       detectorVision = vision;
       DetectorClass = detectorType === "pose" ? PoseLandmarker : FaceDetector;
+      // The face model is tiny: CPU runs it as fast as the GPU, and skips the
+      // GPU's shader compile (~1s on the first detection in testing). The
+      // heavier pose model still prefers the GPU.
+      const [preferred, fallback] = detectorType === "pose" ? ["GPU", "CPU"] : ["CPU", "GPU"];
       try {
-        detector = await buildDetector(vision, DetectorClass, "GPU");
-        delegate = "GPU";
+        detector = await buildDetector(vision, DetectorClass, preferred);
+        delegate = preferred;
       } catch {
-        detector = await buildDetector(vision, DetectorClass, "CPU");
-        delegate = "CPU";
+        detector = await buildDetector(vision, DetectorClass, fallback);
+        delegate = fallback;
       }
+      warmUp(detector);
       return detector;
     })();
     try {
@@ -66,6 +79,18 @@ export function createCameraController({
     } catch (error) {
       detectorLoading = null;
       throw error;
+    }
+  }
+
+  // One throwaway detection while loading, so the first real frame doesn't
+  // pay the one-time setup cost (GPU shader compile, CPU buffer allocation)
+  // after the workout has already started.
+  function warmUp(target) {
+    try {
+      const frame = createWarmupFrame();
+      if (frame) target.detectForVideo(frame, now());
+    } catch {
+      // Best effort — the first real frame just pays the cost instead.
     }
   }
 
