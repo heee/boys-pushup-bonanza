@@ -1141,8 +1141,14 @@ async function refreshFromRemote() {
 // once if a background refresh brings back new data while still showing.
 function repaintAfterBackgroundRefresh(id, render) {
   render();
+  repaintIfRefreshed(id, render);
+}
+
+// For screens whose full render also resets local UI (picked mode, paging,
+// filters): only the data-driven pieces are passed in to repaint.
+function repaintIfRefreshed(id, repaint) {
   refreshFromRemoteIfStale().then((fetched) => {
-    if (fetched && state.screen === id) render();
+    if (fetched && state.screen === id) repaint();
   });
 }
 
@@ -2169,10 +2175,17 @@ function showScreen(id) {
   if (id === "screen-roadtrip") repaintAfterBackgroundRefresh(id, renderRoadtrip);
   if (id === "screen-roadtrip-detail") repaintAfterBackgroundRefresh(id, renderRoadtripDetail);
   if (id === "screen-settings" || id === "screen-settings-mysessions" ||
-    id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") renderSettings();
+    id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") {
+    renderSettings();
+    repaintIfRefreshed(id, () => {
+      renderSettingsCategoryValues();
+      renderMySessions();
+      if (id === "screen-settings-goals") renderGoalsSettingsScreen();
+    });
+  }
   if (id === "screen-settings-goals") renderGoalsSettingsScreen();
-  if (id === "screen-settings-groups") renderSettingsGroups();
-  if (id === "screen-group-detail") renderGroupDetail();
+  if (id === "screen-settings-groups") repaintAfterBackgroundRefresh(id, renderSettingsGroups);
+  if (id === "screen-group-detail") repaintAfterBackgroundRefresh(id, renderGroupDetail);
   if (id === "screen-settings-goal-edit") renderGoalEditScreen();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
@@ -2199,6 +2212,10 @@ function showScreen(id) {
     preserveNextModeSelection = false;
     renderPushupModePicker();
     renderModifierSlot();
+    repaintIfRefreshed(id, () => {
+      renderGoalThermometers();
+      renderStreakBadge();
+    });
   }
   if (id === "screen-plank-workout" && !state.plankActive) {
     $("plank-username").textContent = state.currentUser || "Friend";
