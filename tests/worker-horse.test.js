@@ -136,11 +136,16 @@ test("declining before a first set removes the player; declining to <2 voids the
   assert.equal(g.status, "voided");
 });
 
-test("validateHorseCreate enforces a 5-letter word, 2-8 players, and creator membership", () => {
+test("validateHorseCreate enforces a 3-8 letter word, 2-8 players, and creator membership", () => {
   const ok = validateHorseCreate({ word: "horse", createdBy: "You", players: ["You", "Mia"] });
   assert.equal(ok.word, "HORSE");
   assert.equal(ok.sessionType, "live");
-  assert.equal(validateHorseCreate({ word: "HORS", createdBy: "You", players: ["You", "Mia"] }), null);
+  assert.equal(validateHorseCreate({ word: "HORS", createdBy: "You", players: ["You", "Mia"] }).word, "HORS");
+  assert.equal(validateHorseCreate({ word: "PIG", createdBy: "You", players: ["You", "Mia"] }).word, "PIG");
+  assert.equal(validateHorseCreate({ word: "MONSTERS", createdBy: "You", players: ["You", "Mia"] }).word, "MONSTERS");
+  assert.equal(validateHorseCreate({ word: "PI", createdBy: "You", players: ["You", "Mia"] }), null);
+  assert.equal(validateHorseCreate({ word: "MONSTROUS", createdBy: "You", players: ["You", "Mia"] }), null);
+  assert.equal(validateHorseCreate({ word: "HOR5E", createdBy: "You", players: ["You", "Mia"] }), null);
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You"] }), null);
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "Nobody", players: ["You", "Mia"] }), null);
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "You", players: ["You", "You", "Mia"] }).players.length, 2);
@@ -176,4 +181,19 @@ test("Worker startOpenGame mirrors horse.js: hands off if the bar's already set,
 test("validateHorseCreate caps Open sessions at eight players", () => {
   assert.ok(validateHorseCreate({ word: "HORSE", createdBy: "A", players: ["A"], sessionType: "open" }));
   assert.equal(validateHorseCreate({ word: "HORSE", createdBy: "A", players: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], sessionType: "open" }), null);
+});
+
+test("Worker: the word's length is the number of lives", () => {
+  let g = createHorseGame({ id: "g3", word: "pig", sessionType: "live", createdBy: "You", players: ["You", "Mia"], now: 0 });
+  const bars = [20, 15, 10];
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  for (let i = 0; i < 3; i += 1) {
+    g = applyTurn(g, { user: "Mia", reps: bars[i] - 1, now: i + 2 });
+    if (g.status === "complete") break;
+    g = applyAndResolve(g, { user: "You", reps: bars[i + 1], now: i + 10 });
+  }
+  assert.equal(g.status, "complete");
+  assert.deepEqual(g.winner, ["You"]);
+  assert.equal(g.players.Mia.letters, 3);
+  assert.equal(g.players.Mia.out, true);
 });

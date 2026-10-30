@@ -27,7 +27,9 @@ test("every completed workout mode keeps its own unhinged share theme", async ()
       ["pullup", 8, { mode: "pullup", isPullup: true }, /8 pull-ups.*Gravity.*meeting/],
       ["squat", 15, { mode: "squat", isSquat: true }, /15 squats.*recliner.*unemployment/],
       ["situp", 15, { mode: "situp", isSitup: true }, /15 crunches.*ceiling.*inspected/],
-      ["chainofpain", "3.7 cycles", { mode: "chainofpain", isChainOfPain: true, chainOfPainCtx: { squats: 40, pushups: 30, plankSeconds: 90, segments: 11 } }, /3\.7 cycles.*chain.*link/],
+      // Default tone is Unhinged (share-tone.js); the pool's first line is a
+      // Spicy jab, so the first Unhinged one is the receipt.
+      ["chainofpain", "3.7 cycles", { mode: "chainofpain", isChainOfPain: true, chainOfPainCtx: { squats: 40, pushups: 30, plankSeconds: 90, segments: 11 } }, /Chain of Pain receipt.*Total damage: 3\.7 cycles/],
     ];
 
     for (const [mode, count, ctx, expected] of cases) {

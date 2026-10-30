@@ -1,8 +1,13 @@
 // Workout-completion share copy and mode-priority selection.
 // Loaded only when Share is tapped so startup does not parse the large message library.
 
+import { addTonedLines, concatToned, pickToned, tagTones } from "./share-tone.js";
+import { SHARE_TONE_RATINGS } from "./share-tone-ratings.js";
+import { SHARE_EXTRA_LINES } from "./share-messages-extra.js";
+
+// Picks only from lines at the chosen share tone (see share-tone.js).
 function pickFrom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr.tones ? pickToned(arr) : arr[Math.floor(Math.random() * arr.length)];
 }
 
 const SHARE_MESSAGES = [
@@ -869,6 +874,31 @@ const SHARE_MESSAGES_PLANK_UNHINGED = [
   (t) => `Forearms down, sanity off: ${t}. Please update the family records.`,
   (t) => `${t} plank complete. The carpet knows too much now.`,
   (t) => `Held ${t} while every cell in my body drafted a resignation email.`,
+];
+
+const SHARE_MESSAGES_DEADHANG = [
+  (t) => `Hung from a bar for ${t}. My forearms have filed a formal complaint 🙌`,
+  (t) => `${t} dead hang. Gravity tried everything and still lost.`,
+  (t) => `Dangled for ${t} like a very determined coat on a very tired hook.`,
+  (t) => `${t} of grip strength and pure spite. The bar blinked first.`,
+  (t) => `Dead hang: ${t}. My hands are now legally claws.`,
+  (t) => `${t} hanging around doing nothing, which turns out to be the hardest workout there is.`,
+  (t) => `Held on for ${t}. My fingers would like to speak to a manager.`,
+  (t) => `${t} off the ground and refusing to come down. The floor misses me.`,
+  (t) => `Hung for ${t}. Somewhere a monkey just nodded in respect 🐒`,
+  (t) => `${t} dead hang complete. My shoulders are three inches longer and furious about it.`,
+];
+
+const SHARE_MESSAGES_DEADHANG_STREAK = [
+  (t, ctx) => `${t} dead hang and a ${ctx.streak}-day streak going 🔥 Who's catching up?`,
+  (t, ctx) => `Day ${ctx.streak} of the streak, hung for ${t} today 🙌`,
+  (t, ctx) => `${ctx.streak} days straight, ${t} on the bar today 😤 Grip never quits.`,
+];
+
+const SHARE_MESSAGES_DEADHANG_WEEK = [
+  (t, ctx) => `${t} today, ${ctx.weekTotalDisplay} of hang time this week 📈 The bar never sleeps.`,
+  (t, ctx) => `Week total: ${ctx.weekTotalDisplay} on the bar 📊 ${t} of that just now.`,
+  (t, ctx) => `Weekly hang tally: ${ctx.weekTotalDisplay} ⏱️ ${t} of it fresh.`,
 ];
 
 const SHARE_MESSAGES_SQUAT = [
@@ -2440,6 +2470,7 @@ function decorateShareMessage(message, ctx, displayCount) {
     // no streak/week bonus line for this mode
   } else if (ctx.streak >= 3) {
     const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_STREAK
+      : ctx.isDeadhang ? SHARE_MESSAGES_DEADHANG_STREAK
       : ctx.isSquat ? SHARE_MESSAGES_SQUAT_STREAK
       : ctx.isPullup ? SHARE_MESSAGES_PULLUP_STREAK
       : ctx.isSitup ? SHARE_MESSAGES_SITUP_STREAK
@@ -2447,6 +2478,7 @@ function decorateShareMessage(message, ctx, displayCount) {
     extras.push(pickFrom(pool)(displayCount, ctx));
   } else if (ctx.weekTotalRaw > 0 && ctx.todayRaw != null && ctx.weekTotalRaw > ctx.todayRaw) {
     const pool = ctx.isPlank ? SHARE_MESSAGES_PLANK_WEEK
+      : ctx.isDeadhang ? SHARE_MESSAGES_DEADHANG_WEEK
       : ctx.isSquat ? SHARE_MESSAGES_SQUAT_WEEK
       : ctx.isPullup ? SHARE_MESSAGES_PULLUP_WEEK
       : ctx.isSitup ? SHARE_MESSAGES_SITUP_WEEK
@@ -2541,7 +2573,7 @@ export function pickShareMessage(count, ctx) {
   } else if (mode === "poker") {
     modeCtx = ctx.pokerCtx;
     pool = modeCtx?.hands > 0
-      ? (modeCtx.bestRank >= 3 ? [...SHARE_MESSAGES_POKER, ...SHARE_MESSAGES_POKER_RARE] : SHARE_MESSAGES_POKER)
+      ? (modeCtx.bestRank >= 3 ? concatToned(SHARE_MESSAGES_POKER, SHARE_MESSAGES_POKER_RARE) : SHARE_MESSAGES_POKER)
       : SHARE_MESSAGES_POKER_EMPTY;
   } else if (mode === "dice") {
     modeCtx = ctx.diceCtx;
@@ -2559,6 +2591,8 @@ export function pickShareMessage(count, ctx) {
     pool = SHARE_MESSAGES_ZEN_UNHINGED;
   } else if (mode === "plank") {
     pool = SHARE_MESSAGES_PLANK_UNHINGED;
+  } else if (mode === "deadhang") {
+    pool = SHARE_MESSAGES_DEADHANG;
   } else if (mode === "pullup") {
     pool = SHARE_MESSAGES_PULLUP;
   } else if (mode === "squat") {
@@ -3049,3 +3083,8 @@ export function pickSessionShareMessage(ctx) {
   lastSessionDetailTemplate = template;
   return template(ctx).replace(/\s+/g, " ").trim();
 }
+
+// Tone ratings for every pool above (share-tone-ratings.js).
+export const SHARE_POOLS = { SHARE_MESSAGES_CLASSIC_UNHINGED, SHARE_MESSAGES_COUNTDOWN_WIN, SHARE_MESSAGES_COUNTDOWN_MISS, SHARE_MESSAGES_CARDS_UNHINGED, SHARE_MESSAGES_CARDS_EMPTY, SHARE_MESSAGES_POKER_EMPTY, SHARE_MESSAGES_DICE_UNHINGED, SHARE_MESSAGES_DICE_EMPTY, SHARE_MESSAGES_SHARPSHOOTER_UNHINGED, SHARE_MESSAGES_SHARPSHOOTER_EMPTY, SHARE_MESSAGES_LADDER_EMPTY, SHARE_MESSAGES_ZEN_UNHINGED, SHARE_MESSAGES_PLANK_UNHINGED, SHARE_MESSAGES_DEADHANG, SHARE_MESSAGES_DEADHANG_STREAK, SHARE_MESSAGES_DEADHANG_WEEK, SHARE_MESSAGES_SQUAT, SHARE_MESSAGES_PULLUP, SHARE_MESSAGES_SITUP, SHARE_MESSAGES_CHAINOFPAIN, SHARE_MESSAGES_STREAK, SHARE_MESSAGES_PLANK_STREAK, SHARE_MESSAGES_SQUAT_STREAK, SHARE_MESSAGES_PULLUP_STREAK, SHARE_MESSAGES_SITUP_STREAK, SHARE_MESSAGES_SQUAT_WEEK, SHARE_MESSAGES_PULLUP_WEEK, SHARE_MESSAGES_SITUP_WEEK, SHARE_MESSAGES_WEEK, SHARE_MESSAGES_PLANK_WEEK, SHARE_MESSAGES_POKER, SHARE_MESSAGES_POKER_RARE, SHARE_MESSAGES_CARDS_KINGS, SHARE_MESSAGES_CARDS_ACES, SHARE_MESSAGES_CARDS_FACES, SHARE_MESSAGES_CARDS_SUIT, SHARE_MESSAGES_DICE_DOUBLES, SHARE_MESSAGES_DICE_SNAKE_EYES, SHARE_MESSAGES_DICE_BOXCARS, SHARE_MESSAGES_DICE_SEVENS, SHARE_MESSAGES_LADDER_UNHINGED, SHARE_MESSAGES_PYRAMID_EMPTY, SHARE_MESSAGES_PYRAMID_UNHINGED, SHARE_MESSAGES_CHASE_WIN, SHARE_MESSAGES_CHASE_PROGRESS, SHARE_MODIFIERS_WEIGHTED, SHARE_MODIFIERS_PR, SHARE_MODIFIERS_LADDER_NEW_BEST, SHARE_MODIFIERS_LADDER_PASSED, SHARE_MODIFIERS_WIDE, SHARE_MODIFIERS_CLOSE, SHARE_MODIFIERS_DIAMOND, SHARE_MODIFIERS_STAGGERED, SHARE_MODIFIERS_ARCHER, SHARE_MODIFIERS_INCLINE, SHARE_MODIFIERS_DECLINE, SHARE_MESSAGES_PR_ACHIEVED, SHARE_MESSAGES_HORSE_REMINDER, SHARE_MESSAGES_HORSE_OPEN_INVITE, SHARE_MESSAGES_HORSE_LETTER_FAIL, SHARE_MESSAGES_HORSE_COMPLETE, SHARE_MESSAGES_TOW_INVITE, TOW_LOBBY_RALLY_LINES, SHARE_MESSAGES_TOW_REMINDER, SHARE_MESSAGES_TOW_BURST_BRAG, TOW_BURST_NEXT_LINES, TOW_BURST_WIN_LINES, TOW_BURST_LOSS_LINES, SHARE_MESSAGES_SESSION_DETAIL };
+tagTones(SHARE_POOLS, SHARE_TONE_RATINGS);
+addTonedLines(SHARE_POOLS, SHARE_EXTRA_LINES);

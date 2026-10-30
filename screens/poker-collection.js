@@ -41,6 +41,11 @@ export const POKER_HAND_EXAMPLES = {
   9: [{ label: "10", suit: "spades" }, { label: "J", suit: "spades" }, { label: "Q", suit: "spades" }, { label: "K", suit: "spades" }, { label: "A", suit: "spades" }],
 };
 
+// How many leading cards of each example actually make the hand (the rest
+// are kickers) — e.g. a Pair's first two, Quads' first four. Examples list
+// the hand's cards first, so this is a prefix length.
+export const POKER_HAND_KEY_CARDS = { 1: 2, 2: 4, 3: 3, 4: 5, 5: 5, 6: 5, 7: 4, 8: 5, 9: 5 };
+
 function pad2(n) {
   return String(n).padStart(2, "0");
 }
@@ -109,6 +114,19 @@ export function pokerCollectionRowsForUser(sessions, userName, window, timestamp
     done: counts[rank] > 0,
     bonus: rank === POKER_BONUS_RANK,
   }));
+}
+
+// Settings > Poker collection: the same rows over a user's whole history
+// (no cycle window), plus total rounds played for the header line.
+const ALL_TIME = { startDate: new Date(-8.64e15), endDate: new Date(8.64e15) };
+
+export function pokerLifetimeCollection(sessions, userName, timestampOf) {
+  const rows = pokerCollectionRowsForUser(sessions, userName, ALL_TIME, timestampOf);
+  let handsPlayed = 0;
+  for (const s of sessions) {
+    if (s.user === userName && s.mode === "poker") handsPlayed += (s.pokerHandRanks || []).length;
+  }
+  return { rows, collected: rows.filter((r) => r.done).length, handsPlayed };
 }
 
 // Required hands collected (0..POKER_SET_SIZE) — the bonus never counts.

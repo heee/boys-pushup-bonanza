@@ -12,6 +12,8 @@ export const MODE_ICONS = {
   // Forearm plank: flat body, bent arm on the floor.
   plank: S('<circle cx="4.5" cy="9.5" r="2"/><path d="M7 11.5l14 4"/><path d="M8.5 12 7.5 18h4.5"/><path d="M3 18h19"/>'),
   squat: S('<circle cx="11" cy="3.8" r="2"/><path d="M11 6.5 9.5 12h6.5l-1 8"/><path d="M10.5 8.5H18"/><path d="M5 20.5h15"/>'),
+  // Dead hang: straight arms from the bar, body hanging still.
+  deadhang: S('<path d="M2.5 3h19"/><path d="M8.5 3l1.5 8"/><path d="M15.5 3l-1.5 8"/><circle cx="12" cy="7.6" r="1.9"/><path d="M10 11h4"/><path d="M12 10v7"/><path d="m12 17-1.2 4.5"/><path d="m12 17 1.2 4.5"/>'),
   pullup: S('<path d="M2.5 3h19"/><path d="M7 3l3 8"/><path d="M17 3l-3 8"/><circle cx="12" cy="8.3" r="2"/><path d="M12 10.5V16"/><path d="m12 16-2 5"/><path d="m12 16 2 5"/>'),
   situp: S('<circle cx="5.5" cy="9.5" r="2"/><path d="M7.3 12 12 17.5 16 11.5l4 6"/><path d="M3 20.5h18"/>'),
   // Holland: windmill.
@@ -49,6 +51,7 @@ const TYPE_ICONS = {
   pushups: MODE_ICONS.classic,
   squats: MODE_ICONS.squat,
   pullups: MODE_ICONS.pullup,
+  deadhang: MODE_ICONS.deadhang,
   situps: MODE_ICONS.situp,
   planks: MODE_ICONS.plank,
   circuits: S('<path d="M20 11a8 8 0 0 0-14.9-4"/><path d="M4 3.5V7.5h4"/><path d="M4 13a8 8 0 0 0 14.9 4"/><path d="M20 20.5v-4h-4"/>'),

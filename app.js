@@ -25,6 +25,8 @@ import {
   KETTLEBELL_FINISH_NO_WEIGHT_LINE,
   FUN_MESSAGES,
   FUN_MESSAGES_PLANK,
+  FUN_MESSAGES_DEADHANG,
+  DEADHANG_RECORD_LINE,
   HOLLAND_27_LINE,
   HOLLAND_CIRCUIT_COMPLETE_LINE,
   HOLLAND_START_LINES,
@@ -75,7 +77,7 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=148";
+} from "./voice-lines.js?v=149";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -115,22 +117,24 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=143";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=6";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=144";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=7";
 import { comparisonModel } from "./screens/comparison.js?v=139";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
-import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_SET_SIZE } from "./screens/poker-collection.js?v=2";
+import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=151";
-import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=3";
-import { MODIFIERS, RESOLVABLE_MODIFIER_IDS, resolveModifier } from "./screens/modifiers.js?v=100";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=153";
+import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=4";
+import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { MODE_META, sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=11";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=12";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
+import { challengeVisibleTo, groupMemberNames, groupsForUser, isGroupAdmin, pickerUserNames, resolveActiveGroupId, scopeUserNames } from "./groups.js";
 import {
   applyBurst as applyTowBurst,
   autoBalanceTeams as towAutoBalanceTeams,
@@ -166,11 +170,16 @@ import {
   buildRoadtripTerritories,
   detectRoadtripConquests,
   roadtripConquestShareMessage,
+  roadtripPeriodPhrase,
   roadtripDetailRows,
   roadtripOverviewRows,
 } from "./roadtrip.js";
 import { buildRecapTier, checkAndQueueRecaps, CHALLENGE_ACTIVITY_TO_EXERCISE_KEY, completedPeriodRange, exportRecapImage, RECAP_TIER_META, roundRect } from "./recap.js?v=2";
-import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey } from "./group-recap.js?v=1";
+import { buildGroupMonthRecap, exportGroupRecapImage, groupRecapSeenKey, HOUSTON_COORDS } from "./group-recap.js?v=1";
+import { SHARE_TONE_KEY, SHARE_TONES, addTonedLines, currentShareTone, pickToned, tagTones } from "./share-tone.js";
+import { SHARE_TONE_RATINGS } from "./share-tone-ratings.js";
+import { APP_SHARE_EXTRA_LINES } from "./share-lines-app.js";
+import { compactCount, cullLabels, fitTransform, heatLevel, ISO2_TO_NUMERIC, shouldShowWorld, unionBounds } from "./roadtrip-map.js";
 import { deriveSquatThresholds, estimateSquatRange, replaySquatCalibration, squatCalibrationValid, squatSwing, SQUAT_MIN_SWING } from "./modes/squat.js";
 import { createClapGestureDetector } from "./modes/clap-gesture.js";
 import { KETTLEBELL_WORKOUTS, kettlebellExercise, kettlebellWorkoutById } from "./modes/kettlebell-workouts.js";
@@ -270,6 +279,12 @@ const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models
 // exactly where a squatter stands. Pose landmarks work at room scale.
 const POSE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 
+let deadhangModeModule = null;
+async function loadDeadhangMode() {
+  if (!deadhangModeModule) deadhangModeModule = await import("./modes/deadhang.js");
+  return deadhangModeModule;
+}
+
 let pullupModeModule = null;
 async function loadPullupMode() {
   if (!pullupModeModule) pullupModeModule = await import("./modes/pullup.js");
@@ -290,6 +305,7 @@ const jsonStorage = createJsonStorage(localStorage);
 const LS = {
   theme: "bpb-theme",
   lastUser: "bpb-last-user",
+  changelogSeen: "bpb-changelog-seen",
   lastAvatar: "bpb-last-avatar",
   thresholdDown: "bpb-threshold-down",
   thresholdUp: "bpb-threshold-up",
@@ -300,6 +316,7 @@ const LS = {
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
   plankUnlocked: "bpb-plank-unlocked",
+  deadhangTiming: "bpb-deadhang-timing",
   soundEnabled: "bpb-sound-enabled",
   weightedProfiles: "bpb-weighted-profiles",
   squatWeightedProfiles: "bpb-squat-weighted-profiles",
@@ -313,13 +330,15 @@ const LS = {
   leaderboardMode: "bpb-leaderboard-mode",
   deviceLocation: "bpb-device-location",
   roadtripPeriod: "bpb-roadtrip-period",
-  roadtripTier: "bpb-roadtrip-tier",
   roadtripPrompted: "bpb-roadtrip-location-prompted",
   hollandDifficulty: "bpb-holland-difficulty",
   chainOfPainDuration: "bpb-chainofpain-duration",
   kettlebellProfiles: "bpb-kettlebell-profiles",
   homeType: "bpb-home-type",
   homeMode: "bpb-home-mode",
+  activeGroups: "bpb-active-groups",
+  deviceProfiles: "bpb-device-profiles",
+  pendingJoin: "bpb-pending-join",
 };
 
 // One-time shipped migration: every existing device starts this release with
@@ -350,6 +369,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "pulse", label: "Pulse" },
   { id: "cock", label: "Cock" },
   { id: "pullups", label: "Pull-ups" },
+  { id: "deadhang", label: "Dead hang" },
   { id: "squats", label: "Squats" },
   { id: "situps", label: "Crunches" },
   { id: "planks", label: "Planks" },
@@ -363,6 +383,7 @@ const MY_SESSIONS_MODE_OPTIONS = [
   { id: "all", label: "All" },
   { id: "pushups", label: "Pushups" },
   { id: "pullups", label: "Pull-ups" },
+  { id: "deadhang", label: "Dead hang" },
   { id: "situps", label: "Crunches" },
   { id: "squats", label: "Squats" },
   { id: "planks", label: "Planks" },
@@ -372,11 +393,16 @@ const MY_SESSIONS_MODE_OPTIONS = [
 ];
 
 function sessionActivity(s) {
-  return s.type === "plank" ? "planks" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups";
+  return s.type === "plank" ? "planks" : s.type === "deadhang" ? "deadhang" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups";
+}
+
+// Activities whose `count` is seconds held rather than reps.
+function isTimedActivity(activity) {
+  return activity === "planks" || activity === "deadhang";
 }
 
 function leaderboardActivity(mode) {
-  return ["planks", "pullups", "squats", "situps", "holland", "chainofpain", "kettlebell"].includes(mode) ? mode : "pushups";
+  return ["planks", "deadhang", "pullups", "squats", "situps", "holland", "chainofpain", "kettlebell"].includes(mode) ? mode : "pushups";
 }
 
 function activityLabel(activity, singular = false) {
@@ -386,6 +412,7 @@ function activityLabel(activity, singular = false) {
     squats: singular ? "squat" : "squats",
     situps: singular ? "crunch" : "crunches",
     planks: singular ? "plank" : "planks",
+    deadhang: singular ? "dead hang" : "dead hangs",
     holland: singular ? "Holland cycle" : "Holland cycles",
     chainofpain: singular ? "Chain of Pain cycle" : "Chain of Pain cycles",
     kettlebell: singular ? "kettlebell workout" : "kettlebell workouts",
@@ -403,6 +430,7 @@ function activityEmoji(activity) {
     squats: "🦵",
     situps: "🙇",
     planks: "🪵",
+    deadhang: "🙌",
     holland: "🇳🇱",
     chainofpain: "⛓️",
     kettlebell: "🏋️",
@@ -624,9 +652,13 @@ function setAvatarEl(el, avatarId, size) {
 function toast(msg, ms = 2600) {
   const el = $("toast");
   el.textContent = msg;
-  el.classList.remove("hidden");
+  el.classList.remove("hidden", "glass-toast-fade");
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add("hidden"), ms);
+  clearTimeout(toast._hideT);
+  toast._t = setTimeout(() => {
+    el.classList.add("glass-toast-fade");
+    toast._hideT = setTimeout(() => el.classList.add("hidden"), 300);
+  }, ms);
 }
 
 // Prefers the pre-rendered clips in assets/voice (see voice.js); falls back to
@@ -764,10 +796,6 @@ async function workerPostSession(session) {
   return workerApi.postSession(session);
 }
 
-async function deleteUserRemote(name) {
-  return workerApi.deleteUser(name);
-}
-
 async function deleteSessionRemote(id) {
   return workerApi.deleteSession(id);
 }
@@ -778,6 +806,10 @@ async function workerJoinChallenge(user, challengeId) {
 
 async function workerCreateChallenge(challenge) {
   return workerApi.createChallenge(challenge);
+}
+
+async function workerGroupAction(payload) {
+  return workerApi.groupAction(payload);
 }
 
 async function workerCreateHorseGame(input) {
@@ -854,7 +886,7 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [], kettlebell: [] };
+  const byActivity = { pushups: [], planks: [], deadhang: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [], kettlebell: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
@@ -1431,6 +1463,7 @@ const state = {
   pokerHandsCompleted: [],
   pokerAchievementsUnlocked: [],
   pokerResolving: false,
+  pokerDealing: false,
   currentDice: null,
   diceTarget: 0,
   diceRepsDone: 0,
@@ -1474,6 +1507,14 @@ const state = {
   cockTraceSamples: [],
   cockFullTraceSamples: [],
   modifier: null,
+  // Plank / Crunch variation picked on Home (pushups keep `modifier` above),
+  // and the concrete one resolved at each session's start.
+  typeModifiers: { planks: null, situps: null, pullups: null, squats: null, deadhang: null },
+  plankResolvedModifier: null,
+  situpResolvedModifier: null,
+  pullupResolvedModifier: null,
+  squatResolvedModifier: null,
+  deadhangResolvedModifier: null,
   resolvedModifier: null,
   ladderRivals: [],
   ladderRivalsOffline: false,
@@ -1487,10 +1528,11 @@ const state = {
   myChartDayOffset: 0,
   boysChartFlipped: false,
   boysChartDayOffset: 0,
-  historyView: "recent",
   highScore: 0,
   pushupLast: 0,
   bonanzaMode: "boys",
+  boardScope: null,
+  boardSessionsAll: [],
   modeBreakdownScope: "group",
   modeBreakdownPeriod: "week",
   lastSessions: [],
@@ -1507,6 +1549,11 @@ const state = {
   activityType: leaderboardActivity(savedLeaderboardMode()),
   lastSessionType: "pushup",
   plankActive: false,
+  deadhangActive: false,
+  deadhangBest: 0,
+  deadhangLast: 0,
+  deadhangStartedAt: null,
+  deadhangSessionLocation: null,
   plankBest: 0,
   plankLast: 0,
   plankStartedAt: null,
@@ -1553,7 +1600,8 @@ const state = {
   summaryChaseResult: null,
   summaryRoadtripConquests: [],
   roadtripPeriod: ["day", "week", "month", "quarter", "year", "all"].includes(localStorage.getItem(LS.roadtripPeriod)) ? localStorage.getItem(LS.roadtripPeriod) : "week",
-  roadtripTier: ["neighborhood", "city", "country"].includes(localStorage.getItem(LS.roadtripTier)) ? localStorage.getItem(LS.roadtripTier) : "city",
+  // Derived from the map drill-down: country (world) → city → neighborhood.
+  roadtripTier: "country",
   roadtripTerritories: [],
   roadtripDetailId: null,
   recapQueue: [],
@@ -1585,6 +1633,7 @@ const state = {
   towTarget: 300,
   towRounds: 5,
   towSessionType: "live",
+  towMaxPlayers: 4,
   towDeathMatch: false,
   towSetupTeams: { a: [], b: [] },
   towTeamNames: { a: "", b: "" },
@@ -1768,6 +1817,7 @@ function renderStreakBadge() {
 const GOAL_TYPE_META = {
   pushups: { activity: "pushups", label: "Pushups", icon: "💪", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
   planks: { activity: "planks", label: "Planks", icon: "🪵", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
+  deadhang: { activity: "deadhang", label: "Dead hang", icon: "🙌", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
   squats: { activity: "squats", label: "Squats", icon: "🦵", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
   pullups: { activity: "pullups", label: "Pull-ups", icon: "💪", unit: "reps", defaults: { daily: 10, weekly: 50, monthly: 200, streak: 30 } },
   situps: { activity: "situps", label: "Crunches", icon: "🙇", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
@@ -1859,7 +1909,7 @@ function activeGoalsFor(user) {
 // exercise; tapping one already hit should jump to its leaderboard instead
 // — explore-mode ids are singular ("plank"/"squat"/"pullup") while goal
 // types and leaderboard mode ids share the plural GOAL_TYPES spelling.
-const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", squats: "squat", pullups: "pullup", situps: "situp" };
+const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", deadhang: "deadhang", squats: "squat", pullups: "pullup", situps: "situp" };
 
 // Split so the render side can force a line break after the number rather
 // than letting it wrap wherever the ~90px column happens to run out —
@@ -1934,6 +1984,7 @@ const TAB_FOR_SCREEN = {
   "screen-tow-summary": "btn-nav-home",
   "screen-modifier-picker": "btn-nav-home",
   "screen-plank-workout": "btn-nav-home",
+  "screen-deadhang-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
   "screen-squat-workout": "btn-nav-home",
   "screen-pullup-workout": "btn-nav-home",
@@ -1952,7 +2003,6 @@ const TAB_FOR_SCREEN = {
   "screen-roadtrip": "btn-nav-roadtrip",
   "screen-roadtrip-detail": "btn-nav-roadtrip",
   "screen-settings": "btn-nav-settings",
-  "screen-settings-profile": "btn-nav-settings",
   "screen-settings-mysessions": "btn-nav-settings",
   "screen-settings-workout": "btn-nav-settings",
   "screen-settings-appearance": "btn-nav-settings",
@@ -1960,6 +2010,10 @@ const TAB_FOR_SCREEN = {
   "screen-settings-goal-edit": "btn-nav-settings",
   "screen-edit-profile": "btn-nav-settings",
   "screen-mode-breakdown": "btn-nav-settings",
+  "screen-poker-showcase": "btn-nav-settings",
+  "screen-changelog": "btn-nav-settings",
+  "screen-settings-groups": "btn-nav-settings",
+  "screen-group-detail": "btn-nav-settings",
 };
 
 // Header and tab bar always minimize/hide together — an active rep-counting
@@ -1969,6 +2023,35 @@ function setChromeMinimized(minimized) {
   $("app-header").classList.toggle("minimized", minimized);
   $("tab-bar").classList.toggle("hidden", minimized);
 }
+
+// Slides the glass tab bar's inner pill under the active tab; hidden when no
+// tab is active. `instant` skips the slide (first paint, resize).
+function syncTabIndicator(instant = false) {
+  const indicator = $("tab-indicator");
+  const active = document.querySelector("#tab-bar .tab-item.active");
+  indicator.style.opacity = active ? "1" : "0";
+  if (!active) return;
+  indicator.classList.toggle("no-anim", instant || !indicator.style.width);
+  indicator.style.width = `${active.offsetWidth}px`;
+  indicator.style.transform = `translateX(${active.offsetLeft}px)`;
+}
+window.addEventListener("resize", () => syncTabIndicator(true));
+
+// Drill-in screens keep their in-page back link (hidden by CSS, and still
+// the one place its click handler lives); the header swaps "Bonanza" for a
+// "‹ Parent" button that just forwards the tap to it.
+function activeInPageBack() {
+  return document.querySelector(".screen.active .challenge-detail-back");
+}
+function syncHeaderBack() {
+  const inPage = activeInPageBack();
+  $("brand-wrap").classList.toggle("hidden", !!inPage);
+  $("brand-wrap").classList.toggle("groups-on", groupsOn() && !!state.currentUser);
+  document.querySelector('[data-settings-category="groups"]').classList.toggle("hidden", !groupsOn());
+  $("btn-header-back").classList.toggle("hidden", !inPage);
+  if (inPage) $("header-back-label").textContent = inPage.textContent.replace(/^←\s*/, "");
+}
+$("btn-header-back").addEventListener("click", () => activeInPageBack()?.click());
 
 function showScreen(id) {
   // The Settings capture-test camera has no place to keep running once the
@@ -1980,6 +2063,7 @@ function showScreen(id) {
   state.screen = id;
   const minimized = (id === "screen-workout" && state.workoutActive) ||
     (id === "screen-plank-workout" && state.plankActive) ||
+    (id === "screen-deadhang-workout" && state.deadhangActive) ||
     (id === "screen-squat-workout" && state.squatActive) ||
     (id === "screen-pullup-workout" && state.pullupActive) ||
     (id === "screen-situp-workout" && state.situpActive) ||
@@ -1987,12 +2071,14 @@ function showScreen(id) {
     (id === "screen-chainofpain-workout" && state.chainOfPainActive) ||
     (id === "screen-kettlebell-workout" && state.kettlebellActive);
   setChromeMinimized(minimized);
+  syncHeaderBack();
   const activeTab = id === "screen-session-detail" ? TAB_FOR_SCREEN[state.sessionDetailOrigin] : TAB_FOR_SCREEN[id];
   document.querySelectorAll("#tab-bar .tab-item").forEach((btn) => {
     btn.classList.toggle("active", btn.id === activeTab);
     if (btn.id === activeTab) btn.setAttribute("aria-current", "page");
     else btn.removeAttribute("aria-current");
   });
+  syncTabIndicator();
   syncAccessibilityState();
   renderStreakBadge();
   renderGoalThermometers();
@@ -2030,9 +2116,11 @@ function showScreen(id) {
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") renderRoadtrip();
   if (id === "screen-roadtrip-detail") renderRoadtripDetail();
-  if (id === "screen-settings" || id === "screen-settings-profile" || id === "screen-settings-mysessions" ||
+  if (id === "screen-settings" || id === "screen-settings-mysessions" ||
     id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") renderSettings();
   if (id === "screen-settings-goals") renderGoalsSettingsScreen();
+  if (id === "screen-settings-groups") renderSettingsGroups();
+  if (id === "screen-group-detail") renderGroupDetail();
   if (id === "screen-settings-goal-edit") renderGoalEditScreen();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
@@ -2063,6 +2151,10 @@ function showScreen(id) {
   if (id === "screen-plank-workout" && !state.plankActive) {
     $("plank-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("plank-avatar"), state.currentAvatar, "2rem");
+  }
+  if (id === "screen-deadhang-workout" && !state.deadhangActive) {
+    renderDeadhangIdle();
+    if (savedDeadhangTiming() === "camera") deadhangCamera.ensureDetector().catch(() => {});
   }
   if (id === "screen-squat-workout" && !state.squatActive) {
     squatCamera.ensureDetector().catch(() => {});
@@ -2101,6 +2193,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this plank? Your in-progress time won't be saved.");
     if (!ok) return;
     stopPlankHard();
+  } else if (state.screen === "screen-deadhang-workout" && state.deadhangActive) {
+    const ok = confirm("Leave this dead hang? Your in-progress time won't be saved.");
+    if (!ok) return;
+    stopDeadhangHard();
   } else if (state.screen === "screen-squat-workout" && state.squatActive) {
     const ok = confirm("Leave this squat set? Your in-progress reps won't be saved.");
     if (!ok) return;
@@ -2129,18 +2225,48 @@ function guardLeaveWorkout(next) {
   next();
 }
 
-// Board's Boys/My Bonanza dropdown (header, beside share) — keeps the
-// trigger label, menu selection and visible view in sync.
+// Board's scope dropdown (header, beside share): each of my groups, All
+// players, and Just me. A group / All players paint the shared "boys" view
+// filtered to that pool; Just me is the personal view. Board-only — it never
+// changes the app-wide active group (docs/groups-plan.md).
+function boardScopeOptions() {
+  if (!groupsOn()) {
+    return [
+      { mode: "boys", scope: "all", label: "Boys Bonanza" },
+      { mode: "mine", scope: "me", label: "My Bonanza" },
+    ];
+  }
+  return [
+    ...myGroups().map((g) => ({ mode: "boys", scope: g.id, label: g.name })),
+    { mode: "boys", scope: "all", label: "All players" },
+    { mode: "mine", scope: "me", label: "Just me" },
+  ];
+}
+
+function boardScopeLabel() {
+  if (state.bonanzaMode === "mine") return groupsOn() ? "Just me" : "My Bonanza";
+  return boardScopeOptions().find((o) => o.scope === state.boardScope)?.label || "All players";
+}
+
 function syncBonanzaModeControl() {
   const mode = state.bonanzaMode;
-  document.querySelectorAll("#bonanza-mode-menu .leaderboard-mode-option").forEach((option) => {
-    const isSelected = option.dataset.mode === mode;
-    option.classList.toggle("selected", isSelected);
-    option.setAttribute("aria-selected", String(isSelected));
-  });
-  $("bonanza-mode-label").textContent = mode === "mine" ? "My Bonanza" : "Boys Bonanza";
+  const current = mode === "mine" ? "me" : state.boardScope;
+  $("bonanza-mode-menu").innerHTML = boardScopeOptions().map((o) => {
+    const selected = o.scope === current;
+    return `<button type="button" class="leaderboard-mode-option${selected ? " selected" : ""}" role="option" aria-selected="${selected}" data-mode="${o.mode}" data-scope="${escapeHtml(o.scope)}"><span>${escapeHtml(o.label)}</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>`;
+  }).join("");
+  $("bonanza-mode-label").textContent = boardScopeLabel();
   $("boys-bonanza-view").classList.toggle("hidden", mode !== "boys");
   $("my-bonanza-view").classList.toggle("hidden", mode !== "mine");
+}
+
+// The pool every Board surface reads (state.lastSessions): the selected
+// group's members, or everyone for All players / Just me (which filters to
+// the viewer itself downstream).
+function applyBoardScope() {
+  const names = state.bonanzaMode === "boys" ? scopeUserNames(state.boardScope, { groups: allGroups(), user: state.currentUser }) : null;
+  const all = state.boardSessionsAll || [];
+  state.lastSessions = names ? all.filter((s) => names.has(s.user)) : all;
 }
 
 function setBonanzaModeMenuOpen(open) {
@@ -2150,6 +2276,7 @@ function setBonanzaModeMenuOpen(open) {
 
 function goToDashboard(mode) {
   state.bonanzaMode = mode;
+  state.boardScope = activeGroupId() || "all";
   syncBonanzaModeControl();
   showScreen("screen-dashboard");
 }
@@ -2157,7 +2284,316 @@ function goToDashboard(mode) {
 function goHome() {
   showScreen(state.currentUser ? "screen-workout" : "screen-user");
 }
-$("btn-home").addEventListener("click", () => guardLeaveWorkout(goHome));
+// ------------------- groups (docs/groups-plan.md) -------------------
+
+// Off until the Worker reports the 0009 migration has run — until then every
+// group surface falls back to exactly today's behavior.
+function groupsOn() {
+  return getCachedData().groupsEnabled === true;
+}
+
+function allGroups() {
+  return groupsOn() ? getCachedData().groups : [];
+}
+
+function myGroups() {
+  return groupsForUser(allGroups(), state.currentUser);
+}
+
+function activeGroupId() {
+  const stored = jsonStorage.read(LS.activeGroups, {})[state.currentUser];
+  return resolveActiveGroupId(allGroups(), state.currentUser, stored);
+}
+
+function activeGroup() {
+  const id = activeGroupId();
+  return allGroups().find((g) => g.id === id) || null;
+}
+
+function setActiveGroup(id) {
+  const map = jsonStorage.read(LS.activeGroups, {});
+  map[state.currentUser] = id;
+  jsonStorage.write(LS.activeGroups, map);
+  rerenderGroupScopedScreen();
+}
+
+// The Board/Challenges/Games each read the active group when they render, so
+// switching just repaints whichever of them is showing.
+function rerenderGroupScopedScreen() {
+  if (["screen-dashboard", "screen-games", "screen-challenges", "screen-settings-groups", "screen-group-detail"].includes(state.screen)) {
+    showScreen(state.screen);
+  }
+}
+
+function upsertLocalGroup(group, removedId = null) {
+  const cached = getCachedData();
+  cached.groups = cached.groups.filter((g) => g.id !== (group?.id || removedId));
+  if (group) cached.groups.push(group);
+  cacheData(cached);
+}
+
+async function runGroupAction(payload, { failMessage = "Couldn't reach the server — try again." } = {}) {
+  try {
+    const { group } = await workerGroupAction({ user: state.currentUser, ...payload });
+    upsertLocalGroup(group, payload.groupId);
+    return group;
+  } catch (e) {
+    toast(e?.status === 400 && e.message ? e.message.charAt(0).toUpperCase() + e.message.slice(1) : failMessage, 3600);
+    return undefined;
+  }
+}
+
+function groupInviteUrl(group) {
+  return `${location.origin}${location.pathname}#join=${encodeURIComponent(group.inviteCode)}`;
+}
+
+async function shareGroupInvite(group) {
+  const url = groupInviteUrl(group);
+  const text = `Join ${group.name} on Bonanza — code ${group.inviteCode}`;
+  if (navigator.share) {
+    try { await navigator.share({ title: group.name, text: `${text}\n\n${url}` }); } catch (e) { /* cancelled */ }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    toast("Invite copied — paste it in the group chat!");
+  } catch (e) {
+    toast(`Invite code: ${group.inviteCode}`, 5000);
+  }
+}
+
+function setGroupMenuOpen(open) {
+  $("group-menu").classList.toggle("hidden", !open);
+  $("btn-home").setAttribute("aria-expanded", String(open));
+  if (!open) return;
+  const activeId = activeGroupId();
+  const groups = myGroups();
+  $("group-menu").innerHTML = `
+    ${groups.map((g) => `<button type="button" class="leaderboard-mode-option${g.id === activeId ? " selected" : ""}" role="menuitemradio" aria-checked="${g.id === activeId}" data-group-switch="${escapeHtml(g.id)}"><span>${escapeHtml(g.name)}</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>`).join("")}
+    ${groups.length ? '<div class="group-menu-divider"></div>' : '<p class="group-menu-empty">Playing solo — no group yet.</p>'}
+    <button type="button" class="leaderboard-mode-option" role="menuitem" data-group-manage="1"><span>${groups.length ? "Manage groups" : "Create or join a group"}</span></button>`;
+}
+
+$("btn-home").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!state.currentUser || !groupsOn()) return guardLeaveWorkout(goHome);
+  setGroupMenuOpen($("group-menu").classList.contains("hidden"));
+});
+$("group-menu").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const option = e.target.closest(".leaderboard-mode-option");
+  if (!option) return;
+  setGroupMenuOpen(false);
+  if (option.dataset.groupSwitch) {
+    setActiveGroup(option.dataset.groupSwitch);
+    toast(`Switched to ${allGroups().find((g) => g.id === option.dataset.groupSwitch)?.name || "group"}`);
+  } else if (option.dataset.groupManage) {
+    guardLeaveWorkout(() => showScreen("screen-settings-groups"));
+  }
+});
+document.addEventListener("click", () => {
+  if (!$("group-menu").classList.contains("hidden")) setGroupMenuOpen(false);
+});
+
+function renderSettingsGroups() {
+  const activeId = activeGroupId();
+  const groups = myGroups();
+  $("groups-list").innerHTML = groups.length
+    ? groups.map((g) => {
+      const meta = `${g.members.length} ${g.members.length === 1 ? "member" : "members"}${isGroupAdmin(g, state.currentUser) ? " · Admin" : ""}`;
+      return `<button type="button" class="settings-category-row" data-group-open="${escapeHtml(g.id)}">
+          <span class="settings-category-title">${escapeHtml(g.name)}${g.id === activeId ? ' <span class="group-active-tag">Active</span>' : ""}</span>
+          <span class="settings-category-value">${meta}</span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>`;
+    }).join("")
+    : `<p class="screen-sub groups-empty">You're playing solo. Create a group or join one with an invite code.</p>`;
+  $("group-create-form").classList.add("hidden");
+  $("group-join-form").classList.add("hidden");
+}
+
+function renderGroupDetail() {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (!group || !group.members.some((m) => m.name === state.currentUser)) {
+    showScreen("screen-settings-groups");
+    return;
+  }
+  const admin = isGroupAdmin(group, state.currentUser);
+  const isActive = group.id === activeGroupId();
+  $("group-detail-title").textContent = group.name;
+  $("group-detail-sub").textContent = `${group.members.length} ${group.members.length === 1 ? "member" : "members"}${isActive ? " · Active group" : ""}`;
+  $("btn-group-make-active").classList.toggle("hidden", isActive);
+  $("group-invite-code").textContent = group.inviteCode;
+  $("group-member-list").innerHTML = group.members.map((m) => {
+    const isSelf = m.name === state.currentUser;
+    const tag = m.role === "admin" ? '<span class="horse-player-tag">Admin</span>' : "";
+    const manage = admin && !isSelf
+      ? `<button type="button" class="icon-btn group-member-more" data-group-member="${escapeHtml(m.name)}" aria-label="Manage ${escapeHtml(m.name)}">⋯</button>`
+      : "";
+    return `<div class="tier1-row horse-player-row${isSelf ? " horse-row-active" : ""}">
+        <span class="avatar-circle horse-avatar" data-avatar="${avatarForUser(m.name).id}"></span>
+        <span class="horse-player-name">${escapeHtml(m.name)}</span>
+        ${tag}${manage}
+      </div>`;
+  }).join("");
+  $("group-member-list").querySelectorAll(".horse-avatar").forEach((el) => setAvatarEl(el, el.dataset.avatar));
+  $("btn-group-rename").classList.toggle("hidden", !admin);
+  $("btn-group-delete").classList.toggle("hidden", !admin);
+}
+
+function openGroupDetail(id) {
+  state.groupDetailId = id;
+  showScreen("screen-group-detail");
+}
+
+$("btn-settings-groups-back").addEventListener("click", () => showScreen("screen-settings"));
+$("btn-group-detail-back").addEventListener("click", () => showScreen("screen-settings-groups"));
+$("groups-list").addEventListener("click", (e) => {
+  const row = e.target.closest("[data-group-open]");
+  if (row) openGroupDetail(row.dataset.groupOpen);
+});
+$("btn-group-create-open").addEventListener("click", () => {
+  $("group-join-form").classList.add("hidden");
+  $("group-create-form").classList.toggle("hidden");
+  if (!$("group-create-form").classList.contains("hidden")) $("group-create-name").focus();
+});
+$("btn-group-join-open").addEventListener("click", () => {
+  $("group-create-form").classList.add("hidden");
+  $("group-join-form").classList.toggle("hidden");
+  if (!$("group-join-form").classList.contains("hidden")) $("group-join-code").focus();
+});
+$("group-create-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("group-create-name").value.trim();
+  if (!name) return;
+  const group = await runGroupAction({ action: "create", name });
+  if (!group) return;
+  $("group-create-name").value = "";
+  setActiveGroup(group.id);
+  openGroupDetail(group.id);
+});
+$("group-join-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const code = $("group-join-code").value.trim().toUpperCase();
+  if (!code) return;
+  await joinGroupByCode(code);
+});
+
+// The code is parked in localStorage as soon as it's seen: a first visit's
+// service-worker takeover reloads the page, and the hash is gone by then.
+function groupJoinLinkCode() {
+  const fromHash = location.hash.match(/^#join=([A-Za-z0-9]{6})$/)?.[1]?.toUpperCase();
+  if (fromHash) {
+    localStorage.setItem(LS.pendingJoin, fromHash);
+    history.replaceState(null, "", location.pathname);
+  }
+  return fromHash || localStorage.getItem(LS.pendingJoin) || null;
+}
+
+function clearPendingJoinCode() {
+  localStorage.removeItem(LS.pendingJoin);
+}
+
+// A group invite link (#join=CODE) for a device that already has a profile:
+// already a member → open the group; otherwise confirm, then join.
+async function openGroupJoinFromHash() {
+  const code = groupJoinLinkCode();
+  if (!code || !groupsOn()) return false;
+  clearPendingJoinCode();
+  const existing = allGroups().find((g) => g.inviteCode === code);
+  if (existing?.members.some((m) => m.name === state.currentUser)) {
+    openGroupDetail(existing.id);
+    return true;
+  }
+  if (!confirm(`Join ${existing?.name || "this group"} as ${state.currentUser}?`)) return false;
+  await joinGroupByCode(code);
+  return true;
+}
+
+async function joinGroupByCode(code) {
+  const group = await runGroupAction({ action: "join", code }, { failMessage: "Couldn't join — check the code and your connection." });
+  if (!group) return null;
+  $("group-join-code").value = "";
+  setActiveGroup(group.id);
+  toast(`Joined ${group.name}`);
+  openGroupDetail(group.id);
+  return group;
+}
+
+// New device opening a group invite (#join=CODE, no profile yet): tap your
+// name if you're already in the group, or create a new player who joins it.
+function openGroupClaim(code) {
+  const group = allGroups().find((g) => g.inviteCode === code);
+  state.pendingJoinCode = code;
+  if (!group) {
+    showScreen("screen-user");
+    return;
+  }
+  $("group-claim-title").textContent = `Join ${group.name}`;
+  const list = $("group-claim-list");
+  list.innerHTML = "";
+  for (const m of group.members) {
+    const btn = userChoiceButton(m.name);
+    list.appendChild(btn);
+  }
+  showScreen("screen-group-claim");
+}
+
+$("btn-group-claim-new").addEventListener("click", () => {
+  showScreen("screen-user");
+  openNewUserForm();
+});
+
+function openSettingsGroupsForm(form) {
+  showScreen("screen-settings-groups");
+  $(form).classList.remove("hidden");
+  $(form).querySelector("input").focus();
+}
+$("btn-onboard-create").addEventListener("click", () => openSettingsGroupsForm("group-create-form"));
+$("btn-onboard-join").addEventListener("click", () => openSettingsGroupsForm("group-join-form"));
+$("btn-onboard-solo").addEventListener("click", () => showScreen("screen-workout"));
+
+$("btn-group-make-active").addEventListener("click", () => {
+  setActiveGroup(state.groupDetailId);
+  toast("Active group updated");
+});
+$("btn-group-share-invite").addEventListener("click", () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (group) shareGroupInvite(group);
+});
+$("btn-group-rename").addEventListener("click", async () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  const name = group && prompt("Rename group", group.name)?.trim();
+  if (!name || name === group.name) return;
+  if (await runGroupAction({ action: "rename", groupId: group.id, name })) renderGroupDetail();
+});
+$("btn-group-leave").addEventListener("click", async () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (!group || !confirm(`Leave ${group.name}?${group.members.length === 1 ? " You're the last member, so the group will be deleted." : ""}`)) return;
+  if (await runGroupAction({ action: "leave", groupId: group.id }) === undefined) return;
+  upsertLocalGroup(null, group.id);
+  showScreen("screen-settings-groups");
+});
+$("btn-group-delete").addEventListener("click", async () => {
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  if (!group || !confirm(`Delete ${group.name} for everyone? Members keep their reps; the group's challenges become personal.`)) return;
+  if (await runGroupAction({ action: "delete", groupId: group.id }) === undefined) return;
+  upsertLocalGroup(null, group.id);
+  showScreen("screen-settings-groups");
+});
+$("group-member-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-group-member]");
+  if (!btn) return;
+  const group = allGroups().find((g) => g.id === state.groupDetailId);
+  const target = btn.dataset.groupMember;
+  const member = group?.members.find((m) => m.name === target);
+  if (!member) return;
+  if (member.role !== "admin" && confirm(`Make ${target} an admin of ${group.name}?`)) {
+    if (await runGroupAction({ action: "promote", groupId: group.id, target })) renderGroupDetail();
+  } else if (confirm(`Remove ${target} from ${group.name}?`)) {
+    if (await runGroupAction({ action: "remove", groupId: group.id, target })) renderGroupDetail();
+  }
+});
 $("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(goHome));
 $("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
 $("btn-nav-challenges").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-challenges")));
@@ -2189,9 +2625,22 @@ function openNewUserForm() {
   $("new-user-input").focus();
 }
 
+// Profiles picked or created on this device — the seed for the groups-era
+// picker (see pickerUserNames). The remembered last user always counts.
+function deviceProfiles() {
+  const stored = jsonStorage.read(LS.deviceProfiles, []);
+  const last = localStorage.getItem(LS.lastUser);
+  return [...new Set([...(Array.isArray(stored) ? stored : []), ...(last ? [last] : [])])];
+}
+
+function rememberDeviceProfile(name) {
+  jsonStorage.write(LS.deviceProfiles, [...new Set([...deviceProfiles(), name])]);
+}
+
 function renderUserList() {
   const sessions = getAllSessionsForDisplay();
-  const names = orderedUserNames(sessions, state.currentUser);
+  const ordered = orderedUserNames(sessions, state.currentUser);
+  const names = groupsOn() ? pickerUserNames(ordered, { deviceProfiles: deviceProfiles(), groups: allGroups() }) : ordered;
   const savedLastUser = localStorage.getItem(LS.lastUser) || "";
   const model = userSelectionModel(names, savedLastUser, { expanded: userSelectionExpanded, creating: userCreationOpen });
   if (model.staleRecentUser) {
@@ -2218,7 +2667,9 @@ function renderUserList() {
   if (!model.creating && !names.length) {
     const p = document.createElement("p");
     p.className = "screen-sub";
-    p.textContent = "No one's flexed yet — be the first!";
+    p.textContent = groupsOn()
+      ? "New here? Create your player — or open an invite link from your group."
+      : "No one's flexed yet — be the first!";
     list.appendChild(p);
   }
   if (!model.creating) {
@@ -2261,15 +2712,29 @@ $("new-user-avatar-btn").addEventListener("click", () => {
 });
 
 function selectUser(name, avatarId) {
+  const isNew = !!avatarId && !getAllSessionsForDisplay().some((s) => s.user === name);
   state.currentUser = name;
   state.currentAvatar = avatarId || avatarForUser(name).id;
   localStorage.setItem(LS.lastUser, name);
+  rememberDeviceProfile(name);
+  if (state.pendingJoinCode) {
+    const code = state.pendingJoinCode;
+    state.pendingJoinCode = null;
+    clearPendingJoinCode();
+    showScreen("screen-workout");
+    if (!myGroups().some((g) => g.inviteCode === code)) joinGroupByCode(code);
+    return;
+  }
   if (horseLinkGameId()) {
     openHorseGameFromHash();
     return;
   }
   if (towLinkGameId()) {
     openTowGameFromHash();
+    return;
+  }
+  if (isNew && groupsOn() && !myGroups().length) {
+    showScreen("screen-group-onboard");
     return;
   }
   showScreen("screen-workout");
@@ -2452,7 +2917,55 @@ $("location-search-form").addEventListener("submit", async (event) => {
 
 // ------------------- settings screen -------------------
 
+// Share message tone (docs/share-tone-plan.md). The preview is a real line
+// from the share library at the chosen tone; the fixed sample covers the
+// moment before the (lazy-loaded) library arrives, or if it can't load.
+const SHARE_TONE_SAMPLES = {
+  chill: "120 pushups today 💪 Your turn!",
+  spicy: "120 pushups. Pay rent in reps, losers.",
+  unhinged: "120 pushups and my pecs have filed for independence. Paperwork is sweaty.",
+};
+const SHARE_TONE_PREVIEW_CASES = [
+  [120, { mode: "classic" }],
+  [80, { mode: "squat", isSquat: true }],
+  [15, { mode: "pullup", isPullup: true }],
+  [60, { mode: "situp", isSitup: true }],
+  ["2:30", { mode: "plank", isPlank: true }],
+];
+let shareTonePreviewRequest = 0;
+
+async function renderShareTonePreview() {
+  const tone = currentShareTone();
+  const request = ++shareTonePreviewRequest;
+  const el = $("share-tone-preview");
+  if (!el.textContent) el.textContent = SHARE_TONE_SAMPLES[tone];
+  try {
+    const { pickShareMessage } = workoutShareMessages || await preloadWorkoutShareMessages();
+    if (request !== shareTonePreviewRequest) return;
+    const [count, ctx] = SHARE_TONE_PREVIEW_CASES[Math.floor(Math.random() * SHARE_TONE_PREVIEW_CASES.length)];
+    el.textContent = pickShareMessage(count, ctx);
+  } catch (e) {
+    el.textContent = SHARE_TONE_SAMPLES[tone];
+  }
+}
+
+function renderShareToneSetting() {
+  const tone = currentShareTone();
+  document.querySelectorAll("#share-tone-select [data-share-tone]").forEach((btn) => btn.classList.toggle("active", btn.dataset.shareTone === tone));
+  renderShareTonePreview();
+}
+
+$("btn-share-tone-shuffle").addEventListener("click", () => renderShareTonePreview());
+
+$("share-tone-select").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-share-tone]");
+  if (!btn || !SHARE_TONES.includes(btn.dataset.shareTone)) return;
+  localStorage.setItem(SHARE_TONE_KEY, btn.dataset.shareTone);
+  renderShareToneSetting();
+});
+
 function renderSettings() {
+  renderShareToneSetting();
   $("range-down").value = getThresholdDown();
   $("range-up").value = getThresholdUp();
   $("val-down").textContent = getThresholdDown().toFixed(2);
@@ -2460,6 +2973,7 @@ function renderSettings() {
   $("chk-highscore-message").checked = localStorage.getItem(LS.showHighscore) !== "0";
   $("chk-form-tips").checked = localStorage.getItem(LS.showFormTips) === "1";
   $("chk-pace-note").checked = localStorage.getItem(LS.showPaceNote) === "1";
+  document.querySelectorAll("[data-recap-opt]").forEach((chk) => { chk.checked = recapOptedIn(chk.dataset.recapOpt); });
   $("chk-ghost-mode").checked = ghostModeEnabled();
   $("chk-sound-enabled").checked = localStorage.getItem(LS.soundEnabled) !== "0";
   renderVoicePresetSelect();
@@ -2470,7 +2984,6 @@ function renderSettings() {
   renderWeightedSettings();
   renderSquatWeightedControls();
 
-  renderManageUsers();
   state.mySessionsShown = 10;
   state.mySessionsMode = "all";
   syncMySessionsModeControl();
@@ -2479,23 +2992,50 @@ function renderSettings() {
 }
 
 function renderSettingsCategoryValues() {
-  const names = orderedUserNames(getAllSessionsForDisplay(), state.currentUser, { alphabetical: true });
-  $("settings-category-profile-value").textContent = `${names.length} ${names.length === 1 ? "person" : "people"}`;
+  setAvatarEl($("settings-profile-avatar"), avatarForUser(state.currentUser).id);
+  $("settings-profile-name").textContent = state.currentUser;
   const theme = document.documentElement.getAttribute("data-theme") === "light" ? "Light" : "Dark";
   $("settings-category-appearance-value").textContent = theme;
   const mySessionCount = getAllSessionsForDisplay().filter((s) => s.user === state.currentUser).length;
   $("settings-category-mysessions-value").textContent = `${mySessionCount} ${mySessionCount === 1 ? "session" : "sessions"}`;
   const activeGoalCount = GOAL_TYPES.filter((type) => goalsFor(state.currentUser)[type].enabled).length;
   $("settings-category-goals-value").textContent = activeGoalCount ? `${activeGoalCount} active` : "Off";
+  $("settings-category-groups-value").textContent = activeGroup()?.name || "Solo";
+  const mine = indexedSessionsForUser(state.currentUser);
+  const poker = pokerLifetimeCollection(mine, state.currentUser, sessionTimestamp);
+  $("btn-open-poker-showcase").classList.toggle("hidden", !mine.some((s) => s.mode === "poker"));
+  $("settings-category-poker-value").textContent = `${poker.collected}/${POKER_COLLECTION_RANKS.length}`;
+  $("settings-changelog-dot").classList.toggle("hidden", !unseenChangelogCount(CHANGELOG, localStorage.getItem(LS.changelogSeen)));
 }
 
-$("settings-category-list").addEventListener("click", (e) => {
-  const row = e.target.closest(".settings-category-row");
-  if (!row || !row.dataset.settingsCategory) return;
-  showScreen(`screen-settings-${row.dataset.settingsCategory}`);
+// ------------------- settings > changelog -------------------
+
+function paintChangelog() {
+  const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  $("changelog-list").innerHTML = changelogGroups(CHANGELOG, localStorage.getItem(LS.changelogSeen)).map((g) => `
+    <div class="tier1-eyebrow">${fmt(g.date)}</div>
+    <ul class="changelog-group">
+      ${g.entries.map((e) => `<li class="changelog-entry${e.unseen ? " changelog-entry-new" : ""}">${escapeHtml(e.text)}</li>`).join("")}
+    </ul>
+  `).join("");
+  if (CHANGELOG.length) localStorage.setItem(LS.changelogSeen, changelogEntryKey(CHANGELOG[0]));
+}
+
+$("btn-open-changelog").addEventListener("click", () => {
+  showScreen("screen-changelog");
+  paintChangelog();
 });
+$("btn-changelog-back").addEventListener("click", () => showScreen("screen-settings"));
+
+for (const listId of ["settings-category-list", "settings-category-list-app"]) {
+  $(listId).addEventListener("click", (e) => {
+    const row = e.target.closest(".settings-category-row");
+    if (!row || !row.dataset.settingsCategory) return;
+    showScreen(`screen-settings-${row.dataset.settingsCategory}`);
+  });
+}
+$("btn-settings-profile-card").addEventListener("click", () => openEditProfile());
 $("btn-settings-switch-user").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-user")));
-$("btn-settings-profile-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-mysessions-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-workout-back").addEventListener("click", () => showScreen("screen-settings"));
 $("btn-settings-appearance-back").addEventListener("click", () => showScreen("screen-settings"));
@@ -2802,7 +3342,7 @@ function selectHomeMode(type, modeId) {
   guardLeaveWorkout(() => showScreen("screen-workout"));
 }
 
-const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "situps", "planks"]);
+const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "deadhang", "situps", "planks"]);
 
 // Each Home selector segment: small caption over the current value, so
 // Type | Mode | Modifier fit side by side in one row.
@@ -2859,22 +3399,37 @@ $("home-type-btn").addEventListener("click", () => {
 // be set while Classic, Cards, Countdown, etc. are active in turn — it only
 // resets on a full app reload, never on a mode change). Disabled while Zen
 // is selected, since Zen deliberately strips down feedback/coaching.
+// The Home-selected modifier id for the current Type (pushup grips, plank or
+// crunch variations); null for types without modifiers.
+function homeModifierId() {
+  if (state.homeType === "pushups") return state.modifier;
+  return state.typeModifiers[state.homeType] ?? null;
+}
+
+function setHomeModifierId(id) {
+  if (state.homeType === "pushups") state.modifier = id;
+  else if (state.homeType in state.typeModifiers) state.typeModifiers[state.homeType] = id;
+}
+
 function renderModifierSlot() {
   const btn = $("pmode-modifier");
-  const picked = state.modifier ? MODIFIERS.find((m) => m.id === state.modifier) : null;
-  // Grips only apply to pushups, so other types show a locked "No modifier".
-  const notPushups = state.homeType !== "pushups";
-  btn.innerHTML = homeSelectorHTML("Modifier", picked && !notPushups ? `${picked.icon} ${picked.title}` : "None");
-  btn.classList.toggle("active", !!picked && !notPushups);
-  const disabled = notPushups || state.pushupMode === "zen";
+  const list = modifiersForType(state.homeType);
+  const picked = list.find((m) => m.id === homeModifierId()) || null;
+  btn.innerHTML = homeSelectorHTML("Modifier", picked ? `${picked.icon} ${picked.title}` : "None");
+  btn.classList.toggle("active", !!picked);
+  // Types without a modifier list show a locked "None"; Zen strips coaching.
+  const disabled = !list.length || (state.homeType === "pushups" && state.pushupMode === "zen");
   btn.classList.toggle("segment-disabled", disabled);
   btn.setAttribute("aria-disabled", String(disabled));
 }
 
 function renderModifierPicker() {
+  const subs = { pushups: "Changes hand position — applies to any mode", planks: "Changes how you hold the plank", situps: "Changes how you do each crunch", pullups: "Changes your grip on the bar", squats: "Changes your stance or tempo", deadhang: "Changes how you hang" };
+  $("modifier-picker-sub").textContent = subs[state.homeType] || "";
   const list = $("modifier-list");
-  list.innerHTML = MODIFIERS.map((m) => {
-    const selected = m.id === state.modifier;
+  const current = homeModifierId();
+  list.innerHTML = modifiersForType(state.homeType).map((m) => {
+    const selected = m.id === current;
     const badge = selected
       ? '<span class="modifier-row-check" aria-hidden="true">✓</span>'
       : '<span class="explore-mode-chev">›</span>';
@@ -2895,7 +3450,7 @@ $("modifier-list").addEventListener("click", (e) => {
   const row = e.target.closest(".explore-mode-row");
   if (!row) return;
   const id = row.dataset.modifierId;
-  state.modifier = id === state.modifier ? null : id;
+  setHomeModifierId(id === homeModifierId() ? null : id);
   showScreen("screen-workout");
 });
 
@@ -3186,6 +3741,10 @@ async function openExploreMode(modeId, { onChaseIneligible } = {}) {
     guardLeaveWorkout(() => showScreen("screen-plank-workout"));
     return;
   }
+  if (modeId === "deadhang") {
+    guardLeaveWorkout(() => showScreen("screen-deadhang-workout"));
+    return;
+  }
   if (modeId === "squat") {
     guardLeaveWorkout(() => showScreen("screen-squat-workout"));
     return;
@@ -3264,7 +3823,17 @@ $("explore-modes-list").addEventListener("click", async (e) => {
     openExploreMode(modeId);
     return;
   }
-  selectHomeMode(workoutTypeForMode(modeId), modeId);
+  // Modes that run on Home go back there (Home is their Let's go screen);
+  // every other mode opens its own screen straight away, as Let's go would.
+  const type = workoutTypeForMode(modeId);
+  if (type === "pushups" && HOME_START_MODES.has(modeId)) {
+    selectHomeMode(type, modeId);
+    return;
+  }
+  applyHomeSelection(type, modeId);
+  localStorage.setItem(LS.homeType, type);
+  localStorage.setItem(LS.homeMode, modeId);
+  openExploreMode(modeId);
 });
 
 // ------------------- Horse mode -------------------
@@ -3284,23 +3853,78 @@ function horseMiniStripHTML(word, lettersCollected) {
 function renderHorseWordUI() {
   $("horse-word-preview").innerHTML = state.horseWord.split("").map((l) => `<span class="horse-word-chip">${escapeHtml(l)}</span>`).join("");
   $("btn-horse-reset-word").classList.toggle("hidden", state.horseWord === "HORSE");
+  $("horse-word-lives").textContent = `${state.horseWord.length} letters = ${state.horseWord.length} lives`;
+}
+
+// Session-type copy shared by Horse and Tug of war once groups are on
+// (docs/groups-plan.md). "open" is the Group lobby; "public" is an open
+// lobby anyone on the app can find.
+function lobbySessionNote(type, legacyNotes) {
+  if (!groupsOn()) return legacyNotes[type];
+  const group = activeGroup();
+  return {
+    live: "Pass the phone around in person — everyone plays on this device.",
+    invite: "Pick specific players; they compete on their own devices.",
+    open: group ? `Everyone in ${group.name} gets notified and can join on their own device.` : "Join or create a group to host a group session.",
+    public: "Anyone on the app can find and join on their own device.",
+  }[type];
+}
+
+// The open-lobby tab shows a link icon as "Open" and a people icon as "Group".
+function syncSessionTypeIcons(barId, groupsAreOn) {
+  const bar = $(barId);
+  bar.querySelector(".session-icon-link").classList.toggle("hidden", groupsAreOn);
+  bar.querySelector(".session-icon-group").classList.toggle("hidden", !groupsAreOn);
+}
+
+function isLobbyType(type) {
+  return type === "open" || type === "public";
+}
+
+const MAX_PLAYER_CHOICES = [2, 3, 4, 5, 6, 7, 8];
+
+function maxPlayersHTML(selected, attr) {
+  return MAX_PLAYER_CHOICES.map((n) => `<button type="button" class="segment${n === selected ? " active" : ""}" ${attr}="${n}">${n}</button>`).join("");
+}
+
+// What an open lobby is created with: audience + group + cap once groups
+// are on; nothing extra (today's link-only lobby) before that.
+function lobbyAudiencePayload(type, maxPlayers) {
+  if (!groupsOn() || !isLobbyType(type)) return {};
+  return type === "public"
+    ? { audience: "public", maxPlayers }
+    : { audience: "group", groupId: activeGroupId(), maxPlayers };
 }
 
 function renderHorseSessionUI() {
+  const on = groupsOn();
+  $("horse-session-open-label").textContent = on ? "Group" : "Open";
+  syncSessionTypeIcons("horse-session-select", on);
+  $("horse-session-open").disabled = on && !activeGroup();
+  $("horse-session-public").classList.toggle("hidden", !on);
   document.querySelectorAll("#horse-session-select .segment[data-horse-session]").forEach((s) => {
     s.classList.toggle("active", s.dataset.horseSession === state.horseSessionType);
   });
   const note = $("horse-session-note");
   note.classList.remove("hidden");
-  note.textContent = state.horseSessionType === "open"
-    ? "Create a private link. Up to three players can join in link order, even after play starts."
-    : state.horseSessionType === "invite"
-    ? "Other players get a bell notification on Home when it's their turn."
-    : "Everyone plays in turn on this device, one shot after another.";
+  note.textContent = lobbySessionNote(state.horseSessionType, {
+    open: "Create a private link. Up to three players can join in link order, even after play starts.",
+    invite: "Other players get a bell notification on Home when it's their turn.",
+    live: "Everyone plays in turn on this device, one shot after another.",
+  });
+  $("horse-max-players-section").classList.toggle("hidden", !on || !isLobbyType(state.horseSessionType));
+  $("horse-max-players").innerHTML = maxPlayersHTML(state.horseMaxPlayers, "data-horse-max");
   // A match timer only makes sense for async play — Live is one shared
   // device, played through in a single sitting.
   $("horse-time-limit-section").classList.toggle("hidden", state.horseSessionType === "live");
 }
+
+$("horse-max-players").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-horse-max]");
+  if (!btn) return;
+  state.horseMaxPlayers = Number(btn.dataset.horseMax);
+  renderHorseSessionUI();
+});
 
 function renderHorseTimeUI() {
   document.querySelectorAll("#horse-time-select .segment[data-horse-time]").forEach((s) => {
@@ -3329,7 +3953,7 @@ function renderHorsePlayerList() {
   const known = orderedUserNames(getAllSessionsForDisplay(), state.currentUser)
     .filter((name) => !state.horseSetupPlayers.includes(name));
   const candidates = $("horse-invite-candidates");
-  const isOpen = state.horseSessionType === "open";
+  const isOpen = isLobbyType(state.horseSessionType);
   $("btn-horse-invite-more").classList.toggle("hidden", isOpen);
   candidates.classList.toggle("hidden", isOpen || !horseInviteExpanded);
   if (horseInviteExpanded) {
@@ -3346,7 +3970,7 @@ function renderHorsePlayerList() {
   const enoughPlayers = isOpen || state.horseSetupPlayers.length >= 2;
   startBtn.disabled = !enoughPlayers;
   startBtn.textContent = isOpen
-    ? "Create open session"
+    ? (groupsOn() ? (state.horseSessionType === "public" ? "Create public session" : "Create group session") : "Create open session")
     : enoughPlayers ? "Do your set — sets the bar" : "Add at least one more player";
 }
 
@@ -3354,7 +3978,9 @@ function renderHorsePlayerList() {
 // resetting to just the current user.
 function renderHorseSetup(keepPlayers = false) {
   state.horseWord = "HORSE";
+  $("horse-word-form").classList.add("hidden");
   state.horseSessionType = "live";
+  state.horseMaxPlayers = 4;
   state.horseTimeLimit = "48h";
   if (!keepPlayers || !state.horseSetupPlayers?.length) state.horseSetupPlayers = [state.currentUser];
   horseInviteExpanded = false;
@@ -3370,6 +3996,34 @@ $("btn-horse-setup-back").addEventListener("click", () => {
 
 $("btn-horse-randomize-word").addEventListener("click", () => {
   state.horseWord = randomHorseWord(state.horseWord);
+  $("horse-word-form").classList.add("hidden");
+  renderHorseWordUI();
+});
+
+// Custom word: letters only, 3–8 long — its length is everyone's lives.
+const HORSE_WORD_MIN = 3;
+const HORSE_WORD_MAX = 8;
+
+$("btn-horse-edit-word").addEventListener("click", () => {
+  const form = $("horse-word-form");
+  form.classList.toggle("hidden");
+  if (form.classList.contains("hidden")) return;
+  $("horse-word-input").value = "";
+  $("horse-word-input").focus();
+});
+$("horse-word-input").addEventListener("input", (e) => {
+  const clean = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, HORSE_WORD_MAX);
+  if (clean !== e.target.value) e.target.value = clean;
+});
+$("horse-word-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const word = $("horse-word-input").value.toUpperCase().replace(/[^A-Z]/g, "");
+  if (word.length < HORSE_WORD_MIN || word.length > HORSE_WORD_MAX) {
+    toast(`Pick a word with ${HORSE_WORD_MIN}–${HORSE_WORD_MAX} letters.`);
+    return;
+  }
+  state.horseWord = word;
+  $("horse-word-form").classList.add("hidden");
   renderHorseWordUI();
 });
 
@@ -3380,9 +4034,9 @@ $("btn-horse-reset-word").addEventListener("click", () => {
 
 $("horse-session-select").addEventListener("click", (e) => {
   const btn = e.target.closest(".segment[data-horse-session]");
-  if (!btn) return;
+  if (!btn || btn.disabled) return;
   state.horseSessionType = btn.dataset.horseSession;
-  if (state.horseSessionType === "open") {
+  if (isLobbyType(state.horseSessionType)) {
     state.horseSetupPlayers = [state.currentUser];
     horseInviteExpanded = false;
   }
@@ -3433,31 +4087,33 @@ function beginHorseTurn(name) {
 }
 
 $("btn-horse-start").addEventListener("click", async () => {
-  if (state.horseSessionType !== "open" && state.horseSetupPlayers.length < 2) return;
+  const lobby = isLobbyType(state.horseSessionType);
+  if (!lobby && state.horseSetupPlayers.length < 2) return;
   // Live is pass-the-phone, played through in one sitting — the match timer
   // only applies to async (invite/open) play, whatever the setup UI shows.
   const timeLimitKey = state.horseSessionType === "live" ? "unlimited" : state.horseTimeLimit;
   const input = {
     id: `hg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     word: state.horseWord,
-    sessionType: state.horseSessionType,
+    sessionType: lobby ? "open" : state.horseSessionType,
     createdBy: state.currentUser,
     players: state.horseSetupPlayers,
     timeLimit: HORSE_TIME_LIMITS[timeLimitKey],
     timeLimitKey,
+    ...lobbyAudiencePayload(state.horseSessionType, state.horseMaxPlayers),
   };
   state.horseLetterEvent = null;
   // Invite games are server-authoritative from the start (other players read
   // them via /data on their own devices) — Live games stay purely local
   // until the game finishes, same as any other pushup mode's session.
-  if (state.horseSessionType === "invite" || state.horseSessionType === "open") {
+  if (state.horseSessionType === "invite" || lobby) {
     const btn = $("btn-horse-start");
     btn.disabled = true;
     try {
       const { game } = await workerCreateHorseGame(input);
       state.horseGame = game;
       upsertLocalHorseGame(game);
-      if (state.horseSessionType === "open") await openHorseTurnOrder();
+      if (lobby) await openHorseTurnOrder();
       else beginHorseTurn(state.currentUser);
     } catch (e) {
       toast("Couldn't create the game — check your connection and try again.", 4000);
@@ -3553,7 +4209,7 @@ function renderHorseTurnOrder() {
     </div>`;
   }).join("");
   const openSlotsHTML = game.sessionType === "open"
-    ? Array.from({ length: Math.max(0, 8 - rows.length) }, () => `
+    ? Array.from({ length: Math.max(0, (game.maxPlayers || 8) - rows.length) }, () => `
       <div class="tier1-row horse-player-row horse-open-slot">
         <span class="horse-open-slot-icon">＋</span>
         <span class="horse-player-name horse-open-slot-name">Open player slot</span>
@@ -3578,7 +4234,7 @@ function renderHorseTurnOrder() {
   openControls.classList.toggle("hidden", !isOpen);
   if (isOpen) {
     const started = game.startedAt != null;
-    const slotsLeft = 8 - game.turnOrder.length;
+    const slotsLeft = (game.maxPlayers || 8) - game.turnOrder.length;
     $("horse-open-slots").textContent = started
       ? `${game.turnOrder.length} player${game.turnOrder.length === 1 ? "" : "s"} · started`
       : `${game.turnOrder.length}/8 joined · ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} open`;
@@ -3704,7 +4360,7 @@ function renderOpenHorseJoin(game) {
       <span class="horse-player-tag">${name === game.createdBy ? "Host" : "Joined"}</span>
     </div>`).join("");
   const slots = game?.sessionType === "open"
-    ? Array.from({ length: Math.max(0, 8 - names.length) }, () => `
+    ? Array.from({ length: Math.max(0, (game.maxPlayers || 8) - names.length) }, () => `
       <div class="tier1-row horse-player-row horse-open-slot">
         <span class="horse-open-slot-icon">＋</span><span class="horse-player-name">Open slot</span>
       </div>`).join("")
@@ -3907,7 +4563,7 @@ function renderHorseLetterScreen() {
   const evt = state.horseLetterEvent;
   const game = state.horseGame;
   $("horse-letter-summary-line").textContent = evt.needed == null ? `You got ${evt.reps}` : `Needed ${evt.needed}+ · you got ${evt.reps}`;
-  const collected = 5 - evt.lettersLeft;
+  const collected = game.word.length - evt.lettersLeft;
   const letter = game.word[collected - 1];
   $("horse-letter-badge").textContent = letter;
   $("horse-letter-headline").textContent = `${evt.forUser === state.currentUser ? "You" : evt.forUser} picked up letter ${letter}`;
@@ -3939,7 +4595,7 @@ $("btn-horse-letter-share").addEventListener("click", async () => {
   const evt = state.horseLetterEvent;
   const game = state.horseGame;
   const nextName = game.status === "complete" ? null : currentTurnPlayer(game);
-  const message = pickHorseLetterFailMessage({ name: evt.forUser, letter: game.word[4 - evt.lettersLeft], nextName });
+  const message = pickHorseLetterFailMessage({ name: evt.forUser, letter: game.word[game.word.length - 1 - evt.lettersLeft], nextName });
   const url = game.sessionType === "open" ? horseInviteUrl(game.id) : location.href;
   if (navigator.share) {
     try {
@@ -4067,17 +4723,33 @@ function renderTowStatUI() {
 }
 
 function renderTowSessionUI() {
-  document.querySelectorAll("#tow-session-select .tow-icon-tab[data-tow-session]").forEach((s) => {
+  document.querySelectorAll("#tow-session-select .segment[data-tow-session]").forEach((s) => {
     const active = s.dataset.towSession === state.towSessionType;
     s.classList.toggle("active", active);
     s.setAttribute("aria-selected", String(active));
   });
-  $("tow-session-note").textContent = state.towSessionType === "live"
-    ? "Pass one phone around the room, turn by turn."
-    : state.towSessionType === "online"
-      ? "Everyone gets a turn notification, take your burst whenever."
-      : "Share a join link, anyone taps in until both teams fill or you hit Start.";
+  const on = groupsOn();
+  $("tow-session-online-label").textContent = on ? "Invite" : "Pick team";
+  $("tow-session-open-label").textContent = on ? "Group" : "Open";
+  syncSessionTypeIcons("tow-session-select", on);
+  document.querySelector('#tow-session-select [data-tow-session="open"]').disabled = on && !activeGroup();
+  $("tow-session-public-tab").classList.toggle("hidden", !on);
+  const type = state.towSessionType === "online" ? "invite" : state.towSessionType;
+  $("tow-session-note").textContent = lobbySessionNote(type, {
+    live: "Pass one phone around the room, turn by turn.",
+    invite: "Everyone gets a turn notification, take your burst whenever.",
+    open: "Share a join link, anyone taps in until both teams fill or you hit Start.",
+  });
+  $("tow-max-players-section").classList.toggle("hidden", !on || !isLobbyType(state.towSessionType));
+  $("tow-max-players").innerHTML = maxPlayersHTML(state.towMaxPlayers, "data-tow-max");
 }
+
+$("tow-max-players").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-tow-max]");
+  if (!btn) return;
+  state.towMaxPlayers = Number(btn.dataset.towMax);
+  renderTowSessionUI();
+});
 
 // Renders the TEAMS section for both the normal setup state and the Open
 // "filling up" lobby state (screen 1b) — same screen, different data source
@@ -4085,7 +4757,7 @@ function renderTowSessionUI() {
 function renderTowTeamsUI() {
   const game = state.towGame;
   const inLobby = !!(game && game.sessionType === "open" && game.status === "lobby");
-  const isOpenSetup = state.towSessionType === "open";
+  const isOpenSetup = isLobbyType(state.towSessionType);
   const isHost = inLobby ? game.createdBy === state.currentUser : true;
   const nameA = inLobby ? game.teams.a.name : state.towTeamNames.a;
   const nameB = inLobby ? game.teams.b.name : state.towTeamNames.b;
@@ -4209,8 +4881,8 @@ $("btn-tow-death-match").addEventListener("click", () => {
 });
 
 $("tow-session-select").addEventListener("click", (e) => {
-  const btn = e.target.closest(".tow-icon-tab[data-tow-session]");
-  if (!btn) return;
+  const btn = e.target.closest(".segment[data-tow-session]");
+  if (!btn || btn.disabled) return;
   state.towSessionType = btn.dataset.towSession;
   renderTowSessionUI();
   renderTowTeamsUI();
@@ -4337,7 +5009,7 @@ $("btn-tow-start").addEventListener("click", async (e) => {
     return;
   }
 
-  if (state.towSessionType === "open") {
+  if (isLobbyType(state.towSessionType)) {
     btn.disabled = true;
     try {
       const res = await workerCreateTowGame({
@@ -4347,6 +5019,7 @@ $("btn-tow-start").addEventListener("click", async (e) => {
         createdBy: state.currentUser,
         deathMatch: state.towDeathMatch,
         teams: { a: { name: state.towTeamNames.a }, b: { name: state.towTeamNames.b } },
+        ...lobbyAudiencePayload(state.towSessionType, state.towMaxPlayers),
       });
       state.towGame = res.game;
       upsertLocalTowGame(res.game);
@@ -4975,8 +5648,46 @@ function pendingGamesItems() {
   return [...pendingHorseItems(), ...pendingTowItems()];
 }
 
+// Group/Public lobbies you're not in yet (docs/groups-plan.md): Group ones
+// for any group you belong to, Public ones for everyone. Stale lobbies
+// (a week old, never started) drop off.
+const LOBBY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function lobbyGamesItems() {
+  const user = state.currentUser;
+  if (!groupsOn() || !user) return [];
+  const myGroupIds = new Set(myGroups().map((g) => g.id));
+  const fresh = (game) => Date.now() - (game.createdAt || 0) < LOBBY_MAX_AGE_MS;
+  const listed = (game) => game.audience === "public" || (game.audience === "group" && myGroupIds.has(game.groupId));
+  const items = [];
+  for (const game of getCachedData().horseGames || []) {
+    if (game.sessionType !== "open" || game.status !== "active" || game.startedAt != null || !listed(game) || !fresh(game)) continue;
+    if (game.turnOrder.includes(user) || game.turnOrder.length >= (game.maxPlayers || 8)) continue;
+    items.push({ kind: `lobby-${game.audience}`, mode: "horse", gameId: game.id, host: game.createdBy, groupId: game.groupId, count: game.turnOrder.length, max: game.maxPlayers || 8 });
+  }
+  for (const game of getCachedData().towGames || []) {
+    if (game.sessionType !== "open" || game.status !== "lobby" || !listed(game) || !fresh(game)) continue;
+    const players = [...game.teams.a.players, ...game.teams.b.players];
+    if (players.includes(user) || players.length >= game.rosterSize) continue;
+    items.push({ kind: `lobby-${game.audience}`, mode: "tow", gameId: game.id, host: game.createdBy, groupId: game.groupId, count: players.length, max: game.rosterSize });
+  }
+  return items;
+}
+
+function lobbyRowHTML(item) {
+  const where = item.kind === "lobby-public" ? "Public" : (allGroups().find((g) => g.id === item.groupId)?.name || "Group");
+  const title = `${escapeHtml(item.host)}'s ${item.mode === "tow" ? "Tug of war" : "Horse"} lobby`;
+  return `<button type="button" class="games-row" data-games-lobby="${item.mode}:${escapeHtml(item.gameId)}">
+        <span class="games-row-icon is-stroke" aria-hidden="true">${modeIconSvg(item.mode === "tow" ? "tow" : "horse")}</span>
+        <span class="games-row-info">
+          <span class="games-row-title">${title}</span>
+          <span class="games-row-subtitle">${escapeHtml(where)} · ${item.count}/${item.max} joined · tap to join</span>
+        </span>
+      </button>`;
+}
+
 function gamesOpenItems() {
-  return pendingGamesItems().filter((item) => item.kind === "invite");
+  return [...pendingGamesItems().filter((item) => item.kind === "invite"), ...lobbyGamesItems()];
 }
 
 // "A turn due" (turn/choosing) sorts first within Active and keeps the
@@ -4996,7 +5707,7 @@ function gamesActiveItems() {
 // can start (ready/joined), or a new invite waiting to be joined. "Waiting
 // on someone else" and "expired, needs tallying" both stay quiet.
 function gamesNeedsAttention(items) {
-  return items.some((item) => !item.muted && ["turn", "choosing", "ready", "joined", "invite"].includes(item.kind));
+  return items.some((item) => !item.muted && ["turn", "choosing", "ready", "joined", "invite", "lobby-group"].includes(item.kind));
 }
 
 function lastArrayActivityAt(arr) {
@@ -5074,7 +5785,7 @@ function viewFinishedTowGame(game) {
 // screen, not just Games) so the badge stays current without repainting the
 // full list each time.
 function renderGamesNavDot() {
-  $("games-nav-dot").classList.toggle("hidden", !gamesNeedsAttention(pendingGamesItems()));
+  $("games-nav-dot").classList.toggle("hidden", !gamesNeedsAttention([...pendingGamesItems(), ...lobbyGamesItems()]));
 }
 
 function renderGamesScreen() {
@@ -5116,8 +5827,11 @@ function renderGamesScreen() {
   }
   toggleEl.querySelectorAll(".segment").forEach((s) => s.classList.toggle("active", s.dataset.gtab === state.gamesTab));
 
+  const rowHTML = (item) => (item.kind.startsWith("lobby-") ? lobbyRowHTML(item) : item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item));
+  const publicItems = openItems.filter((item) => item.kind === "lobby-public");
   const html = state.gamesTab === "open"
-    ? openItems.map((item) => (item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item))).join("")
+    ? openItems.filter((item) => item.kind !== "lobby-public").map(rowHTML).join("")
+      + (publicItems.length ? `<p class="tier1-eyebrow games-public-eyebrow">Public</p>${publicItems.map(rowHTML).join("")}` : "")
     : state.gamesTab === "active"
       ? activeItems.map((item) => (item.mode === "tow" ? towGamesRowHTML(item) : horseGamesRowHTML(item))).join("")
       : finished.length ? finished.map(finishedGameRowHTML).join("") : `<p class="screen-sub horse-bell-empty">No completed games yet.</p>`;
@@ -5140,6 +5854,20 @@ $("btn-games-start").addEventListener("click", () => {
 });
 
 async function handleGamesListClick(e) {
+  const lobbyBtn = e.target.closest("[data-games-lobby]");
+  if (lobbyBtn) {
+    const [mode, gameId] = lobbyBtn.dataset.gamesLobby.split(":");
+    if (mode === "tow") {
+      state.towGame = getCachedData().towGames.find((g) => g.id === gameId) || null;
+      renderTowJoin(state.towGame);
+      showScreen("screen-tow-join");
+    } else {
+      state.horseGame = getCachedData().horseGames.find((g) => g.id === gameId) || null;
+      renderOpenHorseJoin(state.horseGame);
+      showScreen("screen-horse-join");
+    }
+    return;
+  }
   const joinBtn = e.target.closest("[data-bell-join]");
   if (joinBtn) {
     const game = getCachedData().horseGames.find((g) => g.id === joinBtn.dataset.bellJoin);
@@ -5223,45 +5951,6 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-function renderManageUsers() {
-  const sessions = getAllSessionsForDisplay();
-  const names = orderedUserNames(sessions, state.currentUser, { alphabetical: true });
-  const list = $("manage-users-list");
-  list.innerHTML = "";
-  if (!names.length) {
-    list.innerHTML = '<p class="settings-hint">No users yet.</p>';
-    return;
-  }
-  for (const name of names) {
-    const isYou = name === state.currentUser;
-    const avatar = avatarForUser(name);
-    const row = document.createElement("div");
-    row.className = "manage-user-row";
-    row.innerHTML = `
-      <button type="button" class="avatar-picker-btn manage-avatar-btn" aria-label="Change ${escapeHtml(name)}'s avatar" style="background:${avatar.bg}">${avatar.emoji}</button>
-      <span class="manage-user-name">${escapeHtml(name)}</span>
-      ${isYou ? '<span class="you-badge">You</span>' : ""}
-      ${isYou
-        ? '<button type="button" class="btn-edit-profile">Edit <span class="chev">›</span></button>'
-        : `<button type="button" class="btn-delete-user" aria-label="Delete ${escapeHtml(name)}">🗑️</button>`}
-    `;
-    const avatarBtn = row.querySelector(".manage-avatar-btn");
-    avatarBtn.addEventListener("click", () => {
-      openAvatarSheet(avatar.id, (id) => {
-        avatarBtn.style.background = getAvatar(id).bg;
-        avatarBtn.textContent = getAvatar(id).emoji;
-        changeUserAvatar(name, id);
-      });
-    });
-    if (isYou) {
-      row.querySelector(".btn-edit-profile").addEventListener("click", () => openEditProfile());
-    } else {
-      row.querySelector(".btn-delete-user").addEventListener("click", () => confirmDeleteUser(name));
-    }
-    list.appendChild(row);
-  }
-}
-
 async function changeUserAvatar(name, avatarId) {
   const cached = getCachedData();
   const previousAvatar = cached.avatars[name];
@@ -5283,32 +5972,6 @@ async function changeUserAvatar(name, avatarId) {
   }
   toast(`Updated ${name}'s avatar.`);
   return true;
-}
-
-async function confirmDeleteUser(name) {
-  const ok = confirm(`Delete all of ${name}'s sessions from the shared leaderboard? This can't be undone.`);
-  if (!ok) return;
-  if (!navigator.onLine) {
-    toast("Deleting a user requires a live connection.", 4000);
-    return;
-  }
-  try {
-    await deleteUserRemote(name);
-  } catch (e) {
-    toast(`Couldn't delete right now — check your connection.`, 4000);
-    return;
-  }
-  const cached = getCachedData();
-  cached.sessions = cached.sessions.filter((s) => s.user !== name);
-  if (cached.avatars) delete cached.avatars[name];
-  cacheData(cached);
-  setQueue(getQueue().filter((operation) => operation.payload?.user !== name && operation.payload?.oldName !== name));
-  if (state.currentUser === name) {
-    state.currentUser = "";
-    localStorage.removeItem(LS.lastUser);
-  }
-  toast(`Deleted ${name}'s sessions.`);
-  renderManageUsers();
 }
 
 // ------------------- edit profile -------------------
@@ -5346,9 +6009,8 @@ function openEditProfile() {
   showScreen("screen-edit-profile");
 }
 
-// Popover grid used by Settings > Profile & users to change a user's
-// avatar in place — replaces what used to be a native <select> of 75
-// emoji, which is exactly the wall-of-text list a native picker is worst
+// Popover grid used by new-user setup to pick an avatar — replaces what
+// used to be a native <select> of 75 emoji, which is exactly the wall-of-text list a native picker is worst
 // at; a grid lets you see every option at a glance and tap the one you want.
 let avatarSheetOnPick = null;
 function openAvatarSheet(selectedId, onPick) {
@@ -5448,7 +6110,7 @@ function renderMySessions() {
     row.innerHTML = `
       <span class="my-session-date">${formatSessionRowDate(s.timestamp)}</span>
       <span class="session-badge my-session-mode-badge">${sessionModeLabel(s)}</span>
-      <span class="my-session-count">${(s.type === "plank" || s.mode === "pulse") ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
+      <span class="my-session-count">${(s.type === "plank" || s.type === "deadhang" || s.mode === "pulse") ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
       <button type="button" class="icon-btn my-session-details-btn" aria-label="Session details">›</button>
     `;
     const open = () => openSessionDetail(s, "screen-settings");
@@ -5602,6 +6264,10 @@ $("chk-highscore-message").addEventListener("change", (e) => {
 $("chk-form-tips").addEventListener("change", (e) => {
   localStorage.setItem(LS.showFormTips, e.target.checked ? "1" : "0");
 });
+$("recap-opt-list").addEventListener("change", (e) => {
+  const chk = e.target.closest("[data-recap-opt]");
+  if (chk) localStorage.setItem(recapOptKey(chk.dataset.recapOpt), chk.checked ? "1" : "0");
+});
 $("chk-pace-note").addEventListener("change", (e) => {
   localStorage.setItem(LS.showPaceNote, e.target.checked ? "1" : "0");
 });
@@ -5633,10 +6299,6 @@ function capitalize(word) {
 
 // Roadtrip: the place tier (Neighborhood/City/Country) is the header
 // dropdown; the timeframe is the always-visible underline tab row.
-function setRoadtripTierMenuOpen(open) {
-  $("roadtrip-tier-trigger").setAttribute("aria-expanded", String(open));
-  $("roadtrip-tier-menu").classList.toggle("hidden", !open);
-}
 
 async function openRoadtrip() {
   showScreen("screen-roadtrip");
@@ -5664,6 +6326,10 @@ function roadtripAge(timestamp) {
   return months < 12 ? `${months}mo ago` : `${Math.floor(months / 12)}y ago`;
 }
 
+function roadtripPlaceText(row) {
+  return `${row.flag ? `${row.flag} ` : ""}${row.name}`;
+}
+
 function roadtripPlaceLabel(row) {
   const prefix = row.flag ? `${row.flag} ` : "";
   return `${prefix}${escapeHtml(row.name)}`;
@@ -5681,30 +6347,320 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
     </span>
     ${state.roadtripTier === "neighborhood" ? "" : `<span class="roadtrip-users">${formatNumber(row.contributorCount)} ${row.contributorCount === 1 ? "user" : "users"}</span>`}
     <span class="roadtrip-score">${formatNumber(row.total)}</span>`;
+  button.dataset.siblingId = row.id;
   button.addEventListener("click", () => {
-    state.roadtripDetailId = row.id;
-    showScreen("screen-roadtrip-detail");
+    if (row.tier === "country") drillRoadtripMap(row.countryCode);
+    else if (row.tier === "city") drillRoadtripCity(row.id);
+    else openRoadtripDetail(row.id);
   });
   return button;
 }
 
-function renderRoadtrip() {
-  $("roadtrip-tier-label").textContent = ROADTRIP_TIER_LABELS[state.roadtripTier] || "City";
-  document.querySelectorAll("[data-roadtrip-tier]").forEach((option) => {
-    const selected = option.dataset.roadtripTier === state.roadtripTier;
-    option.classList.toggle("selected", selected);
-    option.setAttribute("aria-selected", String(selected));
+// ------------------- roadtrip map (docs/roadtrip-map-plan.md) -------------------
+// Countries heat-shaded by reps for the selected period; tap one to zoom in
+// and see its cities. d3-geo/topojson + the world atlas are vendored and
+// only loaded the first time Roadtrip opens.
+
+// Width is fixed; height is cropped to the projected land once the atlas
+// loads (no Antarctica, so a fixed 2:1 box left dead space at the bottom).
+const MAP_W = 1000;
+let MAP_H = 520;
+let roadtripMapGeo = null;
+let roadtripMapGeoLoading = null;
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[data-src="${src}"]`)) return resolve();
+    const el = document.createElement("script");
+    el.src = src;
+    el.dataset.src = src;
+    el.onload = resolve;
+    el.onerror = reject;
+    document.head.appendChild(el);
   });
+}
+
+async function loadRoadtripMapGeo() {
+  if (roadtripMapGeo) return roadtripMapGeo;
+  roadtripMapGeoLoading ||= (async () => {
+    await loadScriptOnce("vendor/d3-array.min.js");
+    await loadScriptOnce("vendor/d3-geo.min.js");
+    await loadScriptOnce("vendor/topojson-client.min.js");
+    const atlas = await fetch("vendor/countries-110m.json").then((r) => r.json());
+    const { d3, topojson } = window;
+    const features = topojson.feature(atlas, atlas.objects.countries).features.filter((f) => f.id && f.id !== "010");
+    const collection = { type: "FeatureCollection", features };
+    const projection = d3.geoNaturalEarth1().fitWidth(MAP_W - 12, collection);
+    const path = d3.geoPath(projection);
+    const [[, top], [, bottom]] = path.bounds(collection);
+    projection.translate([projection.translate()[0] + 6, projection.translate()[1] - top + 6]);
+    MAP_H = Math.round(bottom - top + 12);
+    $("roadtrip-map-svg").setAttribute("viewBox", `0 0 ${MAP_W} ${MAP_H}`);
+    $("roadtrip-map-stage").style.aspectRatio = `${MAP_W} / ${MAP_H}`;
+    const byId = new Map();
+    for (const feature of features) {
+      // Fit and label on the biggest landmass (contiguous US, not Alaska +
+      // Hawaii), so a zoom doesn't shrink the main country to fit outliers.
+      const polygons = feature.geometry.type === "MultiPolygon"
+        ? feature.geometry.coordinates.map((coordinates) => ({ type: "Polygon", coordinates }))
+        : [feature.geometry];
+      const mainland = polygons.reduce((best, poly) => (d3.geoArea(poly) > d3.geoArea(best) ? poly : best));
+      byId.set(feature.id, {
+        feature,
+        d: path(feature),
+        mainlandBounds: path.bounds(mainland),
+        labelPoint: projection(d3.geoCentroid(mainland)),
+      });
+    }
+    const svg = $("roadtrip-map-zoom");
+    svg.innerHTML = [...byId.entries()].map(([id, c]) => `<path class="roadtrip-map-country" data-country-id="${id}" d="${c.d}"></path>`).join("");
+    roadtripMapGeo = { projection, byId };
+    return roadtripMapGeo;
+  })();
+  return roadtripMapGeoLoading;
+}
+
+const NUMERIC_TO_ISO2 = Object.fromEntries(Object.entries(ISO2_TO_NUMERIC).map(([a2, num]) => [num, a2]));
+let roadtripMapView = { k: 1, tx: 0, ty: 0 };
+let roadtripMapAnim = 0;
+
+function applyRoadtripMapView(target, animate) {
+  const g = $("roadtrip-map-zoom");
+  const set = (v) => g.setAttribute("transform", `translate(${v.tx} ${v.ty}) scale(${v.k})`);
+  cancelAnimationFrame(roadtripMapAnim);
+  const from = roadtripMapView;
+  roadtripMapView = target;
+  if (!animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return set(target);
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / 450);
+    const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    set({ k: from.k + (target.k - from.k) * e, tx: from.tx + (target.tx - from.tx) * e, ty: from.ty + (target.ty - from.ty) * e });
+    if (t < 1) roadtripMapAnim = requestAnimationFrame(step);
+  };
+  roadtripMapAnim = requestAnimationFrame(step);
+}
+
+function cityCoordsFor(territory, cache) {
+  if (territory.countryCode === "US" && territory.name.trim().toLowerCase() === "houston") return HOUSTON_COORDS;
+  return cache[territory.id] || null;
+}
+
+async function renderRoadtripMap({ animate = false } = {}) {
+  const card = $("roadtrip-map-card");
+  const sessions = getAllSessionsForDisplay();
+  const countries = buildRoadtripTerritories(sessions, { tier: "country", period: state.roadtripPeriod });
+  if (!countries.length) {
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  let geo;
+  try {
+    geo = await loadRoadtripMapGeo();
+  } catch (e) {
+    card.classList.add("hidden");
+    return;
+  }
+  const drilled = state.roadtripMapCountry;
+  const totals = new Map(countries.map((c) => [ISO2_TO_NUMERIC[c.countryCode], c]));
+  const max = Math.max(...countries.map((c) => c.total));
+  for (const el of $("roadtrip-map-zoom").children) {
+    const country = totals.get(el.dataset.countryId);
+    const level = country ? heatLevel(country.total, max) : 0;
+    el.classList.toggle("active", !!country);
+    el.classList.toggle("dimmed", !!drilled && ISO2_TO_NUMERIC[drilled] !== el.dataset.countryId);
+    // Zoomed into a country, its fill steps back so the city dots read.
+    el.style.fillOpacity = country ? String(drilled ? Math.min(level, 0.35) : level) : "";
+  }
+
+  // Marks: country pills (world) or city dots + pills (drilled).
+  const stage = $("roadtrip-map-stage");
+  const pxPerUnit = (stage.clientWidth || 358) / MAP_W;
+  let view;
+  let marks = [];
+  if (drilled) {
+    const id = ISO2_TO_NUMERIC[drilled];
+    const cities = buildRoadtripTerritories(sessions, { tier: "city", period: state.roadtripPeriod }).filter((t) => t.countryCode === drilled);
+    const cache = loadCityCoordsCache();
+    const cityMax = Math.max(1, ...cities.map((c) => c.total));
+    const points = cities.map((city) => {
+      const coords = cityCoordsFor(city, cache);
+      const xy = coords && geo.projection([coords.lon, coords.lat]);
+      return xy ? { city, xy } : null;
+    }).filter(Boolean);
+    const cityBounds = points.length ? [[Math.min(...points.map((p) => p.xy[0])), Math.min(...points.map((p) => p.xy[1]))], [Math.max(...points.map((p) => p.xy[0])), Math.max(...points.map((p) => p.xy[1]))]] : null;
+    view = fitTransform(unionBounds([geo.byId.get(id)?.mainlandBounds, cityBounds]), MAP_W, MAP_H, { pad: 0.1, maxScale: 12 });
+    marks = points.map(({ city, xy }) => ({ kind: "city", id: city.id, total: city.total, xy, r: 5 + 9 * Math.sqrt(city.total / cityMax), label: compactCount(city.total), name: city.name }));
+    // Cities not geocoded yet resolve in the background and appear next render.
+    const missing = cities.filter((c) => !cityCoordsFor(c, cache));
+    if (missing.length && !renderRoadtripMap.resolving) {
+      renderRoadtripMap.resolving = true;
+      resolveCityCoords(missing).catch(() => {}).finally(() => {
+        renderRoadtripMap.resolving = false;
+        if (state.screen === "screen-roadtrip" && state.roadtripMapCountry === drilled && missing.some((c) => loadCityCoordsCache()[c.id])) renderRoadtripMap();
+      });
+    }
+  } else {
+    const activity = unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds));
+    view = state.roadtripMapWorld || shouldShowWorld(activity, MAP_W)
+      ? { k: 1, tx: 0, ty: 0 }
+      : fitTransform(activity, MAP_W, MAP_H, { pad: 0.12, maxScale: 6 });
+    marks = countries.map((c) => {
+      const entry = geo.byId.get(ISO2_TO_NUMERIC[c.countryCode]);
+      return entry && { kind: "country", id: c.countryCode, total: c.total, xy: entry.labelPoint, label: compactCount(c.total), name: c.name };
+    }).filter(Boolean);
+  }
+  applyRoadtripMapView(view, animate);
+
+  // Labels in screen space: position = base projection × view transform.
+  const placed = marks.map((m) => {
+    const x = m.xy[0] * view.k + view.tx;
+    const y = m.xy[1] * view.k + view.ty;
+    const w = (m.label.length * 7.4 + 14) / pxPerUnit;
+    const h = 18 / pxPerUnit;
+    return { ...m, x, y: y - (m.kind === "city" ? m.r + 12 : 13) / pxPerUnit, w, h };
+  }).filter((m) => m.x > 0 && m.x < MAP_W && m.y > 0 && m.y < MAP_H);
+  const labelled = new Set(cullLabels(placed).map((m) => m.id));
+  const pct = (v, total) => `${((v / total) * 100).toFixed(2)}%`;
+  $("roadtrip-map-marks").innerHTML = placed.map((m) => {
+    const dot = m.kind === "city"
+      ? `<button type="button" class="roadtrip-map-dot${state.roadtripMapCity ? (m.id === state.roadtripMapCity ? " is-selected" : " is-dimmed") : ""}" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
+      : "";
+    const pill = labelled.has(m.id)
+      ? `<span class="roadtrip-map-pill${m.kind === "country" ? " is-country" : ""}" style="left:${pct(m.x, MAP_W)};top:${pct(m.y, MAP_H)}">${m.label}</span>`
+      : "";
+    return dot + pill;
+  }).join("");
+  $("roadtrip-map-marks").classList.toggle("is-animating", animate);
+
+  const drilledCountry = drilled && countries.find((c) => c.countryCode === drilled);
+  const drilledCity = state.roadtripScope?.city;
+  $("roadtrip-map-title").textContent = drilledCity
+    ? drilledCity.name
+    : drilled
+      ? `${drilledCountry?.flag ? `${drilledCountry.flag} ` : ""}${drilledCountry?.name || drilled}`
+      : `${countries.length} ${countries.length === 1 ? "country" : "countries"}`;
+  $("btn-roadtrip-map-zoom").textContent = drilledCity
+    ? `‹ ${drilledCountry?.name || drilled}`
+    : drilled ? "‹ All countries" : (state.roadtripMapWorld ? "Fit" : "World");
+  $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled && shouldShowWorld(unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds)), MAP_W));
+}
+
+function drillRoadtripMap(countryCode) {
+  state.roadtripMapCountry = countryCode;
+  state.roadtripMapCity = null;
+  renderRoadtripAnimated();
+}
+
+function drillRoadtripCity(cityId) {
+  state.roadtripMapCity = cityId;
+  renderRoadtrip();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Up one level: city → its country, country → the world.
+function leaveRoadtripMapDrill() {
+  if (state.roadtripMapCity) {
+    state.roadtripMapCity = null;
+    renderRoadtrip();
+    return;
+  }
+  state.roadtripMapCountry = null;
+  renderRoadtripAnimated();
+}
+
+// The detail screen can show the list's rows or the drilled-into country/city.
+function findRoadtripTerritory(id) {
+  return state.roadtripTerritories.find((row) => row.id === id)
+    || [state.roadtripScope?.country, state.roadtripScope?.city].find((row) => row?.id === id)
+    || null;
+}
+
+// A shared #roadtrip=id link: find which level the id lives at, drill the
+// map/list down to it, then open its detail.
+function openRoadtripLink(id) {
+  const sessions = getAllSessionsForDisplay();
+  for (const tier of ["country", "city", "neighborhood"]) {
+    const place = buildRoadtripTerritories(sessions, { tier, period: state.roadtripPeriod }).find((t) => t.id === id);
+    if (!place) continue;
+    state.roadtripMapCountry = tier === "country" ? null : place.countryCode;
+    state.roadtripMapCity = tier === "neighborhood" ? place.cityId : null;
+    renderRoadtrip();
+    if (findRoadtripTerritory(id)) openRoadtripDetail(id);
+    return;
+  }
+}
+
+function openRoadtripDetail(id) {
+  state.roadtripDetailId = id;
+  showScreen("screen-roadtrip-detail");
+}
+
+// A drill in/out animates the zoom; ordinary repaints snap.
+function renderRoadtripAnimated() {
+  state.roadtripMapAnimate = true;
+  renderRoadtrip();
+}
+
+$("roadtrip-map-zoom").addEventListener("click", (e) => {
+  const el = e.target.closest(".roadtrip-map-country.active");
+  if (!el || state.roadtripMapCountry) return;
+  const code = NUMERIC_TO_ISO2[el.dataset.countryId];
+  if (code) drillRoadtripMap(code);
+});
+$("roadtrip-map-marks").addEventListener("click", (e) => {
+  const dot = e.target.closest("[data-map-city]");
+  if (!dot) return;
+  if (dot.dataset.mapCity === state.roadtripMapCity) openRoadtripDetail(dot.dataset.mapCity);
+  else drillRoadtripCity(dot.dataset.mapCity);
+});
+$("btn-roadtrip-map-zoom").addEventListener("click", () => {
+  if (state.roadtripMapCountry) return leaveRoadtripMapDrill();
+  state.roadtripMapWorld = !state.roadtripMapWorld;
+  renderRoadtripMap({ animate: true });
+});
+
+function renderRoadtrip() {
   document.querySelectorAll("[data-roadtrip-period]").forEach((option) => option.classList.toggle("active", option.dataset.roadtripPeriod === state.roadtripPeriod));
   const locationMissing = !state.deviceLocationProfile.location;
   $("roadtrip-location-needed").classList.toggle("hidden", !locationMissing);
   const list = $("roadtrip-list");
   list.innerHTML = "";
-  state.roadtripTerritories = buildRoadtripTerritories(getAllSessionsForDisplay(), {
-    tier: state.roadtripTier,
-    period: state.roadtripPeriod,
-  });
+  const sessions = getAllSessionsForDisplay();
+  const period = state.roadtripPeriod;
+  // The list follows the map: world → countries, a country → its cities,
+  // a city → its neighborhoods. A drilled-into place with no reps in the
+  // newly picked period steps back up rather than showing an empty level.
+  const countries = buildRoadtripTerritories(sessions, { tier: "country", period });
+  const country = state.roadtripMapCountry && countries.find((c) => c.countryCode === state.roadtripMapCountry);
+  if (!country) state.roadtripMapCountry = null;
+  const cities = country ? buildRoadtripTerritories(sessions, { tier: "city", period }).filter((t) => t.countryCode === country.countryCode) : [];
+  const city = state.roadtripMapCity && cities.find((c) => c.id === state.roadtripMapCity);
+  if (!city) state.roadtripMapCity = null;
+  state.roadtripScope = { country: country || null, city: city || null };
+  state.roadtripTier = city ? "neighborhood" : country ? "city" : "country";
+  const rows = city
+    ? buildRoadtripTerritories(sessions, { tier: "neighborhood", period }).filter((t) => t.cityId === city.id)
+    : country ? cities : countries;
+  state.roadtripTerritories = rows.map((t, i) => ({ ...t, rank: i + 1 }));
+  renderRoadtripMap({ animate: !!state.roadtripMapAnimate });
+  state.roadtripMapAnimate = false;
+
+  const scopePlace = city || country;
+  if (scopePlace) {
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "roadtrip-scope-link";
+    link.innerHTML = `<span>${escapeHtml(roadtripPlaceText(scopePlace))} leaderboard</span><span aria-hidden="true">›</span>`;
+    link.addEventListener("click", () => openRoadtripDetail(scopePlace.id));
+    list.appendChild(link);
+  }
   const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
+  if (!top.length && city) {
+    list.insertAdjacentHTML("beforeend", `<p class="roadtrip-scope-empty">No neighborhood-level reps in ${escapeHtml(city.name)} for this period.</p>`);
+    return;
+  }
   if (!top.length) {
     list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One pushup with a selected location can fix that.</span></div>`;
     return;
@@ -5722,7 +6678,7 @@ function renderRoadtrip() {
 }
 
 function renderRoadtripDetail() {
-  const territory = state.roadtripTerritories.find((row) => row.id === state.roadtripDetailId);
+  const territory = findRoadtripTerritory(state.roadtripDetailId);
   if (!territory) {
     showScreen("screen-roadtrip");
     return;
@@ -5820,7 +6776,7 @@ function pickRoadtripShareTemplate(pool) {
 }
 
 async function shareRoadtripDetail() {
-  const territory = state.roadtripTerritories.find((row) => row.id === state.roadtripDetailId);
+  const territory = findRoadtripTerritory(state.roadtripDetailId);
   if (!territory) return;
   const flavor = TIER_SHARE_FLAVOR[territory.tier] || TIER_SHARE_FLAVOR.city;
   const placeLabel = `${territory.flag ? `${territory.flag} ` : ""}${territory.name}`;
@@ -5878,21 +6834,6 @@ $("roadtrip-period-select").addEventListener("click", (event) => {
   localStorage.setItem(LS.roadtripPeriod, state.roadtripPeriod);
   renderRoadtrip();
   option.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
-});
-$("roadtrip-tier-trigger").addEventListener("click", () => setRoadtripTierMenuOpen($("roadtrip-tier-trigger").getAttribute("aria-expanded") !== "true"));
-$("roadtrip-tier-menu").addEventListener("click", (event) => {
-  const option = event.target.closest("[data-roadtrip-tier]");
-  if (!option) return;
-  state.roadtripTier = option.dataset.roadtripTier;
-  localStorage.setItem(LS.roadtripTier, state.roadtripTier);
-  setRoadtripTierMenuOpen(false);
-  renderRoadtrip();
-});
-document.addEventListener("click", (event) => {
-  if (!event.target.closest("#roadtrip-tier-picker")) setRoadtripTierMenuOpen(false);
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") setRoadtripTierMenuOpen(false);
 });
 $("btn-roadtrip-location").addEventListener("click", openLocationSheet);
 $("btn-roadtrip-back").addEventListener("click", () => showScreen("screen-roadtrip"));
@@ -6163,7 +7104,12 @@ $("btn-download-situp-trace").addEventListener("click", () => {
 async function renderDashboard() {
   await flushQueue().catch(() => {});
   const sessions = await refreshFromRemote();
-  state.lastSessions = sessions;
+  state.boardSessionsAll = sessions;
+  if (!state.boardScope || (state.boardScope !== "all" && !myGroups().some((g) => g.id === state.boardScope))) {
+    state.boardScope = activeGroupId() || "all";
+  }
+  syncBonanzaModeControl();
+  applyBoardScope();
   // The mode dropdown is gone from the header; the chart cards' arrows/swipe
   // only step whole exercises, so a saved pushup sub-mode (e.g. Dice) would
   // be unreachable — fall back to All.
@@ -6199,10 +7145,13 @@ $("bonanza-mode-menu").addEventListener("click", (e) => {
   const option = e.target.closest(".leaderboard-mode-option");
   if (!option) return;
   setBonanzaModeMenuOpen(false);
-  if (option.dataset.mode === state.bonanzaMode) return;
+  const scope = option.dataset.scope;
+  if (option.dataset.mode === state.bonanzaMode && (state.bonanzaMode === "mine" || scope === state.boardScope)) return;
   state.bonanzaMode = option.dataset.mode;
+  if (state.bonanzaMode === "boys") state.boardScope = scope;
   state.dashboardBucketOffset = null;
   syncBonanzaModeControl();
+  applyBoardScope();
   updateLeaderboardModeMenuVisibility();
   paintActiveBonanzaView();
 });
@@ -6210,7 +7159,7 @@ $("bonanza-mode-menu").addEventListener("click", (e) => {
 function syncLeaderboardModeControl() {
   const selected = LEADERBOARD_MODE_OPTIONS.find((option) => option.id === state.leaderboardMode) || LEADERBOARD_MODE_OPTIONS[0];
   $("leaderboard-mode-label").textContent = selected.label;
-  document.querySelectorAll(".leaderboard-mode-option").forEach((option) => {
+  document.querySelectorAll("#leaderboard-mode-menu .leaderboard-mode-option").forEach((option) => {
     const isSelected = option.dataset.leaderboardMode === selected.id;
     option.classList.toggle("selected", isSelected);
     option.setAttribute("aria-selected", String(isSelected));
@@ -6260,7 +7209,7 @@ function selectLeaderboardMode(mode) {
 // sub-modes. Landing back on pushups always resets to "All" rather than
 // restoring whichever sub-mode was last picked; Holland isn't in the cycle
 // (dropdown-only) but still needs a sane index to step from if it's active.
-const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "squats", "pullups", "situps", "holland", "chainofpain", "kettlebell"];
+const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "deadhang", "squats", "pullups", "situps", "holland", "chainofpain", "kettlebell"];
 // Only cycle through activities that actually have a session within the
 // selected time horizon (state.dashboardPeriod), scoped to the same user
 // pool the chart card itself is drawing from — no point swiping to an
@@ -6501,8 +7450,10 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     if (isSelected) classes.push("week-bar-col-selected");
     return `
       <div class="${classes.join(" ")}" data-bucket-offset="${offset}">
-        <div class="week-bar-value">${valueDisplay}</div>
-        <div class="week-bar" style="height:${heightPct}%"></div>
+        <div class="week-bar-track">
+          <div class="week-bar-value">${valueDisplay}</div>
+          <div class="week-bar" style="--h:${heightPct / 100}"></div>
+        </div>
         <div class="week-bar-label">${label}</div>
       </div>
     `;
@@ -6624,7 +7575,7 @@ function renderDayHourChart(sessions, chartElId, dayOffset, isPlank, isHolland, 
     } else {
       barHTML = `<div class="week-bar week-bar-solid" style="height:${heightPct}%"></div>`;
     }
-    return `<div class="week-bar-col">${barHTML}<div class="week-bar-label">${label}</div></div>`;
+    return `<div class="week-bar-col"><div class="week-bar-track">${barHTML}</div><div class="week-bar-label">${label}</div></div>`;
   }).join("");
 
   return { peakHour: peak && peak.total > 0 ? peak.hour : null, userOrder };
@@ -6669,7 +7620,20 @@ function syncChartFlipHeight(scope) {
   const flipEl = $(`${scope}-chart-flip`);
   if (!flipEl) return;
   const face = flipEl.querySelector(".chart-face-front");
-  if (face) flipEl.closest(".chart-flip-scene").style.height = `${face.scrollHeight}px`;
+  if (!face) return;
+  const height = face.scrollHeight;
+  // Hidden screen (display:none) measures 0 — skip, or the next open would
+  // animate the card up from 0 and shove the leaderboard below it down.
+  if (!height) return;
+  const scene = flipEl.closest(".chart-flip-scene");
+  // First real measurement snaps into place; only later changes animate.
+  const snap = !parseFloat(scene.style.height);
+  if (snap) scene.style.transition = "none";
+  scene.style.height = `${height}px`;
+  if (snap) {
+    void scene.offsetHeight;
+    scene.style.transition = "";
+  }
 }
 
 // Shared by the back face's own arrows and whole-card swipe (see the
@@ -7078,6 +8042,7 @@ function renderSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
+  const isDeadhang = session.type === "deadhang";
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
@@ -7088,12 +8053,12 @@ function renderSessionDetail() {
 
   $("session-detail-user").textContent = `${session.user}'s session`;
   $("session-detail-date").textContent = formatDateTime(session.timestamp);
-  $("session-detail-count").textContent = (isPlank || isPulse) ? formatDuration(session.count * 1000)
+  $("session-detail-count").textContent = (isPlank || isDeadhang || isPulse) ? formatDuration(session.count * 1000)
     : isHolland ? hollandFormatCycles(Number(session.hollandCycles) || 0)
     : isChainOfPain ? chainOfPainFormatCycles(Number(session.chainOfPainCycles) || 0)
     : isKettlebell ? formatNumber(Number(session.kettlebellVolumeLbs) || 0)
     : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isKettlebell ? `LB MOVED · ${(kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "KETTLEBELL").toUpperCase()}` : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isDeadhang ? "DEAD HANG" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isKettlebell ? `LB MOVED · ${(kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "KETTLEBELL").toUpperCase()}` : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
 
   const badgeHTML = (badge) => `<span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>`;
   const allBadges = sessionBadges(session);
@@ -7147,6 +8112,7 @@ async function shareSessionDetail() {
   const session = state.sessionDetailSession;
   if (!session) return;
   const isPlank = session.type === "plank";
+  const isDeadhang = session.type === "deadhang";
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
@@ -7155,7 +8121,7 @@ async function shareSessionDetail() {
   const isKettlebell = session.type === "kettlebell";
   const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isKettlebell ? `${formatNumber(Number(session.kettlebellVolumeLbs) || 0)} lb moved in ${kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "a kettlebell workout"}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isDeadhang ? `${formatDuration(session.count * 1000)} dead hang` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isKettlebell ? `${formatNumber(Number(session.kettlebellVolumeLbs) || 0)} lb moved in ${kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "a kettlebell workout"}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const modifierBadge = sessionBadges(session).find((b) => b.id === "modifier");
   const rings = sessionRings(session, getAllSessionsForDisplay());
   const statRing = [rings.find((r) => r.id === "vsPrior"), rings.find((r) => r.id === "vsAvg")].find((r) => r?.hasData && r.diffPct != null);
@@ -7169,7 +8135,7 @@ async function shareSessionDetail() {
     dateText: formatDateTime(session.timestamp),
     statLine,
   });
-  const modeId = isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
+  const modeId = isPlank ? "plank" : isDeadhang ? "deadhang" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
   const url = modeShareUrl(modeId);
   if (navigator.share) {
     try { await navigator.share(sharePayload("Boys Pushup Bonanza", message, url)); } catch (e) { /* cancelled */ }
@@ -7193,7 +8159,7 @@ $("btn-session-detail-delete").addEventListener("click", async () => {
 });
 
 function paintMyBonanza(sessions) {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isHolland = state.activityType === "holland";
   const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
@@ -7217,16 +8183,31 @@ function paintMyBonanza(sessions) {
   const { allTimeTotal, personalBest, avgPerSession } = personalStatsModel(mine, streak, metricOf, !isHolland);
   const fmt = (isPlank || isPulse) ? (n) => formatDuration(n * 1000) : isHolland ? (n) => n.toFixed(1) : formatNumber;
 
-  // The 4 key metrics always form the 2x2 tile grid, streak first as a ring.
-  tilesEl.innerHTML = `
-    <div class="stat-tile stat-tile-ring">
-      ${streakRingSvg(streak)}
-      <div><div class="stat-tile-value">${streak}</div><div class="stat-tile-label">day streak</div></div>
-    </div>
-    <div class="stat-tile"><div class="stat-tile-value">${fmt(allTimeTotal)}</div><div class="stat-tile-label">all-time total</div></div>
-    <div class="stat-tile"><div class="stat-tile-value">${fmt(personalBest)}</div><div class="stat-tile-label">personal best</div></div>
-    <div class="stat-tile"><div class="stat-tile-value">${fmt(avgPerSession)}</div><div class="stat-tile-label">avg / session</div></div>
-  `;
+  // The 4 key metrics sit on one line as mini tiles: icon, number, label.
+  // A quarter-width tile can't fit "14,421" or "1:02:45", so big values
+  // abbreviate (14.4k, 3.2h) and the full value lives in the title.
+  const compact = (n) => {
+    if (isPlank || isPulse) return n >= 3600 ? `${(n / 3600).toFixed(1).replace(/\.0$/, "")}h` : fmt(n);
+    if (isHolland || n < 10000) return fmt(n);
+    return n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M` : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  };
+  const tile = (icon, value, label, extraClass = "") => `
+    <div class="stat-tile${extraClass}" title="${escapeHtml(`${fmt(value)} ${label}`)}">
+      <span class="stat-tile-icon" aria-hidden="true">${icon}</span>
+      <div class="stat-tile-value">${compact(value)}</div>
+      <div class="stat-tile-label">${label}</div>
+    </div>`;
+  const svg = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  tilesEl.innerHTML = [
+    `<div class="stat-tile stat-tile-streak" title="${streak} day streak">
+      <span class="stat-tile-icon" aria-hidden="true">${svg('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>')}</span>
+      <div class="stat-tile-value">${streak}</div>
+      <div class="stat-tile-label">day streak</div>
+    </div>`,
+    tile(svg('<path d="M18 4H6l6 8-6 8h12"/>'), allTimeTotal, "all-time total"),
+    tile(svg('<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'), personalBest, "personal best"),
+    tile(svg('<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>'), avgPerSession, "avg / session"),
+  ].join("");
 
   const periodStartTime = periodStart(state.dashboardPeriod).getTime();
   const periodMine = mine.filter((s) => sessionTimestamp(s) >= periodStartTime);
@@ -7358,11 +8339,14 @@ function renderBoysModeStats(sessions, allModeSessions = sessions) {
 function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
   const el = $("boys-leader-stats");
   const metrics = boysModeStatsMetrics(sessions, allModeSessions);
+  // With only one person in the selection, the leader is always them —
+  // the avatar would just repeat itself on every row.
+  const soloSelection = new Set([...sessions, ...allModeSessions].map((s) => s.user)).size <= 1;
   el.innerHTML = metrics.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
     if (!metric.available || !metric.leaders.length) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
     const leader = metric.leaders[0];
-    const avatar = avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
+    const avatar = soloSelection ? "" : avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
     return `<div class="boys-mode-stat">
       <span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span>
       <span class="boys-mode-stat-values">
@@ -7374,7 +8358,7 @@ function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
 }
 
 function paintDashboard(sessions) {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isHolland = state.activityType === "holland";
   const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
@@ -7447,56 +8431,7 @@ function paintDashboard(sessions) {
 
   renderBoysModeStats(filtered, allModesInPeriod);
   renderBoysLeaderStats(filtered, allModesInPeriod);
-  renderModeHistory(allModesInPeriod);
-  const hasModifiers = renderModifierHistory(allModesInPeriod);
-  const modifiersTabBtn = $("modifiers-tab-btn");
-  modifiersTabBtn.classList.toggle("hidden", !hasModifiers);
-  if (!hasModifiers && state.historyView === "modifiers") {
-    state.historyView = "recent";
-    modifiersTabBtn.classList.remove("active");
-    document.querySelectorAll("#history-view-select .segment").forEach((s) => s.classList.toggle("active", s.dataset.view === "recent"));
-  }
-
-  const historyList = $("history-list");
-  historyList.innerHTML = "";
-  if (!filtered.length) {
-    historyList.innerHTML = '<p class="history-empty">No sessions in this period.</p>';
-  } else {
-    const byUser = new Map();
-    for (const s of filtered) {
-      if (!byUser.has(s.user)) byUser.set(s.user, []);
-      byUser.get(s.user).push(s);
-    }
-    const usersSorted = Array.from(byUser.keys()).sort((a, b) => (totals.get(b) || 0) - (totals.get(a) || 0));
-    for (const user of usersSorted) {
-      const userSessions = byUser.get(user).sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a));
-      const group = document.createElement("div");
-      group.className = "history-user-group";
-      const header = document.createElement("div");
-      header.className = "history-user-header";
-      header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${userSessions.length} session${userSessions.length === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
-      header.addEventListener("click", () => group.classList.toggle("open"));
-      makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
-      const sessionsWrap = document.createElement("div");
-      sessionsWrap.className = "history-sessions";
-      for (const s of userSessions) {
-        const sessionRow = document.createElement("div");
-        sessionRow.className = "history-session-row compare-clickable";
-        sessionRow.innerHTML = `<span>${formatDateTime(s.timestamp)}</span><span class="history-session-count">${fmtCount(metricOf(s))}</span>`;
-        sessionRow.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openSessionDetail(s, "screen-dashboard");
-        });
-        sessionsWrap.appendChild(sessionRow);
-      }
-      group.appendChild(header);
-      group.appendChild(sessionsWrap);
-      historyList.appendChild(group);
-    }
-  }
-
   renderRecentList(sessions);
-  updateHistoryViewVisibility();
 }
 
 // Short "elapsed since" label for the recent-activity statement (mirrors
@@ -7514,6 +8449,24 @@ function timeAgoLabel(timestampMs) {
   return months < 12 ? `${months} month${months === 1 ? "" : "s"} ago` : `${Math.floor(months / 12)} year${months < 24 ? "" : "s"} ago`;
 }
 
+// Compact elapsed label for History's one-line rows: "now", "12m", "4h",
+// "3d", "2mo", "1y" — always followed by " ago" at the call site.
+function capitalizeFirst(str) {
+  return str ? str[0].toUpperCase() + str.slice(1) : str;
+}
+
+function shortAgoLabel(timestampMs) {
+  const minutes = Math.floor(Math.max(0, Date.now() - timestampMs) / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return months < 12 ? `${months}mo ago` : `${Math.floor(months / 12)}y ago`;
+}
+
 // Short and catchy: "a classic" / "a plank" / "a Holland round" — no
 // "session"/"push-up" filler, so the Latest feed reads fast.
 function sessionActivityPhrase(s) {
@@ -7522,6 +8475,7 @@ function sessionActivityPhrase(s) {
   }
   const modeId = sessionModeId(s);
   if (modeId === "holland") return "a Holland round";
+  if (modeId === "deadhang") return "a dead hang";
   if (["planks", "squats", "pullups", "situps"].includes(modeId)) {
     return `a ${activityLabel(sessionActivity(s), true)}`;
   }
@@ -7529,7 +8483,7 @@ function sessionActivityPhrase(s) {
 }
 
 function renderRecentList(sessions) {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isHolland = state.activityType === "holland";
   const isPulse = state.leaderboardMode === "pulse";
   const currentActivity = activityLabel(state.activityType);
@@ -7543,14 +8497,14 @@ function renderRecentList(sessions) {
   for (const s of recent) {
     const row = document.createElement("div");
     row.className = "recent-row compare-clickable";
-    const modifierMeta = s.modifier ? MODIFIERS.find((m) => m.id === s.modifier) : null;
+    const modifierMeta = s.modifier ? findModifier(s.modifier) : null;
     const modifierIcon = modifierMeta
       ? `<button type="button" class="recent-modifier" aria-label="${escapeHtml(modifierMeta.title)} modifier">${modifierMeta.icon}</button>`
       : "";
     row.innerHTML = `
-      ${avatarCircleHTML(avatarForUser(s.user), "1.3rem")}
+      ${avatarCircleHTML(avatarForUser(s.user), "1.15rem")}
       <div class="recent-statement">
-        <span class="recent-name">${escapeHtml(s.user)}</span> completed ${sessionActivityPhrase(s)} ${timeAgoLabel(sessionTimestamp(s))}
+        <span class="recent-name">${escapeHtml(s.user)}</span> · ${escapeHtml(capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, "")))} · ${shortAgoLabel(sessionTimestamp(s))}
       </div>
       <div class="recent-count-col">
         ${modifierIcon}
@@ -7568,132 +8522,6 @@ function renderRecentList(sessions) {
     recentList.appendChild(row);
   }
 }
-
-function updateHistoryViewVisibility() {
-  $("recent-list").classList.toggle("hidden", state.historyView !== "recent");
-  $("history-list").classList.toggle("hidden", state.historyView !== "history");
-  $("mode-history-list").classList.toggle("hidden", state.historyView !== "modes");
-  $("modifier-history-list").classList.toggle("hidden", state.historyView !== "modifiers");
-}
-
-// A session's own raw metric (reps, seconds held, or Holland cycles) —
-// independent of whichever activityType/leaderboardMode is currently
-// selected, since Mode history mixes every mode together.
-function sessionMetricValue(s) {
-  const modeId = sessionModeId(s);
-  return modeId === "holland" ? Number(s.hollandCycles) || 0 : modeId === "kettlebell" ? Number(s.kettlebellVolumeLbs) || 0 : Number(s.count) || 0;
-}
-
-function formatModeHistoryTotal(modeId, total) {
-  if (modeId === "planks" || modeId === "pulse") return formatDuration(total * 1000);
-  if (modeId === "holland") return total.toFixed(1);
-  if (modeId === "kettlebell") return `${formatNumber(total)} lb`;
-  return formatNumber(total);
-}
-
-// Cumulative modes-by-user for the selected time horizon — every mode
-// touched (pushup sub-modes, planks, squats, pull-ups, crunches, Holland),
-// not just the one the leaderboard is currently sliced to (mirrors "Modes
-// used" in Group stats, which uses the same cross-mode, period-filtered set).
-function renderModeHistory(sessions) {
-  const modeListEl = $("mode-history-list");
-  modeListEl.innerHTML = "";
-  if (!sessions.length) {
-    modeListEl.innerHTML = '<p class="history-empty">No sessions in this period.</p>';
-    return;
-  }
-  const byUser = new Map();
-  for (const s of sessions) {
-    if (!s?.user) continue;
-    if (!byUser.has(s.user)) byUser.set(s.user, new Map());
-    const modeId = sessionModeId(s);
-    const userModes = byUser.get(s.user);
-    if (!userModes.has(modeId)) userModes.set(modeId, { sessions: 0, total: 0 });
-    const entry = userModes.get(modeId);
-    entry.sessions += 1;
-    entry.total += sessionMetricValue(s);
-  }
-  const sessionCountFor = (userModes) => Array.from(userModes.values()).reduce((sum, e) => sum + e.sessions, 0);
-  const usersSorted = Array.from(byUser.keys()).sort((a, b) => sessionCountFor(byUser.get(b)) - sessionCountFor(byUser.get(a)));
-  for (const user of usersSorted) {
-    const modes = byUser.get(user);
-    const group = document.createElement("div");
-    group.className = "history-user-group";
-    const header = document.createElement("div");
-    header.className = "history-user-header";
-    header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${modes.size} mode${modes.size === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
-    header.addEventListener("click", () => group.classList.toggle("open"));
-    makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
-    const modesWrap = document.createElement("div");
-    modesWrap.className = "history-sessions";
-    const modesSorted = Array.from(modes.entries()).sort((a, b) => b[1].sessions - a[1].sessions);
-    for (const [modeId, entry] of modesSorted) {
-      const meta = MODE_META[modeId] || MODE_META.classic;
-      const row = document.createElement("div");
-      row.className = "history-session-row";
-      row.innerHTML = `<span>${meta.icon} ${meta.label}</span><span class="history-session-count">${entry.sessions} session${entry.sessions === 1 ? "" : "s"} · ${formatModeHistoryTotal(modeId, entry.total)}</span>`;
-      modesWrap.appendChild(row);
-    }
-    group.appendChild(header);
-    group.appendChild(modesWrap);
-    modeListEl.appendChild(group);
-  }
-}
-
-// Cumulative modifiers-by-user for the selected time horizon, same shape as
-// renderModeHistory but grouped by modifier instead of mode; returns whether
-// any tagged sessions exist so the Modifiers tab can be shown/hidden.
-function renderModifierHistory(sessions) {
-  const modifierListEl = $("modifier-history-list");
-  modifierListEl.innerHTML = "";
-  const tagged = sessions.filter((s) => s.modifier);
-  if (!tagged.length) return false;
-  // Sessions carrying the same modifier can span different modes (reps,
-  // seconds held, Holland cycles) with incompatible units, so unlike mode
-  // history this only tallies a session count — no cross-mode total.
-  const byUser = new Map();
-  for (const s of tagged) {
-    if (!s?.user) continue;
-    if (!byUser.has(s.user)) byUser.set(s.user, new Map());
-    const userModifiers = byUser.get(s.user);
-    userModifiers.set(s.modifier, (userModifiers.get(s.modifier) || 0) + 1);
-  }
-  const sessionCountFor = (userModifiers) => Array.from(userModifiers.values()).reduce((sum, n) => sum + n, 0);
-  const usersSorted = Array.from(byUser.keys()).sort((a, b) => sessionCountFor(byUser.get(b)) - sessionCountFor(byUser.get(a)));
-  for (const user of usersSorted) {
-    const modifiers = byUser.get(user);
-    const group = document.createElement("div");
-    group.className = "history-user-group";
-    const header = document.createElement("div");
-    header.className = "history-user-header";
-    header.innerHTML = `<span class="history-user-label">${avatarCircleHTML(avatarForUser(user), "1.7rem")}<span class="history-user-name">${escapeHtml(user)} — ${modifiers.size} modifier${modifiers.size === 1 ? "" : "s"}</span></span><span class="chev">▸</span>`;
-    header.addEventListener("click", () => group.classList.toggle("open"));
-    makeNameCompareClickable(header.querySelector(".history-user-name"), user, true);
-    const modifiersWrap = document.createElement("div");
-    modifiersWrap.className = "history-sessions";
-    const modifiersSorted = Array.from(modifiers.entries()).sort((a, b) => b[1] - a[1]);
-    for (const [modifierId, count] of modifiersSorted) {
-      const meta = MODIFIERS.find((m) => m.id === modifierId);
-      const row = document.createElement("div");
-      row.className = "history-session-row";
-      row.innerHTML = `<span>${meta ? meta.icon : ""} ${meta ? meta.title : modifierId}</span><span class="history-session-count">${count} session${count === 1 ? "" : "s"}</span>`;
-      modifiersWrap.appendChild(row);
-    }
-    group.appendChild(header);
-    group.appendChild(modifiersWrap);
-    modifierListEl.appendChild(group);
-  }
-  return true;
-}
-
-$("history-view-select").addEventListener("click", (e) => {
-  const btn = e.target.closest(".segment");
-  if (!btn) return;
-  document.querySelectorAll("#history-view-select .segment").forEach((s) => s.classList.remove("active"));
-  btn.classList.add("active");
-  state.historyView = btn.dataset.view;
-  updateHistoryViewVisibility();
-});
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -7726,8 +8554,8 @@ function startsInOwnHorizontalGesture(target, root) {
   }
   return false;
 }
-function attachTabSwipe(screenId, tabsSelector) {
-  const screen = $(screenId);
+// onSwipe(+1) for a swipe left (next), onSwipe(-1) for a swipe right.
+function attachHorizontalSwipe(screen, onSwipe) {
   let start = null;
   screen.addEventListener("touchstart", (event) => {
     const t = event.touches[0];
@@ -7741,12 +8569,56 @@ function attachTabSwipe(screenId, tabsSelector) {
     const dy = event.changedTouches[0].clientY - start.y;
     start = null;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    onSwipe(dx < 0 ? 1 : -1);
+  });
+}
+function attachTabSwipe(screenId, tabsSelector) {
+  attachHorizontalSwipe($(screenId), (dir) => {
     const segments = [...document.querySelectorAll(tabsSelector)].filter((s) => s.offsetParent !== null);
     const current = segments.findIndex((s) => s.classList.contains("active"));
-    const next = segments[current + (dx < 0 ? 1 : -1)];
+    const next = segments[current + dir];
     if (next) next.click();
   });
 }
+// Drill-in screens: a horizontal swipe opens the previous/next sibling from
+// the parent screen's list (clamped, no wrap) by clicking that list entry —
+// the parent list is still in the DOM, so its own handler does the work.
+// Each entry carries data-sibling-id; `current` names the open one.
+const DRILL_SIBLINGS = {
+  settings: {
+    screens: ["screen-settings-groups", "screen-settings-goals", "screen-settings-mysessions", "screen-mode-breakdown", "screen-poker-showcase", "screen-settings-workout", "screen-settings-appearance", "screen-changelog"],
+    items: () => document.querySelectorAll("#settings-category-list [data-sibling-id], #settings-category-list-app [data-sibling-id]"),
+    current: () => state.screen,
+  },
+  goal: { screens: ["screen-settings-goal-edit"], items: () => document.querySelectorAll("#goal-type-list .goal-type-row"), current: () => goalEditType, idOf: (el) => el.dataset.goalType },
+  challenge: { screens: ["screen-challenge-detail"], items: () => document.querySelectorAll("#challenge-list [data-sibling-id]"), current: () => state.openChallengeId },
+  roadtrip: { screens: ["screen-roadtrip-detail"], items: () => document.querySelectorAll("#screen-roadtrip [data-sibling-id]"), current: () => state.roadtripDetailId },
+};
+
+function stepDrillSibling(group, dir) {
+  const idOf = group.idOf || ((el) => el.dataset.siblingId);
+  const ids = [];
+  const items = [];
+  for (const el of group.items()) {
+    if (el.classList.contains("hidden") || ids.includes(idOf(el))) continue;
+    ids.push(idOf(el));
+    items.push(el);
+  }
+  const next = items[ids.indexOf(group.current()) + dir];
+  if (ids.indexOf(group.current()) === -1 || !next) return;
+  next.click();
+  const screen = document.querySelector(".screen.active");
+  screen.classList.remove("drill-slide-next", "drill-slide-prev");
+  void screen.offsetWidth;
+  screen.classList.add(dir > 0 ? "drill-slide-next" : "drill-slide-prev");
+  screen.addEventListener("animationend", () => screen.classList.remove("drill-slide-next", "drill-slide-prev"), { once: true });
+  window.scrollTo(0, 0);
+}
+
+for (const group of Object.values(DRILL_SIBLINGS)) {
+  for (const screenId of group.screens) attachHorizontalSwipe($(screenId), (dir) => stepDrillSibling(group, dir));
+}
+
 attachTabSwipe("screen-dashboard", "#period-select .segment");
 attachTabSwipe("screen-challenges", "#challenge-tab-select .segment");
 attachTabSwipe("screen-roadtrip", "#roadtrip-period-select .segment");
@@ -7755,8 +8627,28 @@ attachTabSwipe("screen-roadtrip", "#roadtrip-period-select .segment");
 
 // Dates are YYYY-MM-DD, inclusive, in the device's local timezone.
 
+// Built-in (seasonal) challenges are global, so their standings default to
+// the active group's members (plus you); "Everyone" on the detail screen
+// lifts that. Custom challenges are already scoped by who can see them.
+function challengeScopeNames(c) {
+  if (c.createdBy || !groupsOn() || state.challengeScopeAll) return null;
+  const group = activeGroup();
+  return group ? new Set(groupMemberNames(group)) : null;
+}
+
+function challengeScopeKey(c) {
+  return challengeScopeNames(c) ? `${c.id}|${activeGroupId()}` : c.id;
+}
+
 function challengeParticipantsOf(c) {
-  return getCachedData().challengeParticipants[c.id] || [];
+  const all = getCachedData().challengeParticipants[c.id] || [];
+  const names = challengeScopeNames(c);
+  return names ? all.filter((name) => names.has(name) || name === state.currentUser) : all;
+}
+
+function challengeVisible(c) {
+  if (!groupsOn()) return true;
+  return challengeVisibleTo(c, { user: state.currentUser, groups: allGroups(), participants: getCachedData().challengeParticipants[c.id] || [] });
 }
 
 // Which logged-session bucket a challenge tracks. plankGauntlet is always
@@ -7767,7 +8659,7 @@ function challengeActivity(c) {
 }
 
 function challengeSessions(c) {
-  const cached = challengeSessionCache.get(c.id);
+  const cached = challengeSessionCache.get(challengeScopeKey(c));
   if (cached) return cached;
   const participants = new Set(challengeParticipantsOf(c));
   if (!participants.size) return [];
@@ -7782,7 +8674,7 @@ function challengeSessions(c) {
       if (timestamp >= startTime && timestamp <= endTime) sessions.push(session);
     }
   }
-  challengeSessionCache.set(c.id, sessions);
+  challengeSessionCache.set(challengeScopeKey(c), sessions);
   return sessions;
 }
 
@@ -7931,7 +8823,7 @@ function paintChallengeList() {
   const now = new Date();
   const tab = state.challengeTab;
   // Past challenges nobody joined are dead entries — leave them off the list.
-  const list = challengeDefs.filter((c) => challengeStatus(c, now) === tab && (tab !== "past" || challengeParticipantsOf(c).length > 0));
+  const list = challengeDefs.filter((c) => challengeVisible(c) && challengeStatus(c, now) === tab && (tab !== "past" || challengeParticipantsOf(c).length > 0));
   if (tab === "active") list.sort((a, b) => daysLeft(a, now) - daysLeft(b, now));
   else if (tab === "upcoming") list.sort((a, b) => daysUntilStart(a, now) - daysUntilStart(b, now));
   else list.sort((a, b) => challengeWindow(b).endDate - challengeWindow(a).endDate);
@@ -7955,10 +8847,35 @@ function paintChallengeList() {
   // rather than curated, so it always leads whichever tab its current/next/
   // previous cycle belongs to.
   if (derived) el.appendChild(derived.type === "bingo" ? buildBingoCard(derived.cycle, now) : buildPokerCollectionCard(derived.cycle, now));
-  for (const c of list) {
-    el.appendChild(buildChallengeCard(c, now));
+  // Ten rows at first, then ten more each time the end of the list scrolls
+  // into view — Upcoming alone runs to 200+ scheduled challenges.
+  let shown = 0;
+  const sentinel = document.createElement("div");
+  sentinel.className = "challenge-list-sentinel";
+  const appendPage = () => {
+    for (const c of list.slice(shown, shown + CHALLENGE_PAGE_SIZE)) el.insertBefore(buildChallengeCard(c, now), sentinel);
+    shown = Math.min(list.length, shown + CHALLENGE_PAGE_SIZE);
+    if (shown >= list.length) {
+      challengeListObserver?.disconnect();
+      sentinel.remove();
+    }
+  };
+  challengeListObserver?.disconnect();
+  el.appendChild(sentinel);
+  appendPage();
+  if (shown < list.length) {
+    challengeListObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) appendPage();
+    }, { root: el, rootMargin: "0px 0px 80px 0px" });
+    // Ten rows nearly fill the screen and the list's tab-bar padding keeps
+    // the end in view, so only start loading once the user scrolls.
+    const observer = challengeListObserver;
+    el.addEventListener("scroll", () => observer.observe(sentinel), { once: true, passive: true });
   }
 }
+
+const CHALLENGE_PAGE_SIZE = 10;
+let challengeListObserver = null;
 
 // Floating confirmation above the tab bar, instead of a banner inserted
 // inline between cards. Checkmark glyph built from CSS borders.
@@ -8010,16 +8927,50 @@ function modeStatIcon(metric) {
   return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";
 }
 
+// One row per challenge, matching the Games/Roadtrip lists: icon, title,
+// one meta line, and on the right either a Join pill, your progress (with a
+// slim bar under the number) or, once it's over, the winner.
+function challengeRowEl({ id, icon, title, meta, onOpen, onJoin, joined, status, progress, winner }) {
+  const row = document.createElement("div");
+  row.className = "games-row challenge-row";
+  row.dataset.siblingId = id;
+  row.setAttribute("role", "button");
+  row.tabIndex = 0;
+  row.addEventListener("click", onOpen);
+  const right = status === "past"
+    ? (winner ? `<span class="challenge-row-winner">🥇 ${winner}</span>` : "")
+    : joined
+      ? `<span class="challenge-row-right"><span class="challenge-row-progress">${progress?.text || "Joined"}</span>${progress ? challengeRowBarHTML(progress) : ""}</span>`
+      : `<button type="button" class="challenge-row-join">Join</button>`;
+  row.innerHTML = `
+    <span class="games-row-icon is-stroke" aria-hidden="true">${icon}</span>
+    <span class="games-row-info">
+      <span class="games-row-title">${escapeHtml(title)}</span>
+      <span class="games-row-subtitle">${meta}</span>
+    </span>
+    ${right}`;
+  row.querySelector(".challenge-row-join")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onJoin();
+  });
+  return row;
+}
+
+// Slim bar under the progress number — lighter than the full thermometer.
+function challengeRowBarHTML({ current, goal, label }) {
+  const pct = goal > 0 ? Math.max(0, Math.min(100, (current / goal) * 100)) : 0;
+  return `<span class="challenge-row-bar" role="progressbar" aria-label="${escapeHtml(label)}" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${Math.min(current, goal)}"><span style="width:${pct.toFixed(1)}%"></span></span>`;
+}
+
+function challengeRowTiming(status, dateLabel, dateRange, participantCount) {
+  const joinedText = `${participantCount} joined`;
+  return status === "past" ? `${dateRange} · ${joinedText}` : `${dateLabel} · ${joinedText}`;
+}
+
 function buildChallengeCard(c, now) {
   const status = challengeStatus(c, now);
   const participants = challengeParticipantsOf(c);
   const joined = participants.includes(state.currentUser);
-  const total = challengeTotal(c);
-
-  const card = document.createElement("div");
-  card.className = "challenge-card";
-  card.style.setProperty("--challenge-color", c.gradient[0]);
-  card.addEventListener("click", () => openChallengeDetail(c.id));
 
   let dateLabel;
   if (status === "active") {
@@ -8030,77 +8981,48 @@ function buildChallengeCard(c, now) {
     dateLabel = `in ${d} day${d === 1 ? "" : "s"}`;
   }
 
-  let metaLine;
   let prAchievedCount = 0;
-  if (c.goalType === "pr") {
-    prAchievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${prAchievedCount} new PR${prAchievedCount === 1 ? "" : "s"} this week`;
-  } else if (c.goalType === "plankGauntlet") {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatDuration(total * 1000)} total plank time logged`;
-  } else {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${formatNumber(total)} total ${challengeActivity(c)} so far`;
-  }
+  if (c.goalType === "pr") prAchievedCount = challengeLeaderboard(c).filter((row) => row.achieved).length;
 
-  let winnerChipHTML = "";
+  let winner = "";
   if (status === "past") {
     const winners = challengeWinners(c);
-    if (winners.length) {
-      const board = challengeLeaderboard(c);
-      const scoreText = c.goalType === "streak" ? `${formatNumber(board[0].score)} days` : c.goalType === "plankGauntlet" ? formatDuration(board[0].score * 1000) : formatNumber(board[0].score);
-      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${winners.map(escapeHtml).join(" & ")} — ${scoreText}</span>`;
-    }
+    if (winners.length) winner = winners.map(escapeHtml).join(" & ");
   }
 
-  // The top-right badge already shows the date label once the user has joined
-  // (see challenge-joined-chip below), and past challenges get no date pill
-  // at all (their top-right badge shows the winner instead) — so skip the
-  // inline chip in both cases to avoid showing the same text twice.
-  const showInlineChip = status !== "past" && !joined;
-  let html = `
-    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji is-stroke">${typeIconSvg(challengeActivity(c))}</div>
-      <div class="challenge-card-heading">
-        <div class="challenge-card-title">${escapeHtml(c.title)}</div>
-        <div class="challenge-card-dates">${formatChallengeDates(c, undefined, { includeYear: status === "past" })}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
-      </div>
-    </div>
-    <div class="challenge-card-meta">${metaLine}</div>
-  `;
-
-  // Mini progress bar so status is scannable from the list without opening.
-  // PR bars show group success rate; Plank has no fixed target, so it shows elapsed time.
+  // Your progress, shown on the right (and as a thin bar) once you've joined.
+  // PR shows the group's success rate; Plank has no fixed target, so it
+  // shows how much of the window has elapsed.
   const isPrProgress = c.goalType === "pr";
   const isWindowProgress = c.goalType === "plankGauntlet";
-  const progressCurrent = isPrProgress ? challengePrProgress(prAchievedCount, participants.length)
+  const current = isPrProgress ? challengePrProgress(prAchievedCount, participants.length)
     : isWindowProgress ? challengeWindowProgress(c, now)
     : challengeListProgress(c);
-  const progressGoal = isPrProgress || isWindowProgress ? 100 : c.goal;
-  const progressLabel = isPrProgress ? `${prAchievedCount} of ${participants.length} participants set a new PR`
-    : isWindowProgress ? `${progressCurrent}% of challenge window elapsed`
-    : `${formatNumber(progressCurrent)} of ${formatNumber(progressGoal)}`;
-  html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="${progressGoal}" aria-valuenow="${Math.min(progressCurrent, progressGoal)}">${buildProgressThermometer(progressCurrent, progressGoal)}</div>`;
+  const goal = isPrProgress || isWindowProgress ? 100 : c.goal;
+  const progress = {
+    current,
+    goal,
+    text: isPrProgress ? `${prAchievedCount}/${participants.length} PRs`
+      : isWindowProgress ? `${current}%`
+      : c.goalType === "streak" ? `${formatNumber(current)}/${formatNumber(goal)} days`
+      : `${formatNumber(current)}/${formatNumber(goal)}`,
+    label: isPrProgress ? `${prAchievedCount} of ${participants.length} participants set a new PR`
+      : isWindowProgress ? `${current}% of challenge window elapsed`
+      : `${formatNumber(current)} of ${formatNumber(goal)}`,
+  };
 
-  if (status !== "past" && joined) {
-    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
-  } else if (winnerChipHTML) {
-    html += winnerChipHTML;
-  }
-
-  card.innerHTML = html;
-
-  if (status !== "past" && !joined) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-primary challenge-join-btn";
-    btn.textContent = "JOIN";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      joinChallenge(c.id);
-    });
-    card.appendChild(btn);
-  }
-
-  return card;
+  return challengeRowEl({
+    id: c.id,
+    icon: typeIconSvg(challengeActivity(c)),
+    title: c.title,
+    meta: challengeRowTiming(status, dateLabel, formatChallengeDates(c, undefined, { includeYear: true }), participants.length),
+    onOpen: () => openChallengeDetail(c.id),
+    onJoin: () => joinChallenge(c.id),
+    joined,
+    status,
+    progress,
+    winner,
+  });
 }
 
 function openChallengeDetail(id) {
@@ -8492,7 +9414,7 @@ function pickLeaderboardTemplate(pool) {
 }
 
 async function shareLeaderboardStats() {
-  const isPlank = state.activityType === "planks";
+  const isPlank = isTimedActivity(state.activityType);
   const isPulse = state.leaderboardMode === "pulse";
   const activityWord = activityLabel(state.activityType);
   const fmt = (n) => ((isPlank || isPulse) ? formatDuration(n * 1000) : formatNumber(n));
@@ -8518,7 +9440,7 @@ async function shareLeaderboardStats() {
   // planks) that LEADERBOARD_MODE_OPTIONS shows, but the #mode= link and
   // EXPLORE_MODES use the singular exercise ids — translate; "all" has no
   // single mode to deep-link into, so it falls back to the bare app URL.
-  const leaderboardModeToShareId = { pullups: "pullup", squats: "squat", situps: "situp", planks: "plank" };
+  const leaderboardModeToShareId = { pullups: "pullup", squats: "squat", situps: "situp", planks: "plank", deadhang: "deadhang" };
   const shareModeId = state.leaderboardMode === "all" ? null : (leaderboardModeToShareId[state.leaderboardMode] || state.leaderboardMode);
   const url = modeShareUrl(shareModeId);
   if (navigator.share) {
@@ -8597,6 +9519,13 @@ function renderChallengeDetail() {
       <div class="challenge-hero-dates">${formatChallengeDates(c)} <span class="challenge-status-chip">${statusLabel}</span></div>
     </div>
   `;
+
+  if (!c.createdBy && groupsOn() && activeGroup()) {
+    html += `<div id="challenge-scope-select" class="segmented segmented-subtle challenge-scope-select" role="tablist">
+      <button type="button" class="segment${state.challengeScopeAll ? "" : " active"}" data-challenge-scope="group">${escapeHtml(activeGroup().name)}</button>
+      <button type="button" class="segment${state.challengeScopeAll ? " active" : ""}" data-challenge-scope="all">Everyone</button>
+    </div>`;
+  }
 
   if (status !== "past" && !joined) {
     html += `<button type="button" id="btn-challenge-join" class="btn btn-primary btn-large">JOIN this challenge</button>`;
@@ -8696,6 +9625,12 @@ function renderChallengeDetail() {
 
   body.innerHTML = html;
 
+  $("challenge-scope-select")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-challenge-scope]");
+    if (!btn) return;
+    state.challengeScopeAll = btn.dataset.challengeScope === "all";
+    renderChallengeDetail();
+  });
   if (status !== "past" && !joined) {
     $("btn-challenge-join").addEventListener("click", () => joinChallenge(c.id));
   }
@@ -8752,10 +9687,10 @@ function paintChallengeRecent(sessions) {
     row.innerHTML = `
       ${avatarCircleHTML(avatarForUser(s.user), "1.8rem")}
       <div class="recent-statement">
-        <span class="recent-name">${escapeHtml(s.user)}</span> completed ${sessionActivityPhrase(s)} ${timeAgoLabel(sessionTimestamp(s))}
+        <span class="recent-name">${escapeHtml(s.user)}</span> · ${escapeHtml(capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, "")))} · ${shortAgoLabel(sessionTimestamp(s))}
       </div>
       <div class="recent-count-col">
-        <span class="recent-count">${s.type === "plank" ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
+        <span class="recent-count">${(s.type === "plank" || s.type === "deadhang") ? formatDuration(s.count * 1000) : formatNumber(s.count)}</span>
       </div>
     `;
     row.addEventListener("click", () => openSessionDetail(s, "screen-challenge-detail"));
@@ -8849,11 +9784,6 @@ function buildBingoCard(cycle, now) {
   const joined = participants.includes(state.currentUser);
   const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
 
-  const card = document.createElement("div");
-  card.className = "challenge-card";
-  card.style.setProperty("--challenge-color", "#4a2e6b");
-  card.addEventListener("click", () => openBingoDetail(cycle.id));
-
   let dateLabel;
   if (status === "active") {
     const d = Math.max(0, Math.ceil((cycle.endDate - now) / 86400000));
@@ -8865,60 +9795,35 @@ function buildBingoCard(cycle, now) {
 
   const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
-  const showInlineChip = status !== "past" && !joined;
 
-  let metaLine;
-  let winnerChipHTML = "";
+  let winner = "";
   if (status === "past") {
     const sessions = bingoSessionsForCycle(cycle, participants);
     const result = bingoWinners(board, participants, sessions, cycle, sessionTimestamp);
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined`;
     if (result.winners.length) {
-      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${result.winners.map(escapeHtml).join(" & ")}</span>`;
+      winner = result.winners.map(escapeHtml).join(" & ");
     }
-  } else {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · 5×5 shared board`;
   }
 
-  let html = `
-    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji is-stroke">${BINGO_GRID_ICON}</div>
-      <div class="challenge-card-heading">
-        <div class="challenge-card-title">Reps Bingo</div>
-        <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
-      </div>
-    </div>
-    <div class="challenge-card-meta">${metaLine}</div>
-  `;
-
+  let progress = null;
   if (joined && status !== "past") {
     const sessions = bingoSessionsForCycle(cycle, participants);
     const mySquares = bingoSquaresChecked(bingoCompletionForUser(board, sessions, state.currentUser, cycle, sessionTimestamp));
-    const progressLabel = `${mySquares} of 25 squares`;
-    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="25" aria-valuenow="${mySquares}">${buildProgressThermometer(mySquares, 25)}</div>`;
+    progress = { current: mySquares, goal: 25, text: `${mySquares}/25`, label: `${mySquares} of 25 squares` };
   }
 
-  if (status !== "past" && joined) {
-    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
-  } else if (winnerChipHTML) {
-    html += winnerChipHTML;
-  }
-
-  card.innerHTML = html;
-
-  if (status !== "past" && !joined) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-primary challenge-join-btn";
-    btn.textContent = "JOIN";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      joinChallenge(cycle.id);
-    });
-    card.appendChild(btn);
-  }
-
-  return card;
+  return challengeRowEl({
+    id: cycle.id,
+    icon: BINGO_GRID_ICON,
+    title: "Reps Bingo",
+    meta: challengeRowTiming(status, dateLabel, dateRange, participants.length),
+    onOpen: () => openBingoDetail(cycle.id),
+    onJoin: () => joinChallenge(cycle.id),
+    joined,
+    status,
+    progress,
+    winner,
+  });
 }
 
 function openBingoDetail(cycleId) {
@@ -9127,11 +10032,6 @@ function buildPokerCollectionCard(cycle, now) {
   const joined = participants.includes(state.currentUser);
   const status = now < cycle.startDate ? "upcoming" : now > cycle.endDate ? "past" : "active";
 
-  const card = document.createElement("div");
-  card.className = "challenge-card";
-  card.style.setProperty("--challenge-color", "#2e6b4a");
-  card.addEventListener("click", () => openPokerCollectionDetail(cycle.id));
-
   let dateLabel;
   if (status === "active") {
     const d = Math.max(0, Math.ceil((cycle.endDate - now) / 86400000));
@@ -9143,61 +10043,36 @@ function buildPokerCollectionCard(cycle, now) {
 
   const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const dateRange = `${fmt(cycle.startDate)} – ${fmt(cycle.endDate)}`;
-  const showInlineChip = status !== "past" && !joined;
 
-  let metaLine;
-  let winnerChipHTML = "";
+  let winner = "";
   if (status === "past") {
     const sessions = pokerCollectionSessionsForCycle(cycle, participants);
     const result = pokerCollectionWinners(participants, sessions, cycle, sessionTimestamp);
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined`;
     if (result.winners.length) {
-      winnerChipHTML = `<span class="challenge-winner-chip">🥇 ${result.winners.map(escapeHtml).join(" & ")}</span>`;
+      winner = result.winners.map(escapeHtml).join(" & ");
     }
-  } else {
-    metaLine = `${challengeStatIconHTML("participants")}${participants.length} joined · ${POKER_SET_SIZE}-hand set + Royal bonus`;
   }
 
-  let html = `
-    <div class="challenge-card-header${winnerChipHTML ? " challenge-card-header-winner" : ""}">
-      <div class="challenge-card-emoji is-stroke">${modeIconSvg("poker")}</div>
-      <div class="challenge-card-heading">
-        <div class="challenge-card-title">Royal Flush Rush</div>
-        <div class="challenge-card-dates">${dateRange}${showInlineChip ? ` <span class="challenge-status-chip">${dateLabel}</span>` : ""}</div>
-      </div>
-    </div>
-    <div class="challenge-card-meta">${metaLine}</div>
-  `;
-
+  let progress = null;
   if (joined && status !== "past") {
     const sessions = pokerCollectionSessionsForCycle(cycle, participants);
     const rows = pokerCollectionRowsForUser(sessions, state.currentUser, cycle, sessionTimestamp);
     const myHands = pokerCollectionHandsCollected(rows);
-    const progressLabel = `${myHands} of ${POKER_SET_SIZE} hands`;
-    html += `<div class="challenge-card-progress" role="progressbar" aria-label="${escapeHtml(progressLabel)}" aria-valuemin="0" aria-valuemax="${POKER_SET_SIZE}" aria-valuenow="${myHands}">${buildProgressThermometer(myHands, POKER_SET_SIZE)}</div>`;
+    progress = { current: myHands, goal: POKER_SET_SIZE, text: `${myHands}/${POKER_SET_SIZE}`, label: `${myHands} of ${POKER_SET_SIZE} hands` };
   }
 
-  if (status !== "past" && joined) {
-    html += `<span class="challenge-joined-chip">${dateLabel}</span>`;
-  } else if (winnerChipHTML) {
-    html += winnerChipHTML;
-  }
-
-  card.innerHTML = html;
-
-  if (status !== "past" && !joined) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-primary challenge-join-btn";
-    btn.textContent = "JOIN";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      joinChallenge(cycle.id);
-    });
-    card.appendChild(btn);
-  }
-
-  return card;
+  return challengeRowEl({
+    id: cycle.id,
+    icon: modeIconSvg("poker"),
+    title: "Royal Flush Rush",
+    meta: challengeRowTiming(status, dateLabel, dateRange, participants.length),
+    onOpen: () => openPokerCollectionDetail(cycle.id),
+    onJoin: () => joinChallenge(cycle.id),
+    joined,
+    status,
+    progress,
+    winner,
+  });
 }
 
 function openPokerCollectionDetail(cycleId) {
@@ -9225,6 +10100,31 @@ function pokerHandRowHTML(row) {
     </button>
   `;
 }
+
+// Settings > Poker collection: lifetime showcase of every winning hand as a
+// 2-col binder of fanned example cards, each with an overlaid ×N badge.
+function paintPokerShowcase() {
+  const { rows, collected, handsPlayed } = pokerLifetimeCollection(indexedSessionsForUser(state.currentUser), state.currentUser, sessionTimestamp);
+  $("poker-showcase-summary").textContent = `${collected} of ${rows.length} hands collected · ${handsPlayed} hand${handsPlayed === 1 ? "" : "s"} played`;
+  $("poker-showcase-grid").innerHTML = rows.map((row) => {
+    const mid = (row.cards.length - 1) / 2;
+    const cardsHTML = row.cards.map((c, i) => `<div class="poker-showcase-card${i >= POKER_HAND_KEY_CARDS[row.rank] ? " poker-showcase-card-kicker" : ""}" style="--i:${i - mid};background-image:url('${cardImageUrl(c)}')"></div>`).join("");
+    return `
+      <button type="button" class="poker-showcase-tile${row.done ? "" : " poker-showcase-tile-empty"}${row.bonus ? " poker-showcase-tile-royal" : ""}">
+        <div class="poker-showcase-fan" aria-hidden="true">${cardsHTML}</div>
+        <div class="poker-showcase-count">×${row.count}</div>
+        <div class="poker-showcase-name">${escapeHtml(row.label)}</div>
+      </button>
+    `;
+  }).join("");
+  $("poker-showcase-grid").querySelectorAll(".poker-showcase-tile").forEach((btn) => btn.addEventListener("click", navigateToPokerHandRow));
+}
+
+$("btn-open-poker-showcase").addEventListener("click", () => {
+  showScreen("screen-poker-showcase");
+  paintPokerShowcase();
+});
+$("btn-poker-showcase-back").addEventListener("click", () => showScreen("screen-settings"));
 
 function buildPokerHandRowsHTML(rows) {
   return `<div class="poker-hand-list">${rows.map(pokerHandRowHTML).join("")}</div>`;
@@ -9351,6 +10251,8 @@ function openCreateChallenge() {
   $("create-goal").value = "";
   state.createGoalType = "individual";
   document.querySelectorAll("#create-goal-type .segment").forEach((s, i) => s.classList.toggle("active", i === 0));
+  state.createVisibility = activeGroup() ? "group" : "public";
+  renderCreateVisibility();
 
   const today = new Date();
   const inTwoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -9369,6 +10271,27 @@ $("btn-challenge-create").addEventListener("click", () => {
   openCreateChallenge();
 });
 $("btn-create-back").addEventListener("click", () => showScreen("screen-challenges"));
+
+function renderCreateVisibility() {
+  $("create-visibility-section").classList.toggle("hidden", !groupsOn());
+  // "Group" now means visibility — the shared-goal type reads as Team instead.
+  document.querySelector('#create-goal-type [data-goaltype="collective"]').textContent = groupsOn() ? "Team" : "Group";
+  const group = activeGroup();
+  $("create-visibility-group").disabled = !group;
+  document.querySelectorAll("#create-visibility .segment").forEach((s) => s.classList.toggle("active", s.dataset.visibility === state.createVisibility));
+  $("create-visibility-note").textContent = state.createVisibility === "personal"
+    ? "Only you can see and join it."
+    : state.createVisibility === "group"
+      ? `Only ${group?.name || "your group"} can see and join it.`
+      : "Anyone on the app can see and join it.";
+}
+
+$("create-visibility").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn || btn.disabled) return;
+  state.createVisibility = btn.dataset.visibility;
+  renderCreateVisibility();
+});
 
 $("create-goal-type").addEventListener("click", (e) => {
   const btn = e.target.closest(".segment");
@@ -9407,6 +10330,10 @@ $("create-challenge-form").addEventListener("submit", async (e) => {
     end,
     gradient: gradientForIcon(emoji),
     createdBy: state.currentUser,
+    ...(groupsOn() ? {
+      visibility: state.createVisibility,
+      groupId: state.createVisibility === "group" ? activeGroupId() : null,
+    } : {}),
   };
 
   const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -9492,8 +10419,10 @@ function applyCameraPreviewSetting() {
   document.querySelector(".camera-wrap").classList.toggle("preview-hidden", !show);
 }
 
+// Share pools carry tone ratings (share-tone.js); everything else passes
+// through untouched.
 function pickFrom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr.tones ? pickToned(arr) : arr[Math.floor(Math.random() * arr.length)];
 }
 
 // Chance of a random cheer, as a function of progress toward personal best
@@ -9660,6 +10589,17 @@ function getPushupLast(name) {
 // ladderMaxRung field each Ladder session saves (see completeWorkout).
 function getLadderBestRung(name) {
   return bestFor(indexedSessionsForUser(name, "pushups"), name, (s) => s.mode === "ladder", "ladderMaxRung");
+}
+
+function getDeadhangBest(name) {
+  return bestFor(indexedSessionsForUser(name, "deadhang"), name, () => true);
+}
+
+function getDeadhangLast(name) {
+  const sessions = indexedSessionsForUser(name, "deadhang").filter((s) => s.user === name);
+  if (!sessions.length) return 0;
+  const latest = sessions.reduce((a, b) => (sessionTimestamp(b) > sessionTimestamp(a) ? b : a));
+  return latest.count || 0;
 }
 
 function getPlankBest(name) {
@@ -10227,6 +11167,28 @@ function setCardFace(el, card) {
   el.setAttribute("aria-label", `${card.label} of ${card.suit}`);
 }
 
+// Deal intro: a face-down deck riffles, the cards fly out left to right and
+// flip face up, then the active card rises front and center. Timings mirror
+// the poker-deal-* keyframes in style.css.
+const POKER_DEAL_MS = 1500;
+let pokerDealTimer = null;
+function pokerReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+function endPokerDeal() {
+  if (!state.pokerDealing) return;
+  clearTimeout(pokerDealTimer);
+  pokerDealTimer = null;
+  state.pokerDealing = false;
+  $("poker-hand")?.classList.remove("dealing");
+  renderPokerHand();
+}
+function startPokerDeal() {
+  clearTimeout(pokerDealTimer);
+  state.pokerDealing = !pokerReducedMotion();
+  if (state.pokerDealing) pokerDealTimer = setTimeout(endPokerDeal, POKER_DEAL_MS);
+}
+
 function renderPokerHand() {
   const hand = $("poker-hand");
   if (!hand) return;
@@ -10237,14 +11199,37 @@ function renderPokerHand() {
   // Once the hand resolves, the five scoring cards stay lit and the other
   // two fade out, so it's clear which cards made the hand.
   const used = state.pokerResolvedUsed ? new Set(state.pokerResolvedUsed) : null;
-  hand.classList.toggle("poker-hand-seven", state.pokerHand.length > 5);
-  hand.innerHTML = state.pokerHand.map((card, index) => {
-    const status = used ? (used.has(index) ? " scoring" : " unused")
-      : index < state.pokerCardIndex ? " completed" : index === state.pokerCardIndex ? " active" : "";
-    const check = index < state.pokerCardIndex ? '<span class="poker-card-check" aria-hidden="true">✓</span>' : "";
-    const counter = index === state.pokerCardIndex ? '<span id="poker-counter-badge" class="mode-counter-badge" aria-hidden="true"></span>' : "";
-    return `<div class="poker-card${status}" style="--poker-x:${offsets[index]}rem;--poker-rotate:${rotations[index]}deg;background-image:url('${cardImageUrl(card)}')" aria-label="${card.label} of ${card.suit}${index === state.pokerCardIndex ? ", active" : ""}">${check}${counter}</div>`;
-  }).join("");
+  // Same hand → update the existing card elements in place so the active
+  // card's move to/from front-and-center animates; a new hand rebuilds.
+  const key = state.pokerHand.map((c) => `${c.label}${c.suit[0]}`).join(",");
+  if (hand.dataset.key !== key) {
+    hand.dataset.key = key;
+    hand.classList.toggle("poker-hand-seven", state.pokerHand.length > 5);
+    hand.classList.toggle("dealing", !!state.pokerDealing);
+    const deck = state.pokerDealing ? '<div class="poker-deck" aria-hidden="true"><div class="poker-card-back"></div><div class="poker-card-back"></div><div class="poker-card-back"></div></div>' : "";
+    hand.innerHTML = deck + state.pokerHand.map((card, index) =>
+      `<div class="poker-card" style="--poker-x:${offsets[index]}rem;--poker-rotate:${rotations[index]}deg;--deal-i:${index}"></div>`).join("");
+  }
+  const focus = !used && !state.pokerDealing && state.pokerCardIndex < state.pokerHand.length;
+  hand.classList.toggle("has-focus", focus);
+  hand.querySelectorAll(".poker-card").forEach((el, index) => {
+    const card = state.pokerHand[index];
+    const done = index < state.pokerCardIndex;
+    const current = index === state.pokerCardIndex;
+    el.classList.toggle("scoring", !!used && used.has(index));
+    el.classList.toggle("unused", !!used && !used.has(index));
+    el.classList.toggle("completed", !used && done);
+    el.classList.toggle("active", focus && current);
+    el.style.backgroundImage = `url('${cardImageUrl(card)}')`;
+    el.setAttribute("aria-label", `${card.label} of ${card.suit}${current ? ", active" : ""}`);
+    const check = done ? '<span class="poker-card-check" aria-hidden="true">✓</span>' : "";
+    const counter = current ? '<span id="poker-counter-badge" class="mode-counter-badge" aria-hidden="true"></span>' : "";
+    const markup = check + counter;
+    if (el.dataset.markup !== markup) {
+      el.dataset.markup = markup;
+      el.innerHTML = markup;
+    }
+  });
 }
 
 function priorPokerAchievements() {
@@ -10273,6 +11258,9 @@ function dealNextPokerHand() {
   state.pokerResolving = false;
   state.pokerResolvedUsed = null;
   $("poker-result").classList.add("hidden");
+  const handEl = $("poker-hand");
+  if (handEl) delete handEl.dataset.key;
+  startPokerDeal();
   renderPokerHand();
   state.pokerHand.forEach(preloadCard);
 }
@@ -10289,24 +11277,50 @@ function completePokerHand() {
   const achieved = priorPokerAchievements();
   const newIds = pokerAchievementIds(result.rank).filter((id) => !achieved.has(id));
   state.pokerAchievementsUnlocked.push(...newIds);
-  const resultEl = $("poker-result");
-  resultEl.className = `poker-result rank-${result.rank}`;
-  resultEl.innerHTML = `${result.label}${newIds.length ? "<small>NEW ACHIEVEMENT UNLOCKED</small>" : "<small>HAND COMPLETE</small>"}`;
-  announce(`${result.label}${newIds.length ? ", new achievement unlocked" : ""}`);
+  showPokerHandToast(result, newIds.length > 0);
   if (result.rank >= 1) {
     const line = pokerCallout(result);
     if (line) speak(line);
     launchConfetti("workout-confetti", result.rank >= 6 ? ["♠️", "♥️", "♦️", "♣️", "🔥", "👑"] : ["♠️", "♥️", "♦️", "♣️"], result.rank >= 6 ? 34 : 18);
   }
-  setTimeout(() => {
-    if (state.workoutActive && state.pushupMode === "poker") {
-      dealNextPokerHand();
-      renderHeroForCount(repState.count);
-    }
-  }, 2000);
+  // A short beat to see the scoring cards light up, then the next hand —
+  // and a rep landing sooner deals it immediately (see the rep handler).
+  clearTimeout(pokerNextHandTimer);
+  pokerNextHandTimer = setTimeout(dealPokerHandAfterResult, 1200);
+}
+
+let pokerNextHandTimer = null;
+function dealPokerHandAfterResult() {
+  clearTimeout(pokerNextHandTimer);
+  if (!state.workoutActive || state.pushupMode !== "poker" || !state.pokerResolving) return;
+  dealNextPokerHand();
+  renderHeroForCount(repState.count);
+}
+
+// Hand result as a glass toast above the Complete button (same look as the
+// challenge-join toast) instead of a banner over the cards.
+function showPokerHandToast(result, newAchievement) {
+  const el = $("poker-hand-toast");
+  const suit = ["♠️", "♥️", "♦️", "♣️"][result.rank % 4];
+  el.innerHTML = `<span class="poker-toast-suit" aria-hidden="true">${suit}</span>`
+    + `<span><span class="poker-toast-hand rank-${result.rank}">${escapeHtml(result.label)}</span>`
+    + `<span class="poker-toast-sub"> · ${newAchievement ? "New achievement unlocked" : "Hand complete"}</span></span>`;
+  clearTimeout(showPokerHandToast._fadeT);
+  clearTimeout(showPokerHandToast._hideT);
+  el.classList.remove("hidden", "glass-toast-fade");
+  showPokerHandToast._fadeT = setTimeout(() => {
+    el.classList.add("glass-toast-fade");
+    showPokerHandToast._hideT = setTimeout(() => el.classList.add("hidden"), 400);
+  }, 2400);
 }
 
 function advancePokerCard() {
+  // Finishing card 1 mid-intro skips the rest of the deal animation.
+  if (state.pokerDealing) {
+    clearTimeout(pokerDealTimer);
+    state.pokerDealing = false;
+    $("poker-hand")?.classList.remove("dealing");
+  }
   state.pokerCardIndex += 1;
   state.pokerCardRepsDone = 0;
   if (state.pokerCardIndex >= state.pokerHand.length) completePokerHand();
@@ -10428,6 +11442,81 @@ function clearSharpshooterShots() {
   $("sharpshooter-shots")?.replaceChildren();
 }
 
+// Wooden target breaking apart: jagged shards cut from the painted target
+// (random every hit), thin splinters and a sawdust puff, thrown outward past
+// the target's edge with a little lift and then gravity, plus a short shake.
+const SHARPSHOOTER_BREAK_MS = 1100;
+
+function buildSharpshooterBreak(target) {
+  const layer = $("sharpshooter-shatter");
+  layer.replaceChildren();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const size = target.getBoundingClientRect().width || 280;
+  const rand = (min, max) => min + Math.random() * (max - min);
+  const polar = (deg, r) => [50 + r * Math.cos((deg * Math.PI) / 180), 50 + r * Math.sin((deg * Math.PI) / 180)];
+  const pct = ([x, y]) => `${x.toFixed(1)}% ${y.toFixed(1)}%`;
+
+  const count = 9;
+  const cuts = Array.from({ length: count }, (_, i) => (i * 360) / count + rand(-10, 10));
+  cuts.forEach((a0, i) => {
+    const a1 = i === count - 1 ? cuts[0] + 360 : cuts[i + 1];
+    const mid = (a0 + a1) / 2;
+    const center = [50 + rand(-7, 7), 50 + rand(-7, 7)];
+    const points = [center, polar(a0 + rand(-4, 4), rand(22, 40)), polar(a0, 52), polar(mid + rand(-8, 8), rand(50, 53)), polar(a1, 52), polar(a1 + rand(-4, 4), rand(22, 40))];
+    const cx = points.reduce((sum, p) => sum + p[0], 0) / points.length;
+    const cy = points.reduce((sum, p) => sum + p[1], 0) / points.length;
+    const shard = document.createElement("div");
+    shard.className = "ss-shard";
+    shard.style.clipPath = `polygon(${points.map(pct).join(", ")})`;
+    shard.style.transformOrigin = `${cx.toFixed(1)}% ${cy.toFixed(1)}%`;
+    layer.appendChild(shard);
+    const rad = (mid * Math.PI) / 180;
+    const distance = size * rand(0.45, 0.85);
+    const dx = Math.cos(rad) * distance;
+    const dy = Math.sin(rad) * distance;
+    const spin = rand(180, 540) * (Math.random() < 0.5 ? -1 : 1);
+    shard.animate([
+      { transform: "translate(0, 0) rotate(0deg) scale(1)", opacity: 1 },
+      { offset: 0.12, transform: `translate(${dx * 0.25}px, ${dy * 0.25 - size * 0.06}px) rotate(${spin * 0.12}deg) scale(1.12)`, opacity: 1 },
+      { offset: 0.45, transform: `translate(${dx * 0.7}px, ${dy * 0.7 - size * 0.12}px) rotate(${spin * 0.5}deg) scale(1.05)`, opacity: 1 },
+      { offset: 0.8, opacity: 1 },
+      { transform: `translate(${dx}px, ${dy + size * 0.7}px) rotate(${spin}deg) scale(0.95)`, opacity: 0 },
+    ], { duration: rand(950, SHARPSHOOTER_BREAK_MS), easing: "cubic-bezier(.3,.6,.5,1)", fill: "forwards" });
+  });
+
+  for (let i = 0; i < 10; i++) {
+    const splinter = document.createElement("div");
+    splinter.className = "ss-splinter";
+    const angle = rand(0, 360);
+    splinter.style.width = `${rand(6, 15)}%`;
+    layer.appendChild(splinter);
+    const rad = (angle * Math.PI) / 180;
+    const distance = size * rand(0.55, 1.1);
+    const spin = rand(360, 1080) * (Math.random() < 0.5 ? -1 : 1);
+    splinter.animate([
+      { transform: `translate(-50%, -50%) rotate(${angle}deg)`, opacity: 1 },
+      { offset: 0.7, opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(rad) * distance}px), calc(-50% + ${Math.sin(rad) * distance + size * 0.4}px)) rotate(${angle + spin}deg)`, opacity: 0 },
+    ], { duration: rand(750, 1000), easing: "cubic-bezier(.25,.6,.45,1)", fill: "forwards" });
+  }
+
+  const dust = document.createElement("div");
+  dust.className = "ss-dust";
+  layer.appendChild(dust);
+  dust.animate([
+    { transform: "scale(0.35)", opacity: 0.9 },
+    { transform: "scale(2.6)", opacity: 0 },
+  ], { duration: 900, easing: "ease-out", fill: "forwards" });
+
+  target.animate([
+    { transform: "translate(0, 0)" },
+    { transform: "translate(-6px, 3px)" },
+    { transform: "translate(5px, -4px)" },
+    { transform: "translate(-3px, 2px)" },
+    { transform: "translate(0, 0)" },
+  ], { duration: 240, easing: "ease-out" });
+}
+
 function celebrateSharpshooterHit() {
   const target = $("sharpshooter-target");
   clearTimeout(state.sharpshooterAnimationTimer);
@@ -10436,10 +11525,12 @@ function celebrateSharpshooterHit() {
   void target.offsetWidth;
   $("sharpshooter-count").textContent = "0";
   target.classList.add("shatter");
+  buildSharpshooterBreak(target);
   if (soundIsEnabled()) playSharpshooterHit();
-  vibrate(120);
+  vibrate([60, 30, 90]);
   state.sharpshooterAnimationTimer = setTimeout(() => {
     target.classList.remove("shatter");
+    $("sharpshooter-shatter").replaceChildren();
     clearSharpshooterShots();
     void target.offsetWidth;
     target.classList.add("rebuild");
@@ -10448,7 +11539,7 @@ function celebrateSharpshooterHit() {
     state.sharpshooterRebuildTimer = setTimeout(() => {
       target.classList.remove("rebuild");
     }, 280);
-  }, 650);
+  }, SHARPSHOOTER_BREAK_MS);
 }
 
 function onRepCounted(count) {
@@ -10467,7 +11558,9 @@ function onRepCounted(count) {
     if (state.cardRepsDone >= state.cardTarget) {
       flippedCard = advanceToNextCard();
     }
-  } else if (state.pushupMode === "poker" && !state.pokerResolving) {
+  } else if (state.pushupMode === "poker") {
+    // Don't make the next rep wait for the result beat — deal now.
+    if (state.pokerResolving) dealPokerHandAfterResult();
     state.pokerCardRepsDone += 1;
     if (state.pokerCardRepsDone >= state.pokerCardTarget) advancePokerCard();
   } else if (state.pushupMode === "dice") {
@@ -11101,7 +12194,7 @@ async function completeHorseTurn(rawCount) {
       forUser: user,
       needed: game.target,
       reps: rawCount,
-      lettersLeft: 5 - updated.players[user].letters,
+      lettersLeft: updated.word.length - updated.players[user].letters,
       justWentOut: updated.players[user].out,
     };
     renderHorseLetterScreen();
@@ -12218,10 +13311,14 @@ function renderSummaryRoadtripResult() {
     return;
   }
   cue.classList.remove("hidden");
-  const label = wins.length === 1
-    ? `${wins[0].flag ? `${wins[0].flag} ` : ""}${escapeHtml(wins[0].name)}`
-    : `${wins.length} territories`;
-  cue.innerHTML = `<span class="cue-icon" aria-hidden="true">🏆</span>${label} taken — tap to share`;
+  const lines = wins.slice(0, 3).map((win) =>
+    `Stole ${win.flag ? `${win.flag} ` : ""}${escapeHtml(win.name)} <span class="nowrap">(${roadtripPeriodPhrase(win.periods)})</span> from <span class="nowrap">${escapeHtml(win.overtaken)}</span>`
+  );
+  if (wins.length > 3) lines.push(`+${wins.length - 3} more`);
+  lines.push("tap to share");
+  if (wins.length === 1) lines.splice(0, 2, `${lines[0]} — ${lines[1]}`);
+  lines[0] = `<span class="cue-icon" aria-hidden="true">🏆</span>${lines[0]}`;
+  cue.innerHTML = lines.map((line) => `<span class="summary-roadtrip-cue-line">${line}</span>`).join("");
 }
 
 function refreshSummaryRoadtripConquests() {
@@ -12247,17 +13344,18 @@ function modeShareUrl(modeId) {
 
 function buildShareContext(adjustedCount) {
   const isPlank = state.lastSessionType === "plank";
+  const isDeadhang = state.lastSessionType === "deadhang";
   const isPullup = state.lastSessionType === "pullup";
   const isSquat = state.lastSessionType === "squat";
   const isSitup = state.lastSessionType === "situp";
   const isHolland = state.lastSessionType === "holland";
   const isChainOfPain = state.lastSessionType === "chainofpain";
   const isPulse = state.lastSessionType === "pulse";
-  const isPushup = !isPlank && !isPullup && !isSquat && !isSitup && !isHolland && !isChainOfPain;
+  const isPushup = !isPlank && !isDeadhang && !isPullup && !isSquat && !isSitup && !isHolland && !isChainOfPain;
   // Pulse's `count` is seconds, not reps — filtered out of the generic
   // pushups aggregate the same way plank/pullup/squat/situp already live in
   // their own activity buckets, so a week total never mixes units.
-  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups")
+  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isDeadhang ? "deadhang" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups")
     .filter((s) => isPushup ? s.mode !== "pulse" || isPulse : true);
   const weekStart = periodStart("week");
   const weekStartTime = weekStart.getTime();
@@ -12265,8 +13363,9 @@ function buildShareContext(adjustedCount) {
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : state.pushupMode,
+    mode: isPlank ? "plank" : isDeadhang ? "deadhang" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : state.pushupMode,
     isPlank,
+    isDeadhang,
     isPullup,
     isSquat,
     isSitup,
@@ -12276,7 +13375,7 @@ function buildShareContext(adjustedCount) {
     streak: computeStreak(mine),
     todayRaw: adjustedCount,
     weekTotalRaw,
-    weekTotalDisplay: (isPlank || isPulse) ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
+    weekTotalDisplay: (isPlank || isDeadhang || isPulse) ? formatDuration(weekTotalRaw * 1000) : formatNumber(weekTotalRaw),
     cardsCtx: (isPushup && state.pushupMode === "cards") ? buildCardsShareContext() : null,
     pokerCtx: (isPushup && state.pushupMode === "poker") ? buildPokerShareContext() : null,
     diceCtx: (isPushup && state.pushupMode === "dice") ? buildDiceShareContext() : null,
@@ -12304,7 +13403,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=151").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=152").then((module) => {
       workoutShareMessages = module;
       return module;
     });
@@ -12342,11 +13441,11 @@ async function shareRoadtripConquest() {
   const message = roadtripConquestShareMessage(state.currentUser, wins);
   const url = `${location.origin}${location.pathname}#roadtrip=${encodeURIComponent(wins[0].id)}`;
   if (navigator.share) {
-    try { await navigator.share(sharePayload("Roadtrip conquered", message, url)); } catch (e) { /* cancelled */ }
+    try { await navigator.share({ title: "Roadtrip conquered", text: `${message}\n\n${url}` }); } catch (e) { /* cancelled */ }
     return;
   }
   try {
-    await navigator.clipboard.writeText(`${message} ${url}`);
+    await navigator.clipboard.writeText(`${message}\n\n${url}`);
     toast("Conquest copied — go ruin someone's day.");
   } catch (e) {
     toast("Couldn't share automatically.", 4000);
@@ -12368,7 +13467,7 @@ $("btn-summary-again").addEventListener("click", () => {
     showScreen("screen-cock-setup");
     return;
   }
-  const screenByType = { plank: "screen-plank-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout", holland: "screen-holland-workout", chainofpain: "screen-chainofpain-workout" };
+  const screenByType = { plank: "screen-plank-workout", deadhang: "screen-deadhang-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout", holland: "screen-holland-workout", chainofpain: "screen-chainofpain-workout" };
   const screen = screenByType[state.lastSessionType];
   if (!screen) preserveNextModeSelection = true;
   showScreen(screen || "screen-workout");
@@ -12469,6 +13568,17 @@ function maybePlayRecurringGhostCue(modeState, progress, unit, containerId, skip
   }
 }
 
+// Shows a Plank / Crunch screen's variation cue (see renderModifierCue in
+// the pushup HUD for the floating version).
+function renderTypeModifierCue(prefix, modifierId) {
+  const picked = modifierId ? findModifier(modifierId) : null;
+  $(`${prefix}-modifier-cue`).classList.toggle("hidden", !picked);
+  if (!picked) return;
+  $(`${prefix}-modifier-cue-icon`).textContent = picked.icon;
+  $(`${prefix}-modifier-cue-label`).textContent = picked.cueLabel;
+  $(`${prefix}-modifier-cue-sub`).textContent = picked.cueSub;
+}
+
 function stopPlankInterval() {
   if (plankState.intervalId) {
     clearInterval(plankState.intervalId);
@@ -12491,6 +13601,8 @@ function maybeEncouragePlank(seconds) {
 async function startPlank() {
   if (soundIsEnabled()) unlockVoice();
   state.plankSessionLocation = currentSessionLocationSnapshot();
+  state.plankResolvedModifier = resolveModifier(state.typeModifiers.planks, Math.random, PLANK_MODIFIERS);
+  renderTypeModifierCue("plank", state.plankResolvedModifier);
   state.plankBest = getPlankBest(state.currentUser);
   state.plankLast = getPlankLast(state.currentUser);
   plankState.seconds = 0;
@@ -12573,6 +13685,7 @@ async function completePlank() {
     startedAt: state.plankStartedAt ? state.plankStartedAt.toISOString() : undefined,
     type: "plank",
     sessionProgression: buildPlankProgression(seconds),
+    ...(state.plankResolvedModifier ? { modifier: state.plankResolvedModifier } : {}),
     ...(state.plankSessionLocation ? { location: state.plankSessionLocation } : {}),
   };
 
@@ -12610,6 +13723,359 @@ async function completePlank() {
 
 $("btn-plank-start").addEventListener("click", startPlank);
 $("btn-plank-stop").addEventListener("click", completePlank);
+
+// ------------------- dead hang -------------------
+// Timed bar hang, one hang per session (see docs/deadhang-mode-plan.md).
+// Two timing sources, chosen on the start screen: Manual (3-second countdown,
+// then Stop) or Camera (Pull-ups' pose tracking starts the clock on a hang
+// and stops it on a drop, via modes/deadhang.js's createHangTimer). Both
+// feed the same per-second tick, which runs Planks' record/ghost/cheer flow.
+
+const DEADHANG_EMOJI = ["🙌", "🐒", "🦍", "🪝", "💪"];
+const DEADHANG_COUNTDOWN_SECONDS = 3;
+
+const deadhangState = {
+  timing: "manual",
+  phase: "idle", // idle | countdown | waiting | hanging
+  seconds: 0,
+  clockStartedAt: 0,
+  intervalId: null,
+  countdownId: null,
+  timer: null,
+  lastCheerAtSecond: 0,
+  recordBroken: false,
+  ghostActive: false,
+  ghostPassed: false,
+  nextGhostCueAt: 0,
+};
+
+function savedDeadhangTiming() {
+  return localStorage.getItem(LS.deadhangTiming) === "camera" ? "camera" : "manual";
+}
+
+function renderDeadhangIdle() {
+  const timing = savedDeadhangTiming();
+  deadhangState.timing = timing;
+  document.querySelectorAll("#deadhang-timing-select .segment").forEach((b) => b.classList.toggle("active", b.dataset.timing === timing));
+  $("deadhang-instructions").textContent = timing === "camera"
+    ? "Prop the phone facing the bar with your hands, head, and shoulders in frame. The clock starts when you hang and stops when you drop."
+    : "Tap start, get on the bar during the 3-second countdown, and hang as long as you can.";
+  $("deadhang-username").textContent = state.currentUser || "Friend";
+  setAvatarEl($("deadhang-avatar"), state.currentAvatar, "2rem");
+}
+
+$("deadhang-timing-select").addEventListener("click", (e) => {
+  const btn = e.target.closest(".segment");
+  if (!btn) return;
+  localStorage.setItem(LS.deadhangTiming, btn.dataset.timing);
+  renderDeadhangIdle();
+});
+
+function deadhangInGhostPhase() {
+  return deadhangState.ghostActive && !deadhangState.ghostPassed;
+}
+
+function updateDeadhangThermometer(seconds) {
+  const wrap = $("deadhang-thermometer-wrap");
+  const inGhostPhase = deadhangInGhostPhase();
+  const target = inGhostPhase ? state.deadhangLast : state.deadhangBest;
+  if (!target) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const fill = $("deadhang-thermometer-fill");
+  fill.style.width = `${Math.min(100, Math.round((seconds / target) * 100))}%`;
+  fill.classList.toggle("thermometer-ghost", inGhostPhase);
+  fill.classList.toggle("thermometer-win", !inGhostPhase && seconds > target);
+  setThermometerSegments(fill, target);
+}
+
+function updateDeadhangHighscoreMessage(seconds) {
+  const el = $("deadhang-highscore-message");
+  const inGhostPhase = deadhangInGhostPhase();
+  el.classList.toggle("ghost-message", inGhostPhase);
+  const target = inGhostPhase ? state.deadhangLast : state.deadhangBest;
+  if (!target) {
+    el.textContent = "";
+    return;
+  }
+  const remaining = target - seconds;
+  if (inGhostPhase) {
+    el.textContent = remaining > 0
+      ? `${remaining} second${remaining === 1 ? "" : "s"} behind your ghost 👻`
+      : "Tied your ghost — don't let it catch up! 👻";
+  } else if (remaining > 0) {
+    el.textContent = `${remaining} second${remaining === 1 ? "" : "s"} away from your best hang!`;
+  } else if (remaining === 0) {
+    el.textContent = "Tied your best hang — hold on!";
+  } else {
+    el.textContent = "New dead hang record! 🔥";
+  }
+}
+
+function maybeEncourageDeadhang(seconds) {
+  if (!state.deadhangBest || state.deadhangBest <= 1) return null;
+  if (seconds - deadhangState.lastCheerAtSecond < 5) return null;
+  if (Math.random() < cheerProbability(seconds / state.deadhangBest)) {
+    deadhangState.lastCheerAtSecond = seconds;
+    return pickFrom(ENCOURAGE_LINES);
+  }
+  return null;
+}
+
+// One whole second of hang — Planks' per-second flow.
+function onDeadhangSecond(seconds) {
+  deadhangState.seconds = seconds;
+  $("deadhang-timer").textContent = formatDuration(seconds * 1000);
+  let ghostJustPassed = false;
+  if (deadhangState.ghostActive && !deadhangState.ghostPassed && seconds > state.deadhangLast) {
+    deadhangState.ghostPassed = true;
+    ghostJustPassed = true;
+    playGhostSurpassEffect($("deadhang-ghost-transition"), { sound: soundIsEnabled(), playSound: playGhostBoo });
+  }
+  maybePlayRecurringGhostCue(deadhangState, seconds, "seconds", "deadhang-ghost-transition", ghostJustPassed);
+  updateDeadhangThermometer(seconds);
+  updateDeadhangHighscoreMessage(seconds);
+  if (state.deadhangBest && seconds === state.deadhangBest + 1 && !deadhangState.recordBroken) {
+    deadhangState.recordBroken = true;
+    launchConfetti("deadhang-confetti", DEADHANG_EMOJI);
+    speak(DEADHANG_RECORD_LINE);
+  } else {
+    const cheer = maybeEncourageDeadhang(seconds);
+    if (cheer) speak(cheer);
+  }
+}
+
+function clearDeadhangTimers() {
+  if (deadhangState.intervalId) clearInterval(deadhangState.intervalId);
+  if (deadhangState.countdownId) clearInterval(deadhangState.countdownId);
+  deadhangState.intervalId = null;
+  deadhangState.countdownId = null;
+}
+
+function setDeadhangStatus(text) {
+  $("deadhang-status").textContent = text;
+}
+
+// Clock running: Manual drives seconds off wall time; Camera passes elapsed
+// time in from the hang timer on every frame instead.
+function beginDeadhangHang() {
+  deadhangState.phase = "hanging";
+  deadhangState.clockStartedAt = Date.now();
+  state.deadhangStartedAt = new Date();
+  setDeadhangStatus("HANGING");
+  $("btn-deadhang-cancel").classList.add("hidden");
+  $("btn-deadhang-stop").classList.remove("hidden");
+  if (deadhangState.timing === "manual") {
+    deadhangState.intervalId = setInterval(() => {
+      const seconds = Math.floor((Date.now() - deadhangState.clockStartedAt) / 1000);
+      if (seconds > deadhangState.seconds) onDeadhangSecond(seconds);
+    }, 200);
+  }
+}
+
+function deadhangPoseBox(bbox) {
+  const video = $("deadhang-camera-video");
+  const container = $("deadhang-camera-wrap");
+  const scale = Math.max(container.clientWidth / video.videoWidth, container.clientHeight / video.videoHeight);
+  const offsetX = (container.clientWidth - video.videoWidth * scale) / 2;
+  const offsetY = (container.clientHeight - video.videoHeight * scale) / 2;
+  const box = $("deadhang-pose-box");
+  box.style.left = `${bbox.originX * scale + offsetX}px`;
+  box.style.top = `${bbox.originY * scale + offsetY}px`;
+  box.style.width = `${bbox.width * scale}px`;
+  box.style.height = `${bbox.height * scale}px`;
+  box.classList.remove("hidden");
+}
+
+function advanceDeadhangCamera(hanging) {
+  if (!deadhangState.timer || (deadhangState.phase !== "waiting" && deadhangState.phase !== "hanging")) return;
+  const { phase, elapsedMs } = deadhangState.timer.advance(hanging, performance.now());
+  if (phase === "hanging" && deadhangState.phase === "waiting") beginDeadhangHang();
+  if (deadhangState.phase !== "hanging") return;
+  const seconds = Math.floor(elapsedMs / 1000);
+  if (seconds > deadhangState.seconds) onDeadhangSecond(seconds);
+  if (phase === "done") completeDeadhang();
+}
+
+const deadhangCamera = createCameraController({
+  moduleUrl: FACE_DETECTOR_MODULE_URL,
+  wasmUrl: FACE_DETECTOR_WASM_URL,
+  modelUrl: POSE_LANDMARKER_MODEL_URL,
+  detectorType: "pose",
+  getVideo: () => $("deadhang-camera-video"),
+  onDetection(landmarks) {
+    const bbox = squatBodyBBox(landmarks.slice(0, 25), $("deadhang-camera-video"));
+    if (bbox) deadhangPoseBox(bbox);
+    advanceDeadhangCamera(deadhangModeModule.deadhangFrameHanging(landmarks));
+  },
+  onNoDetection() {
+    $("deadhang-pose-box").classList.add("hidden");
+    advanceDeadhangCamera(false);
+  },
+});
+
+function resetDeadhangRun() {
+  state.deadhangBest = getDeadhangBest(state.currentUser);
+  state.deadhangLast = getDeadhangLast(state.currentUser);
+  state.deadhangSessionLocation = currentSessionLocationSnapshot();
+  deadhangState.seconds = 0;
+  deadhangState.lastCheerAtSecond = 0;
+  deadhangState.recordBroken = false;
+  deadhangState.ghostActive = ghostModeEnabled() && !!state.deadhangLast;
+  deadhangState.ghostPassed = false;
+  deadhangState.nextGhostCueAt = nextGhostCueAt(0, "seconds");
+  $("deadhang-ghost-transition").classList.remove("playing");
+  $("deadhang-timer").textContent = "0:00";
+  updateDeadhangThermometer(0);
+  updateDeadhangHighscoreMessage(0);
+}
+
+function showDeadhangActive(cameraVisible) {
+  $("deadhang-idle").classList.add("hidden");
+  $("deadhang-active").classList.remove("hidden");
+  $("deadhang-camera-wrap").classList.toggle("hidden", !cameraVisible);
+  $("btn-deadhang-stop").classList.add("hidden");
+  $("btn-deadhang-cancel").classList.remove("hidden");
+  setChromeMinimized(true);
+}
+
+async function startDeadhang() {
+  if (soundIsEnabled()) unlockVoice();
+  state.deadhangResolvedModifier = resolveModifier(state.typeModifiers.deadhang, Math.random, DEADHANG_MODIFIERS);
+  renderTypeModifierCue("deadhang", state.deadhangResolvedModifier);
+  renderDeadhangIdle();
+  resetDeadhangRun();
+  hideStatusBanner();
+
+  if (deadhangState.timing === "camera") {
+    const detectorReady = deadhangCamera.ensureDetector();
+    await loadDeadhangMode();
+    let stream;
+    try { stream = await deadhangCamera.requestStream(); }
+    catch {
+      toast("Camera access is required for camera timing. Allow it, or switch to Manual.", 4500);
+      detectorReady.catch(() => {});
+      return;
+    }
+    toast("Loading body tracker…", 2000);
+    try { await detectorReady; }
+    catch {
+      toast("Couldn't load the body tracking model. Try again, or switch to Manual.", 4500);
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    const video = $("deadhang-camera-video");
+    video.srcObject = stream;
+    try { await video.play(); } catch { /* autoplay quirks */ }
+    await acquireWakeLock();
+    state.deadhangActive = true;
+    deadhangState.timer = deadhangModeModule.createHangTimer();
+    deadhangState.phase = "waiting";
+    showDeadhangActive(true);
+    setDeadhangStatus("GET ON THE BAR");
+    deadhangCamera.startDetection();
+    return;
+  }
+
+  await acquireWakeLock();
+  state.deadhangActive = true;
+  deadhangState.phase = "countdown";
+  showDeadhangActive(false);
+  setDeadhangStatus("GET ON THE BAR");
+  let remaining = DEADHANG_COUNTDOWN_SECONDS;
+  $("deadhang-timer").textContent = String(remaining);
+  deadhangState.countdownId = setInterval(() => {
+    remaining -= 1;
+    if (remaining > 0) {
+      $("deadhang-timer").textContent = String(remaining);
+      return;
+    }
+    clearInterval(deadhangState.countdownId);
+    deadhangState.countdownId = null;
+    $("deadhang-timer").textContent = "0:00";
+    speak("Hang!");
+    beginDeadhangHang();
+  }, 1000);
+}
+
+function stopDeadhangHard() {
+  clearDeadhangTimers();
+  deadhangCamera.stop();
+  releaseWakeLock();
+  state.deadhangActive = false;
+  deadhangState.phase = "idle";
+  deadhangState.timer = null;
+  $("deadhang-active").classList.add("hidden");
+  $("deadhang-idle").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+let lastDeadhangFunMessageIndex = -1;
+function pickDeadhangFunMessage(seconds) {
+  let idx;
+  do { idx = Math.floor(Math.random() * FUN_MESSAGES_DEADHANG.length); }
+  while (idx === lastDeadhangFunMessageIndex && FUN_MESSAGES_DEADHANG.length > 1);
+  lastDeadhangFunMessageIndex = idx;
+  return FUN_MESSAGES_DEADHANG[idx](seconds);
+}
+
+async function completeDeadhang() {
+  if (deadhangState.phase !== "hanging") return;
+  const seconds = deadhangState.seconds;
+  stopDeadhangHard();
+  if (seconds < 1) {
+    toast("That hang was too short to log.");
+    return;
+  }
+
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: new Date().toISOString(),
+    count: seconds,
+    avatar: state.currentAvatar,
+    startedAt: state.deadhangStartedAt ? state.deadhangStartedAt.toISOString() : undefined,
+    type: "deadhang",
+    ...(state.deadhangResolvedModifier ? { modifier: state.deadhangResolvedModifier } : {}),
+    ...(state.deadhangSessionLocation ? { location: state.deadhangSessionLocation } : {}),
+  };
+
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  const message = pickDeadhangFunMessage(seconds);
+  state.lastSessionType = "deadhang";
+  state.summarySessionId = null;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = formatDuration(seconds * 1000);
+  $("missed-reps-wrap").classList.add("hidden");
+  $("summary-weighted-note").classList.add("hidden");
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", DEADHANG_EMOJI);
+  speak(`Dead hang complete. ${message}`);
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-deadhang-start").addEventListener("click", startDeadhang);
+$("btn-deadhang-stop").addEventListener("click", completeDeadhang);
+$("btn-deadhang-cancel").addEventListener("click", stopDeadhangHard);
 
 // ------------------- squat mode -------------------
 // Camera-counted free set, own screen (see docs/squat-mode-plan.md): an
@@ -12963,6 +14429,8 @@ function beginSquatCounting(thresholds) {
 async function startSquat() {
   if (soundIsEnabled()) unlockVoice();
   state.squatSessionLocation = currentSessionLocationSnapshot();
+  state.squatResolvedModifier = resolveModifier(state.typeModifiers.squats, Math.random, SQUAT_MODIFIERS);
+  renderTypeModifierCue("squat", state.squatResolvedModifier);
 
   const detectorReady = squatCamera.ensureDetector();
   let stream;
@@ -13044,6 +14512,7 @@ async function completeSquat() {
     avatar: state.currentAvatar,
     startedAt: state.squatStartedAt ? state.squatStartedAt.toISOString() : undefined,
     type: "squat",
+    ...(state.squatResolvedModifier ? { modifier: state.squatResolvedModifier } : {}),
     sessionProgression: finalizeRepProgression(
       state.squatProgression,
       state.squatStartedAt ? completedAt.getTime() - state.squatStartedAt.getTime() : 0,
@@ -13296,6 +14765,8 @@ const pullupCamera = createCameraController({
 
 async function startPullup() {
   if (soundIsEnabled()) unlockVoice();
+  state.pullupResolvedModifier = resolveModifier(state.typeModifiers.pullups, Math.random, PULLUP_MODIFIERS);
+  renderTypeModifierCue("pullup", state.pullupResolvedModifier);
   const detectorReady = pullupCamera.ensureDetector();
   await loadPullupMode();
   state.pullupSessionLocation = currentSessionLocationSnapshot();
@@ -13376,6 +14847,7 @@ async function completePullup() {
     avatar: state.currentAvatar,
     startedAt: state.pullupStartedAt?.toISOString(),
     type: "pullup",
+    ...(state.pullupResolvedModifier ? { modifier: state.pullupResolvedModifier } : {}),
     sessionProgression: finalizeRepProgression(
       state.pullupProgression,
       state.pullupStartedAt ? completedAt.getTime() - state.pullupStartedAt.getTime() : 0,
@@ -14792,6 +16264,8 @@ function beginSitupCounting(thresholds) {
 async function startSitup() {
   if (soundIsEnabled()) unlockVoice();
   state.situpSessionLocation = currentSessionLocationSnapshot();
+  state.situpResolvedModifier = resolveModifier(state.typeModifiers.situps, Math.random, CRUNCH_MODIFIERS);
+  renderTypeModifierCue("situp", state.situpResolvedModifier);
 
   const detectorReady = situpCamera.ensureDetector();
   let stream;
@@ -14863,6 +16337,7 @@ async function completeSitup() {
     avatar: state.currentAvatar,
     startedAt: state.situpStartedAt ? state.situpStartedAt.toISOString() : undefined,
     type: "situp",
+    ...(state.situpResolvedModifier ? { modifier: state.situpResolvedModifier } : {}),
     sessionProgression: finalizeRepProgression(
       state.situpProgression,
       state.situpStartedAt ? completedAt.getTime() - state.situpStartedAt.getTime() : 0,
@@ -14932,9 +16407,21 @@ function getKettlebellProfiles() {
     return {};
   }
 }
+// `baseWeight` is the main bell weight shared by every kettlebell move;
+// `weights` holds only per-move overrides. Profiles saved before the main
+// weight existed adopt their most common per-move weight as the base, and
+// entries matching it stop counting as overrides.
 function getKettlebellProfile(user) {
   const profile = getKettlebellProfiles()[user] || {};
-  return { weights: profile.weights || {}, paces: profile.paces || {}, nudges: profile.nudges || {} };
+  const weights = { ...(profile.weights || {}) };
+  let baseWeight = Number(profile.baseWeight);
+  if (!Number.isFinite(baseWeight)) {
+    const counts = new Map();
+    for (const lbs of Object.values(weights)) counts.set(lbs, (counts.get(lbs) || 0) + 1);
+    baseWeight = counts.size ? [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0] : KETTLEBELL_DEFAULT_WEIGHT_LBS;
+    for (const [id, lbs] of Object.entries(weights)) if (lbs === baseWeight) delete weights[id];
+  }
+  return { baseWeight, weights, paces: profile.paces || {}, nudges: profile.nudges || {} };
 }
 function saveKettlebellProfile(user, profile) {
   const profiles = getKettlebellProfiles();
@@ -14953,7 +16440,9 @@ const kbState = {
   intervalId: null,
   log: [],
   startedAt: null,
-  weights: {},
+  baseWeight: KETTLEBELL_DEFAULT_WEIGHT_LBS,
+  weights: {}, // per-move overrides of baseWeight
+  editingWeight: null,
   paces: {},
   nudges: {},
   lastCueSecond: null,
@@ -14964,7 +16453,11 @@ const kbState = {
 function kbWeightFor(exerciseId) {
   if (kettlebellExercise(exerciseId).bodyweight) return 0;
   const saved = Number(kbState.weights[exerciseId]);
-  return Number.isFinite(saved) ? saved : KETTLEBELL_DEFAULT_WEIGHT_LBS;
+  return Number.isFinite(saved) ? saved : kbState.baseWeight;
+}
+
+function kbHasOverride(exerciseId) {
+  return Number.isFinite(Number(kbState.weights[exerciseId]));
 }
 function kbPaceForSet(set) {
   return kettlebellPaceFor(kbState.paces, set.exerciseId, kbWeightFor(set.exerciseId));
@@ -14982,7 +16475,9 @@ function openKettlebellPreview(workoutId) {
   const profile = getKettlebellProfile(state.currentUser);
   kbState.workout = workout;
   kbState.sets = kettlebellExpandSets(workout);
+  kbState.baseWeight = profile.baseWeight;
   kbState.weights = { ...profile.weights };
+  kbState.editingWeight = null;
   kbState.paces = profile.paces;
   kbState.nudges = profile.nudges;
   renderKettlebellPreview();
@@ -14992,7 +16487,11 @@ function openKettlebellPreview(workoutId) {
 function renderKettlebellPreview() {
   const workout = kbState.workout;
   if (!workout) return;
-  $("kettlebell-preview-title").textContent = `${workout.icon} ${workout.name}`;
+  $("kettlebell-preview-icon").innerHTML = modeIconSvg(`kb-${workout.id}`);
+  $("kettlebell-preview-title").textContent = workout.name;
+  const usesBell = workout.exercises.some((entry) => !kettlebellExercise(entry.exerciseId).bodyweight);
+  $("kettlebell-base-weight").classList.toggle("hidden", !usesBell);
+  $("kettlebell-base-weight-value").textContent = `${kbState.baseWeight} lb`;
   const estimate = kettlebellEstimateSeconds(kbState.sets, kbPaceForSet);
   const format = workout.format === "circuit" ? `Circuit × ${workout.rounds}` : workout.rounds > 1 ? `${workout.rounds} sets each` : "One pass";
   const rest = workout.format === "circuit" && workout.roundRestSec !== workout.restSec
@@ -15009,16 +16508,29 @@ function renderKettlebellPreview() {
     const nudgeChip = !exercise.bodyweight && Number.isFinite(nudge) && nudge > weight
       ? `<button type="button" class="kb-nudge" data-kb-nudge="${entry.exerciseId}" data-lbs="${nudge}">Try ${nudge} lb?</button>`
       : "";
+    // Quiet weight text by default (follows the main bell weight); tapping
+    // it opens a small stepper that overrides just this move.
+    const overridden = kbHasOverride(entry.exerciseId);
+    const editing = kbState.editingWeight === entry.exerciseId;
+    const resetBtn = overridden
+      ? `<button type="button" class="kb-weight-reset" data-kb-reset="${entry.exerciseId}" aria-label="Use the main bell weight for ${escapeHtml(exercise.name)}">↺</button>`
+      : "";
     const weightControl = exercise.bodyweight
       ? `<div class="kb-preview-bw">Bodyweight</div>`
-      : `<div class="kb-preview-weight">
-          <div class="stepper-row">
-            <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="-1" aria-label="Lighter ${escapeHtml(exercise.name)}">−</button>
-            <div class="stepper-value">${weight} lb</div>
-            <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="1" aria-label="Heavier ${escapeHtml(exercise.name)}">+</button>
-          </div>
-          ${nudgeChip}
-        </div>`;
+      : editing
+        ? `<div class="kb-preview-weight">
+            <div class="stepper-row">
+              <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="-1" aria-label="Lighter ${escapeHtml(exercise.name)}">−</button>
+              <button type="button" class="stepper-value kb-weight-text${overridden ? " is-override" : ""}" data-kb-edit="${entry.exerciseId}">${weight} lb</button>
+              <button type="button" class="stepper-btn" data-kb-weight="${entry.exerciseId}" data-dir="1" aria-label="Heavier ${escapeHtml(exercise.name)}">+</button>
+            </div>
+            ${nudgeChip}
+          </div>`
+        : `<div class="kb-preview-weight kb-preview-weight-compact">
+            <button type="button" class="kb-weight-text${overridden ? " is-override" : ""}" data-kb-edit="${entry.exerciseId}" aria-label="Change weight for ${escapeHtml(exercise.name)}">${weight} lb</button>
+            ${resetBtn}
+            ${nudgeChip}
+          </div>`;
     return `<div class="kb-preview-row">
       <div class="kb-preview-num">${index + 1}</div>
       <div class="kb-preview-copy">
@@ -15042,10 +16554,33 @@ $("kettlebell-preview-list").addEventListener("click", (e) => {
     renderKettlebellPreview();
     return;
   }
+  const edit = e.target.closest("[data-kb-edit]");
+  if (edit) {
+    kbState.editingWeight = kbState.editingWeight === edit.dataset.kbEdit ? null : edit.dataset.kbEdit;
+    renderKettlebellPreview();
+    return;
+  }
+  const reset = e.target.closest("[data-kb-reset]");
+  if (reset) {
+    delete kbState.weights[reset.dataset.kbReset];
+    renderKettlebellPreview();
+    return;
+  }
   const btn = e.target.closest("[data-kb-weight]");
   if (!btn) return;
   const id = btn.dataset.kbWeight;
-  kbState.weights[id] = kettlebellStepWeight(kbWeightFor(id), Number(btn.dataset.dir));
+  const next = kettlebellStepWeight(kbWeightFor(id), Number(btn.dataset.dir));
+  if (next === kbState.baseWeight) delete kbState.weights[id];
+  else kbState.weights[id] = next;
+  renderKettlebellPreview();
+});
+
+$("kettlebell-base-weight").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-kb-base]");
+  if (!btn) return;
+  kbState.baseWeight = kettlebellStepWeight(kbState.baseWeight, Number(btn.dataset.kbBase));
+  // An override that now matches the main weight is no longer an override.
+  for (const [id, lbs] of Object.entries(kbState.weights)) if (lbs === kbState.baseWeight) delete kbState.weights[id];
   renderKettlebellPreview();
 });
 $("btn-kettlebell-preview-back").addEventListener("click", () => showScreen("screen-explore-modes"));
@@ -15140,6 +16675,8 @@ async function startKettlebell() {
   // note) — the screen dimming mid-rest would stall the timers' UI.
   await acquireWakeLock();
   const profile = getKettlebellProfile(state.currentUser);
+  profile.baseWeight = kbState.baseWeight;
+  for (const entry of kbState.workout.exercises) delete profile.weights[entry.exerciseId];
   profile.weights = { ...profile.weights, ...kbState.weights };
   saveKettlebellProfile(state.currentUser, profile);
   kbState.log = [];
@@ -15433,6 +16970,14 @@ function renderKettlebellDone(session, log, previous) {
 
 const RECAP_PALETTE_CLASSES = ["recap-week", "recap-month", "recap-quarter", "recap-year"];
 
+// Recap pop-ups are opt-in per tier (Settings → Preferences → Recaps).
+// Every tier is still marked seen when it comes due, so switching one on
+// later never dumps a backlog of old recaps.
+const recapOptKey = (tier) => `bpb-recap-opt-${tier}`;
+function recapOptedIn(tier) {
+  return localStorage.getItem(recapOptKey(tier)) === "1";
+}
+
 const recapStorage = {
   getItem: (key) => localStorage.getItem(`bpb-${key}`),
   setItem: (key, value) => localStorage.setItem(`bpb-${key}`, value),
@@ -15497,6 +17042,7 @@ async function maybeQueueGroupRecap(sessions) {
   const key = groupRecapSeenKey();
   if (recapStorage.getItem(key) === start.toISOString()) return false;
   recapStorage.setItem(key, start.toISOString());
+  if (!recapOptedIn("group-month")) return false;
 
   const startTime = start.getTime(), endTime = end.getTime();
   const hadActivity = sessions.some((s) => {
@@ -15860,6 +17406,7 @@ async function init() {
       renderStreakBadge();
       renderGoalThermometers();
       renderGamesNavDot();
+      syncHeaderBack();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }
@@ -15869,7 +17416,7 @@ async function init() {
   // — not gated on the live fetch above succeeding.
   if (state.currentUser) {
     const sessionsForRecap = getAllSessionsForDisplay();
-    state.recapQueue = checkAndQueueRecaps(sessionsForRecap, state.currentUser, new Date(), recapStorage);
+    state.recapQueue = checkAndQueueRecaps(sessionsForRecap, state.currentUser, new Date(), recapStorage).filter(recapOptedIn);
     // Group card slots in right after the viewer's own personal Monthly
     // card (or at the front if Monthly isn't due this session).
     const groupDue = await maybeQueueGroupRecap(sessionsForRecap).catch(() => false);
@@ -15884,6 +17431,8 @@ async function init() {
   // normal profile picker; selecting or creating a profile resumes this link.
   if (state.currentUser) await openHorseGameFromHash();
   if (state.currentUser) await openTowGameFromHash();
+  if (state.currentUser) await openGroupJoinFromHash();
+  else if (groupJoinLinkCode() && groupsOn()) openGroupClaim(groupJoinLinkCode());
 
   // A shared challenge link (#challenge=id) jumps straight to that challenge's
   // detail screen — but only if this device already has a remembered name;
@@ -15919,13 +17468,12 @@ async function init() {
   // A shared roadtrip territory link (#roadtrip=id, or plain #roadtrip for a
   // conquest with no single territory) opens the Roadtrip screen, drilling
   // into that territory's detail if the id still exists.
-  const roadtripMatch = location.hash.match(/^#roadtrip(?:=([a-z0-9-]{1,64}))?$/);
+  // Territory ids look like "city:us:texas:houston" and the share link
+  // percent-encodes the colons, so decode before matching.
+  const roadtripMatch = decodeURIComponent(location.hash).match(/^#roadtrip(?:=([a-z0-9:-]{1,180}))?$/);
   if (roadtripMatch && state.currentUser) {
     showScreen("screen-roadtrip");
-    if (roadtripMatch[1] && state.roadtripTerritories.some((t) => t.id === roadtripMatch[1])) {
-      state.roadtripDetailId = roadtripMatch[1];
-      showScreen("screen-roadtrip-detail");
-    }
+    if (roadtripMatch[1]) openRoadtripLink(roadtripMatch[1]);
   }
 
   if ("serviceWorker" in navigator) {
@@ -15985,5 +17533,11 @@ document.addEventListener("visibilitychange", () => {
 if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", nudgeSafeAreaLayout);
 }
+
+// Tone ratings + fill lines for the share pools defined in this file
+// (share-tone-ratings.js, share-lines-app.js).
+const APP_SHARE_POOLS = { ROADTRIP_SHARE_GENERIC, ROADTRIP_SHARE_LEADING, ROADTRIP_SHARE_ABSENT, ROADTRIP_SHARE_ABSENT_SOLO, COMPARE_SHARE_LEADING, COMPARE_SHARE_TIED, CHALLENGE_INVITE_MESSAGES, SHARE_MESSAGES_MY_BONANZA, SHARE_MESSAGES_BOYS_GENERIC, SHARE_MESSAGES_BOYS_LEADING, SHARE_MESSAGES_BOYS_NO_RANK };
+tagTones(APP_SHARE_POOLS, SHARE_TONE_RATINGS);
+addTonedLines(APP_SHARE_POOLS, APP_SHARE_EXTRA_LINES);
 
 init();

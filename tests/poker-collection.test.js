@@ -114,3 +114,33 @@ test("pokerCollectionWinners: no finisher falls back to most hands collected, ti
   assert.deepEqual(nobody.winners, []);
   assert.equal(nobody.mode, "none");
 });
+
+test("pokerLifetimeCollection counts every poker session regardless of date", async () => {
+  const { pokerLifetimeCollection } = await import("../screens/poker-collection.js");
+  const sessions = [
+    { user: "A", mode: "poker", timestamp: "2020-01-01T12:00:00Z", pokerHandRanks: [0, 1, 1, 9] },
+    { user: "A", mode: "poker", timestamp: "2026-10-01T12:00:00Z", pokerHandRanks: [2, 0] },
+    { user: "A", mode: "squat", timestamp: "2026-10-01T12:00:00Z", pokerHandRanks: [5] },
+    { user: "B", mode: "poker", timestamp: "2026-10-01T12:00:00Z", pokerHandRanks: [3] },
+  ];
+  const { rows, collected, handsPlayed } = pokerLifetimeCollection(sessions, "A");
+  assert.equal(rows.length, 9);
+  assert.equal(rows.find((r) => r.rank === 1).count, 2);
+  assert.equal(rows.find((r) => r.rank === 9).count, 1);
+  assert.equal(rows.find((r) => r.rank === 3).count, 0);
+  assert.equal(collected, 3);
+  assert.equal(handsPlayed, 6);
+});
+
+test("POKER_HAND_KEY_CARDS prefix alone still evaluates to the hand's rank", async () => {
+  const { POKER_HAND_KEY_CARDS } = await import("../screens/poker-collection.js");
+  for (const rank of POKER_COLLECTION_RANKS) {
+    const n = POKER_HAND_KEY_CARDS[rank];
+    assert.ok(n >= 2 && n <= 5);
+    // Swapping any kicker for another card of an unused value must not change the rank.
+    if (n < 5) {
+      const cards = POKER_HAND_EXAMPLES[rank].slice(0, n).concat(POKER_HAND_EXAMPLES[rank].slice(n).map((c, i) => ({ ...c, label: ["2", "5", "Q"][i] })));
+      assert.equal(evaluatePokerHand(cards).rank, rank, `rank ${rank}`);
+    }
+  }
+});

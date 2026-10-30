@@ -622,6 +622,17 @@ export const FUN_MESSAGES_PLANK = [
   (s) => `${s} seconds. Your abs just filed a complaint.`,
 ];
 
+export const FUN_MESSAGES_DEADHANG = [
+  (s) => `${s} second dead hang! Your grip just entered a new tax bracket.`,
+  (s) => `Hung on for ${s} seconds. Certified monkey behavior.`,
+  (s) => `${s} seconds of pure grip. The bar is scared of you now.`,
+  (s) => `${s} seconds off the ground. Gravity is filing an appeal.`,
+  (s) => `That's ${s} seconds of forearm violence.`,
+  (s) => `${s} seconds. Your fingers have unionized.`,
+];
+
+export const DEADHANG_RECORD_LINE = "New dead hang record! Grip of steel!";
+
 // Everything the app says that isn't a number, a cheer, or a fun-message tail.
 export const FIXED_PHRASES = [
   "Let's go",
@@ -629,6 +640,9 @@ export const FIXED_PHRASES = [
   "Back to it",
   "Session complete.",
   "Plank complete.",
+  "Dead hang complete.",
+  "Hang!",
+  DEADHANG_RECORD_LINE,
   "New personal record! Absolute legend!",
   "New plank record! Absolute legend!",
   PULLUP_RECORD_LINE,
@@ -741,6 +755,7 @@ export function buildCorpus() {
   }
   for (const fn of FUN_MESSAGES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_PLANK) for (const frag of templateFragments(fn)) add(frag, "hype");
+  for (const fn of FUN_MESSAGES_DEADHANG) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_PULLUP) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SQUAT) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SITUP) for (const frag of templateFragments(fn)) add(frag, "hype");

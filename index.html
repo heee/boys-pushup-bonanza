@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=327">
+<link rel="stylesheet" href="style.css?v=347">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -46,7 +46,11 @@
 
   <!-- ============ HEADER (persistent, shrinks during active workout) ============ -->
   <header id="app-header" class="app-header">
-    <button id="btn-home" class="brand" aria-label="Home">Bonanza</button>
+    <div id="brand-wrap" class="brand-wrap">
+      <button id="btn-home" class="brand" aria-label="Groups" aria-haspopup="menu" aria-expanded="false" aria-controls="group-menu">Bonanza<span class="brand-chevron leaderboard-mode-chevron" aria-hidden="true"></span></button>
+      <div id="group-menu" class="leaderboard-mode-menu group-menu hidden" role="menu" aria-label="Groups"></div>
+    </div>
+    <button id="btn-header-back" type="button" class="header-back hidden"><span class="header-back-chev" aria-hidden="true">‹</span><span id="header-back-label"></span></button>
     <nav class="header-actions">
       <button id="streak-badge" type="button" class="streak-badge hidden" aria-label="My Bonanza" title="My Bonanza"></button>
       <button id="btn-header-settings" type="button" class="header-settings-btn" aria-label="Settings" title="Settings">
@@ -167,22 +171,9 @@
             <div class="sharpshooter-crosshair crosshair-horizontal"></div>
             <div class="sharpshooter-crosshair crosshair-vertical"></div>
             <div id="sharpshooter-count" class="sharpshooter-count">0</div>
-            <div class="sharpshooter-impact" aria-hidden="true"></div>
             <div id="sharpshooter-shots" class="sharpshooter-shots" aria-hidden="true"></div>
-            <div class="sharpshooter-shatter" aria-hidden="true">
-              <div class="ss-wedge" style="--wedge-ang: 0deg"></div>
-              <div class="ss-wedge" style="--wedge-ang: 45deg"></div>
-              <div class="ss-wedge" style="--wedge-ang: 90deg"></div>
-              <div class="ss-wedge" style="--wedge-ang: 135deg"></div>
-              <div class="ss-wedge" style="--wedge-ang: 180deg"></div>
-              <div class="ss-wedge" style="--wedge-ang: 225deg"></div>
-              <div class="ss-wedge" style="--wedge-ang: 270deg"></div>
-              <div class="ss-wedge" style="--wedge-ang: 315deg"></div>
-              <div class="ss-frag ss-frag-top"></div>
-              <div class="ss-frag ss-frag-bottom"></div>
-              <div class="ss-frag ss-frag-left"></div>
-              <div class="ss-frag ss-frag-right"></div>
-            </div>
+            <!-- Filled by celebrateSharpshooterHit: shards, splinters, sawdust. -->
+            <div id="sharpshooter-shatter" class="sharpshooter-shatter" aria-hidden="true"></div>
           </div>
           <div id="sharpshooter-session-total" class="sharpshooter-session-total">0 total · 0 targets destroyed</div>
         </div>
@@ -348,12 +339,12 @@
     <!-- ============ SCREEN: EXPLORE MODES ============ -->
     <!-- ============ SCREEN: TYPE PICKER (Home's first selector) ============ -->
     <section id="screen-type-picker" class="screen">
-      <h1 class="screen-title">Choose your type</h1>
+      <h1 class="screen-title picker-title">Choose your type</h1>
       <div id="type-list" class="tier1-list explore-modes-list"></div>
     </section>
 
     <section id="screen-explore-modes" class="screen">
-      <h1 class="screen-title">Choose your mode</h1>
+      <h1 class="screen-title picker-title">Choose your mode</h1>
       <div id="explore-modes-list" class="tier1-list explore-modes-list"></div>
     </section>
 
@@ -444,12 +435,18 @@
         <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
         Session type
       </p>
-      <div id="horse-session-select" class="segmented" role="tablist">
-        <button type="button" class="segment active" id="horse-session-live" data-horse-session="live">Live</button>
-        <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite">Invite</button>
-        <button type="button" class="segment" id="horse-session-open" data-horse-session="open">Open</button>
+      <div id="horse-session-select" class="segmented session-type-bar" role="tablist">
+        <button type="button" class="segment active" id="horse-session-live" data-horse-session="live"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg><span>Live</span></button>
+        <button type="button" class="segment" id="horse-session-invite" data-horse-session="invite"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16.1a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg><span>Invite</span></button>
+        <button type="button" class="segment" id="horse-session-open" data-horse-session="open"><svg class="session-icon session-icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><svg class="session-icon session-icon-group hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg><span id="horse-session-open-label">Open</span></button>
+        <button type="button" class="segment hidden" id="horse-session-public" data-horse-session="public"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg><span>Public</span></button>
       </div>
       <p id="horse-session-note" class="screen-sub hidden">Other players get a bell notification on Home when it's their turn.</p>
+
+      <div id="horse-max-players-section" class="hidden">
+        <p class="pyramid-setup-section-label horse-section-label">Max players</p>
+        <div id="horse-max-players" class="segmented max-players-select" role="tablist"></div>
+      </div>
 
       <p class="pyramid-setup-section-label horse-section-label">
         <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
@@ -460,10 +457,18 @@
         <button id="btn-horse-randomize-word" type="button" class="horse-reshuffle-btn" aria-label="Randomize word">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
         </button>
+        <button id="btn-horse-edit-word" type="button" class="horse-reshuffle-btn" aria-label="Type your own word">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
+        </button>
         <button id="btn-horse-reset-word" type="button" class="horse-reshuffle-btn hidden" aria-label="Reset to HORSE">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
         </button>
       </div>
+      <form id="horse-word-form" class="group-form horse-word-form hidden">
+        <input id="horse-word-input" type="text" maxlength="8" placeholder="3–8 letters" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Your word">
+        <button type="submit" class="btn btn-primary">Use</button>
+      </form>
+      <p id="horse-word-lives" class="screen-sub horse-word-lives"></p>
 
       <div id="horse-time-limit-section" class="hidden">
         <p class="pyramid-setup-section-label horse-section-label">
@@ -598,22 +603,21 @@
       </div>
 
       <div id="tow-session-type-section">
-        <p class="pyramid-setup-section-label">Session type</p>
-        <div id="tow-session-select" class="tow-icon-tabs" role="tablist">
-          <button type="button" class="tow-icon-tab active" data-tow-session="live" role="tab" aria-selected="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg>
-            Live
-          </button>
-          <button type="button" class="tow-icon-tab" data-tow-session="online" role="tab" aria-selected="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16.1a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg>
-            Pick team
-          </button>
-          <button type="button" class="tow-icon-tab" data-tow-session="open" role="tab" aria-selected="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-            Open
-          </button>
+        <p class="pyramid-setup-section-label horse-section-label">
+          <svg class="horse-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Session type
+        </p>
+        <div id="tow-session-select" class="segmented session-type-bar" role="tablist">
+          <button type="button" class="segment active" data-tow-session="live" role="tab" aria-selected="true"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg><span>Live</span></button>
+          <button type="button" class="segment" data-tow-session="online" role="tab" aria-selected="false"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16.1a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg><span id="tow-session-online-label">Pick team</span></button>
+          <button type="button" class="segment" data-tow-session="open" role="tab" aria-selected="false"><svg class="session-icon session-icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><svg class="session-icon session-icon-group hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg><span id="tow-session-open-label">Open</span></button>
+          <button type="button" class="segment hidden" id="tow-session-public-tab" data-tow-session="public" role="tab" aria-selected="false"><svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg><span>Public</span></button>
         </div>
         <p id="tow-session-note" class="screen-sub"></p>
+        <div id="tow-max-players-section" class="hidden">
+          <p class="pyramid-setup-section-label horse-section-label">Max players</p>
+          <div id="tow-max-players" class="segmented max-players-select" role="tablist"></div>
+        </div>
       </div>
 
       <p id="tow-lobby-stats" class="screen-sub tow-lobby-stats hidden"></p>
@@ -817,7 +821,7 @@
     <!-- ============ SCREEN: MODIFIER PICKER ============ -->
     <section id="screen-modifier-picker" class="screen">
       <h1 class="screen-title">Choose your modifier</h1>
-      <p class="screen-sub">Changes hand position — applies to any mode</p>
+      <p id="modifier-picker-sub" class="screen-sub">Changes hand position — applies to any mode</p>
       <div id="modifier-list" class="tier1-list explore-modes-list"></div>
     </section>
 
@@ -855,6 +859,13 @@
           <div id="plank-highscore-message" class="highscore-message personal-best-chase"></div>
         </div>
 
+        <div id="plank-modifier-cue" class="modifier-cue modifier-cue-inline hidden">
+          <span id="plank-modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="plank-modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="plank-modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
         <button id="btn-plank-stop" class="btn btn-giant btn-complete">STOP</button>
       </div>
     </section>
@@ -912,6 +923,13 @@
         </div>
 
         <button id="btn-squat-cancel" type="button" class="btn btn-secondary btn-small-wide">Cancel</button>
+        <div id="squat-modifier-cue" class="modifier-cue modifier-cue-inline hidden">
+          <span id="squat-modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="squat-modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="squat-modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
         <button id="btn-squat-stop" class="btn btn-giant btn-complete hidden">STOP</button>
       </div>
     </section>
@@ -951,7 +969,57 @@
           <div id="pullup-highscore-message" class="highscore-message personal-best-chase"></div>
         </div>
         <button id="btn-pullup-cancel" type="button" class="btn btn-secondary btn-small-wide">Cancel</button>
+        <div id="pullup-modifier-cue" class="modifier-cue modifier-cue-inline hidden">
+          <span id="pullup-modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="pullup-modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="pullup-modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
         <button id="btn-pullup-stop" class="btn btn-giant btn-complete hidden">STOP</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: DEAD HANG ============ -->
+    <section id="screen-deadhang-workout" class="screen">
+      <div id="deadhang-confetti" class="confetti" aria-hidden="true"></div>
+      <div id="deadhang-idle" class="workout-idle">
+        <p class="workout-eyebrow">Boys Bonanza</p>
+        <p class="workout-hello"><span id="deadhang-avatar" class="avatar-circle"></span>
+          Ready to hang, <span id="deadhang-username">Friend</span><span class="tight-q">?</span></p>
+        <div id="deadhang-timing-select" class="segmented deadhang-timing-select" role="tablist" aria-label="Timing">
+          <button type="button" class="segment" data-timing="camera">📷 Camera</button>
+          <button type="button" class="segment" data-timing="manual">✋ Manual</button>
+        </div>
+        <p id="deadhang-instructions" class="workout-instructions"></p>
+        <button id="btn-deadhang-start" class="btn btn-giant btn-primary">START</button>
+      </div>
+      <div id="deadhang-active" class="workout-active hidden">
+        <div id="deadhang-ghost-transition" class="ghost-transition" aria-hidden="true"></div>
+        <div id="deadhang-camera-wrap" class="camera-wrap hidden">
+          <video id="deadhang-camera-video" playsinline muted autoplay></video>
+          <div id="deadhang-pose-box" class="face-box hidden"></div>
+        </div>
+        <div class="rep-count-wrap">
+          <div id="deadhang-status" class="squat-phase-indicator"></div>
+          <div id="deadhang-timer" class="rep-count">0:00</div>
+          <div class="rep-label">HANG TIME</div>
+          <div id="deadhang-thermometer-wrap" class="thermometer-wrap hidden">
+            <div class="thermometer-track thermometer-track-notched">
+              <div id="deadhang-thermometer-fill" class="thermometer-fill"></div>
+            </div>
+          </div>
+          <div id="deadhang-highscore-message" class="highscore-message personal-best-chase"></div>
+        </div>
+        <button id="btn-deadhang-cancel" type="button" class="btn btn-secondary btn-small-wide hidden">Cancel</button>
+        <div id="deadhang-modifier-cue" class="modifier-cue modifier-cue-inline hidden">
+          <span id="deadhang-modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="deadhang-modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="deadhang-modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
+        <button id="btn-deadhang-stop" class="btn btn-giant btn-complete">STOP</button>
       </div>
     </section>
 
@@ -1111,11 +1179,19 @@
 
     <!-- ============ SCREEN: KETTLEBELL PREVIEW ============ -->
     <section id="screen-kettlebell-preview" class="screen">
-      <div class="horse-header-row">
-        <button id="btn-kettlebell-preview-back" type="button" class="icon-btn" aria-label="Back">←</button>
-        <h1 id="kettlebell-preview-title" class="screen-title">Kettlebell</h1>
+      <div class="edit-profile-header">
+        <button id="btn-kettlebell-preview-back" type="button" class="challenge-detail-back">← Modes</button>
       </div>
+      <h1 class="screen-title screen-title-with-icon"><span id="kettlebell-preview-icon" class="screen-title-icon" aria-hidden="true"></span><span id="kettlebell-preview-title">Kettlebell</span></h1>
       <p id="kettlebell-preview-meta" class="screen-sub"></p>
+      <div id="kettlebell-base-weight" class="kb-base-weight hidden">
+        <span class="kb-base-weight-label">Bell weight</span>
+        <div class="stepper-row">
+          <button type="button" class="stepper-btn" data-kb-base="-1" aria-label="Lighter bell">−</button>
+          <div id="kettlebell-base-weight-value" class="stepper-value">20 lb</div>
+          <button type="button" class="stepper-btn" data-kb-base="1" aria-label="Heavier bell">+</button>
+        </div>
+      </div>
       <div id="kettlebell-preview-list" class="kb-preview-list"></div>
       <p id="kettlebell-preview-best" class="pulse-best-run"></p>
       <button id="btn-kettlebell-start" type="button" class="btn btn-giant btn-primary">Start</button>
@@ -1208,6 +1284,13 @@
         </div>
 
         <button id="btn-situp-cancel" type="button" class="btn btn-secondary btn-small-wide">Cancel</button>
+        <div id="situp-modifier-cue" class="modifier-cue modifier-cue-inline hidden">
+          <span id="situp-modifier-cue-icon" class="modifier-cue-icon" aria-hidden="true"></span>
+          <span class="modifier-cue-body">
+            <span id="situp-modifier-cue-label" class="modifier-cue-label"></span>
+            <span id="situp-modifier-cue-sub" class="modifier-cue-sub"></span>
+          </span>
+        </div>
         <button id="btn-situp-stop" class="btn btn-giant btn-complete hidden">STOP</button>
       </div>
     </section>
@@ -1332,10 +1415,7 @@
               <span id="bonanza-mode-label">Boys Bonanza</span>
               <span class="leaderboard-mode-chevron" aria-hidden="true"></span>
             </button>
-            <div id="bonanza-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Board view">
-              <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mode="boys"><span>Boys Bonanza</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-              <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mode="mine"><span>My Bonanza</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            </div>
+            <div id="bonanza-mode-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Board view"></div>
           </div>
           <button id="btn-leaderboard-share" type="button" class="icon-btn" aria-label="Share stats" title="Share stats"><span class="icon-share" aria-hidden="true"></span></button>
         </div>
@@ -1359,6 +1439,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pulse"><span>Pulse</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="cock"><span>Cock</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="deadhang"><span>Dead hang</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1427,17 +1508,7 @@
           <span class="tier1-eyebrow boys-mode-stats-eyebrow">History</span>
         </div>
 
-        <div id="history-view-select" class="segmented segmented-underline" role="tablist">
-          <button class="segment active" data-view="recent">Latest</button>
-          <button class="segment" data-view="history">Sessions</button>
-          <button class="segment" data-view="modes">Modes</button>
-          <button class="segment hidden" id="modifiers-tab-btn" data-view="modifiers">Modifiers</button>
-        </div>
-
         <div id="recent-list" class="history-list"></div>
-        <div id="history-list" class="history-list hidden"></div>
-        <div id="mode-history-list" class="history-list hidden"></div>
-        <div id="modifier-history-list" class="history-list hidden"></div>
       </div>
 
       <div id="my-bonanza-view" class="hidden bonanza-scroll-view">
@@ -1578,6 +1649,16 @@
           </div>
         </div>
 
+        <div id="create-visibility-section" class="hidden">
+          <label class="field-label">Who can see it</label>
+          <div id="create-visibility" class="segmented" role="tablist">
+            <button type="button" class="segment" data-visibility="personal">Personal</button>
+            <button type="button" class="segment" id="create-visibility-group" data-visibility="group">Group</button>
+            <button type="button" class="segment" data-visibility="public">Public</button>
+          </div>
+          <p id="create-visibility-note" class="screen-sub create-visibility-note"></p>
+        </div>
+
         <label class="field-label">Title</label>
         <input id="create-title" class="text-input" type="text" maxlength="60" required placeholder="e.g. Labor Day Lockout">
 
@@ -1621,16 +1702,6 @@
     <section id="screen-roadtrip" class="screen">
       <div class="roadtrip-header">
         <h1 class="screen-title screen-title-with-icon"><span class="screen-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg></span>Roadtrip</h1>
-        <div id="roadtrip-tier-picker" class="leaderboard-mode-picker">
-          <button id="roadtrip-tier-trigger" class="leaderboard-mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="roadtrip-tier-menu">
-            <span id="roadtrip-tier-label">City</span><span class="leaderboard-mode-chevron" aria-hidden="true"></span>
-          </button>
-          <div id="roadtrip-tier-menu" class="leaderboard-mode-menu hidden" role="listbox" aria-label="Location tier">
-            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-tier="neighborhood"><span>Neighborhood</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option selected" role="option" data-roadtrip-tier="city"><span>City</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-            <button type="button" class="leaderboard-mode-option" role="option" data-roadtrip-tier="country"><span>Country</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
-          </div>
-        </div>
       </div>
       <div id="roadtrip-period-select" class="segmented segmented-underline" role="tablist" aria-label="Roadtrip timeframe">
         <button class="segment" data-roadtrip-period="day">Day</button>
@@ -1639,6 +1710,16 @@
         <button class="segment" data-roadtrip-period="quarter">Quarter</button>
         <button class="segment" data-roadtrip-period="year">Year</button>
         <button class="segment" data-roadtrip-period="all">All-time</button>
+      </div>
+      <div id="roadtrip-map-card" class="tier2-card roadtrip-map-card hidden">
+        <div class="roadtrip-map-head">
+          <span id="roadtrip-map-title" class="roadtrip-map-title"></span>
+          <button id="btn-roadtrip-map-zoom" type="button" class="roadtrip-map-btn"></button>
+        </div>
+        <div id="roadtrip-map-stage" class="roadtrip-map-stage">
+          <svg id="roadtrip-map-svg" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet" aria-label="Map of reps by country"><g id="roadtrip-map-zoom"></g></svg>
+          <div id="roadtrip-map-marks" class="roadtrip-map-marks"></div>
+        </div>
       </div>
       <div id="roadtrip-location-needed" class="roadtrip-location-needed hidden">
         <div class="roadtrip-empty-icon">📍</div>
@@ -1651,11 +1732,11 @@
 
     <!-- ============ SCREEN: ROADTRIP LOCATION DETAIL ============ -->
     <section id="screen-roadtrip-detail" class="screen">
-      <div class="challenge-detail-header">
+      <div class="challenge-detail-header roadtrip-detail-header">
         <button id="btn-roadtrip-back" type="button" class="challenge-detail-back">← Roadtrip</button>
+        <h1 id="roadtrip-detail-title" class="screen-title roadtrip-detail-title">Location</h1>
         <button id="btn-roadtrip-share" type="button" class="icon-btn challenge-detail-share" aria-label="Share territory leaderboard"><span class="icon-share" aria-hidden="true"></span></button>
       </div>
-      <h1 id="roadtrip-detail-title" class="screen-title roadtrip-detail-title">Location</h1>
       <div id="roadtrip-detail-summary" class="roadtrip-detail-summary"></div>
       <div class="tier1-eyebrow roadtrip-local-label">Local leaderboard</div>
       <div id="roadtrip-detail-list" class="leaderboard-list"></div>
@@ -1665,65 +1746,75 @@
     <section id="screen-settings" class="screen">
       <h1 class="screen-title screen-title-with-icon"><span class="screen-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37c1 .608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg></span>Settings</h1>
 
+      <button id="btn-settings-profile-card" type="button" class="settings-profile-card">
+        <span id="settings-profile-avatar" class="avatar-circle settings-profile-avatar" aria-hidden="true"></span>
+        <span class="settings-profile-text">
+          <span id="settings-profile-name" class="settings-profile-name"></span>
+          <span class="settings-profile-sub">Edit profile</span>
+        </span>
+        <span class="settings-category-chevron" aria-hidden="true">›</span>
+      </button>
+
       <div class="settings-block settings-category-list" id="settings-category-list">
-        <button id="btn-settings-switch-user" type="button" class="settings-category-row">
-          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
-          <span class="settings-category-title">Switch user</span>
+        <button type="button" class="settings-category-row" data-settings-category="groups" data-sibling-id="screen-settings-groups">
+          <span class="settings-category-icon settings-category-icon-groups" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M17 11a4 4 0 100-8"/><path d="M1 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg></span>
+          <span class="settings-category-title">Groups</span>
+          <span id="settings-category-groups-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button type="button" class="settings-category-row" data-settings-category="goals">
+        <button type="button" class="settings-category-row" data-settings-category="goals" data-sibling-id="screen-settings-goals">
           <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
           <span class="settings-category-title">Personal goals</span>
           <span id="settings-category-goals-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button type="button" class="settings-category-row" data-settings-category="mysessions">
+        <button type="button" class="settings-category-row" data-settings-category="mysessions" data-sibling-id="screen-settings-mysessions">
           <span class="settings-category-icon settings-category-icon-mysessions" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
           <span class="settings-category-title">My sessions</span>
           <span id="settings-category-mysessions-value" class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
-        <button type="button" class="settings-category-row" data-settings-category="workout">
-          <span class="settings-category-icon settings-category-icon-workout" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
-          <span class="settings-category-title">Preferences</span>
-          <span class="settings-category-value"></span>
-          <span class="settings-category-chevron" aria-hidden="true">›</span>
-        </button>
-        <button type="button" class="settings-category-row" data-settings-category="profile">
-          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>
-          <span class="settings-category-title">Profile &amp; users</span>
-          <span id="settings-category-profile-value" class="settings-category-value"></span>
-          <span class="settings-category-chevron" aria-hidden="true">›</span>
-        </button>
-        <button type="button" class="settings-category-row" data-settings-category="appearance">
-          <span class="settings-category-icon settings-category-icon-appearance" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
-          <span class="settings-category-title">Appearance</span>
-          <span id="settings-category-appearance-value" class="settings-category-value"></span>
-          <span class="settings-category-chevron" aria-hidden="true">›</span>
-        </button>
-        <button id="btn-open-mode-breakdown" type="button" class="settings-category-row">
+        <button id="btn-open-mode-breakdown" data-sibling-id="screen-mode-breakdown" type="button" class="settings-category-row">
           <span class="settings-category-icon settings-category-icon-bonanza" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
           <span class="settings-category-title">Bonanza stats</span>
           <span class="settings-category-value"></span>
           <span class="settings-category-chevron" aria-hidden="true">›</span>
         </button>
+        <button id="btn-open-poker-showcase" data-sibling-id="screen-poker-showcase" type="button" class="settings-category-row hidden">
+          <span class="settings-category-icon settings-category-icon-poker" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="11" height="16" rx="2" transform="rotate(-10 8.5 13)"/><rect x="10" y="3" width="11" height="16" rx="2" transform="rotate(8 15.5 11)"/></svg></span>
+          <span class="settings-category-title">Poker collection</span>
+          <span id="settings-category-poker-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+      </div>
+
+      <div class="settings-block settings-category-list" id="settings-category-list-app">
+        <button type="button" class="settings-category-row" data-settings-category="workout" data-sibling-id="screen-settings-workout">
+          <span class="settings-category-icon settings-category-icon-workout" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
+          <span class="settings-category-title">Preferences</span>
+          <span class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="settings-category-row" data-settings-category="appearance" data-sibling-id="screen-settings-appearance">
+          <span class="settings-category-icon settings-category-icon-appearance" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
+          <span class="settings-category-title">Appearance</span>
+          <span id="settings-category-appearance-value" class="settings-category-value"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button id="btn-open-changelog" data-sibling-id="screen-changelog" type="button" class="settings-category-row">
+          <span class="settings-category-icon settings-category-icon-changelog" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
+          <span class="settings-category-title">Changelog</span>
+          <span id="settings-changelog-dot" class="settings-new-dot hidden" aria-label="New"></span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
+        <button id="btn-settings-switch-user" type="button" class="settings-category-row">
+          <span class="settings-category-icon settings-category-icon-profile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+          <span class="settings-category-title">Switch user</span>
+          <span class="settings-category-chevron" aria-hidden="true">›</span>
+        </button>
       </div>
 
       <p class="settings-footer">Made in Texas with love 🇺🇸</p>
-    </section>
-
-    <!-- ============ SCREEN: SETTINGS > PROFILE & USERS ============ -->
-    <section id="screen-settings-profile" class="screen">
-      <div class="edit-profile-header">
-        <button id="btn-settings-profile-back" type="button" class="challenge-detail-back">← Settings</button>
-      </div>
-      <h1 class="screen-title">Profile &amp; users</h1>
-
-      <div class="settings-section">
-        <div class="tier1-eyebrow">Manage users</div>
-        <p class="settings-hint">Tap someone's icon to change their avatar. The trash icon removes all of their sessions from the shared leaderboard — this can't be undone.</p>
-        <div id="manage-users-list" class="manage-users-list settings-block"></div>
-      </div>
     </section>
 
     <!-- ============ SCREEN: SETTINGS > MY SESSIONS ============ -->
@@ -1743,6 +1834,7 @@
             <button type="button" class="leaderboard-mode-option selected" role="option" aria-selected="true" data-mysessions-mode="all"><span>All</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pushups"><span>Pushups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="deadhang"><span>Dead hang</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1786,6 +1878,58 @@
             <label class="field-label toggle-row" style="margin:0;flex:1">
               <span>Pace feedback on the session summary</span>
               <input id="chk-pace-note" type="checkbox">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Share message tone</div>
+        <div id="share-tone-select" class="segmented" role="tablist" aria-label="Share message tone">
+          <button type="button" class="segment" data-share-tone="chill">Chill</button>
+          <button type="button" class="segment" data-share-tone="spicy">Spicy</button>
+          <button type="button" class="segment" data-share-tone="unhinged">Unhinged</button>
+        </div>
+        <div class="share-tone-preview-card">
+          <p id="share-tone-preview" class="share-tone-preview" aria-live="polite"></p>
+          <button id="btn-share-tone-shuffle" type="button" class="share-tone-shuffle" aria-label="Show another example">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="tier1-eyebrow">Recaps</div>
+        <p class="settings-hint">A recap pops up the first time you open the app after a week, month, quarter, or year ends.</p>
+        <div id="recap-opt-list" class="settings-block settings-block-plain">
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Weekly recap</span>
+              <input type="checkbox" data-recap-opt="week">
+            </label>
+          </div>
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Monthly recap</span>
+              <input type="checkbox" data-recap-opt="month">
+            </label>
+          </div>
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Quarterly recap</span>
+              <input type="checkbox" data-recap-opt="quarter">
+            </label>
+          </div>
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Yearly recap</span>
+              <input type="checkbox" data-recap-opt="year">
+            </label>
+          </div>
+          <div class="settings-block-row">
+            <label class="field-label toggle-row" style="margin:0;flex:1">
+              <span>Group monthly recap</span>
+              <input type="checkbox" data-recap-opt="group-month">
             </label>
           </div>
         </div>
@@ -1928,6 +2072,73 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: GROUP INVITE (new device) ============ -->
+    <section id="screen-group-claim" class="screen">
+      <div class="home-body">
+        <h1 id="group-claim-title" class="screen-title">Join the group</h1>
+        <p class="screen-sub">Already playing? Tap your name to continue on this device.</p>
+        <div id="group-claim-list" class="user-list"></div>
+        <button id="btn-group-claim-new" type="button" class="btn btn-primary group-claim-new">I'm new — create a player</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: GROUP ONBOARDING (new player) ============ -->
+    <section id="screen-group-onboard" class="screen">
+      <div class="home-body">
+        <h1 class="screen-title">Got a crew?</h1>
+        <p class="screen-sub">Groups get their own Board, challenges and games. You can always do this later in Settings → Groups.</p>
+        <div class="group-onboard-actions">
+          <button id="btn-onboard-create" type="button" class="btn btn-primary">Create a group</button>
+          <button id="btn-onboard-join" type="button" class="btn btn-secondary">Join with an invite code</button>
+          <button id="btn-onboard-solo" type="button" class="btn btn-secondary">Play solo for now</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: SETTINGS > GROUPS ============ -->
+    <section id="screen-settings-groups" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-settings-groups-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Groups</h1>
+      <p class="screen-sub">Your Board, Challenges and Games follow the active group.</p>
+      <div id="groups-list" class="settings-block settings-category-list"></div>
+      <div class="groups-actions">
+        <button id="btn-group-create-open" type="button" class="btn btn-primary">Create group</button>
+        <button id="btn-group-join-open" type="button" class="btn btn-secondary">Join with code</button>
+      </div>
+      <form id="group-create-form" class="group-form hidden">
+        <input id="group-create-name" type="text" maxlength="40" placeholder="Group name" autocomplete="off" required>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </form>
+      <form id="group-join-form" class="group-form hidden">
+        <input id="group-join-code" type="text" maxlength="6" placeholder="Invite code" autocomplete="off" autocapitalize="characters" required>
+        <button type="submit" class="btn btn-primary">Join</button>
+      </form>
+    </section>
+
+    <!-- ============ SCREEN: GROUP DETAIL ============ -->
+    <section id="screen-group-detail" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-group-detail-back" type="button" class="challenge-detail-back">← Groups</button>
+      </div>
+      <h1 id="group-detail-title" class="screen-title"></h1>
+      <p id="group-detail-sub" class="screen-sub"></p>
+      <button id="btn-group-make-active" type="button" class="btn btn-primary group-make-active hidden">Make active group</button>
+      <div class="group-invite-card">
+        <span class="group-invite-label">Invite code</span>
+        <span id="group-invite-code" class="group-invite-code"></span>
+        <button id="btn-group-share-invite" type="button" class="btn btn-secondary btn-small">Share invite</button>
+      </div>
+      <p class="pyramid-setup-section-label">Members</p>
+      <div id="group-member-list" class="tier1-list"></div>
+      <div class="group-danger-actions">
+        <button id="btn-group-rename" type="button" class="btn btn-secondary hidden">Rename group</button>
+        <button id="btn-group-leave" type="button" class="btn btn-secondary">Leave group</button>
+        <button id="btn-group-delete" type="button" class="btn btn-secondary group-delete-btn hidden">Delete group</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: SETTINGS > PERSONAL GOALS ============ -->
     <section id="screen-settings-goals" class="screen">
       <div class="edit-profile-header">
@@ -1951,6 +2162,13 @@
             <span class="settings-category-title">Planks</span>
             <span id="goal-value-planks" class="settings-category-value"></span>
             <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="planks" aria-label="Track a Planks goal">
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </div>
+          <div class="settings-category-row goal-type-row" data-goal-type="deadhang">
+            <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">🙌</span>
+            <span class="settings-category-title">Dead hang</span>
+            <span id="goal-value-deadhang" class="settings-category-value"></span>
+            <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="deadhang" aria-label="Track a Dead hang goal">
             <span class="settings-category-chevron" aria-hidden="true">›</span>
           </div>
           <div class="settings-category-row goal-type-row" data-goal-type="squats">
@@ -2027,6 +2245,25 @@
       <div id="mode-breakdown-list" class="mode-breakdown-list"></div>
     </section>
 
+    <!-- ============ SCREEN: CHANGELOG (Settings) ============ -->
+    <section id="screen-changelog" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-changelog-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Changelog</h1>
+      <div id="changelog-list"></div>
+    </section>
+
+    <!-- ============ SCREEN: POKER COLLECTION (Settings) ============ -->
+    <section id="screen-poker-showcase" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-poker-showcase-back" type="button" class="challenge-detail-back">← Settings</button>
+      </div>
+      <h1 class="screen-title">Poker collection</h1>
+      <p id="poker-showcase-summary" class="settings-hint"></p>
+      <div id="poker-showcase-grid" class="poker-showcase-grid"></div>
+    </section>
+
     <!-- ============ SCREEN: EDIT PROFILE ============ -->
     <section id="screen-edit-profile" class="screen">
       <div class="edit-profile-header">
@@ -2056,6 +2293,7 @@
 
   <!-- ============ TAB BAR (persistent, hides during active workout) ============ -->
   <nav id="tab-bar" class="tab-bar">
+    <span id="tab-indicator" class="tab-indicator" aria-hidden="true"></span>
     <button id="btn-nav-home" class="tab-item" aria-label="Home" title="Home"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M2 9v6"/><path d="M5 7v10"/><path d="M19 7v10"/><path d="M22 9v6"/></svg></span><span class="tab-item-label">Home</span></button>
     <button id="btn-nav-games" class="tab-item" aria-label="Games" title="Games"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.152A4 4 0 0 0 17.32 5z"/></svg><span id="games-nav-dot" class="tab-item-dot hidden"></span></span><span class="tab-item-label">Games</span></button>
     <button id="btn-nav-challenges" class="tab-item" aria-label="Challenges" title="Challenges"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span><span class="tab-item-label">Challenges</span></button>
@@ -2121,10 +2359,11 @@
   </section>
 </div>
 
-<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+<div id="toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="challenge-join-toast" class="challenge-join-toast hidden" role="status" aria-live="polite"></div>
+<div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=343"></script>
+<script type="module" src="app.js?v=364"></script>
 </body>
 </html>

@@ -70,7 +70,7 @@ export function joinOpenPlayer(game, { user, now = Date.now() }) {
   if (!name) throw new Error("Player name is required");
   if (game.turnOrder.includes(name)) return game;
   if (game.startedAt != null) throw new Error("This session has already started");
-  if (game.turnOrder.length >= 8) throw new Error("Open game is full");
+  if (game.turnOrder.length >= (game.maxPlayers || 8)) throw new Error("Open game is full");
 
   const turnOrder = [...game.turnOrder, name];
   const players = { ...game.players, [name]: { letters: 0, out: false, outAt: null, joinedAt: now } };
@@ -118,11 +118,12 @@ function advanceTurn(game, now) {
   return { turnIndex: idx, round, turnStartedAt: now };
 }
 
-function awardLetter(players, user, now) {
+function awardLetter(players, user, now, lives = 5) {
   const next = { ...players, [user]: { ...players[user] } };
   const p = next[user];
   p.letters += 1;
-  if (p.letters >= 5) {
+  // The word's length is the number of lives (3–8 letters; HORSE = 5).
+  if (p.letters >= lives) {
     p.out = true;
     p.outAt = now;
   }
@@ -177,7 +178,7 @@ export function applyTurn(game, { user, reps, modifier = null, now = Date.now() 
   const needed = game.target;
   const success = needed == null || reps >= needed;
   let players = game.players;
-  if (!success) players = awardLetter(players, user, now);
+  if (!success) players = awardLetter(players, user, now, game.word.length);
 
   const sets = [...game.sets, { user, reps, needed, modifier, letter: !success, skipped: false, at: now }];
   const next = { ...game, players, sets };

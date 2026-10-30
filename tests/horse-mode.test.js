@@ -413,3 +413,18 @@ test("randomHorseWord can exclude the current word and stays in the pool", () =>
   assert.notEqual(word, "CHAOS");
   assert.ok(HORSE_WORDS.includes(word));
 });
+
+test("the word's length is the number of lives", () => {
+  let g = createHorseGame({ id: "g3", word: "pig", sessionType: "live", createdBy: "You", players: ["You", "Mia"], now: 0 });
+  const bars = [20, 15, 10];
+  g = applyTurn(g, { user: "You", reps: 20, now: 1 });
+  for (let i = 0; i < 3; i += 1) {
+    g = applyTurn(g, { user: "Mia", reps: bars[i] - 1, now: i + 2 });
+    if (g.status === "complete") break;
+    g = applyAndResolve(g, { user: "You", reps: bars[i + 1], now: i + 10 });
+  }
+  assert.equal(g.status, "complete");
+  assert.deepEqual(g.winner, ["You"]);
+  assert.equal(g.players.Mia.letters, 3);
+  assert.equal(g.players.Mia.out, true);
+});

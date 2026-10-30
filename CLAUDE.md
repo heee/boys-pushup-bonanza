@@ -2,15 +2,19 @@
 
 - **Mode roadmap:** Situps is in build (docs/situp-mode-plan.md). Further mode/exercise
   ideas are earmarked in docs/mode-ideas.md for later evaluation — **Tug-of-war is the
-  prioritized next build** after Situps.
+  prioritized next build** after Situps. **Dead hang** (docs/deadhang-mode-plan.md) shipped 2026-10-27 ahead of
+  that queue; its camera timing still needs on-device threshold tuning.
 
 - **Minimize dialogue.** Keep responses terse — critical messages and summaries only, no play-by-play narration.
 - **Always push live directly** after making a change — don't wait to be asked. Commit and `git push` (following the fetch/merge-check and `CACHE_NAME` bump rules below) as a normal part of finishing the change, without asking for confirmation first.
-- **End every turn with a brief summary**: confirm the push landed (commit hash) and flag if `worker/index.js` changed (needs manual Cloudflare dashboard redeploy).
-- Worker (`worker/index.js`) redeploys are manual: paste into Cloudflare dashboard Quick Edit. No wrangler (Windows ARM64 has no `workerd` build). The Cloudflare API MCP connection can READ Worker settings/bindings and READ/WRITE D1 directly (confirmed working — use it freely for D1 queries and DML writes/migrations and for inspecting Worker config), but two operations fail even though reads and DML writes succeed: (1) Worker **script** uploads (`PUT .../workers/scripts/{name}`) via the generic `cloudflare-api` `execute` tool fail with an authentication error — that credential apparently lacks Workers-Scripts-edit scope; (2) D1 **DDL** (e.g. `ALTER TABLE ... ADD COLUMN`) fails with a `7500: You do not have permission to perform this operation` error (confirmed reproducible, not transient — plain DML like `UPDATE`/`INSERT` on the same table works fine seconds later). Don't retry either path; go straight to asking the user to paste the Worker script into the dashboard, and to run schema-changing SQL themselves (Cloudflare dashboard D1 console, or `wrangler d1 execute` elsewhere).
+- **End every turn with a brief summary**: confirm the push landed (commit hash) and, if `worker/index.js` changed, report whether the Deploy Worker action succeeded.
+- Worker (`worker/index.js`) deploys automatically via `.github/workflows/deploy-worker.yml` on any push to `main` touching `worker/` (wrangler on GitHub's Linux runners; needs repo secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`). Check that run succeeded after pushing a Worker change; fall back to pasting into the Cloudflare dashboard Quick Edit if it fails. No local wrangler (Windows ARM64 has no `workerd` build). The Cloudflare API MCP connection can READ Worker settings/bindings and READ/WRITE D1 directly (confirmed working — use it freely for D1 queries and DML writes/migrations and for inspecting Worker config), but two operations fail even though reads and DML writes succeed: (1) Worker **script** uploads (`PUT .../workers/scripts/{name}`) via the generic `cloudflare-api` `execute` tool fail with an authentication error — that credential apparently lacks Workers-Scripts-edit scope; (2) D1 **DDL** (e.g. `ALTER TABLE ... ADD COLUMN`) fails with a `7500: You do not have permission to perform this operation` error (confirmed reproducible, not transient — plain DML like `UPDATE`/`INSERT` on the same table works fine seconds later). Don't retry either path; go straight to asking the user to paste the Worker script into the dashboard, and to run schema-changing SQL themselves (Cloudflare dashboard D1 console, or `wrangler d1 execute` elsewhere).
 - Before any preview check: unregister service workers + clear caches, then reload.
 - Before `git push`: `git fetch` + check `origin/main` for new commits (the live app writes real gameplay data straight to `data.json` via the Worker, independent of this working tree) — merge if needed.
 - Bump `sw.js`'s `CACHE_NAME` on every shipped change.
+- **Changelog:** when shipping a major user-facing feature, add an entry at the top of
+  `CHANGELOG` in `changelog.js` (date + one short plain-English line, e.g. "Added X").
+  Skip small fixes and version bumps.
 - Spoken lines live in `voice-lines.js` (single source of truth). Adding one means
   rerunning `node scripts/generate-voice.js` (needs `OPENAI_API_KEY`) and committing
   `assets/voice/`; until then that line falls back to `speechSynthesis`.

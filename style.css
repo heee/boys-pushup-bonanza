@@ -70,7 +70,7 @@
 :root {
   /* Kept in sync with #app-main's bottom padding so fixed tab-bar content
      never overlaps scrollable screen content. */
-  --tab-bar-height: 3.6rem;
+  --tab-bar-height: 4.4rem;
 }
 
 /* ===========================================================
@@ -163,6 +163,7 @@ html {
   background: var(--bg);
 }
 body::after {
+  display: none; /* retired: the floating glass tab bar no longer reaches the bottom edge */
   content: "";
   position: fixed;
   left: 0;
@@ -257,6 +258,32 @@ button, input {
   padding-top: max(0.25rem, calc(env(safe-area-inset-top) + 0.25rem));
 }
 
+
+.header-back {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primary);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Type / Mode pickers: room between the title and the first section label
+   or row (the modifier picker gets it from its subtitle). */
+.screen-title.picker-title { margin-bottom: 1rem; }
+/* Type and Mode pickers: one line per row. */
+#explore-modes-list .explore-mode-tagline,
+#type-list .explore-mode-tagline { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-back-chev { font-size: 1.6rem; line-height: 1; margin-top: -0.15rem; }
+.header-back:focus:not(:focus-visible) { outline: none; }
 
 .brand {
   background: none;
@@ -358,19 +385,25 @@ button, input {
 
 /* ---------------- Tab bar ---------------- */
 
+/* Floating glass bar (iOS 26 / Apple TV style, app-standard 16px corners): inset from the sides,
+   lifted off the bottom edge, content blurring through as it scrolls under.
+   The active tab sits on a darker inner pill (.tab-indicator, 12px —
+   concentric with the bar's corners) that slides
+   between tabs — positioned by syncTabIndicator() in app.js. */
 .tab-bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 1rem;
+  right: 1rem;
+  bottom: max(0.75rem, calc(env(safe-area-inset-bottom) - 0.4rem));
   z-index: 500;
   display: flex;
-  min-height: var(--tab-bar-height);
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border);
-  /* Extends the bar's own background all the way to the physical edge —
-     no gap of mismatched body/bg color behind the home indicator. */
-  padding: 0.5rem 0.4rem calc(0.5rem + env(safe-area-inset-bottom));
+  padding: 0.3rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-elevated) 62%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: opacity 0.25s ease, transform 0.25s ease;
   /* Forces its own GPU compositing layer at all times. Without this, iOS
      Safari occasionally loses track of this fixed element while the inner
@@ -379,28 +412,53 @@ button, input {
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
 }
+:root[data-theme="light"] .tab-bar {
+  background: color-mix(in srgb, #fff 58%, transparent);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(80, 60, 20, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
 .tab-bar.hidden {
   opacity: 0;
-  transform: translateY(100%) translateZ(0);
+  transform: translateY(calc(100% + 2rem)) translateZ(0);
   pointer-events: none;
 }
+.tab-indicator {
+  position: absolute;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: 0;
+  width: 0;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: transform 0.32s cubic-bezier(0.3, 1.25, 0.5, 1), width 0.32s ease;
+  pointer-events: none;
+}
+.tab-indicator.no-anim { transition: none; }
+:root[data-theme="light"] .tab-indicator { background: rgba(80, 60, 20, 0.1); box-shadow: none; }
 .tab-item {
+  position: relative;
+  z-index: 1;
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.2rem;
   background: none;
   border: none;
-  padding: 0.3rem 0;
+  padding: 0.5rem 0;
   font-family: inherit;
-  color: var(--text-tertiary);
+  color: var(--text);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 .tab-item:active { transform: scale(0.94); }
+.tab-item:focus:not(:focus-visible) { outline: none; }
 .tab-item-icon { display: flex; position: relative; }
-.tab-item-icon svg { width: 18px; height: 18px; display: block; }
-.tab-item-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.01em; }
+.tab-item-icon svg { width: 24px; height: 24px; display: block; }
+.tab-item-label { font-size: 0.7rem; font-weight: 400; letter-spacing: 0.01em; white-space: nowrap; }
 .tab-item.active { color: var(--primary); }
 .tab-item.active .tab-item-label { font-weight: 700; }
 /* Games tab's badge dot — carries the notification role the bell used to,
@@ -440,6 +498,15 @@ button, input {
 
 .screen { display: none; flex: 1; flex-direction: column; }
 .screen.active { display: flex; }
+/* Drill-in sibling swipe (see stepDrillSibling): the new page slides in
+   from the side the finger moved away from. */
+.screen.drill-slide-next { animation: drill-slide-next 0.24s ease-out; }
+.screen.drill-slide-prev { animation: drill-slide-prev 0.24s ease-out; }
+@keyframes drill-slide-next { from { transform: translateX(28%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes drill-slide-prev { from { transform: translateX(-28%); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .screen.drill-slide-next, .screen.drill-slide-prev { animation: none; }
+}
 
 .mascot-badge {
   width: 7.5rem;
@@ -1633,6 +1700,35 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 @keyframes poker-reveal { to { transform: translate(-50%,-50%) scale(1); } }
 @media (max-height: 700px) { .poker-hud { min-height: 13rem; } .poker-hand { height: 11.5rem; } .poker-card { width: min(25vw, 6.8rem); } }
 @media (prefers-reduced-motion: reduce) { .poker-card, .poker-result { transition: none; animation: none; } }
+/* Active card comes front and center (scaled over the fan, which dims);
+   when it's cleared it floats back to its slot and the next one rises. */
+.poker-card { transition: transform 380ms cubic-bezier(.3,.7,.3,1.15), opacity 300ms ease, filter 300ms ease; }
+.poker-hand.has-focus .poker-card:not(.active):not(.completed) { filter: brightness(.6) drop-shadow(0 .35rem .35rem rgba(0,0,0,.4)); }
+.poker-hand .poker-card.active { z-index: 8; transform: translateX(-50%) translateY(.4rem) scale(1.5); filter: drop-shadow(0 0 .5rem color-mix(in srgb, var(--gold) 80%, transparent)) drop-shadow(0 .8rem 1rem rgba(0,0,0,.6)); }
+.poker-card-back, .poker-card::after { border-radius: 7%; border: 2px solid var(--gold); background:
+  radial-gradient(circle at center, color-mix(in srgb, var(--gold) 85%, transparent) 0 .55rem, transparent .6rem),
+  repeating-linear-gradient(45deg, color-mix(in srgb, var(--gold) 28%, transparent) 0 2px, transparent 2px 9px),
+  repeating-linear-gradient(-45deg, color-mix(in srgb, var(--gold) 28%, transparent) 0 2px, transparent 2px 9px),
+  #1b1d24; box-shadow: inset 0 0 0 4px #1b1d24, inset 0 0 0 5px color-mix(in srgb, var(--gold) 60%, transparent); }
+.poker-card::after { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+/* Deal intro (~1.5s, see POKER_DEAL_MS): deck riffles 0–400ms, cards fly
+   out left→right 100ms apart and flip face up, deck fades as the last leaves. */
+.poker-deck { position: absolute; top: 1rem; left: 50%; width: min(29vw, 8.5rem); aspect-ratio: 136 / 208; transform: translateX(-50%); z-index: 9; animation: poker-deck-out 200ms ease 1050ms forwards; }
+.poker-hand-seven .poker-deck { width: min(24vw, 7rem); }
+.poker-deck .poker-card-back { position: absolute; inset: 0; filter: drop-shadow(0 .3rem .4rem rgba(0,0,0,.5)); }
+.poker-deck .poker-card-back:nth-child(1) { animation: poker-riffle-l 400ms ease-in-out; }
+.poker-deck .poker-card-back:nth-child(2) { animation: poker-riffle-r 400ms ease-in-out; }
+.poker-hand.dealing .poker-card { animation: poker-deal-fly 320ms cubic-bezier(.2,.8,.3,1) calc(400ms + var(--deal-i) * 100ms) backwards, poker-deal-flip 220ms ease-in-out calc(660ms + var(--deal-i) * 100ms) backwards; }
+.poker-hand.dealing .poker-card::after { animation: poker-back-hide 220ms linear calc(660ms + var(--deal-i) * 100ms) backwards; }
+.poker-hand.dealing .mode-counter-badge, .poker-hand.dealing .poker-card-check { opacity: 0; }
+@keyframes poker-riffle-l { 0%, 100% { transform: none; } 30% { transform: translateX(-55%) rotate(-8deg); } 60% { transform: translateX(-10%) rotate(-2deg); } }
+@keyframes poker-riffle-r { 0%, 100% { transform: none; } 30% { transform: translateX(55%) rotate(8deg); } 60% { transform: translateX(10%) rotate(2deg); } }
+@keyframes poker-deck-out { to { opacity: 0; visibility: hidden; } }
+@keyframes poker-deal-fly { from { transform: translateX(-50%) translateY(0) rotate(0deg); opacity: 0; } 1% { opacity: 1; } }
+@keyframes poker-deal-flip { 50% { scale: 0 1; } }
+@keyframes poker-back-hide { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .poker-card, .poker-hand.dealing .poker-card, .poker-hand.dealing .poker-card::after, .poker-deck, .poker-card-back { transition: none; animation: none; } }
+
 
 /* ---------------- Dice mode HUD ---------------- */
 /* Mirrors Cards mode's structure (see above): a focal-point visual for the
@@ -1871,8 +1967,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   width: min(68vw, 19rem);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #f7f2e8;
-  box-shadow: 0 0.9rem 1.6rem rgba(0, 0, 0, 0.38), inset 0 0 0 3px rgba(28, 25, 23, 0.2);
+  background: #a8743e;
+  box-shadow: 0 0.9rem 1.6rem rgba(0, 0, 0, 0.38), inset 0 0 0 3px rgba(60, 35, 15, 0.45);
   isolation: isolate;
 }
 .sharpshooter-ring {
@@ -1883,7 +1979,14 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   transform: translate(-50%, -50%);
   box-shadow: inset 0 0 0 2px rgba(35, 28, 25, 0.2);
 }
-.ring-outer { width: 100%; height: 100%; background: #f9f5ed; }
+/* Painted on a wooden target: grain on the outer band, rings painted over it. */
+.ring-outer {
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(97deg, rgba(92, 56, 24, 0.12) 0 3px, transparent 3px 9px),
+    radial-gradient(circle, #c4935a 0%, #a8743e 100%);
+}
 .ring-red-outer { width: 78%; height: 78%; background: #c9252d; }
 .ring-white-inner { width: 53%; height: 53%; background: #fffaf0; }
 .ring-bullseye { width: 29%; height: 29%; background: #c9252d; box-shadow: inset 0 0 0 2px #8f131d, 0 0 1.2rem rgba(201, 37, 45, 0.3); }
@@ -1918,22 +2021,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   font-weight: 800;
   text-align: center;
 }
-.sharpshooter-impact {
-  position: absolute;
-  z-index: 6;
-  left: 50%;
-  top: 50%;
-  width: 18%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.2);
-  background: #ffd84d;
-  box-shadow: 0 0 0 0.45rem rgba(255, 216, 77, 0.8), 0 0 2.4rem 1.3rem rgba(255, 89, 32, 0.8);
-  pointer-events: none;
-}
 .sharpshooter-target.rep-hit { animation: sharpshooter-rep-hit 240ms ease-out; }
-.sharpshooter-target.shatter .sharpshooter-impact { animation: sharpshooter-impact 650ms ease-out; }
 
 /* One hole punched per rep, placed at a random point on the target by JS
    (inline left/top) and cleared quietly (no fly-apart) when the target
@@ -1960,71 +2048,49 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   45% { transform: scale(0.965); filter: brightness(1.16); }
   100% { transform: scale(1); }
 }
-@keyframes sharpshooter-impact {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
-  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  55% { opacity: 0.8; transform: translate(-50%, -50%) scale(3.6); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
-}
 
-/* Target break-apart: 8 pie-slice wedges + 4 crosshair fragments fly outward
-   on completion, replacing the old bullseye pulse. Wedges reproduce the ring
-   color bands via a radial-gradient (sized to closest-side == outer ring
-   radius) so each slice shows the correct band regardless of its rotation
-   (radial gradients are angle-symmetric, so rotating the wedge doesn't shift
-   the bands). */
+/* Target break-apart (celebrateSharpshooterHit builds these per hit): jagged
+   shards cut from the painted target, thin splinters and a sawdust puff,
+   thrown outward with gravity. Shards reuse the target's paint via a radial
+   gradient, so every slice shows the right ring bands. */
 .sharpshooter-shatter { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
-.ss-wedge {
+.ss-shard {
   position: absolute;
   inset: 0;
-  opacity: 0;
-  clip-path: polygon(50% 50%, 29.3% 0%, 70.7% 0%);
-  transform: rotate(var(--wedge-ang, 0deg));
-  transform-origin: 50% 50%;
-  background: radial-gradient(circle closest-side at 50% 50%,
-    #c9252d 0%, #c9252d 29%,
-    #fffaf0 29%, #fffaf0 53%,
-    #c9252d 53%, #c9252d 78%,
-    #f9f5ed 78%, #f9f5ed 100%);
+  background:
+    repeating-linear-gradient(97deg, rgba(92, 56, 24, 0.10) 0 3px, transparent 3px 9px),
+    radial-gradient(circle closest-side at 50% 50%,
+      #c9252d 0%, #c9252d 29%,
+      #fffaf0 29%, #fffaf0 53%,
+      #c9252d 53%, #c9252d 78%,
+      #b9874f 78%, #a8743e 100%);
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.35));
 }
-.ss-frag { position: absolute; left: 50%; top: 50%; opacity: 0; background: rgba(55, 45, 41, 0.35); }
-.ss-frag-top,
-.ss-frag-bottom { width: 2px; height: 47%; }
-.ss-frag-left,
-.ss-frag-right { width: 47%; height: 2px; }
-.ss-frag-top { transform: translate(-50%, -100%); transform-origin: 50% 100%; }
-.ss-frag-bottom { transform: translate(-50%, 0); transform-origin: 50% 0%; }
-.ss-frag-left { transform: translate(-100%, -50%); transform-origin: 100% 50%; }
-.ss-frag-right { transform: translate(0, -50%); transform-origin: 0% 50%; }
-
+.ss-splinter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8a5a2b, #c99a62);
+}
+.ss-dust {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin: -30% 0 0 -30%;
+  background: radial-gradient(circle, rgba(214, 185, 140, 0.8) 0%, rgba(176, 140, 96, 0.45) 45%, transparent 70%);
+  filter: blur(3px);
+}
+/* The disc itself is gone while it's in pieces, and fades back on rebuild. */
+.sharpshooter-target { transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+.sharpshooter-target.shatter { background-color: transparent; box-shadow: none; transition: none; }
 .sharpshooter-target.shatter .sharpshooter-ring,
 .sharpshooter-target.shatter .sharpshooter-crosshair,
 .sharpshooter-target.shatter .sharpshooter-count { opacity: 0; transition: opacity 70ms ease-out; }
-.sharpshooter-target.shatter .ss-wedge { animation: ss-wedge-fly 650ms cubic-bezier(.25,.7,.4,1) forwards; }
-.sharpshooter-target.shatter .ss-frag-top { animation: ss-frag-fly-top 600ms ease-out forwards; }
-.sharpshooter-target.shatter .ss-frag-bottom { animation: ss-frag-fly-bottom 600ms ease-out forwards; }
-.sharpshooter-target.shatter .ss-frag-left { animation: ss-frag-fly-left 600ms ease-out forwards; }
-.sharpshooter-target.shatter .ss-frag-right { animation: ss-frag-fly-right 600ms ease-out forwards; }
-@keyframes ss-wedge-fly {
-  0% { transform: rotate(var(--wedge-ang)) translateY(0) rotate(0deg) scale(1); opacity: 1; }
-  100% { transform: rotate(var(--wedge-ang)) translateY(-85%) rotate(160deg) scale(0.6); opacity: 0; }
-}
-@keyframes ss-frag-fly-top {
-  0% { transform: translate(-50%, -100%) translateY(0); opacity: 1; }
-  100% { transform: translate(-50%, -100%) translateY(-160%); opacity: 0; }
-}
-@keyframes ss-frag-fly-bottom {
-  0% { transform: translate(-50%, 0) translateY(0); opacity: 1; }
-  100% { transform: translate(-50%, 0) translateY(160%); opacity: 0; }
-}
-@keyframes ss-frag-fly-left {
-  0% { transform: translate(-100%, -50%) translateX(0); opacity: 1; }
-  100% { transform: translate(-100%, -50%) translateX(-160%); opacity: 0; }
-}
-@keyframes ss-frag-fly-right {
-  0% { transform: translate(0, -50%) translateX(0); opacity: 1; }
-  100% { transform: translate(0, -50%) translateX(160%); opacity: 0; }
-}
 
 .sharpshooter-target.rebuild .sharpshooter-ring,
 .sharpshooter-target.rebuild .sharpshooter-crosshair { animation: ss-rebuild 260ms ease-out; }
@@ -2039,12 +2105,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 @media (prefers-reduced-motion: reduce) {
   .sharpshooter-shot,
   .sharpshooter-target.rep-hit,
-  .sharpshooter-target.shatter .sharpshooter-impact,
-  .sharpshooter-target.shatter .ss-wedge,
-  .sharpshooter-target.shatter .ss-frag-top,
-  .sharpshooter-target.shatter .ss-frag-bottom,
-  .sharpshooter-target.shatter .ss-frag-left,
-  .sharpshooter-target.shatter .ss-frag-right,
   .sharpshooter-target.rebuild .sharpshooter-ring,
   .sharpshooter-target.rebuild .sharpshooter-crosshair { animation-duration: 1ms; }
 }
@@ -2279,7 +2339,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 /* "Live"/"Invite"/"Open" read cleaner as plain labels than as another bold
    competing-for-attention control — de-emphasize like the other secondary
    segmented toggles (period/pushup-mode selects) above. */
-#horse-session-select .segment:not(.active) { font-weight: 400; }
+#horse-session-select .segment:not(.active),
+#tow-session-select .segment:not(.active) { font-weight: 400; }
 #horse-time-select .segment:not(.active) { font-weight: 400; }
 #horse-session-note, #horse-time-note { font-style: italic; }
 
@@ -2590,7 +2651,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 .tow-stepper-sm:active { transform: scale(0.92); }
 
 #tow-shuffle-hint, #tow-session-note, #tow-open-hint { font-style: italic; }
-#tow-shuffle-hint, #tow-session-note { font-size: 0.8rem; color: var(--text-tertiary); }
+#tow-shuffle-hint { font-size: 0.8rem; color: var(--text-tertiary); }
 
 .tow-team-actions-row { display: flex; gap: 0.6rem; margin: 0.6rem 0; }
 .tow-labeled-btn {
@@ -3010,6 +3071,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   text-align: center;
   cursor: pointer;
 }
+.summary-roadtrip-cue-line { display: block; text-wrap: balance; }
+.summary-roadtrip-cue .nowrap { white-space: nowrap; }
 .summary-actions {
   display: flex;
   flex-direction: column;
@@ -3147,6 +3210,15 @@ body:has(#screen-dashboard.active) #app {
   min-height: 0;
   overflow-y: auto;
 }
+/* Board and Challenges scroll an inner list rather than #app-main, so the
+   tab-bar clearance moves from #app-main into that list — its scroll box
+   then runs under the glass bar and content shows through it. */
+body:has(#screen-dashboard.active) #app-main,
+body:has(#screen-challenges.active) #app-main { padding-bottom: 0; }
+body:has(#screen-dashboard.active) .bonanza-scroll-view,
+body:has(#screen-challenges.active) .challenge-list {
+  padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 1rem);
+}
 .leaderboard-mode-picker {
   position: relative;
   flex-shrink: 0;
@@ -3216,13 +3288,11 @@ body:has(#screen-dashboard.active) #app {
   color: var(--text);
 }
 .leaderboard-mode-option.selected { background: var(--primary); color: #fff; }
-/* Leaderboard's own mode dropdown and Roadtrip's timeframe dropdown unbold
-   non-selected options; the other reuses of this shared component (compare
-   mode, my-sessions mode) keep every option at the same weight. */
-#leaderboard-mode-menu .leaderboard-mode-option,
-#roadtrip-tier-menu .leaderboard-mode-option { font-weight: 500; }
-#leaderboard-mode-menu .leaderboard-mode-option.selected,
-#roadtrip-tier-menu .leaderboard-mode-option.selected { font-weight: 650; }
+/* Leaderboard's own mode dropdown unbolds non-selected options; the other
+   reuses of this shared component (compare mode, my-sessions mode) keep
+   every option at the same weight. */
+#leaderboard-mode-menu .leaderboard-mode-option { font-weight: 500; }
+#leaderboard-mode-menu .leaderboard-mode-option.selected { font-weight: 650; }
 .leaderboard-mode-check { visibility: hidden; }
 .leaderboard-mode-option.selected .leaderboard-mode-check { visibility: visible; }
 
@@ -3266,7 +3336,13 @@ body:has(#screen-dashboard.active) #app {
 .roadtrip-location-needed h2 { margin: 0; font-size: 1.05rem; }
 .roadtrip-location-needed p, .roadtrip-empty span { max-width: 20rem; color: var(--text-dim); font-size: 0.78rem; line-height: 1.4; }
 .roadtrip-empty-icon { font-size: 1.7rem; }
-.roadtrip-detail-title { margin-bottom: 1rem; font-size: 1.35rem; }
+/* Title and share share one row, like the main tab headers. */
+.challenge-detail-header.roadtrip-detail-header { justify-content: space-between; align-items: center; min-height: 2.4rem; }
+.roadtrip-detail-title {
+  margin: 0; font-size: 1.35rem; line-height: 1.2; min-width: 0; flex: 1;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.roadtrip-detail-header .icon-btn { flex-shrink: 0; }
 .roadtrip-detail-summary { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; padding: 1.1rem; border-radius: 16px; background: var(--bg-elevated); }
 .roadtrip-crown { display: grid; place-items: center; flex: 0 0 3.5rem; width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--gold); font-size: 1.45rem; }
 .roadtrip-summary-copy { min-width: 0; display: flex; flex-direction: column; gap: 0.22rem; }
@@ -3472,14 +3548,7 @@ body:has(#screen-dashboard.active) #app {
 .boys-mode-stat-avatars { display: flex; align-items: center; }
 .boys-mode-stat-avatars .avatar-circle + .avatar-circle { margin-left: -0.4rem; }
 
-/* Secondary information relative to the main leaderboard above — deliberately
-   muted so the ranked leaderboard reads as the primary content. */
-#history-view-select,
-#recent-list,
-#history-list {
-  opacity: 0.5;
-}
-#history-view-select { margin-top: 1.6rem; }
+
 #boys-mode-stats, #boys-leader-stats { margin-top: 1.6rem; }
 
 .mybonanza-chart-card {
@@ -3630,6 +3699,22 @@ body:has(#screen-dashboard.active) #app {
 .week-bar-col-today .week-bar-value {
   font-weight: 800;
 }
+/* The bar area only — value + bar, excluding the day label — so bar
+   heights scale against space they actually get. Sizing them against the
+   whole column made the tallest bars overflow and get squashed, flattening
+   the differences between days. */
+.week-bar-track {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+/* --h is the bar's share (0–1) of the track minus the value line above it. */
+.week-bar[style*="--h"] { height: calc((100% - 1.3rem) * var(--h)); }
 .week-bar {
   width: 65%;
   min-height: 4px;
@@ -3766,16 +3851,26 @@ body:has(#screen-dashboard.active) #app {
   white-space: nowrap;
 }
 
+/* History: one line per session, flush with the rows above it. Secondary
+   to the leaderboard through text color rather than a whole-block fade. */
 .recent-row {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.7rem 1rem;
+  gap: 0.6rem;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--border);
 }
 .recent-row:last-child { border-bottom: none; }
-.recent-statement { flex: 1; min-width: 0; font-size: 0.85rem; line-height: 1.35; color: var(--text-dim); }
-.recent-name { font-weight: 700; color: var(--text); }
+.recent-statement {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-name { font-weight: 600; color: var(--text-dim); }
 /* Fixed-width count column so counts line up top to bottom down the list,
    like a table, regardless of how long the statement text runs. */
 .recent-count-col {
@@ -3786,7 +3881,7 @@ body:has(#screen-dashboard.active) #app {
   width: 3.6rem;
   flex: 0 0 auto;
 }
-.recent-count { font-weight: 900; font-size: 1.1rem; color: var(--primary); font-variant-numeric: tabular-nums; }
+.recent-count { font-weight: 800; font-size: 0.95rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .recent-modifier {
   display: flex;
   align-items: center;
@@ -3864,31 +3959,6 @@ body:has(#screen-dashboard.active) #app {
   border-radius: 16px;
   overflow: hidden;
 }
-.history-user-group { border-bottom: 1px solid var(--border); }
-.history-user-group:last-child { border-bottom: none; }
-.history-user-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.7rem 1rem;
-  cursor: pointer;
-  font-weight: 400;
-}
-.history-user-label { display: flex; align-items: center; gap: 0.55rem; }
-.history-user-header .chev { transition: transform 0.15s ease; color: var(--text-dim); }
-.history-user-group.open .chev { transform: rotate(90deg); }
-.history-sessions { display: none; padding: 0 1rem 0.7rem; }
-.history-user-group.open .history-sessions { display: block; }
-.history-session-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.88rem;
-  color: var(--text-dim);
-  padding: 0.35rem 0;
-  border-top: 1px dashed var(--border);
-}
-.history-session-row:first-child { border-top: none; }
-.history-session-count { font-weight: 800; color: var(--text); }
 
 /* ---------------- Settings ---------------- */
 /* 6 labeled sections instead of one bordered-box-per-setting. Tier-1 flat
@@ -3945,6 +4015,28 @@ body:has(#screen-dashboard.active) #app {
   text-align: left;
 }
 .settings-category-row:last-child { border-bottom: none; }
+/* Profile card heading Settings — your identity, tapping opens Edit profile. */
+.settings-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: calc(100% - 2rem);
+  margin: 0 1rem 1.25rem;
+  padding: 0.9rem 1rem;
+  border: none;
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.settings-profile-card:active { transform: scale(0.98); }
+.settings-profile-avatar { width: 3.2rem; height: 3.2rem; font-size: 1.75rem; }
+.settings-profile-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.settings-profile-name { font-weight: 800; font-size: 1.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-profile-sub { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-icon {
   flex-shrink: 0;
   width: 1.6rem;
@@ -3960,6 +4052,16 @@ body:has(#screen-dashboard.active) #app {
 .settings-category-icon-appearance { color: var(--accent); }
 .settings-category-icon-bonanza { color: var(--success); }
 .settings-category-icon-goals { color: var(--gold); }
+.settings-category-icon-poker { color: #2e9e5b; }
+.settings-category-icon-changelog { color: var(--text-dim); }
+.settings-new-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+
+/* Settings > Changelog — plain bullet list per date. Unseen entries get an
+   accent-colored bullet; everything else stays quiet. */
+.changelog-group { margin: 0 0 1.1rem; padding-left: 1.2rem; }
+.changelog-entry { padding: 0.2rem 0; font-size: 0.92rem; line-height: 1.4; color: var(--text); }
+.changelog-entry::marker { color: var(--text-tertiary); }
+.changelog-entry-new::marker { color: var(--primary); }
 .settings-category-title { flex: 1; font-weight: 400; font-size: 0.95rem; }
 .settings-category-value { color: var(--text-tertiary); font-size: 0.85rem; }
 .settings-category-value-active { color: var(--gold); font-weight: 600; }
@@ -4050,21 +4152,26 @@ body:has(#screen-dashboard.active) #app {
   color: var(--text-tertiary);
   font-size: 0.75rem;
   font-weight: 400;
-  margin: 1.6rem 0 0.5rem;
+  margin: 0.75rem 0 0;
+}
+/* Settings fits one phone screen: breathing room under the title, a tight
+   footer, and less spare clearance above the tab bar than other screens. */
+#screen-settings > .screen-title { margin-bottom: 0.9rem; }
+#settings-category-list-app { margin-bottom: 0; }
+body:has(#screen-settings.active) #app-main {
+  padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 0.25rem);
 }
 
-.manage-users-list, .my-sessions-list { display: flex; flex-direction: column; }
-.manage-user-row, .my-session-row {
+.my-sessions-list { display: flex; flex-direction: column; }
+.my-session-row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.7rem 1rem;
   border-bottom: 1px solid var(--border);
 }
-.manage-user-row:last-child, .my-session-row:last-child { border-bottom: none; }
-.manage-user-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Shared by every "tap to open the avatar-sheet grid" trigger — Settings'
-   per-user row and the New user form both use it, just at different sizes. */
+.my-session-row:last-child { border-bottom: none; }
+/* "Tap to open the avatar-sheet grid" trigger on the New user form. */
 .avatar-picker-btn {
   flex-shrink: 0;
   border-radius: 50%;
@@ -4075,43 +4182,7 @@ body:has(#screen-dashboard.active) #app {
   padding: 0;
   cursor: pointer;
 }
-.manage-avatar-btn { width: 2.2rem; height: 2.2rem; font-size: 1.05rem; }
 .new-user-avatar-btn { width: 2.8rem; height: 2.8rem; font-size: 1.3rem; }
-.btn-delete-user {
-  background: none;
-  border: none;
-  font-size: 1.1rem;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 0.2rem 0.3rem;
-  flex-shrink: 0;
-  transition: color 0.15s ease;
-}
-.btn-delete-user:active { transform: scale(0.9); color: var(--danger); }
-.you-badge {
-  flex-shrink: 0;
-  background: var(--bg-elevated-2);
-  color: var(--primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-}
-.btn-edit-profile {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  color: var(--text-tertiary);
-  font-weight: 700;
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 0.2rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.1rem;
-}
-.btn-edit-profile:active { opacity: 0.7; }
-.btn-edit-profile .chev { font-size: 1rem; }
 
 /* Grid, not flex — the mode badge's width varies with its label ("Cards" vs
    "Sharpshooter"), so a flex row left every count starting at a different x
@@ -4263,6 +4334,16 @@ body:has(#screen-settings-mysessions.active) #app {
   box-shadow: var(--shadow);
   z-index: 5;
 }
+/* Plank / Crunch screens: same cue, but in the flow above the Stop button. */
+.modifier-cue.modifier-cue-inline {
+  position: static;
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+  min-height: 52px;
+  margin: 0.6rem auto 0;
+  padding: 0.5rem 0.9rem;
+}
 .modifier-cue-icon { flex-shrink: 0; font-size: 1.15rem; }
 .modifier-cue-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.05rem; }
 .modifier-cue-label { color: var(--primary); font-weight: 800; font-size: 0.88rem; }
@@ -4360,31 +4441,42 @@ body:has(#screen-challenges.active) #app {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
-/* Floating join confirmation — sits just above the tab bar and fades out,
-   instead of being inserted inline between challenge cards. */
-.challenge-join-toast {
+/* Floating join confirmation — sits just above the tab bar and fades out.
+   Same glass, width and corner radius as .tab-bar so the two read as a pair. */
+.challenge-join-toast,
+.glass-toast {
   position: fixed;
-  left: 50%;
-  bottom: calc(var(--tab-bar-height) + 0.9rem + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  left: 1rem;
+  right: 1rem;
+  bottom: calc(max(0.75rem, calc(env(safe-area-inset-bottom) - 0.4rem)) + var(--tab-bar-height) + 0.5rem);
   z-index: 600;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  background: var(--bg-elevated-2);
-  border: 1px solid rgba(127, 191, 106, 0.35);
-  border-radius: 999px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--success);
-  box-shadow: var(--shadow);
-  max-width: 90vw;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-elevated) 62%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--text);
   opacity: 1;
   transition: opacity 0.4s ease;
 }
-.challenge-join-toast.hidden { display: none; }
-.challenge-join-toast.challenge-join-toast-fade { opacity: 0; }
+:root[data-theme="light"] .challenge-join-toast,
+:root[data-theme="light"] .glass-toast {
+  background: color-mix(in srgb, #fff 58%, transparent);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(80, 60, 20, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.challenge-join-toast.hidden,
+.glass-toast.hidden { display: none; }
+.challenge-join-toast.challenge-join-toast-fade,
+.glass-toast.glass-toast-fade { opacity: 0; }
 
 /* Mini progress bar on the list card — sits on an arbitrary hero gradient,
    so it uses a dark semi-opaque fill rather than the standard surface
@@ -4457,16 +4549,16 @@ body:has(#screen-challenge-detail.active) #app {
 .challenge-detail-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.6rem;
   margin-bottom: 1rem;
 }
-.challenge-detail-back {
-  background: none;
-  padding: 0;
-  font-weight: 700;
-  color: var(--text-tertiary);
-}
+/* Replaced by the header's back button (see syncHeaderBack) — kept in the
+   DOM only as the click target it forwards to. A header row left holding
+   just the back link collapses; any remaining actions sit on the right. */
+.screen .challenge-detail-back { display: none; }
+.edit-profile-header:not(:has(> :not(.challenge-detail-back))),
+.challenge-detail-header:not(:has(> :not(.challenge-detail-back))) { display: none; }
 .challenge-detail-share {
   flex: none;
 }
@@ -4662,6 +4754,29 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .goal-thermo .thermometer-wrap { max-width: none; margin: 0; }
 .goal-thermo .thermometer-track { height: 7px; background: var(--bg-elevated-2); }
+/* Reached goal: gold bar with a light band sliding along it — the same
+   moving-gradient treatment as Tug of War's rope (tow-rope-flow). */
+.goal-thermo .thermometer-fill.thermometer-win {
+  background-color: var(--gold);
+  background-image: repeating-linear-gradient(
+    100deg,
+    var(--gold) 0%,
+    var(--gold) 30%,
+    color-mix(in srgb, var(--gold) 25%, #fff) 50%,
+    var(--gold) 70%,
+    var(--gold) 100%
+  );
+  background-size: 6rem 100%;
+  animation: goal-thermo-shimmer 1.6s linear infinite;
+}
+@keyframes goal-thermo-shimmer { from { background-position: 0 0; } to { background-position: 6rem 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .goal-thermo .thermometer-fill.thermometer-win { animation: none; }
+}
+/* Dead hang start screen: Camera / Manual timing toggle. */
+.deadhang-timing-select { width: 100%; max-width: 18rem; margin: 0.4rem 0 0; }
+#btn-deadhang-cancel { flex: none; align-self: center; padding: 0.6rem 1.6rem; }
+
 .goal-thermo-count { font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 0; }
 .goal-thermo-label { font-size: 0.72rem; font-weight: 400; color: var(--text-dim); margin: 0; }
 
@@ -4702,7 +4817,7 @@ body:has(#screen-challenge-detail.active) #app {
 
 .edit-profile-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 0.5rem;
 }
@@ -5110,6 +5225,88 @@ body:has(#screen-challenge-detail.active) #app {
 .poker-hand-row-done { background: color-mix(in srgb, var(--success) 16%, var(--bg-elevated)); }
 .poker-hand-row-done .poker-hand-count { color: var(--success); }
 
+/* Settings > Poker collection — lifetime showcase, 2-col binder of fanned
+   example hands with an overlaid ×N badge per tile. */
+.poker-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.poker-showcase-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.1rem 0.5rem 0.75rem;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #24603f, #173d29);
+  box-shadow: var(--shadow);
+  color: #fff;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+.poker-showcase-tile:active { transform: scale(0.97); }
+.poker-showcase-fan {
+  position: relative;
+  width: 100%;
+  height: 4.6rem;
+}
+.poker-showcase-card {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 2.6rem;
+  aspect-ratio: 136 / 208;
+  margin-left: -1.3rem;
+  background: center / contain no-repeat;
+  border-radius: 4px;
+  box-shadow: 0 0.15rem 0.35rem rgba(0,0,0,.45);
+  transform-origin: 50% 120%;
+  transform: translateX(calc(var(--i) * 0.95rem)) rotate(calc(var(--i) * 9deg));
+}
+.poker-showcase-count {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  min-width: 2rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1a1a1a;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 0 0.1rem 0.3rem rgba(0,0,0,.4);
+  z-index: 1;
+}
+.poker-showcase-name {
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.poker-showcase-tile-royal {
+  grid-column: 1 / -1;
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+  background: linear-gradient(160deg, #2e6b4a, #6b5a1c);
+}
+/* Kickers (cards that aren't part of the hand) sit greyed behind it. */
+.poker-showcase-card-kicker { filter: grayscale(1) brightness(0.45); }
+/* Never-collected hand: the whole tile goes grey — felt, cards and badge. */
+.poker-showcase-tile-empty,
+.poker-showcase-tile-empty.poker-showcase-tile-royal {
+  background: var(--bg-elevated-2);
+  outline-color: color-mix(in srgb, var(--text-tertiary) 50%, transparent);
+  color: var(--text-dim);
+  box-shadow: none;
+}
+.poker-showcase-tile-empty .poker-showcase-fan,
+.poker-showcase-tile-empty .poker-showcase-name { opacity: 0.45; filter: grayscale(1); }
+.poker-showcase-tile-empty .poker-showcase-count { background: var(--border); color: var(--text-tertiary); box-shadow: none; }
+
 .challenge-pr-achieved { text-align: center; }
 .challenge-pr-achieved-title {
   font-size: 1.15rem;
@@ -5127,23 +5324,10 @@ body:has(#screen-challenge-detail.active) #app {
 
 /* ---------------- Toast ---------------- */
 
-.toast {
-  position: fixed;
-  bottom: calc(1.2rem + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-elevated-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.7rem 1.1rem;
-  border-radius: 999px;
-  box-shadow: var(--shadow);
-  font-size: 0.9rem;
-  font-weight: 700;
-  z-index: 999;
-  max-width: 90vw;
-  text-align: center;
-}
+/* App-wide message toast: the same glass bar as the challenge-join and
+   poker toasts (.glass-toast) — it used to be a pill that sat on top of the
+   tab bar. Only the stacking order differs, so it stays above everything. */
+#toast { z-index: 999; transition: opacity 0.25s ease; }
 
 /* ---------------- Holland mode ---------------- */
 
@@ -5846,8 +6030,8 @@ body:has(#screen-challenge-detail.active) #app {
 #screen-summary:has(#summary-chainofpain-result:not(.hidden)) :is(#btn-summary-different-mode, #btn-summary-share) { font-weight: 400; }
 
 /* ---- Kettlebell workouts (docs/kettlebell-mode-plan.md) ---- */
-.kb-preview-list { background: var(--bg-elevated); border-radius: 16px; margin-bottom: 1rem; }
-.kb-preview-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+.kb-preview-list { margin-bottom: 1rem; }
+.kb-preview-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
 .kb-preview-row:last-child { border-bottom: none; }
 .kb-preview-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--bg-elevated-2); color: var(--text-dim); font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .kb-preview-copy { flex: 1; min-width: 0; }
@@ -5858,6 +6042,16 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-preview-weight .stepper-btn { width: 1.9rem; height: 1.9rem; font-size: 1rem; }
 .kb-preview-weight .stepper-value { min-width: 3.2rem; font-size: 0.95rem; }
 .kb-preview-bw { font-size: 0.75rem; color: var(--text-tertiary); }
+/* Main bell weight (applies to every bell move unless a row overrides it). */
+.kb-base-weight { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0 0.8rem; border-bottom: 1px solid var(--border); }
+.kb-base-weight-label { font-weight: 700; font-size: 0.95rem; }
+.kb-base-weight .stepper-row { gap: 0.4rem; }
+.kb-base-weight .stepper-btn { width: 2.1rem; height: 2.1rem; font-size: 1.05rem; }
+.kb-base-weight .stepper-value { min-width: 3.6rem; font-size: 1rem; }
+.kb-preview-weight-compact { flex-direction: row; align-items: center; gap: 0.35rem; }
+.kb-weight-text { background: none; border: none; padding: 0.3rem 0.2rem; font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--text-dim); cursor: pointer; }
+.kb-weight-text.is-override { color: var(--primary); font-weight: 800; }
+.kb-weight-reset { background: none; border: none; padding: 0.2rem; font: inherit; font-size: 1rem; color: var(--text-tertiary); cursor: pointer; }
 .kb-nudge { border: none; border-radius: 999px; padding: 0.2rem 0.55rem; background: var(--primary); color: var(--text-on-accent); font-size: 0.7rem; font-weight: 800; cursor: pointer; }
 .kb-stage { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; padding-top: 1rem; }
 .kb-exercise-name { font-size: 1.7rem; font-weight: 900; margin: 0; line-height: 1.15; }
@@ -5972,3 +6166,174 @@ body:has(#screen-challenge-detail.active) #app {
    as their own section below it. */
 #workout-idle .workout-eyebrow { margin-bottom: -0.35rem; }
 #workout-idle .workout-hello { margin-bottom: 1.6rem; }
+
+/* Main tab screens (Games, Challenges, Roadtrip, Board) share one header
+   geometry so the title and tab row don't jump when switching tabs: a
+   fixed-height row, every right-side control at the same height, and the
+   same gap down to the first tab label. */
+.games-header,
+.challenges-header,
+.roadtrip-header,
+.dashboard-header { height: 2.4rem; margin-bottom: 0; }
+#screen-dashboard .dashboard-header { margin-bottom: 0; }
+.games-header .screen-title,
+.challenges-header .screen-title,
+.roadtrip-header .screen-title,
+.dashboard-header .screen-title { margin: 0; line-height: 1; }
+.games-start-btn,
+.challenges-create-btn,
+.roadtrip-header .leaderboard-mode-trigger,
+.dashboard-header-actions .leaderboard-mode-trigger,
+.dashboard-header-actions .icon-btn { height: 2.4rem; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
+#games-tab-select,
+#challenge-tab-select,
+#roadtrip-period-select,
+#period-select { margin-top: 0.8rem; padding-top: 0; }
+/* Underline sits on the divider, as on the other tab rows. */
+#period-select { padding-bottom: 0; }
+#games-tab-select.hidden + #games-list { margin-top: 1.2rem; }
+
+/* Groups: the wordmark doubles as the group switcher. */
+.brand-wrap { position: relative; min-width: 0; flex-shrink: 1; display: flex; }
+.brand { display: inline-flex; align-items: center; gap: 0.4rem; }
+.brand-chevron { color: var(--text-tertiary); flex-shrink: 0; }
+.brand[aria-expanded="true"] .brand-chevron { transform: rotate(180deg); }
+.group-menu { left: 0; right: auto; width: min(15rem, calc(100vw - 2rem)); z-index: 60; }
+.group-menu-divider { height: 1px; margin: 0.3rem 0.4rem; background: var(--border); }
+.group-menu-empty { margin: 0.4rem 0.7rem 0.2rem; font-size: 0.78rem; color: var(--text-tertiary); }
+.group-active-tag { margin-left: 0.4rem; font-size: 0.7rem; font-weight: 700; color: var(--primary); }
+.groups-empty { padding: 0.8rem 1rem; margin: 0; }
+.groups-actions { display: flex; gap: 0.6rem; margin-top: 1rem; }
+.groups-actions .btn { flex: 1; }
+.group-form { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
+.group-form input {
+  flex: 1; min-width: 0; padding: 0.7rem 0.9rem; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--bg-elevated); color: var(--text); font: inherit;
+}
+#group-join-code { text-transform: uppercase; letter-spacing: 0.15em; }
+.group-make-active { width: 100%; margin-bottom: 1rem; }
+.group-invite-card {
+  display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem; padding: 0.9rem 1rem;
+  border-radius: 14px; background: var(--bg-elevated);
+}
+.group-invite-label { font-size: 0.78rem; color: var(--text-tertiary); }
+.group-invite-code { flex: 1; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.18em; }
+.group-member-more { margin-left: 0.4rem; flex-shrink: 0; }
+.group-danger-actions { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.4rem; }
+.group-delete-btn { color: var(--danger, #e5534b); }
+.brand-wrap:not(.groups-on) .brand-chevron { display: none; }
+.create-visibility-note { margin: -0.6rem 0 1rem; font-size: 0.82rem; }
+#create-visibility .segment:disabled { opacity: 0.4; }
+.challenge-scope-select { margin: 0.9rem 0 1rem; }
+.max-players-select .segment { padding-left: 0; padding-right: 0; }
+.games-public-eyebrow { margin-top: 1.2rem; }
+#horse-session-select .segment:disabled,
+#tow-session-select .segment:disabled { opacity: 0.4; }
+.group-onboard-actions { display: flex; flex-direction: column; gap: 0.7rem; width: 100%; max-width: 22rem; margin-top: 1rem; }
+.group-claim-new { margin-top: 1.4rem; }
+
+/* Session type (Horse + Tug of war): one segmented bar, icon beside label. */
+.session-type-bar .segment { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; min-width: 0; }
+.session-type-bar .segment.hidden { display: none; }
+.session-type-bar .session-icon { width: 0.95rem; height: 0.95rem; flex-shrink: 0; }
+.session-type-bar .session-icon.hidden { display: none; }
+.horse-word-form { margin-top: 0.7rem; }
+#horse-word-input { text-transform: uppercase; letter-spacing: 0.2em; font-weight: 700; }
+.horse-word-lives { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--text-tertiary); }
+/* Up to 8 letters + 3 buttons on one row: chips shrink to fit. */
+.horse-word-preview-row .horse-word-preview { flex: 0 1 auto; min-width: 0; }
+.horse-word-preview-row .horse-word-chip { flex: 0 1 30px; min-width: 22px; }
+#horse-word-input::placeholder { text-transform: none; letter-spacing: normal; font-weight: 400; }
+
+/* Board History matches Leader statistics (.boys-mode-stat) row for row:
+   same inset, heading gap, label/value type, and leading-glyph size. */
+#recent-list { margin-top: 1.6rem; }
+#recent-list .recent-row { padding: 0.7rem 1rem; gap: 0.55rem; }
+#recent-list .recent-row > .avatar-circle { flex-shrink: 0; }
+#recent-list .recent-statement { font-size: 0.95rem; }
+#recent-list .recent-name { font-weight: 400; color: var(--text); }
+#recent-list .recent-count { font-size: 1.05rem; color: var(--text); }
+#recent-list .recent-count-col { width: auto; min-width: 3.6rem; }
+
+/* My Bonanza key stats: four mini tiles on one line (icon, number, label). */
+#personal-stats-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; }
+#personal-stats-tiles .stat-tile { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.75rem 0.3rem 0.7rem; min-width: 0; }
+#personal-stats-tiles .stat-tile-icon { width: 1.15rem; height: 1.15rem; color: var(--text-tertiary); margin-bottom: 0.4rem; }
+#personal-stats-tiles .stat-tile-icon svg { width: 100%; height: 100%; display: block; }
+#personal-stats-tiles .stat-tile-streak .stat-tile-icon { color: var(--primary); }
+#personal-stats-tiles .stat-tile-value { font-size: 1.15rem; line-height: 1.1; white-space: nowrap; }
+#personal-stats-tiles .stat-tile-label { font-size: 0.62rem; margin-top: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* Roadtrip map (docs/roadtrip-map-plan.md): filled card like the Board
+   chart, countries heat-shaded in the accent, tap to drill into cities. */
+.roadtrip-map-card { margin: 0 0 0.8rem; padding: 0.75rem 0.75rem 0.6rem; }
+.roadtrip-map-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 0 0.25rem 0.4rem; min-height: 1.6rem; }
+.roadtrip-map-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roadtrip-map-btn { border: none; background: var(--bg-elevated); color: var(--text-dim); font: inherit; font-size: 0.74rem; font-weight: 700; padding: 0.3rem 0.65rem; border-radius: 999px; cursor: pointer; flex-shrink: 0; }
+.roadtrip-map-stage { position: relative; aspect-ratio: 1000 / 520; overflow: hidden; border-radius: 10px; }
+#roadtrip-map-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.roadtrip-map-country {
+  fill: var(--bg-elevated); stroke: var(--bg-elevated-2); stroke-width: 0.6px;
+  vector-effect: non-scaling-stroke; transition: fill-opacity 0.3s ease, opacity 0.3s ease;
+}
+.roadtrip-map-country.active { fill: var(--primary); stroke: color-mix(in srgb, var(--primary) 60%, var(--bg-elevated-2)); cursor: pointer; }
+.roadtrip-map-country.dimmed { opacity: 0.45; }
+.roadtrip-map-marks { position: absolute; inset: 0; pointer-events: none; }
+.roadtrip-map-marks.is-animating > * { animation: roadtrip-mark-in 0.3s ease 0.42s both; }
+@keyframes roadtrip-mark-in { from { opacity: 0; } to { opacity: 1; } }
+.roadtrip-map-pill {
+  position: absolute; transform: translate(-50%, -50%); padding: 0.1rem 0.42rem; border-radius: 999px;
+  background: var(--bg); color: var(--text); font-size: 0.68rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.roadtrip-map-dot {
+  position: absolute; transform: translate(-50%, -50%); padding: 0; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: var(--primary); border: 2px solid var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.roadtrip-scope-link {
+  display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.6rem;
+  margin: 0 0 0.5rem; padding: 0.6rem 1rem; border: none; border-radius: 12px; background: var(--bg-elevated);
+  color: var(--text); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-align: left;
+}
+.roadtrip-scope-link span:last-child { color: var(--text-tertiary); font-size: 1.1rem; }
+.roadtrip-scope-empty { margin: 0.6rem 1rem; font-size: 0.85rem; color: var(--text-tertiary); }
+.roadtrip-map-dot.is-dimmed { opacity: 0.4; }
+.roadtrip-map-dot.is-selected { border-color: var(--primary); background: var(--text); }
+
+/* Challenges list: flat rows like Games/Roadtrip (see challengeRowEl). */
+.challenge-list { gap: 0; padding: 0; scrollbar-gutter: auto; }
+.challenge-row .games-row-subtitle { font-size: 0.74rem; }
+.challenge-row-join {
+  border: none; border-radius: 999px; padding: 0.42rem 0.95rem; cursor: pointer;
+  background: var(--primary); color: var(--text-on-accent); font: inherit; font-size: 0.78rem; font-weight: 800;
+}
+.challenge-row-join:active { transform: scale(0.96); }
+.challenge-row-progress { font-size: 0.85rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.challenge-row-winner { font-size: 0.78rem; font-weight: 700; color: var(--text-dim); max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.challenge-row-right { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; width: 6.5rem; }
+.challenge-row-right .challenge-row-progress { text-align: right; }
+.challenge-row-bar { display: block; height: 4px; border-radius: 999px; background: var(--bg-elevated-2); overflow: hidden; }
+.challenge-row-bar > span { display: block; height: 100%; min-width: 4px; border-radius: inherit; background: var(--primary); }
+.challenge-list-sentinel { height: 1px; flex-shrink: 0; }
+#share-tone-select { margin-bottom: 0.5rem; }
+#share-tone-select .segment:not(.active) { font-weight: 400; }
+.share-tone-preview-card {
+  display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.8rem 0.9rem;
+  border-radius: 14px; background: var(--bg-elevated);
+}
+.share-tone-preview { flex: 1; margin: 0; font-size: 0.86rem; line-height: 1.4; color: var(--text-dim); white-space: pre-line; min-height: 2.8em; }
+.share-tone-shuffle {
+  flex-shrink: 0; width: 2rem; height: 2rem; display: grid; place-items: center; border: none; border-radius: 50%;
+  background: var(--bg-elevated-2); color: var(--text-dim); cursor: pointer;
+}
+.share-tone-shuffle svg { width: 1rem; height: 1rem; }
+.share-tone-shuffle:active { transform: scale(0.92); }
+
+/* Poker hand result: glass toast instead of a centred banner over the cards
+   (pointer-events off so it never blocks a tap). */
+.glass-toast { pointer-events: none; }
+.poker-toast-suit { flex-shrink: 0; font-size: 1.05rem; line-height: 1; }
+.poker-toast-hand { font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold); }
+.poker-toast-hand.rank-3, .poker-toast-hand.rank-4, .poker-toast-hand.rank-5 { color: var(--primary); }
+.poker-toast-hand.rank-6, .poker-toast-hand.rank-7, .poker-toast-hand.rank-8, .poker-toast-hand.rank-9 { color: var(--success); }
+.poker-toast-sub { color: var(--text-dim); }
