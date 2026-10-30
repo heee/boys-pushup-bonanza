@@ -2222,7 +2222,10 @@ function showScreen(id) {
   }
   if (id === "screen-games") repaintAfterBackgroundRefresh(id, renderGamesScreen);
   if (id === "screen-challenges") renderChallengesScreen();
-  if (id === "screen-roadtrip") repaintAfterBackgroundRefresh(id, renderRoadtrip);
+  if (id === "screen-roadtrip") {
+    applyRoadtripStartingCountry();
+    repaintAfterBackgroundRefresh(id, renderRoadtrip);
+  }
   if (id === "screen-roadtrip-detail") repaintAfterBackgroundRefresh(id, renderRoadtripDetail);
   if (id === "screen-settings" || id === "screen-settings-mysessions" ||
     id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") {
@@ -6669,6 +6672,18 @@ async function renderRoadtripMap({ animate = false } = {}) {
   $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled && shouldShowWorld(unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds)), MAP_W));
 }
 
+// The first Roadtrip visit each launch opens on the country you're in (when
+// a location is set and that country has reps in the period — otherwise
+// renderRoadtrip falls back to the world); after that, your own drilling
+// is kept.
+let roadtripStartingCountryApplied = false;
+function applyRoadtripStartingCountry() {
+  if (roadtripStartingCountryApplied) return;
+  roadtripStartingCountryApplied = true;
+  state.roadtripMapCountry = state.deviceLocationProfile.location?.country?.code || null;
+  state.roadtripMapCity = null;
+}
+
 function drillRoadtripMap(countryCode) {
   state.roadtripMapCountry = countryCode;
   state.roadtripMapCity = null;
@@ -6770,6 +6785,19 @@ function renderRoadtrip() {
   state.roadtripMapAnimate = false;
 
   const scopePlace = city || country;
+  const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
+  // A city with no neighborhood-level reps has nothing deeper to list, so
+  // its people leaderboard shows right here instead of an empty level.
+  if (!top.length && city) {
+    const label = document.createElement("div");
+    label.className = "roadtrip-pinned-label";
+    label.textContent = `${roadtripPlaceText(city)} leaderboard`;
+    const group = document.createElement("div");
+    group.className = "leaderboard-list";
+    appendRoadtripPeopleRows(group, city);
+    list.append(label, group);
+    return;
+  }
   if (scopePlace) {
     const link = document.createElement("button");
     link.type = "button";
@@ -6777,11 +6805,6 @@ function renderRoadtrip() {
     link.innerHTML = `<span>${escapeHtml(roadtripPlaceText(scopePlace))} leaderboard</span><span aria-hidden="true">›</span>`;
     link.addEventListener("click", () => openRoadtripDetail(scopePlace.id));
     list.appendChild(link);
-  }
-  const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
-  if (!top.length && city) {
-    list.insertAdjacentHTML("beforeend", `<p class="roadtrip-scope-empty">No neighborhood-level reps in ${escapeHtml(city.name)} for this period.</p>`);
-    return;
   }
   if (!top.length) {
     list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One pushup with a selected location can fix that.</span></div>`;
@@ -6817,6 +6840,12 @@ function renderRoadtripDetail() {
     </div>`;
   const list = $("roadtrip-detail-list");
   list.innerHTML = "";
+  appendRoadtripPeopleRows(list, territory);
+}
+
+// Ranked people for one place (plus your own row pinned if you're off the
+// list) — the detail screen, and inline for a city with no neighborhoods.
+function appendRoadtripPeopleRows(list, territory) {
   const { top, pinned } = roadtripDetailRows(territory, state.currentUser, territory.users.length);
   const appendUser = (row, isPinned = false) => {
     const el = document.createElement("div");

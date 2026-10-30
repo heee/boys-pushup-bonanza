@@ -6298,7 +6298,6 @@ body:has(#screen-challenge-detail.active) #app {
   color: var(--text); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-align: left;
 }
 .roadtrip-scope-link span:last-child { color: var(--text-tertiary); font-size: 1.1rem; }
-.roadtrip-scope-empty { margin: 0.6rem 1rem; font-size: 0.85rem; color: var(--text-tertiary); }
 .roadtrip-map-dot.is-dimmed { opacity: 0.4; }
 .roadtrip-map-dot.is-selected { border-color: var(--primary); background: var(--text); }
 
