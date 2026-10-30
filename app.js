@@ -315,6 +315,7 @@ const LS = {
   ghostMode: "bpb-ghost-mode",
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
+  challengesCache: "bpb-challenges-cache",
   plankUnlocked: "bpb-plank-unlocked",
   deadhangTiming: "bpb-deadhang-timing",
   soundEnabled: "bpb-sound-enabled",
@@ -538,17 +539,33 @@ const AVATARS = [
 // by the client. Only participant lists (in the shared data store) change.
 const CHALLENGES_URL = "challenges.json";
 let challengeDefs = [];
-async function loadChallenges() {
-  let staticChallenges = [];
-  try {
-    const res = await fetch(CHALLENGES_URL, { cache: "no-cache" });
-    const json = await res.json();
-    staticChallenges = Array.isArray(json.challenges) ? json.challenges : [];
-  } catch (e) {
-    // keep whatever static list we had before; an empty list just renders empty states
+// The scheduled list rarely changes, so it's refetched at most every ten
+// minutes; in between (and across launches, via localStorage) the last copy
+// is reused. Resolves to whether a new copy was fetched.
+const CHALLENGES_FRESH_MS = 10 * 60 * 1000;
+let staticChallenges = jsonStorage.read(LS.challengesCache, null)?.challenges || null;
+let staticChallengesFetchedAt = 0;
+async function loadChallenges({ force = false } = {}) {
+  let fetched = false;
+  if (force || !staticChallenges || Date.now() - staticChallengesFetchedAt >= CHALLENGES_FRESH_MS) {
+    try {
+      const res = await fetch(CHALLENGES_URL, { cache: "no-cache" });
+      const json = await res.json();
+      staticChallenges = Array.isArray(json.challenges) ? json.challenges : [];
+      staticChallengesFetchedAt = Date.now();
+      fetched = true;
+      try { jsonStorage.write(LS.challengesCache, { challenges: staticChallenges }); } catch (e) { /* quota — memory copy still works */ }
+    } catch (e) {
+      // keep whatever static list we had before; an empty list just renders empty states
+    }
   }
+  rebuildChallengeDefs();
+  return fetched;
+}
+
+function rebuildChallengeDefs() {
   const custom = getCachedData().customChallenges || [];
-  challengeDefs = [...staticChallenges, ...custom];
+  challengeDefs = [...(staticChallenges || []), ...custom];
 }
 
 // Icon choices offered when creating a custom challenge.
@@ -970,13 +987,23 @@ function indexedSessionsForUserMode(user, mode = state.leaderboardMode) {
   return sessionIndex.byUserLeaderboardMode.get(`${mode}\0${user}`) || [];
 }
 
+// Parsed once and kept in memory — re-parsing the whole stored dataset on
+// every call made list renders (one call per challenge) noticeably slow.
+let cachedDataMemo = null;
 function cacheData(data) {
   invalidateSessionIndex();
-  jsonStorage.write(LS.cacheData, normalizeSharedData(data));
+  cachedDataMemo = normalizeSharedData(data);
+  jsonStorage.write(LS.cacheData, cachedDataMemo);
 }
 function getCachedData() {
-  return normalizeSharedData(jsonStorage.read(LS.cacheData, {}));
+  if (!cachedDataMemo) cachedDataMemo = normalizeSharedData(jsonStorage.read(LS.cacheData, {}));
+  return cachedDataMemo;
 }
+window.addEventListener("storage", (event) => {
+  if (event.key !== LS.cacheData) return;
+  cachedDataMemo = null;
+  invalidateSessionIndex();
+});
 
 const mutationQueue = createMutationQueue({ jsonStorage, key: LS.pendingQueue });
 
@@ -1097,15 +1124,31 @@ function getAllSessionsForDisplay() {
   return indexSessions(Array.from(byId.values())).sessions;
 }
 
+let lastRemoteFetchAt = 0;
 async function refreshFromRemote() {
   if (!workerConfigured()) return getAllSessionsForDisplay();
   try {
     const data = await workerFetchData();
     cacheData(data);
+    lastRemoteFetchAt = Date.now();
   } catch (e) {
     // offline or Worker unreachable — fall back to cache silently
   }
   return getAllSessionsForDisplay();
+}
+
+// Tab switches reuse a fetch made moments ago (e.g. Board → Challenges)
+// instead of downloading the whole dataset again. Resolves to whether a
+// fetch actually ran, so callers know if a repaint is worthwhile.
+const REMOTE_FRESH_MS = 30 * 1000;
+async function refreshFromRemoteIfStale() {
+  if (Date.now() - lastRemoteFetchAt < REMOTE_FRESH_MS) {
+    flushQueue().catch(() => {});
+    return false;
+  }
+  await flushQueue().catch(() => {});
+  await refreshFromRemote();
+  return true;
 }
 
 function chaseLeaderLabel(stage) {
@@ -7101,9 +7144,15 @@ $("btn-download-situp-trace").addEventListener("click", () => {
 
 // ------------------- dashboard / leaderboard -------------------
 
+// Paints straight from cache, then repaints once fresh data arrives (skipped
+// when another screen fetched it moments ago).
 async function renderDashboard() {
-  await flushQueue().catch(() => {});
-  const sessions = await refreshFromRemote();
+  paintDashboardFromSessions(getAllSessionsForDisplay());
+  const fetched = await refreshFromRemoteIfStale();
+  if (fetched && state.screen === "screen-dashboard") paintDashboardFromSessions(getAllSessionsForDisplay());
+}
+
+function paintDashboardFromSessions(sessions) {
   state.boardSessionsAll = sessions;
   if (!state.boardScope || (state.boardScope !== "all" && !myGroups().some((g) => g.id === state.boardScope))) {
     state.boardScope = activeGroupId() || "all";
@@ -8812,11 +8861,17 @@ function challengeWinners(c) {
   return board.filter((row) => row.score === top).map((row) => row.name);
 }
 
+// Paints straight from cache, then refreshes data and the scheduled list
+// in parallel and repaints only if either actually came back new.
 async function renderChallengesScreen() {
-  await flushQueue().catch(() => {});
-  await refreshFromRemote();
-  await loadChallenges();
-  paintChallengeList();
+  const hadCache = !!staticChallenges;
+  if (hadCache) {
+    rebuildChallengeDefs();
+    paintChallengeList();
+  }
+  const [dataFetched, listFetched] = await Promise.all([refreshFromRemoteIfStale(), loadChallenges()]);
+  if (state.screen !== "screen-challenges") return;
+  if (!hadCache || dataFetched || listFetched) paintChallengeList();
 }
 
 function paintChallengeList() {
