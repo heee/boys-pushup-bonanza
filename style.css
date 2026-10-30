@@ -1225,11 +1225,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 #squat-camera-video,
 #pullup-camera-video,
+#holland-camera-video,
 #situp-camera-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+/* Lock-after-warmup auto-framing (camera-framing.js) eases in rather than
+   snapping when counting starts. */
+#squat-camera-video,
+#pullup-camera-video,
+#holland-camera-video,
+#chainofpain-camera-video { transition: transform 0.6s ease; }
 
 /* Keep the same camera window for squats and pushups throughout the chain. */
 #chainofpain-camera-wrap.chainofpain-camera-wrap-large {

@@ -1,11 +1,22 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
-// Never intercepts the GitHub API or the MediaPipe CDN — those must always hit the network.
-const CACHE_NAME = "bpb-shell-v528";
+// Never intercepts the GitHub API. The MediaPipe runtime/models are the one
+// cross-origin exception — see TRACKER_CACHE.
+const CACHE_NAME = "bpb-shell-v529";
+
+// Pinned MediaPipe runtime + models (~15 MB). The URLs are version-pinned
+// and never change, so they're served cache-first from their own cache,
+// which survives CACHE_NAME bumps — iOS evicts the plain HTTP cache freely,
+// and re-downloading them made body-tracked modes slow to start.
+const TRACKER_CACHE = "bpb-trackers-v1";
+function isTrackerAsset(url) {
+  return (url.hostname === "cdn.jsdelivr.net" && url.pathname.startsWith("/npm/@mediapipe/tasks-vision@0.10.14/"))
+    || (url.hostname === "storage.googleapis.com" && url.pathname.startsWith("/mediapipe-models/"));
+}
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=348",
-  "./app.js?v=368",
+  "./style.css?v=349",
+  "./app.js?v=369",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",
   "./wheel-mode.js?v=4",
@@ -38,6 +49,7 @@ const SHELL_FILES = [
   "./rep-counter.js",
   "./session-progression.js?v=1",
   "./camera.js",
+  "./camera-framing.js?v=1",
   "./stats.js",
   "./screens/summary.js",
   "./screens/dashboard.js",
@@ -54,7 +66,7 @@ const SHELL_FILES = [
   "./screens/modifiers.js?v=102",
   "./screens/users.js",
   "./workout-modes.js?v=154",
-  "./changelog.js?v=13",
+  "./changelog.js?v=14",
   "./horse.js",
   "./horse-words.js",
   "./screens/horse.js",
@@ -95,13 +107,17 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== TRACKER_CACHE).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+  if (event.request.method === "GET" && isTrackerAsset(url)) {
+    event.respondWith(trackerCacheFirst(event));
+    return;
+  }
   if (url.origin !== self.location.origin) return; // let GitHub API / CDN requests pass through
   if (event.request.method !== "GET") return;
   if (url.pathname.endsWith("/challenges.json")) return; // always fetch fresh — never cache-first
@@ -115,6 +131,38 @@ self.addEventListener("fetch", (event) => {
   const network = fetchAndCache(event.request);
   event.waitUntil(network.then(() => {}).catch(() => {}));
   event.respondWith(staleWhileRevalidate(event.request, network));
+});
+
+// Only plain 200s are stored (never opaque no-cors responses, which a later
+// CORS request couldn't use). The put runs after the response is handed
+// back so the page doesn't wait for a 10 MB body to finish caching.
+async function trackerCacheFirst(event) {
+  const cached = await caches.match(event.request, { cacheName: TRACKER_CACHE });
+  if (cached) return cached;
+  const response = await fetch(event.request);
+  if (response.status === 200 && response.type !== "opaque") {
+    const copy = response.clone();
+    event.waitUntil(caches.open(TRACKER_CACHE).then((cache) => cache.put(event.request, copy)).catch(() => {}));
+  }
+  return response;
+}
+
+// The app asks for this when idle on Wi-Fi so the first body-tracked
+// workout doesn't wait on a ~15 MB download.
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "prefetch-trackers" || !Array.isArray(event.data.urls)) return;
+  event.waitUntil(Promise.all(event.data.urls.map(async (href) => {
+    try {
+      const url = new URL(href);
+      if (!isTrackerAsset(url)) return;
+      const request = new Request(url, { mode: "cors" });
+      if (await caches.match(request, { cacheName: TRACKER_CACHE })) return;
+      const response = await fetch(request);
+      if (response.status === 200) await (await caches.open(TRACKER_CACHE)).put(request, response);
+    } catch (e) {
+      // best effort — the normal fetch path caches it on first real use
+    }
+  })));
 });
 
 async function cacheSuccessfulResponse(request, response) {

@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-10-30", text: "Squats, pull-ups, Holland and Chain of Pain: the camera now zooms in to frame you after warmup, and the body tracker loads much faster after first use" },
   { date: "2026-10-29", text: "Added Windmill kettlebell workout" },
   { date: "2026-10-29", text: "Settings → Preferences: pick how unhinged your share messages are — Chill, Spicy or Unhinged" },
   { date: "2026-10-29", text: "Roadtrip map: countries shaded by reps — tap one to see its cities" },

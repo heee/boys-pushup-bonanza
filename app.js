@@ -113,6 +113,7 @@ import {
   progressionChartModel,
 } from "./session-progression.js?v=1";
 import { createCameraController } from "./camera.js";
+import { createFramingTracker, mapRect, IDENTITY_FRAMING } from "./camera-framing.js?v=1";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
@@ -130,7 +131,7 @@ import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLU
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=13";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=14";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -278,6 +279,34 @@ const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models
 // a selfie-distance model and simply can't see a face 6+ feet away, which is
 // exactly where a squatter stands. Pose landmarks work at room scale.
 const POSE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
+// Body-tracked types start loading their detector as soon as they're the
+// Home selection, not when their workout screen opens.
+function warmTrackerForHomeType(type) {
+  const tracker = { squats: squatCamera, pullups: pullupCamera, situps: situpCamera }[type];
+  tracker?.ensureDetector().catch(() => {});
+}
+
+// Pre-downloads the body-tracker runtime + model into the service worker's
+// tracker cache, once per launch, when idle on Wi-Fi. iOS Safari doesn't
+// expose connection type, so there this never fires and the first
+// body-tracked workout downloads them instead (cached for good after that).
+const BODY_TRACKER_ASSET_URLS = [
+  FACE_DETECTOR_MODULE_URL,
+  `${FACE_DETECTOR_WASM_URL}/vision_wasm_internal.js`,
+  `${FACE_DETECTOR_WASM_URL}/vision_wasm_internal.wasm`,
+  POSE_LANDMARKER_MODEL_URL,
+];
+let bodyTrackerPrefetchScheduled = false;
+function scheduleBodyTrackerPrefetch() {
+  if (bodyTrackerPrefetchScheduled) return;
+  const connection = navigator.connection;
+  if (connection?.type !== "wifi" || connection.saveData) return;
+  bodyTrackerPrefetchScheduled = true;
+  setTimeout(() => {
+    navigator.serviceWorker?.controller?.postMessage({ type: "prefetch-trackers", urls: BODY_TRACKER_ASSET_URLS });
+  }, 5000);
+}
 
 let deadhangModeModule = null;
 async function loadDeadhangMode() {
@@ -2210,6 +2239,8 @@ function showScreen(id) {
       restoreHomeSelection();
     }
     preserveNextModeSelection = false;
+    warmTrackerForHomeType(state.homeType);
+    scheduleBodyTrackerPrefetch();
     renderPushupModePicker();
     renderModifierSlot();
     repaintIfRefreshed(id, () => {
@@ -14171,6 +14202,39 @@ $("btn-deadhang-cancel").addEventListener("click", stopDeadhangHard);
 // createCameraController bakes its callbacks in at construction and the
 // pushup/plank/squat screens are never active at the same time.
 
+// Lock-after-warmup auto-framing for the body-tracked views (camera-framing.js):
+// begin at warmup, lock when counting starts, reset when the set ends.
+const bodyFraming = createFramingTracker();
+function applyBodyFraming(videoId, framing) {
+  const video = $(videoId);
+  video.style.transformOrigin = "0 0";
+  video.style.transform = framing.zoom === 1 ? "" : `translate(${framing.tx}px, ${framing.ty}px) scale(${framing.zoom})`;
+}
+function beginBodyFraming(videoId) {
+  bodyFraming.begin(videoId);
+  applyBodyFraming(videoId, IDENTITY_FRAMING);
+}
+function resetBodyFraming(videoId) {
+  bodyFraming.reset(videoId);
+  applyBodyFraming(videoId, IDENTITY_FRAMING);
+}
+function lockBodyFraming(videoId) {
+  const video = $(videoId);
+  const wrap = video.closest(".camera-wrap");
+  if (!wrap) return;
+  applyBodyFraming(videoId, bodyFraming.lock(videoId, { vw: video.videoWidth, vh: video.videoHeight, cw: wrap.clientWidth, ch: wrap.clientHeight }));
+}
+// Body box given in un-zoomed element pixels, drawn where it lands on the
+// framed (zoomed/panned) video.
+function placeBodyBox(box, videoId, left, top, width, height) {
+  const rect = mapRect({ left, top, width, height }, bodyFraming.framing(videoId));
+  box.style.left = `${rect.left}px`;
+  box.style.top = `${rect.top}px`;
+  box.style.width = `${rect.width}px`;
+  box.style.height = `${rect.height}px`;
+  box.classList.remove("hidden");
+}
+
 function updateSquatFaceBox(bbox) {
   const video = $("squat-camera-video");
   const container = document.querySelector("#screen-squat-workout .camera-wrap");
@@ -14179,12 +14243,8 @@ function updateSquatFaceBox(bbox) {
   if (!vw || !vh) return;
   const scale = Math.max(cw / vw, ch / vh);
   const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
-  const box = $("squat-face-box");
-  box.style.left = `${bbox.originX * scale + offsetX}px`;
-  box.style.top = `${bbox.originY * scale + offsetY}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("squat-camera-video", bbox);
+  placeBodyBox($("squat-face-box"), "squat-camera-video", bbox.originX * scale + offsetX, bbox.originY * scale + offsetY, bbox.width * scale, bbox.height * scale);
 }
 function hideSquatFaceBox() { $("squat-face-box").classList.add("hidden"); }
 
@@ -14442,6 +14502,7 @@ function beginSquatWarmup() {
   squatState.calSamples = [];
   squatState.warmupStartedAt = performance.now();
   squatState.stage = "warmup";
+  beginBodyFraming("squat-camera-video");
   $("squat-cal-stage").classList.remove("hidden");
   $("squat-count-stage").classList.add("hidden");
   $("btn-squat-stop").classList.add("hidden");
@@ -14491,6 +14552,7 @@ function beginSquatCounting(thresholds) {
   squatState.clapGesture = createClapGestureDetector();
   squatState.clapBannerShown = false;
   squatState.stage = "counting";
+  lockBodyFraming("squat-camera-video");
   state.squatBest = getSquatBest(state.currentUser);
   state.squatLast = getSquatLast(state.currentUser);
   squatState.ghostActive = ghostModeEnabled() && !!state.squatLast;
@@ -14552,6 +14614,7 @@ function stopSquatHard() {
   releaseWakeLock();
   state.squatActive = false;
   squatState.stage = "idle";
+  resetBodyFraming("squat-camera-video");
   hideSquatStatusBanner();
   $("squat-in-progress").classList.add("hidden");
   $("squat-idle").classList.remove("hidden");
@@ -14574,6 +14637,7 @@ async function completeSquat() {
   await releaseWakeLock();
   state.squatActive = false;
   squatState.stage = "idle";
+  resetBodyFraming("squat-camera-video");
   hideSquatStatusBanner();
   $("squat-in-progress").classList.add("hidden");
   $("squat-idle").classList.remove("hidden");
@@ -14653,12 +14717,8 @@ function updatePullupPoseBox(bbox) {
   const scale = Math.max(container.clientWidth / video.videoWidth, container.clientHeight / video.videoHeight);
   const offsetX = (container.clientWidth - video.videoWidth * scale) / 2;
   const offsetY = (container.clientHeight - video.videoHeight * scale) / 2;
-  const box = $("pullup-pose-box");
-  box.style.left = `${bbox.originX * scale + offsetX}px`;
-  box.style.top = `${bbox.originY * scale + offsetY}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("pullup-camera-video", bbox);
+  placeBodyBox($("pullup-pose-box"), "pullup-camera-video", bbox.originX * scale + offsetX, bbox.originY * scale + offsetY, bbox.width * scale, bbox.height * scale);
 }
 
 function hidePullupPoseBox() { $("pullup-pose-box").classList.add("hidden"); }
@@ -14799,6 +14859,7 @@ function tickPullupWarmup() {
     if (pullupState.count > 0) recordProgression(state.pullupProgression, Date.now() - state.pullupStartedAt.getTime(), pullupState.count);
     pullupState.phase = pullupState.counter.phase;
     pullupState.stage = "counting";
+    lockBodyFraming("pullup-camera-video");
     pullupState.lastSeenAt = performance.now();
     pullupState.paused = false;
     state.pullupBest = getPullupBest(state.currentUser);
@@ -14874,6 +14935,7 @@ async function startPullup() {
   state.pullupStartedAt = new Date();
   state.pullupProgression = createRepProgression();
   pullupState.stage = "warmup";
+  beginBodyFraming("pullup-camera-video");
   pullupState.calSamples = [];
   pullupState.warmupStartedAt = performance.now();
   pullupState.count = 0;
@@ -14894,6 +14956,7 @@ function stopPullupHard() {
   releaseWakeLock();
   state.pullupActive = false;
   pullupState.stage = "idle";
+  resetBodyFraming("pullup-camera-video");
   hidePullupStatusBanner();
   $("pullup-in-progress").classList.add("hidden");
   $("pullup-idle").classList.remove("hidden");
@@ -14919,6 +14982,7 @@ async function completePullup() {
   await releaseWakeLock();
   state.pullupActive = false;
   pullupState.stage = "idle";
+  resetBodyFraming("pullup-camera-video");
   hidePullupStatusBanner();
   $("pullup-in-progress").classList.add("hidden");
   $("pullup-idle").classList.remove("hidden");
@@ -15061,12 +15125,8 @@ function updateHollandBox(bbox) {
   if (!vw || !vh) return;
   const scale = Math.max(cw / vw, ch / vh);
   const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
-  const box = $("holland-pose-box");
-  box.style.left = `${bbox.originX * scale + offsetX}px`;
-  box.style.top = `${bbox.originY * scale + offsetY}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("holland-camera-video", bbox);
+  placeBodyBox($("holland-pose-box"), "holland-camera-video", bbox.originX * scale + offsetX, bbox.originY * scale + offsetY, bbox.width * scale, bbox.height * scale);
 }
 function hideHollandBox() { $("holland-pose-box").classList.add("hidden"); }
 function hideHollandStatusBanner() { $("holland-status-banner").classList.add("hidden"); }
@@ -15204,6 +15264,7 @@ function onHollandRepCounted() {
 
 function triggerHollandTransition() {
   hollandState.stage = "transition";
+  resetBodyFraming("holland-camera-video");
   hollandCamera?.stop();
   const completedExercise = hollandCurrentExercise(hollandState.rules);
   const completedTarget = hollandSegmentTarget(hollandState.rules);
@@ -15241,6 +15302,7 @@ function beginHollandCounting(exercise, thresholds, calSamples = null) {
     : hollandAdapterModule.hollandCreateCounter(exercise, thresholds);
   hollandState.counter = counter;
   hollandState.stage = "counting";
+  lockBodyFraming("holland-camera-video");
   hollandState.lastSeenAt = performance.now();
   hollandState.paused = false;
   $("holland-cal-stage").classList.add("hidden");
@@ -15267,6 +15329,7 @@ function renderHollandWarmup(exercise) {
 
 function beginHollandWarmup(exercise) {
   hollandState.stage = "warmup";
+  beginBodyFraming("holland-camera-video");
   hollandState.calSamples = [];
   hollandState.warmupStartedAt = performance.now();
   $("holland-cal-stage").classList.remove("hidden");
@@ -15366,6 +15429,7 @@ function stopHollandHard() {
   releaseWakeLock();
   state.hollandActive = false;
   hollandState.stage = "idle";
+  resetBodyFraming("holland-camera-video");
   hollandState.counter = null;
   hideHollandStatusBanner();
   $("holland-in-progress").classList.add("hidden");
@@ -15397,6 +15461,7 @@ async function completeHolland() {
   await releaseWakeLock();
   state.hollandActive = false;
   hollandState.stage = "idle";
+  resetBodyFraming("holland-camera-video");
   hideHollandStatusBanner();
   $("holland-in-progress").classList.add("hidden");
   $("holland-idle").classList.remove("hidden");
@@ -15566,12 +15631,8 @@ function updateChainOfPainBox(bbox) {
   const scale = Math.max(container.clientWidth / video.videoWidth, container.clientHeight / video.videoHeight);
   const offsetX = (container.clientWidth - video.videoWidth * scale) / 2;
   const offsetY = (container.clientHeight - video.videoHeight * scale) / 2;
-  const box = $("chainofpain-face-box");
-  box.style.left = `${offsetX + bbox.originX * scale}px`;
-  box.style.top = `${offsetY + bbox.originY * scale}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("chainofpain-camera-video", bbox);
+  placeBodyBox($("chainofpain-face-box"), "chainofpain-camera-video", offsetX + bbox.originX * scale, offsetY + bbox.originY * scale, bbox.width * scale, bbox.height * scale);
 }
 function hideChainOfPainBox() { $("chainofpain-face-box").classList.add("hidden"); }
 function hideChainOfPainStatusBanner() { $("chainofpain-status-banner").classList.add("hidden"); }
@@ -15700,6 +15761,7 @@ function beginChainOfPainWarmup() {
   $("chainofpain-setup-stage").classList.add("hidden");
   $("btn-chainofpain-cancel").classList.remove("hidden");
   chainOfPainState.stage = "warmup";
+  beginBodyFraming("chainofpain-camera-video");
   chainOfPainState.calSamples = [];
   chainOfPainState.warmupStartedAt = performance.now();
   $("chainofpain-cal-stage").classList.remove("hidden");
@@ -15733,6 +15795,7 @@ function beginChainOfPainCounting(thresholds = null) {
   chainOfPainState.down = thresholds?.down;
   chainOfPainState.up = thresholds?.up;
   chainOfPainState.stage = "counting";
+  lockBodyFraming("chainofpain-camera-video");
   chainOfPainState.lastSeenAt = performance.now();
   chainOfPainState.paused = false;
   chainOfPainState.segmentStartedAt = performance.now();
@@ -15871,6 +15934,7 @@ function renderChainOfPainRestTitle() {
 function triggerChainOfPainRest() {
   stopChainOfPainTicker();
   chainOfPainState.stage = "resting";
+  resetBodyFraming("chainofpain-camera-video");
   chainOfPainCamera?.stop();
   chainOfPainState.detectorType = null;
   const completedExercise = chainOfPainCurrentExercise(chainOfPainState.rules);
@@ -15966,6 +16030,7 @@ function stopChainOfPainHard() {
   releaseWakeLock();
   state.chainOfPainActive = false;
   chainOfPainState.stage = "idle";
+  resetBodyFraming("chainofpain-camera-video");
   chainOfPainState.counter = null;
   hideChainOfPainStatusBanner();
   $("chainofpain-in-progress").classList.add("hidden");
@@ -15994,6 +16059,7 @@ async function completeChainOfPain() {
   await releaseWakeLock();
   state.chainOfPainActive = false;
   chainOfPainState.stage = "idle";
+  resetBodyFraming("chainofpain-camera-video");
   hideChainOfPainStatusBanner();
   $("chainofpain-in-progress").classList.add("hidden");
   $("chainofpain-idle").classList.remove("hidden");
