@@ -9,6 +9,37 @@ export function createDetectorPool() {
   return new Map();
 }
 
+// Each detector boots its own engine instance, and by default each one also
+// recompiles the same ~9 MB engine binary. This wraps the browser's
+// WebAssembly.instantiateStreaming so the MediaPipe engine is compiled once
+// per launch and every later detector only instantiates the compiled copy
+// (~⅓ off detector creation in testing). Anything else, or any failure,
+// falls through to the browser — MediaPipe itself then retries without
+// streaming.
+const ENGINE_WASM = /\/vision_wasm(_nosimd)?_internal\.wasm$/;
+let engineCompileShared = false;
+export function shareEngineCompile() {
+  if (engineCompileShared || typeof WebAssembly?.instantiateStreaming !== "function") return;
+  engineCompileShared = true;
+  const compiled = new Map();
+  const original = WebAssembly.instantiateStreaming.bind(WebAssembly);
+  WebAssembly.instantiateStreaming = async (source, imports) => {
+    const response = await source;
+    const url = response?.url || "";
+    if (!ENGINE_WASM.test(url)) return original(response, imports);
+    let module = compiled.get(url);
+    if (module) {
+      response.body?.cancel().catch(() => {});
+    } else {
+      module = WebAssembly.compileStreaming(response);
+      compiled.set(url, module);
+      module.catch(() => compiled.delete(url));
+    }
+    const ready = await module;
+    return { module: ready, instance: await WebAssembly.instantiate(ready, imports) };
+  };
+}
+
 export function createCameraController({
   moduleUrl,
   wasmUrl,

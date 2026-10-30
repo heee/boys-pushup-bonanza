@@ -112,7 +112,7 @@ import {
   recordProgression,
   progressionChartModel,
 } from "./session-progression.js?v=1";
-import { createCameraController, createDetectorPool } from "./camera.js?v=3";
+import { createCameraController, createDetectorPool, shareEngineCompile } from "./camera.js?v=4";
 import { createFramingTracker, mapRect, IDENTITY_FRAMING } from "./camera-framing.js?v=1";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
@@ -275,6 +275,7 @@ import {
 // Every camera controller shares this, so each detector type (face, pose)
 // boots MediaPipe's engine once per launch instead of once per mode.
 const trackerPool = createDetectorPool();
+shareEngineCompile();
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
@@ -288,6 +289,22 @@ const POSE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-mode
 function warmTrackerForHomeType(type) {
   const tracker = { squats: squatCamera, pullups: pullupCamera, situps: situpCamera }[type];
   tracker?.ensureDetector().catch(() => {});
+}
+
+// Once per launch, after the face detector (warmed by Home) is ready, also
+// pre-build the body tracker for anyone who's done a body-tracked workout in
+// the last 30 days — the shared pool then hands it to every pose mode, so
+// their first set doesn't wait on it.
+const BODY_TRACKED_SESSION_TYPES = new Set(["squat", "pullup", "holland", "chainofpain"]);
+let bodyTrackerPreloadScheduled = false;
+function preloadBodyTrackerIfUsed() {
+  if (bodyTrackerPreloadScheduled || !state.currentUser) return;
+  bodyTrackerPreloadScheduled = true;
+  camera.ensureDetector().catch(() => {}).finally(() => {
+    const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const used = getAllSessionsForDisplay().some((s) => s.user === state.currentUser && BODY_TRACKED_SESSION_TYPES.has(s.type) && sessionTimestamp(s) >= since);
+    if (used) setTimeout(() => squatCamera.ensureDetector().catch(() => {}), 1500);
+  });
 }
 
 // Pre-downloads the tracker runtime + pose and face models into the service worker's
@@ -2244,6 +2261,7 @@ function showScreen(id) {
     }
     preserveNextModeSelection = false;
     warmTrackerForHomeType(state.homeType);
+    preloadBodyTrackerIfUsed();
     scheduleBodyTrackerPrefetch();
     renderPushupModePicker();
     renderModifierSlot();
@@ -17563,6 +17581,7 @@ async function init() {
     try {
       const data = await workerFetchData();
       cacheData(data);
+      lastRemoteFetchAt = Date.now();
       renderUserList();
       renderStreakBadge();
       renderGoalThermometers();
