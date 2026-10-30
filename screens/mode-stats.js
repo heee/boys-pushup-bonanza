@@ -22,7 +22,7 @@ function eligible(sessions, field) {
 
 // Pace leader isn't the fastest (that rewards rushed reps) — it's whoever
 // sits closest to the middle of the ideal 30–45/min range.
-const PACE_TARGET = 37.5;
+export const PACE_TARGET = 37.5;
 
 const SPECS = {
   all: [
@@ -159,7 +159,7 @@ export function modeStatsModel(sessions, mode) {
     const score = spec.leaderTarget == null ? (v) => v : (v) => -Math.abs(v - spec.leaderTarget);
     const best = userValues.length ? Math.max(...userValues.map((entry) => score(entry.value))) : null;
     const leaders = best == null ? [] : userValues.filter((entry) => Math.abs(score(entry.value) - best) < 1e-9).sort((a, b) => a.user.localeCompare(b.user));
-    return { id: spec.id, label: spec.label, format: spec.format, qualifier: spec.qualifier, value, leaders, available: value != null && Number.isFinite(value) };
+    return { id: spec.id, label: spec.label, format: spec.format, qualifier: spec.qualifier, leaderTarget: spec.leaderTarget, value, leaders, available: value != null && Number.isFinite(value) };
   });
 }
 

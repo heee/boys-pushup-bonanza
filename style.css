@@ -4895,67 +4895,42 @@ body:has(#screen-challenge-detail.active) #app {
 .compare-header-actions { display: flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; }
 .compare-screen-header .leaderboard-mode-picker { flex: 0 0 auto; }
 .compare-screen-header .leaderboard-mode-menu { z-index: 20; }
-.compare-card {
-  width: min(100%, 30rem);
-  margin: 0 auto;
-  padding: 1.15rem 1rem 1.25rem;
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--bg-elevated) 90%, #0a0703);
-  box-shadow: var(--shadow);
-}
-.compare-back {
-  display: block;
-  margin: 0 auto 0.4rem;
-  padding: 0.25rem 0.5rem;
-  border: 0;
-  background: transparent;
-  color: var(--text-dim);
-  font: inherit;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
+#compare-period-select { width: min(100%, 30rem); margin: 0 auto 0.9rem; }
+.compare-body { width: min(100%, 30rem); margin: 0 auto; }
 
-.compare-header {
-  display: flex;
+/* Slim one-line matchup — the stats below are the focus, not the avatars. */
+.compare-matchup {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
-  gap: 1.4rem;
-  margin: 0.6rem 0 0.75rem;
+  gap: 0.55rem;
 }
-.compare-avatar-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-.compare-avatar { width: 4.35rem; height: 4.35rem; border: 3px solid var(--gold); font-size: 2rem; flex-shrink: 0; }
-.compare-avatar-col:first-child .compare-avatar { border-color: var(--primary); }
+.compare-avatar { width: 2.4rem; height: 2.4rem; border: 2px solid var(--primary); font-size: 1.25rem; flex-shrink: 0; }
+.compare-avatar-b { border-color: var(--gold); }
 .compare-name {
   font-weight: 800;
   font-size: 1rem;
-  max-width: 8rem;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.compare-vs { color: var(--text-tertiary); font-weight: 700; font-size: 0.9rem; }
+.compare-name-b { text-align: right; }
+.compare-vs { color: var(--text-tertiary); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
 
 .compare-tally {
   text-align: center;
   color: var(--success);
   font-weight: 700;
-  font-size: 0.9rem;
-  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0.4rem;
 }
 
-.compare-table {
-  padding: 0 1rem;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--bg) 72%, #050301);
-}
+/* No card fills: groups sit on the page, headed like Leader statistics. */
+.compare-group { margin-top: 1.1rem; }
+.compare-group .tier1-eyebrow { margin-bottom: 0.1rem; }
 .compare-row {
-  padding: 1rem 0 0.8rem;
+  padding: 0.75rem 0 0.65rem;
   border-bottom: 1px solid var(--border);
 }
 .compare-row:last-child { border-bottom: 0; }
@@ -4981,26 +4956,28 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .compare-bar-track {
   display: flex;
-  height: 0.48rem;
+  height: 0.42rem;
   overflow: hidden;
-  background: color-mix(in srgb, var(--bg-elevated-2) 55%, #050301);
+  background: var(--bg-elevated);
 }
 .compare-bar-track-a { justify-content: flex-end; border-radius: 999px 0 0 999px; }
 .compare-bar-track-b { justify-content: flex-start; border-radius: 0 999px 999px 0; }
 .compare-bar-fill { display: block; height: 100%; background: var(--text-tertiary); transition: width 220ms ease; }
 .compare-bar-fill.is-strong { background: linear-gradient(90deg, var(--primary), var(--gold)); }
 .compare-bar-track-a .compare-bar-fill.is-strong { background: linear-gradient(90deg, var(--gold), var(--primary)); }
-.compare-bar-center { width: 3px; height: 0.75rem; border-radius: 2px; background: var(--text-tertiary); }
+.compare-bar-center { width: 3px; height: 0.7rem; border-radius: 2px; background: var(--text-tertiary); }
 .compare-row-label {
-  margin-top: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-dim);
   white-space: nowrap;
 }
+.compare-row-label .challenge-stat-icon { width: 0.95rem; height: 0.95rem; color: var(--text-tertiary); flex-shrink: 0; }
 .poker-achievements { padding: .9rem 1rem 1rem; border-top: 1px solid var(--border); }
 .poker-achievements-title { margin-bottom: .65rem; color: var(--text); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .poker-achievement-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; }

@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=350">
+<link rel="stylesheet" href="style.css?v=351">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1549,6 +1549,9 @@
 
     <!-- ============ SCREEN: HEAD-TO-HEAD COMPARISON ============ -->
     <section id="screen-user-compare" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-compare-back" type="button" class="challenge-detail-back">← Board</button>
+      </div>
       <div class="compare-screen-header">
         <h1 class="screen-title">Head-to-head</h1>
         <div class="compare-header-actions">
@@ -1562,21 +1565,23 @@
         </div>
       </div>
 
-      <div class="compare-card">
-        <button id="btn-compare-back" type="button" class="compare-back">← Back</button>
+      <div id="compare-period-select" class="segmented segmented-underline" role="tablist" aria-label="Comparison timeframe">
+        <button class="segment" data-compare-period="day">Day</button>
+        <button class="segment" data-compare-period="week">Week</button>
+        <button class="segment" data-compare-period="month">Month</button>
+        <button class="segment" data-compare-period="quarter">Quarter</button>
+        <button class="segment" data-compare-period="year">Year</button>
+        <button class="segment" data-compare-period="all">All-time</button>
+      </div>
 
-        <div class="compare-header">
-          <div class="compare-avatar-col">
-            <span id="compare-avatar-a" class="avatar-circle compare-avatar"></span>
-            <div id="compare-name-a" class="compare-name"></div>
-          </div>
-          <div class="compare-vs">VS</div>
-          <div class="compare-avatar-col">
-            <span id="compare-avatar-b" class="avatar-circle compare-avatar"></span>
-            <div id="compare-name-b" class="compare-name"></div>
-          </div>
+      <div class="compare-body">
+        <div class="compare-matchup">
+          <span id="compare-avatar-a" class="avatar-circle compare-avatar"></span>
+          <span id="compare-name-a" class="compare-name"></span>
+          <span class="compare-vs">vs</span>
+          <span id="compare-name-b" class="compare-name compare-name-b"></span>
+          <span id="compare-avatar-b" class="avatar-circle compare-avatar compare-avatar-b"></span>
         </div>
-
         <p id="compare-tally" class="compare-tally"></p>
 
         <div id="compare-table" class="compare-table"></div>
@@ -2364,6 +2369,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=374"></script>
+<script type="module" src="app.js?v=375"></script>
 </body>
 </html>

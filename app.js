@@ -118,9 +118,9 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=146";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=147";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=7";
-import { comparisonModel } from "./screens/comparison.js?v=139";
+import { comparisonModel } from "./screens/comparison.js?v=140";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
@@ -131,7 +131,7 @@ import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLU
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=14";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=15";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -1723,6 +1723,7 @@ const state = {
   // people instead of "me vs. X" — see openUserCompareFromLink.
   compareUserA: null,
   compareMode: "all",
+  comparePeriod: "week",
   sessionDetailSession: null,
   sessionDetailOrigin: "screen-dashboard",
   createGoalType: "individual",
@@ -7856,6 +7857,7 @@ function openUserCompare(otherUser) {
   state.compareUser = otherUser;
   state.compareUserA = null;
   state.compareMode = state.leaderboardMode;
+  state.comparePeriod = state.dashboardPeriod;
   renderUserCompare();
   showScreen("screen-user-compare");
 }
@@ -7872,6 +7874,7 @@ function openUserCompareFromLink(nameA, nameB) {
   state.compareUser = b;
   state.compareUserA = a === state.currentUser ? null : a;
   state.compareMode = state.leaderboardMode || "all";
+  state.comparePeriod = state.dashboardPeriod;
   renderUserCompare();
   showScreen("screen-user-compare");
 }
@@ -7910,18 +7913,52 @@ function setCompareModeMenuOpen(open) {
   $("compare-mode-menu").classList.toggle("hidden", !open);
 }
 
+function compareModeLabel() {
+  return (LEADERBOARD_MODE_OPTIONS.find((option) => option.id === state.compareMode) || LEADERBOARD_MODE_OPTIONS[0]).label;
+}
+
+// Head-to-head has its own period (seeded from Board's on open) so flipping
+// it here never changes the Board.
+function buildCompareModel(selfUser, otherUser) {
+  const cached = getCachedData();
+  // All sessions, not the Board's group-scoped pool: the two people being
+  // compared are what matters, and a shared #compare link opens before the
+  // Board has ever rendered.
+  return comparisonModel(getAllSessionsForDisplay(), {
+    userA: selfUser,
+    userB: otherUser,
+    mode: state.compareMode,
+    modeLabel: compareModeLabel(),
+    periodStartMs: periodStart(state.comparePeriod).getTime(),
+    now: new Date(),
+    games: { horseGames: cached.horseGames || [], towGames: cached.towGames || [] },
+  });
+}
+
+function compareRowHTML(row) {
+  const metric = { format: row.format };
+  return `
+      <div class="compare-row${row.comparable ? "" : " compare-row-unavailable"}">
+        <div class="compare-metric-line">
+          <div class="compare-row-value${row.aWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.aValue)}</div>
+          <div class="compare-bars">
+            <div class="compare-bar-track compare-bar-track-a"><span class="compare-bar-fill${row.aWinner || row.tied ? " is-strong" : ""}" style="width:${row.aPercent}%"></span></div>
+            <div class="compare-bar-center"></div>
+            <div class="compare-bar-track compare-bar-track-b"><span class="compare-bar-fill${row.bWinner || row.tied ? " is-strong" : ""}" style="width:${row.bPercent}%"></span></div>
+          </div>
+          <div class="compare-row-value compare-value-b${row.bWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.bValue)}</div>
+        </div>
+        <div class="compare-row-label">${challengeStatIconHTML(row.icon)}<span>${escapeHtml(row.label)}</span></div>
+      </div>`;
+}
+
 function renderUserCompare() {
   const otherUser = state.compareUser;
   const selfUser = state.compareUserA || state.currentUser;
   if (!otherUser || !selfUser) return;
   renderCompareModeControl();
-  const model = comparisonModel(state.lastSessions || [], {
-    userA: selfUser,
-    userB: otherUser,
-    mode: state.compareMode,
-    periodStartMs: periodStart(state.dashboardPeriod).getTime(),
-    now: new Date(),
-  });
+  document.querySelectorAll("[data-compare-period]").forEach((tab) => tab.classList.toggle("active", tab.dataset.comparePeriod === state.comparePeriod));
+  const model = buildCompareModel(selfUser, otherUser);
 
   const avatarA = avatarForUser(selfUser);
   const avatarB = avatarForUser(otherUser);
@@ -7935,23 +7972,11 @@ function renderUserCompare() {
   $("compare-table").classList.toggle("hidden", model.empty);
   $("compare-empty").classList.toggle("hidden", !model.empty);
   $("compare-tally").classList.toggle("hidden", model.empty);
-  $("compare-table").innerHTML = model.rows.map((row) => {
-    const metric = { format: row.format };
-    return `
-      <div class="compare-row${row.comparable ? "" : " compare-row-unavailable"}">
-        <div class="compare-metric-line">
-          <div class="compare-row-value${row.aWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.aValue)}</div>
-          <div class="compare-bars">
-            <div class="compare-bar-track compare-bar-track-a"><span class="compare-bar-fill${row.aWinner || row.tied ? " is-strong" : ""}" style="width:${row.aPercent}%"></span></div>
-            <div class="compare-bar-center"></div>
-            <div class="compare-bar-track compare-bar-track-b"><span class="compare-bar-fill${row.bWinner || row.tied ? " is-strong" : ""}" style="width:${row.bPercent}%"></span></div>
-          </div>
-          <div class="compare-row-value compare-value-b${row.bWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.bValue)}</div>
-        </div>
-        <div class="compare-row-label">${row.label}</div>
-      </div>
-    `;
-  }).join("");
+  $("compare-table").innerHTML = model.groups.map((group) => `
+    <section class="compare-group">
+      <div class="tier1-eyebrow">${escapeHtml(group.label)}</div>
+      ${group.rows.map(compareRowHTML).join("")}
+    </section>`).join("");
 
   const tallyEl = $("compare-tally");
   if (model.aWins === model.bWins) {
@@ -7965,6 +7990,12 @@ function renderUserCompare() {
 }
 
 $("btn-compare-back").addEventListener("click", () => showScreen("screen-dashboard"));
+$("compare-period-select").addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-compare-period]");
+  if (!tab) return;
+  state.comparePeriod = tab.dataset.comparePeriod;
+  renderUserCompare();
+});
 $("compare-mode-trigger").addEventListener("click", () => {
   setCompareModeMenuOpen($("compare-mode-trigger").getAttribute("aria-expanded") !== "true");
 });
@@ -8055,8 +8086,11 @@ function exportCompareImage(model, selfUser, otherUser, modeLabel, tallyText) {
   wrapCenteredText(ctx, tallyText, W / 2, 660, W - 160, 52);
 
   const rowsY = 760;
-  const rowH = Math.min(150, (H - 260 - rowsY) / Math.max(1, model.rows.length));
-  model.rows.forEach((row, i) => {
+  // Each row needs ~110px, so the image keeps the first 8 rows both people
+  // have numbers for (the screen itself shows every group).
+  const rows = model.rows.filter((row) => row.comparable).slice(0, 8);
+  const rowH = Math.min(150, (H - 260 - rowsY) / Math.max(1, rows.length));
+  rows.forEach((row, i) => {
     const y = rowsY + i * rowH;
     ctx.textAlign = "left";
     ctx.fillStyle = "#8a7c68";
@@ -8130,13 +8164,7 @@ async function shareUserCompare() {
   const otherUser = state.compareUser;
   const selfUser = state.compareUserA || state.currentUser;
   if (!otherUser || !selfUser) return;
-  const model = comparisonModel(state.lastSessions || [], {
-    userA: selfUser,
-    userB: otherUser,
-    mode: state.compareMode,
-    periodStartMs: periodStart(state.dashboardPeriod).getTime(),
-    now: new Date(),
-  });
+  const model = buildCompareModel(selfUser, otherUser);
   const activityWord = activityLabel(state.activityType, true);
   let message;
   if (model.aWins === model.bWins) {
@@ -8155,7 +8183,7 @@ async function shareUserCompare() {
   const tallyText = model.aWins === model.bWins
     ? `Tied ${model.aWins}-${model.aWins}`
     : `${model.aWins > model.bWins ? selfUser : otherUser} leads ${Math.max(model.aWins, model.bWins)}-${Math.min(model.aWins, model.bWins)}`;
-  const modeLabel = (LEADERBOARD_MODE_OPTIONS.find((option) => option.id === state.compareMode) || LEADERBOARD_MODE_OPTIONS[0]).label;
+  const modeLabel = compareModeLabel();
 
   if (!model.empty) {
     try {
@@ -9078,6 +9106,8 @@ function challengeStatIconHTML(icon) {
     award: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
     shuffle: '<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
     layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+    flame: '<path d="M12 22c4 0 7-2.8 7-7 0-3.2-2-5.6-3.5-7.2-.4 1.6-1.3 2.7-2.5 3.2.3-3-1-6-4-9 0 3.5-4 6.4-4 11.5C5 18.7 8 22 12 22z"/>',
+    hash: '<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>',
   };
   return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
 }
