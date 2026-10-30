@@ -17198,7 +17198,18 @@ function recapValueDisplay(value, unit) {
 // City coordinates never change once resolved, so this cache never expires —
 // it just grows as new cities get logged in Roadtrip. Used only by the group
 // monthly recap's miles-from-Houston tile (see computeGroupMilesLogged).
-const CITY_COORDS_CACHE_KEY = "bpb-cityCoords";
+// v2: v1 geocoded by "City, CC" alone, which put same-named cities in the
+// wrong state (Arlington, VA → Arlington, TX), so those entries are dropped.
+const CITY_COORDS_CACHE_KEY = "bpb-cityCoords-v2";
+try { localStorage.removeItem("bpb-cityCoords"); } catch (e) { /* storage unavailable */ }
+
+// City ids carry the state ("city:us:virginia:arlington" — see the Worker's
+// territoryId), which the search needs to tell same-named cities apart.
+function cityGeocodeQuery(territory) {
+  const stateSlug = String(territory.id || "").split(":")[2] || "";
+  const state = stateSlug && stateSlug !== "unknown" ? stateSlug.replace(/-/g, " ") : "";
+  return [territory.name, state, territory.parent].filter(Boolean).join(", ");
+}
 
 function loadCityCoordsCache() {
   try {
@@ -17227,7 +17238,7 @@ async function resolveCityCoords(territories) {
     if (territory.name.trim().toLowerCase() === "houston") continue;
     if (cache[territory.id]) continue;
     try {
-      const coords = await workerGeocodeCity(`${territory.name}, ${territory.parent}`);
+      const coords = await workerGeocodeCity(cityGeocodeQuery(territory));
       if (Number.isFinite(coords?.lat) && Number.isFinite(coords?.lon)) {
         cache[territory.id] = { lat: coords.lat, lon: coords.lon };
         changed = true;
