@@ -3671,14 +3671,6 @@ body:has(#screen-challenges.active) .challenge-list {
 .week-bar-col-clickable .week-bar-label {
   transition: color 0.15s ease;
 }
-.week-bar-col-selected .week-bar {
-  background: linear-gradient(180deg, var(--gold), var(--accent));
-  box-shadow: 0 0 0 2px var(--gold) inset;
-}
-.week-bar-col-selected .week-bar-label {
-  font-weight: 700;
-  color: var(--gold);
-}
 .week-chart-clear {
   display: block;
   margin: 0.35rem auto 0;
@@ -3696,7 +3688,8 @@ body:has(#screen-challenges.active) .challenge-list {
   color: var(--text-dim);
   min-height: 1em;
 }
-.week-bar-col-today .week-bar-value {
+.week-bar-col-today .week-bar-value,
+.week-bar-col-selected .week-bar-value {
   font-weight: 800;
 }
 /* The bar area only — value + bar, excluding the day label — so bar
@@ -3722,7 +3715,8 @@ body:has(#screen-challenges.active) .challenge-list {
   background: var(--bg-elevated);
   transition: height 0.25s ease;
 }
-.week-bar-col-today .week-bar {
+.week-bar-col-today .week-bar,
+.week-bar-col-selected .week-bar {
   background: linear-gradient(180deg, var(--primary-dim), var(--primary-deep));
   box-shadow: 0 0 0 2px var(--primary) inset;
 }
@@ -3731,7 +3725,8 @@ body:has(#screen-challenges.active) .challenge-list {
   color: var(--text-dim);
   font-weight: 500;
 }
-.week-bar-col-today .week-bar-label {
+.week-bar-col-today .week-bar-label,
+.week-bar-col-selected .week-bar-label {
   font-weight: 700;
   color: var(--primary);
 }
