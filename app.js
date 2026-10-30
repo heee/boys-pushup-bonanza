@@ -8229,7 +8229,7 @@ function paintMyBonanza(sessions) {
       </div>
     </div>` : "";
   statsEl.innerHTML = secondary.map((metric) => `
-    <div class="stats-table-row"><span class="stats-table-label">${challengeStatIconHTML(modeStatIcon(metric.format))}<span>${metric.label}</span></span><span class="stats-table-value">${formatModeMetric(metric)}</span></div>
+    <div class="stats-table-row"><span class="stats-table-label">${challengeStatIconHTML(modeStatIcon(metric))}<span>${metric.label}</span></span><span class="stats-table-value">${formatModeMetric(metric)}</span></div>
   `).join("") + achievementMarkup;
 }
 
@@ -8922,8 +8922,9 @@ function challengeStatIconHTML(icon) {
 // A couple of cross-mode stats (id-keyed) get their own glyph regardless of
 // their (shared, generic) "integer" format.
 function modeStatIcon(metric) {
-  const byId = { modifiersUsed: "shuffle", modesUsed: "layers" };
+  const byId = { modifiersUsed: "shuffle", modesUsed: "layers", sessions: "duration" };
   if (byId[metric.id]) return byId[metric.id];
+  if (metric.qualifier === "group best") return "award";
   return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";
 }
 
