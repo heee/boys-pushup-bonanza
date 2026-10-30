@@ -20,18 +20,22 @@ function eligible(sessions, field) {
   return sessions.filter((session) => Number.isFinite(Number(session[field])));
 }
 
+// Pace leader isn't the fastest (that rewards rushed reps) — it's whoever
+// sits closest to the middle of the ideal 30–45/min range.
+const PACE_TARGET = 37.5;
+
 const SPECS = {
   all: [
     { id: "sessions", label: "Sessions logged", format: "integer", qualifier: "total", value: (s) => s.length },
     { id: "avgDuration", label: "Avg session time", format: "duration", qualifier: "group avg", value: (s) => average(s.map(durationMs).filter((v) => v != null)) },
-    { id: "avgPace", label: "Avg pace", format: "pace", qualifier: "group avg", value: (s) => { const timed = s.map((x) => [x, durationMs(x)]).filter(([, ms]) => ms != null); const minutes = sum(timed, ([, ms]) => ms) / 60000; return minutes ? sum(timed, ([x]) => Number(x.count) || 0) / minutes : null; } },
+    { id: "avgPace", label: "Avg pace", format: "pace", qualifier: "group avg", leaderTarget: PACE_TARGET, value: (s) => { const timed = s.map((x) => [x, durationMs(x)]).filter(([, ms]) => ms != null); const minutes = sum(timed, ([, ms]) => ms) / 60000; return minutes ? sum(timed, ([x]) => Number(x.count) || 0) / minutes : null; } },
     { id: "avgReps", label: "Avg pushups / session", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
     { id: "bestSession", label: "Most pushups in a session", format: "integer", qualifier: "group best", value: (s) => s.length ? Math.max(...s.map((x) => Number(x.count) || 0)) : null },
   ],
   classic: [
     { id: "sessions", label: "Classic sessions", format: "integer", qualifier: "total", value: (s) => s.length },
     { id: "workoutTime", label: "Total workout time", format: "duration", qualifier: "total", value: (s) => { const values = s.map(durationMs).filter((v) => v != null); return values.length ? sum(values) : null; } },
-    { id: "avgPace", label: "Avg pace", format: "pace", qualifier: "group avg", value: (s) => SPECS.all[2].value(s) },
+    { id: "avgPace", label: "Avg pace", format: "pace", qualifier: "group avg", leaderTarget: PACE_TARGET, value: (s) => SPECS.all[2].value(s) },
     { id: "avgReps", label: "Avg pushups / session", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
     { id: "bestSession", label: "Most pushups in a session", format: "integer", qualifier: "group best", value: (s) => s.length ? Math.max(...s.map((x) => Number(x.count) || 0)) : null },
   ],
@@ -152,8 +156,9 @@ export function modeStatsModel(sessions, mode) {
     const value = sessions.length ? spec.value(sessions) : null;
     const userValues = Array.from(byUser, ([user, userSessions]) => ({ user, value: spec.value(userSessions) }))
       .filter((entry) => entry.value != null && Number.isFinite(entry.value));
-    const best = userValues.length ? Math.max(...userValues.map((entry) => entry.value)) : null;
-    const leaders = best == null ? [] : userValues.filter((entry) => Math.abs(entry.value - best) < 1e-9).sort((a, b) => a.user.localeCompare(b.user));
+    const score = spec.leaderTarget == null ? (v) => v : (v) => -Math.abs(v - spec.leaderTarget);
+    const best = userValues.length ? Math.max(...userValues.map((entry) => score(entry.value))) : null;
+    const leaders = best == null ? [] : userValues.filter((entry) => Math.abs(score(entry.value) - best) < 1e-9).sort((a, b) => a.user.localeCompare(b.user));
     return { id: spec.id, label: spec.label, format: spec.format, qualifier: spec.qualifier, value, leaders, available: value != null && Number.isFinite(value) };
   });
 }
