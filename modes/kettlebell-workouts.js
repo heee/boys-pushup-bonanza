@@ -53,13 +53,34 @@ export const KETTLEBELL_EXERCISES = {
   "wood-chop": { name: "Half Kneeling Wood Chop", spoken: "Wood chops", paceSec: 2.5 },
   "hollow-flutter": { name: "Hollow Hold + Flutter Kicks", spoken: "Hollow hold, flutter kicks", paceSec: 1, bodyweight: true },
   "hollow-leg-raise": { name: "Hollow Hold + Leg Raises", spoken: "Hollow hold, leg raises", paceSec: 3.0 },
-  "wrist-rotation": { name: "Wrist Rotation", spoken: "Wrist rotations", paceSec: 2.0 },
-  "wrist-twist": { name: "Wrist Twist", spoken: "Wrist twists", paceSec: 2.0 },
-  "biceps-to-triceps": { name: "Biceps to Triceps", spoken: "Biceps to triceps", paceSec: 3.5 },
-  "pull-press": { name: "Pull & Press", spoken: "Pull and press", paceSec: 3.5 },
-  "static-hold-left": { name: "Static Hold (Left)", spoken: "Static hold, left arm", paceSec: 1 },
-  "static-hold-right": { name: "Static Hold (Right)", spoken: "Static hold, right arm", paceSec: 1 },
-  "alt-one-arm-pull": { name: "Alternating One-Arm Pull", spoken: "Alternating one arm pulls", paceSec: 2.0 },
+  "wrist-rotation": {
+    name: "Wrist Rotation", spoken: "Wrist rotations", paceSec: 2.0,
+    clip: { base: "assets/kettlebell/wrist-rotation", loopSec: 5, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.5, origin: "52% 59%" },
+  },
+  "wrist-twist": {
+    name: "Wrist Twist", spoken: "Wrist twists", paceSec: 2.0,
+    clip: { base: "assets/kettlebell/wrist-twist", loopSec: 4.95, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.5, origin: "52% 59%" },
+  },
+  "biceps-to-triceps": {
+    name: "Biceps to Triceps", spoken: "Biceps to triceps", paceSec: 3.5,
+    clip: { base: "assets/kettlebell/biceps-to-triceps", loopSec: 7.15, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.2, origin: "59% 29%" },
+  },
+  "pull-press": {
+    name: "Pull & Press", spoken: "Pull and press", paceSec: 3.5,
+    clip: { base: "assets/kettlebell/pull-press", loopSec: 5.95, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.2, origin: "59% 29%" },
+  },
+  "static-hold-left": {
+    name: "Static Hold (Left)", spoken: "Static hold, left arm", paceSec: 1,
+    clip: { base: "assets/kettlebell/static-hold-left", loopSec: 3, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.35, origin: "54% 63%" },
+  },
+  "static-hold-right": {
+    name: "Static Hold (Right)", spoken: "Static hold, right arm", paceSec: 1,
+    clip: { base: "assets/kettlebell/static-hold-right", loopSec: 3, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.35, origin: "54% 63%" },
+  },
+  "alt-one-arm-pull": {
+    name: "Alternating One-Arm Pull", spoken: "Alternating one arm pulls", paceSec: 2.0,
+    clip: { base: "assets/kettlebell/alt-one-arm-pull", loopSec: 5.95, repsPerLoop: 2, aspect: "3 / 4", zoom: 1.5, origin: "47% 59%" },
+  },
 };
 
 export const KETTLEBELL_WORKOUTS = [
