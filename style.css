@@ -4898,14 +4898,15 @@ body:has(#screen-challenge-detail.active) #app {
 #compare-period-select { width: min(100%, 30rem); margin: 0 auto 0.9rem; }
 .compare-body { width: min(100%, 30rem); margin: 0 auto; }
 
-/* Slim one-line matchup — the stats below are the focus, not the avatars. */
+/* Slim one-line matchup — "Name (avatar) vs (avatar) Name", avatars meeting
+   at the center and sized to the names; the stats below are the focus. */
 .compare-matchup {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.45rem;
 }
-.compare-avatar { width: 2.4rem; height: 2.4rem; border: 2px solid var(--primary); font-size: 1.25rem; flex-shrink: 0; }
+.compare-avatar { width: 1.75rem; height: 1.75rem; border: 2px solid var(--primary); font-size: 0.95rem; flex-shrink: 0; }
 .compare-avatar-b { border-color: var(--gold); }
 .compare-name {
   font-weight: 800;
@@ -4915,8 +4916,8 @@ body:has(#screen-challenge-detail.active) #app {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.compare-name-b { text-align: right; }
-.compare-vs { color: var(--text-tertiary); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.compare-name-a { text-align: right; }
+.compare-vs { color: var(--text-tertiary); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 0.15rem; }
 
 .compare-tally {
   text-align: center;
