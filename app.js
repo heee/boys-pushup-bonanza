@@ -8292,7 +8292,7 @@ function renderSessionDetail() {
   }).join("");
 
   $("session-detail-metrics").innerHTML = sessionKeyMetrics(session).map((metric) => `
-    <div class="stats-table-row"><span class="stats-table-label">${metric.label}</span><span class="stats-table-value">${formatSessionMetric(metric)}</span></div>
+    <div class="stats-table-row"><span class="stats-table-label">${challengeStatIconHTML(sessionMetricIcon(metric))}<span>${metric.label}</span></span><span class="stats-table-value">${formatSessionMetric(metric)}</span></div>
   `).join("");
 
   // Matches the old My Sessions delete button's scope — only your own
@@ -9145,6 +9145,9 @@ function challengeStatIconHTML(icon) {
     layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
     flame: '<path d="M12 22c4 0 7-2.8 7-7 0-3.2-2-5.6-3.5-7.2-.4 1.6-1.3 2.7-2.5 3.2.3-3-1-6-4-9 0 3.5-4 6.4-4 11.5C5 18.7 8 22 12 22z"/>',
     hash: '<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    check: '<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9.5"/>',
+    flag: '<path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/>',
   };
   return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
 }
@@ -9158,6 +9161,25 @@ function modeStatIcon(metric) {
   if (byId[metric.id]) return byId[metric.id];
   if (metric.qualifier === "group best") return "award";
   return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";
+}
+
+// Session-detail metrics reuse the leaderboard's stroke icons; the mode-
+// specific ones get a glyph by id, anything else falls back by format.
+const SESSION_METRIC_ICONS = {
+  duration: "time", pace: "pace", rawCount: "hash",
+  pulseBand: "target", pulseEndReason: "flag", pulseBreakRpm: "pace",
+  cockResult: "award", cockFinalCockRpm: "pace",
+  pyramidSize: "layers", pyramidCompleted: "check", ladderMaxRung: "trend",
+  countdownTarget: "target", countdownBeat: "check", cardsCleared: "layers",
+  pokerHandsCompleted: "hash", pokerBestHand: "award", diceRollsCleared: "hash",
+  sharpshooterTargets: "target", sharpshooterLongestShot: "trend",
+  hollandCircuits: "shuffle", chainOfPainCycles: "shuffle", chainOfPainPlankSeconds: "time",
+  chaseFinalLead: "trend", kettlebellSets: "layers",
+};
+function sessionMetricIcon(metric) {
+  if (SESSION_METRIC_ICONS[metric.id]) return SESSION_METRIC_ICONS[metric.id];
+  if (metric.format === "boolean") return "check";
+  return modeStatIcon(metric);
 }
 
 // One row per challenge, matching the Games/Roadtrip lists: icon, title,
