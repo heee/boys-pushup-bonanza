@@ -6062,7 +6062,7 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-rest-next { font-size: 0.9rem; color: var(--text); background: var(--bg-elevated); border-radius: 12px; padding: 0.6rem 0.9rem; margin: 0.4rem 0; }
 .kb-volume-label { margin: -0.4rem 0 0; font-size: 0.85rem; font-weight: 700; color: var(--text-dim); }
 .kb-done-table { width: 100%; max-width: 29rem; text-align: left; }
-/* Ready (green ✓) and End workout (red ✕) as round FABs in the same spot and
+/* Ready (green ✓) and End workout (red finish flag) as round FABs in the same spot and
    style as the pushup end-session button (.workout-active .btn-complete).
    End workout sits bottom-right on its own during a set, and steps left of
    Ready while resting. Labels stay in the DOM for screen readers. */
@@ -6095,9 +6095,15 @@ body:has(#screen-challenge-detail.active) #app {
   transform: rotate(-45deg) translateY(-2px);
 }
 .kb-fab-quit { background: linear-gradient(155deg, #e66a5c, #b8392c); box-shadow: 0 8px 18px rgba(184, 57, 44, 0.4); }
-.kb-fab-quit::before, .kb-fab-quit::after { content: ""; position: absolute; width: 20px; height: 2.5px; border-radius: 2px; background: #fff; }
-.kb-fab-quit::before { transform: rotate(45deg); }
-.kb-fab-quit::after { transform: rotate(-45deg); }
+/* Stroke-only finish flag, same currentColor-mask technique as .icon-share. */
+.kb-fab-quit::after {
+  content: "";
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") no-repeat center / contain;
+}
 #screen-kettlebell-workout:has(#kettlebell-rest-stage:not(.hidden)) .kb-fab-quit { right: calc(1.25rem + 60px + 0.9rem); }
 #screen-kettlebell-workout .kb-stage { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
 /* Timer no wider than the old full-width Ready button (21rem / screen width):
