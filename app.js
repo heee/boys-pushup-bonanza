@@ -8222,6 +8222,9 @@ $("btn-compare-share").addEventListener("click", shareUserCompare);
 function openSessionDetail(session, originScreenId) {
   state.sessionDetailSession = session;
   state.sessionDetailOrigin = originScreenId;
+  // The header's back button mirrors this label (see syncHeaderBack).
+  const backLabel = { "screen-dashboard": "Board", "screen-settings": "Settings", "screen-challenge-detail": "Challenge", "screen-summary": "Summary" }[originScreenId] || "Back";
+  $("btn-session-detail-back").textContent = `← ${backLabel}`;
   showScreen("screen-session-detail");
 }
 
@@ -8252,7 +8255,11 @@ function renderSessionDetail() {
   const modeBadge = allBadges.find((b) => b.id === "mode");
   const modifierBadge = allBadges.find((b) => b.id === "modifier");
   $("session-detail-hero-mode").innerHTML = modeBadge ? badgeHTML(modeBadge) : "";
-  $("session-detail-hero-modifier").innerHTML = modifierBadge ? badgeHTML(modifierBadge) : "";
+  // Exercises that take a modifier show an empty pill when none was used, so
+  // the hero reads the same either way; combo/kettlebell modes have none.
+  const takesModifier = !isHolland && !isChainOfPain && !isKettlebell;
+  $("session-detail-hero-modifier").innerHTML = modifierBadge ? badgeHTML(modifierBadge)
+    : takesModifier ? `<span class="session-badge session-badge-empty">No modifier</span>` : "";
   $("session-detail-badges").innerHTML = allBadges.filter((b) => b.id !== "mode" && b.id !== "modifier").map(badgeHTML).join("");
   renderSessionProgression(session);
 
@@ -10735,8 +10742,11 @@ function renderSessionProgression(session) {
   }
   unavailable.classList.add("hidden");
   chart.classList.remove("hidden");
-  $("session-progression-title").textContent = model.title;
-  $("session-progression-legend").innerHTML = model.series.map((series) => `
+  chart.setAttribute("aria-label", model.title);
+  // Single-series charts need no legend — the bars are the session's own unit.
+  const legend = $("session-progression-legend");
+  legend.classList.toggle("hidden", model.series.length < 2);
+  legend.innerHTML = model.series.length < 2 ? "" : model.series.map((series) => `
     <span class="progression-legend-item"><span class="progression-swatch progression-${series.id}"></span>${escapeHtml(series.label)}</span>
   `).join("");
 
@@ -10758,12 +10768,10 @@ function renderSessionProgression(session) {
     const tick = index % stride === 0 || index === model.buckets.length - 1
       ? `<span class="progression-time-tick">${bucket.startLabel}</span>` : "";
     return `<div class="progression-bar-column" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
-      <div class="progression-bar-track"><div class="progression-bar-stack" style="height:${stackHeight}%">${segments}</div></div>${tick}
+      <div class="progression-bar-track"><div class="progression-bar-stack" style="height:${stackHeight}%">${segments}</div><span class="progression-bar-total" style="bottom:${stackHeight}%">${bucket.total}</span></div>${tick}
     </div>`;
   }).join("");
   $("session-progression-plot").innerHTML = `
-    <div class="progression-y-max">${model.max} ${escapeHtml(model.unit)}</div>
-    <div class="progression-y-zero">0</div>
     ${band}
     <div class="progression-bars" style="--progression-columns:${model.buckets.length}">${bars}</div>
   `;

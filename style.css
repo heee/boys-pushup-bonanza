@@ -3109,6 +3109,15 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    mask (the SVG's own stroke color is irrelevant; only its alpha shape is
    used). Used standalone in icon-only buttons, or paired with a label via
    .btn-with-icon, everywhere the app offers share/send functionality. */
+.icon-trash {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M8 6V4h8v2'/%3E%3Cpath d='M19 6l-1 14H6L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M8 6V4h8v2'/%3E%3Cpath d='M19 6l-1 14H6L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3C/svg%3E") no-repeat center / contain;
+}
 .icon-share {
   display: inline-block;
   width: 16px;
@@ -4290,7 +4299,7 @@ body:has(#screen-settings-mysessions.active) #app {
 .explore-mode-row.disabled .explore-mode-icon { filter: grayscale(1); }
 .my-session-count { font-weight: 800; text-align: right; }
 
-.session-detail-delete-btn { display: block; width: 100%; max-width: none; margin-top: 1.2rem; color: var(--danger); }
+.session-detail-delete-btn { flex: none; color: var(--danger); }
 
 /* ---------------- Modifier picker + Home slot + session cue ---------------- */
 
@@ -4589,7 +4598,6 @@ body:has(#screen-challenge-detail.active) #app {
   gap: 0.6rem;
   margin-bottom: 0.75rem;
 }
-.session-detail-back-btn { flex: none; font-size: 1.3rem; }
 .session-detail-title-wrap { flex: 1; min-width: 0; }
 .session-detail-title {
   font-weight: 800;
@@ -4648,45 +4656,41 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .session-badge-modifier { background: color-mix(in srgb, #4a90d9 18%, var(--bg-elevated-2)); color: #4a90d9; }
 .session-badge-weighted { background: color-mix(in srgb, var(--gold) 20%, var(--bg-elevated-2)); color: var(--gold); }
+.session-badge-empty { background: transparent; border: 1px dashed var(--border); color: var(--text-tertiary); font-weight: 600; }
 
 .session-progression {
   margin: 0.3rem 0 1.15rem;
-  padding: 0.85rem 0.85rem 0.65rem;
+  padding: 0.6rem 0.75rem 0.5rem;
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   border-radius: 18px;
   background: color-mix(in srgb, var(--bg-elevated-2) 68%, transparent);
 }
-.session-progression-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.65rem; }
-.session-progression-title { font-size: 0.88rem; font-weight: 850; color: var(--text); }
-.session-progression-subtitle { margin-top: 0.1rem; font-size: 0.68rem; color: var(--text-tertiary); }
-.session-progression-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem 0.55rem; }
+.session-progression-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem 0.55rem; margin-bottom: 0.3rem; }
 .progression-legend-item { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; font-size: 0.62rem; font-weight: 700; color: var(--text-dim); }
 .progression-swatch { width: 0.48rem; height: 0.48rem; border-radius: 2px; }
 .session-progression-scroll { overflow-x: auto; overflow-y: hidden; padding-top: 0.2rem; scrollbar-width: thin; }
 .session-progression-plot {
   position: relative;
-  height: 11.5rem;
+  height: 7rem;
   min-width: 100%;
   border-bottom: 1px solid var(--border);
-  background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--border) 45%, transparent) 0 1px, transparent 1px 3.25rem);
 }
 .progression-bars {
   position: absolute;
-  inset: 1rem 0 1.5rem 2.15rem;
+  inset: 1rem 0 1.4rem 0;
   display: grid;
   grid-template-columns: repeat(var(--progression-columns), minmax(0.68rem, 1fr));
   gap: clamp(0.16rem, 0.8vw, 0.35rem);
-  width: max(calc(100% - 2.15rem), calc(var(--progression-columns) * 1.05rem));
+  width: max(100%, calc(var(--progression-columns) * 1.05rem));
 }
 .progression-bar-column { position: relative; display: flex; align-items: stretch; min-width: 0; }
 .progression-bar-track { position: relative; flex: 1; display: flex; align-items: flex-end; min-width: 0; }
 .progression-bar-stack { width: 100%; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; border-radius: 4px 4px 2px 2px; transition: height 220ms ease-out; }
 .progression-segment { display: block; width: 100%; min-height: 0; }
 .progression-time-tick { position: absolute; left: 0; bottom: -1.2rem; font-size: 0.56rem; font-variant-numeric: tabular-nums; color: var(--text-tertiary); transform: translateX(-10%); }
-.progression-y-max, .progression-y-zero { position: absolute; left: 0; z-index: 2; font-size: 0.56rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-.progression-y-max { top: 0.55rem; }
-.progression-y-zero { bottom: 1.2rem; }
-.progression-target-band { position: absolute; z-index: 0; left: 2.15rem; right: 0; bottom: calc(1.5rem + var(--band-bottom)); height: var(--band-height); background: color-mix(in srgb, var(--success) 12%, transparent); border-block: 1px dashed color-mix(in srgb, var(--success) 55%, transparent); pointer-events: none; }
+.progression-bar-column:first-child .progression-time-tick { transform: none; }
+.progression-bar-total { position: absolute; left: 0; right: 0; margin-bottom: 0.15rem; text-align: center; font-size: 0.56rem; font-weight: 700; line-height: 1; color: var(--text-tertiary); font-variant-numeric: tabular-nums; pointer-events: none; }
+.progression-target-band { position: absolute; z-index: 0; left: 0; right: 0; bottom: calc(1.4rem + var(--band-bottom)); height: var(--band-height); background: color-mix(in srgb, var(--success) 12%, transparent); border-block: 1px dashed color-mix(in srgb, var(--success) 55%, transparent); pointer-events: none; }
 .progression-target-band span { position: absolute; right: 0.2rem; top: 0.12rem; font-size: 0.52rem; font-weight: 700; color: var(--success); }
 .progression-reps { background: var(--primary); }
 .progression-pullup { background: #ef5350; }

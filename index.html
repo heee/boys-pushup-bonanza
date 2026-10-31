@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=352">
+<link rel="stylesheet" href="style.css?v=353">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1359,13 +1359,16 @@
 
     <!-- ============ SCREEN: SESSION DETAIL ============ -->
     <section id="screen-session-detail" class="screen">
+      <div class="edit-profile-header">
+        <button id="btn-session-detail-back" type="button" class="challenge-detail-back">← Back</button>
+      </div>
       <div class="session-detail-card">
         <div class="session-detail-header">
-          <button id="btn-session-detail-back" type="button" class="icon-btn session-detail-back-btn" aria-label="Back">←</button>
           <div class="session-detail-title-wrap">
             <div id="session-detail-user" class="session-detail-title">Session detail</div>
             <div id="session-detail-date" class="session-detail-date"></div>
           </div>
+          <button id="btn-session-detail-delete" type="button" class="icon-btn session-detail-delete-btn hidden" aria-label="Delete session" title="Delete session"><span class="icon-trash" aria-hidden="true"></span></button>
           <button id="btn-session-detail-share" type="button" class="icon-btn" aria-label="Share session"><span class="icon-share" aria-hidden="true"></span></button>
         </div>
 
@@ -1380,14 +1383,8 @@
 
         <div id="session-detail-badges" class="session-detail-badges"></div>
 
-        <section id="session-detail-progression" class="session-progression hidden" aria-labelledby="session-progression-title">
-          <div class="session-progression-header">
-            <div>
-              <div id="session-progression-title" class="session-progression-title">Reps every 10 seconds</div>
-              <div class="session-progression-subtitle">Each bar is one 10-second interval</div>
-            </div>
-            <div id="session-progression-legend" class="session-progression-legend"></div>
-          </div>
+        <section id="session-detail-progression" class="session-progression hidden" aria-label="Reps every 10 seconds">
+          <div id="session-progression-legend" class="session-progression-legend"></div>
           <div class="session-progression-scroll">
             <div id="session-progression-plot" class="session-progression-plot"></div>
           </div>
@@ -1400,7 +1397,6 @@
 
         <div id="session-detail-metrics" class="stats-table tier1-list session-detail-metrics"></div>
 
-        <button id="btn-session-detail-delete" type="button" class="btn btn-secondary btn-small-wide session-detail-delete-btn hidden">Delete session</button>
       </div>
     </section>
 
@@ -2369,6 +2365,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=375"></script>
+<script type="module" src="app.js?v=376"></script>
 </body>
 </html>
