@@ -8254,7 +8254,11 @@ function renderSessionDetail() {
   const allBadges = sessionBadges(session);
   const modeBadge = allBadges.find((b) => b.id === "mode");
   const modifierBadge = allBadges.find((b) => b.id === "modifier");
-  $("session-detail-hero-mode").innerHTML = modeBadge ? badgeHTML(modeBadge) : "";
+  // The mode pill is a shortcut: tap it to land on Home set up for the same
+  // workout (see startSimilarWorkout).
+  $("session-detail-hero-mode").innerHTML = modeBadge
+    ? `<button type="button" id="btn-session-detail-mode" class="session-badge session-badge-link" aria-label="Start a ${escapeHtml(modeBadge.label)} workout">${modeBadge.icon} ${escapeHtml(modeBadge.label)}</button>`
+    : "";
   // Exercises that take a modifier show an empty pill when none was used, so
   // the hero reads the same either way; combo/kettlebell modes have none.
   const takesModifier = !isHolland && !isChainOfPain && !isKettlebell;
@@ -8343,6 +8347,32 @@ async function shareSessionDetail() {
   }
 }
 
+// Home's Type/Mode ids for a saved session — sessionModeId names some
+// exercises by their type ("planks"), Home's mode picker by mode ("plank").
+function homeModeForSession(session) {
+  const id = sessionModeId(session);
+  const typeIdToMode = { planks: "plank", squats: "squat", pullups: "pullup", situps: "situp" };
+  if (id === "kettlebell") return session.kettlebellWorkoutId ? `kb-${session.kettlebellWorkoutId}` : null;
+  return typeIdToMode[id] || id;
+}
+
+// Jump from a reviewed session to Home with the same Type + Mode selected,
+// and its modifier applied when it had one. A mode that's since locked
+// (Chase/Pulse/Cock unlocks) falls back to its type's default.
+function startSimilarWorkout(session) {
+  const wanted = homeModeForSession(session);
+  const type = workoutTypeForMode(wanted || "kb-");
+  const modeId = wanted && modeSelectableForHome(type, wanted) ? wanted : workoutTypeById(type).defaultMode;
+  if (session.modifier && modifiersForType(type).some((m) => m.id === session.modifier)) {
+    if (type === "pushups") state.modifier = session.modifier;
+    else if (type in state.typeModifiers) state.typeModifiers[type] = session.modifier;
+  }
+  selectHomeMode(type, modeId);
+}
+
+$("session-detail-hero-mode").addEventListener("click", (e) => {
+  if (e.target.closest("#btn-session-detail-mode") && state.sessionDetailSession) startSimilarWorkout(state.sessionDetailSession);
+});
 $("btn-session-detail-back").addEventListener("click", () => showScreen(state.sessionDetailOrigin || "screen-dashboard"));
 $("btn-session-detail-share").addEventListener("click", shareSessionDetail);
 $("btn-session-detail-delete").addEventListener("click", async () => {

@@ -4616,7 +4616,9 @@ body:has(#screen-challenge-detail.active) #app {
 .session-detail-hero-badge { display: flex; min-width: 0; }
 .session-detail-hero-badge-left { justify-self: start; }
 .session-detail-hero-badge-right { justify-self: end; }
-.session-detail-hero-badge .session-badge { white-space: nowrap; }
+.session-detail-hero-badge .session-badge { white-space: nowrap; border-radius: 12px; }
+.session-badge-link { border: none; font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+.session-badge-link:active { transform: scale(0.96); }
 .session-detail-count {
   font-size: 3.4rem;
   font-weight: 900;
