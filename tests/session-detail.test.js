@@ -164,3 +164,11 @@ test("sessionRings falls back to mode-only when mode+modifier pool is empty, els
   assert.equal(lonelyBest.pct, 100);
   assert.equal(lonelyGroup.hasData, false);
 });
+
+test("sessionKeyMetrics drops an implausible pace (missed reps added afterwards)", () => {
+  const ids = (s) => sessionKeyMetrics(s).map((m) => m.id);
+  assert.ok(ids(session({ count: 40 })).includes("pace"));
+  const padded = session({ mode: "ladder", count: 47, startedAt: "2026-10-28T18:58:00Z", timestamp: "2026-10-28T18:58:03Z" });
+  assert.ok(!ids(padded).includes("pace"));
+  assert.ok(ids(padded).includes("duration"));
+});

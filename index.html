@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=356">
+<link rel="stylesheet" href="style.css?v=357">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1339,9 +1339,11 @@
         <div id="missed-reps-wrap" class="missed-reps-wrap hidden">
           <div class="missed-reps-label">Missed reps, or too many counted?</div>
           <div class="stepper-row">
+            <button id="btn-missed-minus5" type="button" class="stepper-btn stepper-btn-jump" aria-label="Decrease by 5">−5</button>
             <button id="btn-missed-minus" type="button" class="stepper-btn" aria-label="Decrease">−</button>
             <div id="missed-reps-count" class="stepper-value">0</div>
             <button id="btn-missed-plus" type="button" class="stepper-btn" aria-label="Increase">+</button>
+            <button id="btn-missed-plus5" type="button" class="stepper-btn stepper-btn-jump" aria-label="Increase by 5">+5</button>
           </div>
         </div>
         <div id="summary-sync-status" class="sync-status" role="status" aria-live="polite"></div>
@@ -2365,6 +2367,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=379"></script>
+<script type="module" src="app.js?v=381"></script>
 </body>
 </html>

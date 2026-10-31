@@ -3050,6 +3050,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   cursor: pointer;
 }
 .stepper-btn:active { transform: scale(0.92); }
+/* ±5 jumps flank the ±1 stepper — same circle, quieter label. */
+.stepper-btn-jump { font-size: 0.8rem; color: var(--text-dim); }
+.missed-reps-wrap .stepper-row { gap: 0.9rem; }
 /* Same contrast-inversion as .btn-secondary: this stepper sits inside the
    tier-2 Calibration & weighted mode card, so it needs tier-1 to stand out. */
 .settings-block.tier2 .stepper-btn { background: var(--bg-elevated); }

@@ -129,7 +129,7 @@ import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workou
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=5";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=14";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
 import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=15";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
@@ -13324,8 +13324,9 @@ function renderSummaryPaceNote(rawCount, durationMs) {
 
 function adjustMissedReps(delta) {
   if (!state.summarySessionId) return;
-  const nextExtra = state.summaryExtra + delta;
-  if (state.summaryBaseCount + nextExtra < 0) return;
+  // −5 near zero clamps to a total of 0 rather than doing nothing.
+  const nextExtra = Math.max(state.summaryExtra + delta, -state.summaryBaseCount);
+  if (nextExtra === state.summaryExtra) return;
   state.summaryExtra = nextExtra;
   $("missed-reps-count").textContent = String(state.summaryExtra);
   const { rawTotal, adjustedTotal: newTotal } = correctedSummaryTotals(state.summaryBaseCount, state.summaryExtra, state.summaryMultiplier);
@@ -13429,6 +13430,8 @@ async function reconcileSummaryCount() {
 
 $("btn-missed-plus").addEventListener("click", () => adjustMissedReps(1));
 $("btn-missed-minus").addEventListener("click", () => adjustMissedReps(-1));
+$("btn-missed-plus5").addEventListener("click", () => adjustMissedReps(5));
+$("btn-missed-minus5").addEventListener("click", () => adjustMissedReps(-5));
 
 // Let's go: Home-run pushup modes start the camera here; everything else
 // opens that mode's own screen (setup or its own START), as Explore did.
