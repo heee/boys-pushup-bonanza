@@ -1,7 +1,7 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API. The MediaPipe runtime/models are the one
 // cross-origin exception — see TRACKER_CACHE.
-const CACHE_NAME = "bpb-shell-v537";
+const CACHE_NAME = "bpb-shell-v538";
 
 // Pinned MediaPipe runtime + models (~15 MB). The URLs are version-pinned
 // and never change, so they're served cache-first from their own cache,
@@ -15,7 +15,7 @@ function isTrackerAsset(url) {
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=353",
+  "./style.css?v=354",
   "./app.js?v=376",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",

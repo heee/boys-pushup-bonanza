@@ -4587,10 +4587,7 @@ body:has(#screen-challenge-detail.active) #app {
 .session-detail-card {
   width: min(100%, 30rem);
   margin: 0 auto;
-  padding: 1.15rem 1rem 1.25rem;
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--bg-elevated) 90%, #0a0703);
-  box-shadow: var(--shadow);
+  padding: 0.25rem 0 1.25rem;
 }
 .session-detail-header {
   display: flex;
@@ -4673,7 +4670,6 @@ body:has(#screen-challenge-detail.active) #app {
   position: relative;
   height: 7rem;
   min-width: 100%;
-  border-bottom: 1px solid var(--border);
 }
 .progression-bars {
   position: absolute;
