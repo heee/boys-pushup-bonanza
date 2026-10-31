@@ -7385,8 +7385,12 @@ function activitiesWithSessionsInPeriod() {
   });
 }
 function cycleLeaderboardActivity(direction) {
-  const available = activitiesWithSessionsInPeriod();
-  const cycle = available.length ? available : CHART_ACTIVITY_CYCLE;
+  // Pushups (the default board) and the current exercise always stay in the
+  // cycle — otherwise a period whose only sessions are e.g. kettlebell leaves
+  // the arrows/swipe stepping from kettlebell back to kettlebell, with no way
+  // back to the normal board.
+  const available = new Set(activitiesWithSessionsInPeriod());
+  const cycle = CHART_ACTIVITY_CYCLE.filter((a) => a === "pushups" || a === state.activityType || available.has(a));
   const fromIndex = Math.max(0, cycle.indexOf(state.activityType));
   const next = cycle[(fromIndex + direction + cycle.length) % cycle.length];
   selectLeaderboardMode(next === "pushups" ? "all" : next);
