@@ -17005,6 +17005,7 @@ function kbEnterReady() {
   $("kettlebell-rest-next").classList.remove("hidden");
   $("kettlebell-rest-timer").classList.remove("hidden");
   $("btn-kettlebell-ready").textContent = "Start now";
+  $("btn-kettlebell-ready").setAttribute("aria-label", "Start now");
   kbStartTimer(KETTLEBELL_GET_READY_SECONDS);
   kbState.nextCued = true;
   speak(`Get ready. ${kbNextUpLine(next)}`);
@@ -17067,6 +17068,7 @@ function kbEnterRest(seconds) {
   $("kettlebell-rest-next").classList.toggle("hidden", !next);
   $("kettlebell-rest-timer").classList.toggle("hidden", final);
   $("btn-kettlebell-ready").textContent = final ? "Finish workout" : "Ready";
+  $("btn-kettlebell-ready").setAttribute("aria-label", final ? "Finish workout" : "Ready for next set");
   if (final) {
     kbStopTimer();
     return;

@@ -6061,7 +6061,49 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-rest-reps .stepper-value { min-width: 3.5rem; font-size: 2.2rem; }
 .kb-rest-next { font-size: 0.9rem; color: var(--text); background: var(--bg-elevated); border-radius: 12px; padding: 0.6rem 0.9rem; margin: 0.4rem 0; }
 .kb-volume-label { margin: -0.4rem 0 0; font-size: 0.85rem; font-weight: 700; color: var(--text-dim); }
-.kb-done-table { width: 100%; max-width: 29rem; background: var(--bg-elevated); border-radius: 14px; text-align: left; }
+.kb-done-table { width: 100%; max-width: 29rem; text-align: left; }
+/* Ready (green ✓) and End workout (red ✕) as round FABs in the same spot and
+   style as the pushup end-session button (.workout-active .btn-complete).
+   End workout sits bottom-right on its own during a set, and steps left of
+   Ready while resting. Labels stay in the DOM for screen readers. */
+.kb-fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  z-index: 20;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  font-size: 0;
+  color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.kb-fab.hidden { display: none; }
+.kb-fab:active { transform: scale(0.94); }
+.kb-fab-ready { background: linear-gradient(155deg, #8fd16f, #4e9a3a); box-shadow: 0 8px 18px rgba(78, 154, 58, 0.4); }
+.kb-fab-ready::after {
+  content: "";
+  width: 18px;
+  height: 10px;
+  border-left: 2.5px solid #fff;
+  border-bottom: 2.5px solid #fff;
+  transform: rotate(-45deg) translateY(-2px);
+}
+.kb-fab-quit { background: linear-gradient(155deg, #e66a5c, #b8392c); box-shadow: 0 8px 18px rgba(184, 57, 44, 0.4); }
+.kb-fab-quit::before, .kb-fab-quit::after { content: ""; position: absolute; width: 20px; height: 2.5px; border-radius: 2px; background: #fff; }
+.kb-fab-quit::before { transform: rotate(45deg); }
+.kb-fab-quit::after { transform: rotate(-45deg); }
+#screen-kettlebell-workout:has(#kettlebell-rest-stage:not(.hidden)) .kb-fab-quit { right: calc(1.25rem + 60px + 0.9rem); }
+#screen-kettlebell-workout .kb-stage { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+/* Timer no wider than the old full-width Ready button (21rem / screen width):
+   "0:13" in the display font runs ~2.4× its font size. */
+#screen-kettlebell-workout .rep-count { font-size: min(34vw, 8.75rem); }
+#screen-kettlebell-workout .kb-stage:has(.kb-clip:not(.hidden)) .rep-count { font-size: min(20vw, 5.5rem); }
 .kb-done-row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem; align-items: center; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
 .kb-done-row:last-child { border-bottom: none; }
 .kb-done-name { font-weight: 700; }
@@ -6069,7 +6111,6 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-done-delta { font-size: 0.75rem; font-weight: 800; min-width: 2.6rem; text-align: right; color: var(--text-tertiary); }
 .kb-done-delta.up { color: var(--success); }
 .kb-done-delta.down { color: var(--danger); }
-#btn-kettlebell-quit { display: block; flex: 0 0 auto; width: 100%; max-width: 14rem; margin: 1.2rem auto 0; }
 
 /* Home Start button: "Let's go" + stroke flame glyph. */
 .btn-start-icon { width: 1.25em; height: 1.25em; margin-left: 0.4em; vertical-align: -0.25em; }

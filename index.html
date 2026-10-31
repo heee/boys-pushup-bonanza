@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=357">
+<link rel="stylesheet" href="style.css?v=359">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1225,7 +1225,7 @@
         </div>
         <p id="kettlebell-rest-hold" class="highscore-message hidden"></p>
         <p id="kettlebell-rest-next" class="kb-rest-next"></p>
-        <button id="btn-kettlebell-ready" type="button" class="btn btn-giant btn-primary">Ready</button>
+        <button id="btn-kettlebell-ready" type="button" class="kb-fab kb-fab-ready" aria-label="Ready for next set">Ready</button>
       </div>
 
       <div id="kettlebell-done-stage" class="kb-stage hidden">
@@ -1241,7 +1241,7 @@
         </div>
       </div>
 
-      <button id="btn-kettlebell-quit" type="button" class="btn btn-secondary btn-small-wide hidden">End workout</button>
+      <button id="btn-kettlebell-quit" type="button" class="kb-fab kb-fab-quit hidden" aria-label="End workout">End workout</button>
     </section>
 
     <!-- ============ SCREEN: SITUP WORKOUT ============ -->
@@ -2367,6 +2367,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=382"></script>
+<script type="module" src="app.js?v=383"></script>
 </body>
 </html>
