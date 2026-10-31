@@ -130,6 +130,10 @@ export function validProgression(value) {
     : value.b.every(validCount);
 }
 
+// Generous ceiling on a real rep pace; above it a bucket's reps were logged
+// after the fact rather than counted live.
+const MAX_PLAUSIBLE_REPS_PER_SECOND = 2.5;
+
 function clockLabel(totalSeconds) {
   const seconds = Math.max(0, Math.round(totalSeconds));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -171,6 +175,14 @@ export function progressionChartModel(session) {
     values = progression.b.map((value) => [value]);
   }
   const totals = values.map((bucket) => bucket.reduce((sum, value) => sum + value, 0));
+  // Not worth a chart: a single interval has nothing to compare, and reps
+  // added on the summary's "missed reps" stepper carry no timestamps — they
+  // all land in the last interval, at a pace no one can actually do.
+  if (totals.length < 2) return { available: false };
+  if ((progression.k === "reps" || progression.k === "holland")
+    && totals.some((total, index) => total > MAX_PLAUSIBLE_REPS_PER_SECOND * bucketDuration(index))) {
+    return { available: false };
+  }
   const max = Math.max(1, ...totals, progression.k === "pulse" ? Number(session.pulseBandHigh) || 0 : 0);
   return {
     available: true,

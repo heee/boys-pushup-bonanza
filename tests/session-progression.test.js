@@ -65,3 +65,17 @@ test("chart model exposes stacked Holland bars and Pulse rpm", () => {
   assert.deepEqual(pulse.values, [[30], [36]]);
   assert.deepEqual(pulse.band, { low: 20, high: 40 });
 });
+
+test("chart model skips progressions with nothing meaningful to show", () => {
+  const short = { startedAt: "2026-10-28T18:58:00Z", timestamp: "2026-10-28T18:58:03Z" };
+  // One interval only (a 3-second Ladder with missed reps added afterwards).
+  assert.equal(progressionChartModel({ ...short, sessionProgression: { v: 1, i: 10, k: "reps", b: [47] } }).available, false);
+
+  const base = { startedAt: "2026-10-28T18:58:00Z", timestamp: "2026-10-28T18:58:25Z" };
+  // Missed reps dumped into the last (5-second) interval: 30 reps there is impossible.
+  assert.equal(progressionChartModel({ ...base, sessionProgression: { v: 1, i: 10, k: "reps", b: [8, 9, 30] } }).available, false);
+  // A real, fast set still charts.
+  assert.equal(progressionChartModel({ ...base, sessionProgression: { v: 1, i: 10, k: "reps", b: [14, 12, 6] } }).available, true);
+  // Plank's per-interval seconds are never "too fast".
+  assert.equal(progressionChartModel({ ...base, sessionProgression: { v: 1, i: 10, k: "plank", b: [10, 10, 5] } }).available, true);
+});

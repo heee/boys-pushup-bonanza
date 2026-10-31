@@ -111,7 +111,7 @@ import {
   reconcileSavedRepProgression,
   recordProgression,
   progressionChartModel,
-} from "./session-progression.js?v=1";
+} from "./session-progression.js?v=2";
 import { createCameraController, createDetectorPool, shareEngineCompile } from "./camera.js?v=4";
 import { createFramingTracker, mapRect, IDENTITY_FRAMING } from "./camera-framing.js?v=1";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
@@ -10787,12 +10787,12 @@ function renderSessionProgression(session) {
   const model = progressionChartModel(session);
   const chart = $("session-detail-progression");
   const unavailable = $("session-detail-progression-unavailable");
+  // No meaningful progression → no chart and no placeholder either.
+  unavailable.classList.add("hidden");
   if (!model.available) {
     chart.classList.add("hidden");
-    unavailable.classList.remove("hidden");
     return;
   }
-  unavailable.classList.add("hidden");
   chart.classList.remove("hidden");
   chart.setAttribute("aria-label", model.title);
   // Single-series charts need no legend — the bars are the session's own unit.
