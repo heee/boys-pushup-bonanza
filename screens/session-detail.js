@@ -56,6 +56,15 @@ export function sessionPace(session) {
   return session.count / (ms / 60000);
 }
 
+// Same ceiling as the progression chart (2.5 reps/sec): faster than that,
+// reps were added afterwards on the missed-reps stepper, not counted live.
+const MAX_PLAUSIBLE_REPS_PER_MINUTE = 150;
+function plausiblePace(session) {
+  const ms = sessionDurationMs(session);
+  const reps = Number(session.rawCount ?? session.count) || 0;
+  return !ms || reps / (ms / 60000) <= MAX_PLAUSIBLE_REPS_PER_MINUTE;
+}
+
 // Chips shown under the hero total — mode, pyramid shape, grip modifier, weighted.
 export function sessionBadges(session) {
   const modeId = sessionModeId(session);
@@ -102,7 +111,9 @@ export function sessionKeyMetrics(session) {
 
   if (modeId !== "planks" && modeId !== "deadhang" && modeId !== "pulse") {
     metrics.push({ id: "duration", label: "Duration", format: "duration", value: sessionDurationMs(session) });
-    if (modeId !== "holland" && modeId !== "chainofpain" && modeId !== "kettlebell") metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
+    if (modeId !== "holland" && modeId !== "chainofpain" && modeId !== "kettlebell" && plausiblePace(session)) {
+      metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
+    }
   }
 
   // Pulse's `count` is seconds held in band, not reps — the generic

@@ -4,6 +4,10 @@
   ideas are earmarked in docs/mode-ideas.md for later evaluation — **Tug-of-war is the
   prioritized next build** after Situps. **Dead hang** (docs/deadhang-mode-plan.md) shipped 2026-10-27 ahead of
   that queue; its camera timing still needs on-device threshold tuning.
+- **Sign-in / App Store:** plan agreed and parked in docs/sign-in-plan.md (Apple + Google
+  sign-in, name claiming, cutover 2026-12-20, then ID migration, per-user visibility, iOS
+  wrapper). Waiting on Henning's Apple/Google client IDs; when he says "execute the sign-in
+  plan", build Phase 1 straight from that doc without re-asking its settled decisions.
 
 - **Minimize dialogue.** Keep responses terse — critical messages and summaries only, no play-by-play narration.
 - **Always push live directly** after making a change — don't wait to be asked. Commit and `git push` (following the fetch/merge-check and `CACHE_NAME` bump rules below) as a normal part of finishing the change, without asking for confirmation first.

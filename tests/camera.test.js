@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCameraController } from "../camera.js";
+import { createCameraController, createDetectorPool } from "../camera.js";
 
 test("camera controller requests the existing constraints and stops every track", async () => {
   let constraints;
@@ -49,7 +49,7 @@ test("pose detector requests a higher-resolution stream than the default face de
   });
 });
 
-test("camera controller preserves GPU detection and frame callback behavior", async () => {
+test("face detector builds on CPU and keeps frame callback behavior", async () => {
   let frameCallback;
   let detected;
   const delegates = [];
@@ -82,6 +82,74 @@ test("camera controller preserves GPU detection and frame callback behavior", as
   await camera.ensureDetector();
   camera.startDetection();
   frameCallback(30);
-  assert.deepEqual(delegates, ["GPU"]);
+  assert.deepEqual(delegates, ["CPU"]);
   assert.deepEqual(detected, { box: { height: 200 }, inferenceMs: 5 });
+});
+
+test("pose detector prefers the GPU and falls back to CPU", async () => {
+  const delegates = [];
+  const PoseLandmarker = {
+    async createFromOptions(_vision, options) {
+      delegates.push(options.baseOptions.delegate);
+      if (options.baseOptions.delegate === "GPU") throw new Error("no webgl");
+      return { detectForVideo: () => ({}) };
+    },
+  };
+  const camera = createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl: "model", detectorType: "pose",
+    getVideo: () => ({}),
+    loadVisionModule: async () => ({ PoseLandmarker, FilesetResolver: { forVisionTasks: async () => ({}) } }),
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  await camera.ensureDetector();
+  assert.deepEqual(delegates, ["GPU", "CPU"]);
+});
+
+test("detector runs one warm-up detection on a blank frame while loading", async () => {
+  const frames = [];
+  const frame = { blank: true };
+  const camera = createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl: "model",
+    getVideo: () => ({}),
+    now: () => 1,
+    createWarmupFrame: () => frame,
+    loadVisionModule: async () => ({
+      FaceDetector: { createFromOptions: async () => ({ detectForVideo: (input) => { frames.push(input); throw new Error("ignored"); } }) },
+      FilesetResolver: { forVisionTasks: async () => ({}) },
+    }),
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  await camera.ensureDetector();
+  assert.deepEqual(frames, [frame]);
+});
+
+test("controllers on one pool share a detector per type instead of booting one each", async () => {
+  const built = [];
+  const vision = {
+    FaceDetector: { createFromOptions: async () => { built.push("face"); return { detectForVideo: () => ({}) }; } },
+    PoseLandmarker: { createFromOptions: async () => { built.push("pose"); return { detectForVideo: () => ({}) }; } },
+    FilesetResolver: { forVisionTasks: async () => ({}) },
+  };
+  const pool = createDetectorPool();
+  const make = (detectorType, modelUrl) => createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl, detectorType, detectorPool: pool,
+    getVideo: () => ({}), loadVisionModule: async () => vision,
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  const pushups = make("face", "face-model");
+  const situps = make("face", "face-model");
+  const squats = make("pose", "pose-model");
+  const pullups = make("pose", "pose-model");
+  const [a, b] = await Promise.all([pushups.ensureDetector(), situps.ensureDetector()]);
+  assert.equal(a, b);
+  assert.equal(await squats.ensureDetector(), await pullups.ensureDetector());
+  assert.deepEqual(built, ["face", "pose"]);
+  // Without a pool each controller still keeps its own.
+  const solo = createCameraController({
+    moduleUrl: "unused", wasmUrl: "wasm", modelUrl: "face-model",
+    getVideo: () => ({}), loadVisionModule: async () => vision,
+    onDetection: () => {}, onNoDetection: () => {},
+  });
+  await solo.ensureDetector();
+  assert.deepEqual(built, ["face", "pose", "face"]);
 });

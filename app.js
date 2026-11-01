@@ -111,15 +111,16 @@ import {
   reconcileSavedRepProgression,
   recordProgression,
   progressionChartModel,
-} from "./session-progression.js?v=1";
-import { createCameraController } from "./camera.js";
+} from "./session-progression.js?v=2";
+import { createCameraController, createDetectorPool, shareEngineCompile } from "./camera.js?v=4";
+import { createFramingTracker, mapRect, IDENTITY_FRAMING } from "./camera-framing.js?v=1";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=144";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=147";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=7";
-import { comparisonModel } from "./screens/comparison.js?v=139";
+import { comparisonModel } from "./screens/comparison.js?v=140";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
@@ -128,9 +129,9 @@ import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workou
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=5";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=13";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=14";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=13";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=15";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -271,6 +272,10 @@ import {
   chainOfPainTickPlank,
 } from "./modes/chain-of-pain.js";
 
+// Every camera controller shares this, so each detector type (face, pose)
+// boots MediaPipe's engine once per launch instead of once per mode.
+const trackerPool = createDetectorPool();
+shareEngineCompile();
 const FACE_DETECTOR_MODULE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 const FACE_DETECTOR_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
@@ -278,6 +283,51 @@ const FACE_DETECTOR_MODEL_URL = "https://storage.googleapis.com/mediapipe-models
 // a selfie-distance model and simply can't see a face 6+ feet away, which is
 // exactly where a squatter stands. Pose landmarks work at room scale.
 const POSE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
+// Body-tracked types start loading their detector as soon as they're the
+// Home selection, not when their workout screen opens.
+function warmTrackerForHomeType(type) {
+  const tracker = { squats: squatCamera, pullups: pullupCamera, situps: situpCamera }[type];
+  tracker?.ensureDetector().catch(() => {});
+}
+
+// Once per launch, after the face detector (warmed by Home) is ready, also
+// pre-build the body tracker for anyone who's done a body-tracked workout in
+// the last 30 days — the shared pool then hands it to every pose mode, so
+// their first set doesn't wait on it.
+const BODY_TRACKED_SESSION_TYPES = new Set(["squat", "pullup", "holland", "chainofpain"]);
+let bodyTrackerPreloadScheduled = false;
+function preloadBodyTrackerIfUsed() {
+  if (bodyTrackerPreloadScheduled || !state.currentUser) return;
+  bodyTrackerPreloadScheduled = true;
+  camera.ensureDetector().catch(() => {}).finally(() => {
+    const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const used = getAllSessionsForDisplay().some((s) => s.user === state.currentUser && BODY_TRACKED_SESSION_TYPES.has(s.type) && sessionTimestamp(s) >= since);
+    if (used) setTimeout(() => squatCamera.ensureDetector().catch(() => {}), 1500);
+  });
+}
+
+// Pre-downloads the tracker runtime + pose and face models into the service worker's
+// tracker cache, once per launch, when idle on Wi-Fi. iOS Safari doesn't
+// expose connection type, so there this never fires and the first
+// body-tracked workout downloads them instead (cached for good after that).
+const BODY_TRACKER_ASSET_URLS = [
+  FACE_DETECTOR_MODULE_URL,
+  `${FACE_DETECTOR_WASM_URL}/vision_wasm_internal.js`,
+  `${FACE_DETECTOR_WASM_URL}/vision_wasm_internal.wasm`,
+  POSE_LANDMARKER_MODEL_URL,
+  FACE_DETECTOR_MODEL_URL,
+];
+let bodyTrackerPrefetchScheduled = false;
+function scheduleBodyTrackerPrefetch() {
+  if (bodyTrackerPrefetchScheduled) return;
+  const connection = navigator.connection;
+  if (connection?.type !== "wifi" || connection.saveData) return;
+  bodyTrackerPrefetchScheduled = true;
+  setTimeout(() => {
+    navigator.serviceWorker?.controller?.postMessage({ type: "prefetch-trackers", urls: BODY_TRACKER_ASSET_URLS });
+  }, 5000);
+}
 
 let deadhangModeModule = null;
 async function loadDeadhangMode() {
@@ -315,6 +365,7 @@ const LS = {
   ghostMode: "bpb-ghost-mode",
   pendingQueue: "bpb-pending-queue",
   cacheData: "bpb-cache-data",
+  challengesCache: "bpb-challenges-cache",
   plankUnlocked: "bpb-plank-unlocked",
   deadhangTiming: "bpb-deadhang-timing",
   soundEnabled: "bpb-sound-enabled",
@@ -538,17 +589,33 @@ const AVATARS = [
 // by the client. Only participant lists (in the shared data store) change.
 const CHALLENGES_URL = "challenges.json";
 let challengeDefs = [];
-async function loadChallenges() {
-  let staticChallenges = [];
-  try {
-    const res = await fetch(CHALLENGES_URL, { cache: "no-cache" });
-    const json = await res.json();
-    staticChallenges = Array.isArray(json.challenges) ? json.challenges : [];
-  } catch (e) {
-    // keep whatever static list we had before; an empty list just renders empty states
+// The scheduled list rarely changes, so it's refetched at most every ten
+// minutes; in between (and across launches, via localStorage) the last copy
+// is reused. Resolves to whether a new copy was fetched.
+const CHALLENGES_FRESH_MS = 10 * 60 * 1000;
+let staticChallenges = jsonStorage.read(LS.challengesCache, null)?.challenges || null;
+let staticChallengesFetchedAt = 0;
+async function loadChallenges({ force = false } = {}) {
+  let fetched = false;
+  if (force || !staticChallenges || Date.now() - staticChallengesFetchedAt >= CHALLENGES_FRESH_MS) {
+    try {
+      const res = await fetch(CHALLENGES_URL, { cache: "no-cache" });
+      const json = await res.json();
+      staticChallenges = Array.isArray(json.challenges) ? json.challenges : [];
+      staticChallengesFetchedAt = Date.now();
+      fetched = true;
+      try { jsonStorage.write(LS.challengesCache, { challenges: staticChallenges }); } catch (e) { /* quota — memory copy still works */ }
+    } catch (e) {
+      // keep whatever static list we had before; an empty list just renders empty states
+    }
   }
+  rebuildChallengeDefs();
+  return fetched;
+}
+
+function rebuildChallengeDefs() {
   const custom = getCachedData().customChallenges || [];
-  challengeDefs = [...staticChallenges, ...custom];
+  challengeDefs = [...(staticChallenges || []), ...custom];
 }
 
 // Icon choices offered when creating a custom challenge.
@@ -970,13 +1037,23 @@ function indexedSessionsForUserMode(user, mode = state.leaderboardMode) {
   return sessionIndex.byUserLeaderboardMode.get(`${mode}\0${user}`) || [];
 }
 
+// Parsed once and kept in memory — re-parsing the whole stored dataset on
+// every call made list renders (one call per challenge) noticeably slow.
+let cachedDataMemo = null;
 function cacheData(data) {
   invalidateSessionIndex();
-  jsonStorage.write(LS.cacheData, normalizeSharedData(data));
+  cachedDataMemo = normalizeSharedData(data);
+  jsonStorage.write(LS.cacheData, cachedDataMemo);
 }
 function getCachedData() {
-  return normalizeSharedData(jsonStorage.read(LS.cacheData, {}));
+  if (!cachedDataMemo) cachedDataMemo = normalizeSharedData(jsonStorage.read(LS.cacheData, {}));
+  return cachedDataMemo;
 }
+window.addEventListener("storage", (event) => {
+  if (event.key !== LS.cacheData) return;
+  cachedDataMemo = null;
+  invalidateSessionIndex();
+});
 
 const mutationQueue = createMutationQueue({ jsonStorage, key: LS.pendingQueue });
 
@@ -1097,15 +1174,46 @@ function getAllSessionsForDisplay() {
   return indexSessions(Array.from(byId.values())).sessions;
 }
 
+let lastRemoteFetchAt = 0;
 async function refreshFromRemote() {
   if (!workerConfigured()) return getAllSessionsForDisplay();
   try {
     const data = await workerFetchData();
     cacheData(data);
+    lastRemoteFetchAt = Date.now();
   } catch (e) {
     // offline or Worker unreachable — fall back to cache silently
   }
   return getAllSessionsForDisplay();
+}
+
+// Cache-first screens: paint now from what's on the device, then repaint
+// once if a background refresh brings back new data while still showing.
+function repaintAfterBackgroundRefresh(id, render) {
+  render();
+  repaintIfRefreshed(id, render);
+}
+
+// For screens whose full render also resets local UI (picked mode, paging,
+// filters): only the data-driven pieces are passed in to repaint.
+function repaintIfRefreshed(id, repaint) {
+  refreshFromRemoteIfStale().then((fetched) => {
+    if (fetched && state.screen === id) repaint();
+  });
+}
+
+// Tab switches reuse a fetch made moments ago (e.g. Board → Challenges)
+// instead of downloading the whole dataset again. Resolves to whether a
+// fetch actually ran, so callers know if a repaint is worthwhile.
+const REMOTE_FRESH_MS = 30 * 1000;
+async function refreshFromRemoteIfStale() {
+  if (Date.now() - lastRemoteFetchAt < REMOTE_FRESH_MS) {
+    flushQueue().catch(() => {});
+    return false;
+  }
+  await flushQueue().catch(() => {});
+  await refreshFromRemote();
+  return true;
 }
 
 function chaseLeaderLabel(stage) {
@@ -1243,7 +1351,7 @@ let diceRollTimer = null;
 // new value spinning in rather than being hidden until the animation ends —
 // simpler than Cards' true 3D flip and just as readable. Guards against a
 // roll landing mid-animation (fast reps hitting back-to-back low sums) the
-// same way playCardFlip does: clear any pending cleanup and force a reflow
+// same way the old card flip did: clear any pending cleanup and force a reflow
 // so the class always restarts cleanly.
 function playDiceRoll(dice) {
   const die1 = $("die-1");
@@ -1615,6 +1723,7 @@ const state = {
   // people instead of "me vs. X" — see openUserCompareFromLink.
   compareUserA: null,
   compareMode: "all",
+  comparePeriod: "week",
   sessionDetailSession: null,
   sessionDetailOrigin: "screen-dashboard",
   createGoalType: "individual",
@@ -2112,15 +2221,25 @@ function showScreen(id) {
     $("summary-type-icon").innerHTML = typeIconSvg(state.homeType);
     $("summary-mode-icon").innerHTML = modeIconSvg(state.homeMode) || modeIconSvg("classic");
   }
-  if (id === "screen-games") renderGamesScreen();
+  if (id === "screen-games") repaintAfterBackgroundRefresh(id, renderGamesScreen);
   if (id === "screen-challenges") renderChallengesScreen();
-  if (id === "screen-roadtrip") renderRoadtrip();
-  if (id === "screen-roadtrip-detail") renderRoadtripDetail();
+  if (id === "screen-roadtrip") {
+    applyRoadtripStartingCountry();
+    repaintAfterBackgroundRefresh(id, renderRoadtrip);
+  }
+  if (id === "screen-roadtrip-detail") repaintAfterBackgroundRefresh(id, renderRoadtripDetail);
   if (id === "screen-settings" || id === "screen-settings-mysessions" ||
-    id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") renderSettings();
+    id === "screen-settings-workout" || id === "screen-settings-appearance" || id === "screen-settings-goals") {
+    renderSettings();
+    repaintIfRefreshed(id, () => {
+      renderSettingsCategoryValues();
+      renderMySessions();
+      if (id === "screen-settings-goals") renderGoalsSettingsScreen();
+    });
+  }
   if (id === "screen-settings-goals") renderGoalsSettingsScreen();
-  if (id === "screen-settings-groups") renderSettingsGroups();
-  if (id === "screen-group-detail") renderGroupDetail();
+  if (id === "screen-settings-groups") repaintAfterBackgroundRefresh(id, renderSettingsGroups);
+  if (id === "screen-group-detail") repaintAfterBackgroundRefresh(id, renderGroupDetail);
   if (id === "screen-settings-goal-edit") renderGoalEditScreen();
   if (id === "screen-explore-modes") renderExploreModesScreen();
   if (id === "screen-workout" && !state.workoutActive) {
@@ -2145,8 +2264,15 @@ function showScreen(id) {
       restoreHomeSelection();
     }
     preserveNextModeSelection = false;
+    warmTrackerForHomeType(state.homeType);
+    preloadBodyTrackerIfUsed();
+    scheduleBodyTrackerPrefetch();
     renderPushupModePicker();
     renderModifierSlot();
+    repaintIfRefreshed(id, () => {
+      renderGoalThermometers();
+      renderStreakBadge();
+    });
   }
   if (id === "screen-plank-workout" && !state.plankActive) {
     $("plank-username").textContent = state.currentUser || "Friend";
@@ -6547,6 +6673,18 @@ async function renderRoadtripMap({ animate = false } = {}) {
   $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled && shouldShowWorld(unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds)), MAP_W));
 }
 
+// The first Roadtrip visit each launch opens on the country you're in (when
+// a location is set and that country has reps in the period — otherwise
+// renderRoadtrip falls back to the world); after that, your own drilling
+// is kept.
+let roadtripStartingCountryApplied = false;
+function applyRoadtripStartingCountry() {
+  if (roadtripStartingCountryApplied) return;
+  roadtripStartingCountryApplied = true;
+  state.roadtripMapCountry = state.deviceLocationProfile.location?.country?.code || null;
+  state.roadtripMapCity = null;
+}
+
 function drillRoadtripMap(countryCode) {
   state.roadtripMapCountry = countryCode;
   state.roadtripMapCity = null;
@@ -6648,6 +6786,19 @@ function renderRoadtrip() {
   state.roadtripMapAnimate = false;
 
   const scopePlace = city || country;
+  const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
+  // A city with no neighborhood-level reps has nothing deeper to list, so
+  // its people leaderboard shows right here instead of an empty level.
+  if (!top.length && city) {
+    const label = document.createElement("div");
+    label.className = "roadtrip-pinned-label";
+    label.textContent = `${roadtripPlaceText(city)} leaderboard`;
+    const group = document.createElement("div");
+    group.className = "leaderboard-list";
+    appendRoadtripPeopleRows(group, city);
+    list.append(label, group);
+    return;
+  }
   if (scopePlace) {
     const link = document.createElement("button");
     link.type = "button";
@@ -6655,11 +6806,6 @@ function renderRoadtrip() {
     link.innerHTML = `<span>${escapeHtml(roadtripPlaceText(scopePlace))} leaderboard</span><span aria-hidden="true">›</span>`;
     link.addEventListener("click", () => openRoadtripDetail(scopePlace.id));
     list.appendChild(link);
-  }
-  const { top, pinned } = roadtripOverviewRows(state.roadtripTerritories, state.deviceLocationProfile.location, state.roadtripTier, 10);
-  if (!top.length && city) {
-    list.insertAdjacentHTML("beforeend", `<p class="roadtrip-scope-empty">No neighborhood-level reps in ${escapeHtml(city.name)} for this period.</p>`);
-    return;
   }
   if (!top.length) {
     list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One pushup with a selected location can fix that.</span></div>`;
@@ -6695,6 +6841,12 @@ function renderRoadtripDetail() {
     </div>`;
   const list = $("roadtrip-detail-list");
   list.innerHTML = "";
+  appendRoadtripPeopleRows(list, territory);
+}
+
+// Ranked people for one place (plus your own row pinned if you're off the
+// list) — the detail screen, and inline for a city with no neighborhoods.
+function appendRoadtripPeopleRows(list, territory) {
   const { top, pinned } = roadtripDetailRows(territory, state.currentUser, territory.users.length);
   const appendUser = (row, isPinned = false) => {
     const el = document.createElement("div");
@@ -6897,6 +7049,7 @@ function updateSquatTestFaceBox(bbox) {
 }
 
 const squatTestCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
@@ -7014,6 +7167,7 @@ function updateSitupTestFaceBox(bbox) {
 }
 
 const situpTestCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
@@ -7101,9 +7255,15 @@ $("btn-download-situp-trace").addEventListener("click", () => {
 
 // ------------------- dashboard / leaderboard -------------------
 
+// Paints straight from cache, then repaints once fresh data arrives (skipped
+// when another screen fetched it moments ago).
 async function renderDashboard() {
-  await flushQueue().catch(() => {});
-  const sessions = await refreshFromRemote();
+  paintDashboardFromSessions(getAllSessionsForDisplay());
+  const fetched = await refreshFromRemoteIfStale();
+  if (fetched && state.screen === "screen-dashboard") paintDashboardFromSessions(getAllSessionsForDisplay());
+}
+
+function paintDashboardFromSessions(sessions) {
   state.boardSessionsAll = sessions;
   if (!state.boardScope || (state.boardScope !== "all" && !myGroups().some((g) => g.id === state.boardScope))) {
     state.boardScope = activeGroupId() || "all";
@@ -7225,8 +7385,12 @@ function activitiesWithSessionsInPeriod() {
   });
 }
 function cycleLeaderboardActivity(direction) {
-  const available = activitiesWithSessionsInPeriod();
-  const cycle = available.length ? available : CHART_ACTIVITY_CYCLE;
+  // Pushups (the default board) and the current exercise always stay in the
+  // cycle — otherwise a period whose only sessions are e.g. kettlebell leaves
+  // the arrows/swipe stepping from kettlebell back to kettlebell, with no way
+  // back to the normal board.
+  const available = new Set(activitiesWithSessionsInPeriod());
+  const cycle = CHART_ACTIVITY_CYCLE.filter((a) => a === "pushups" || a === state.activityType || available.has(a));
   const fromIndex = Math.max(0, cycle.indexOf(state.activityType));
   const next = cycle[(fromIndex + direction + cycle.length) % cycle.length];
   selectLeaderboardMode(next === "pushups" ? "all" : next);
@@ -7697,6 +7861,7 @@ function openUserCompare(otherUser) {
   state.compareUser = otherUser;
   state.compareUserA = null;
   state.compareMode = state.leaderboardMode;
+  state.comparePeriod = state.dashboardPeriod;
   renderUserCompare();
   showScreen("screen-user-compare");
 }
@@ -7713,6 +7878,7 @@ function openUserCompareFromLink(nameA, nameB) {
   state.compareUser = b;
   state.compareUserA = a === state.currentUser ? null : a;
   state.compareMode = state.leaderboardMode || "all";
+  state.comparePeriod = state.dashboardPeriod;
   renderUserCompare();
   showScreen("screen-user-compare");
 }
@@ -7751,18 +7917,52 @@ function setCompareModeMenuOpen(open) {
   $("compare-mode-menu").classList.toggle("hidden", !open);
 }
 
+function compareModeLabel() {
+  return (LEADERBOARD_MODE_OPTIONS.find((option) => option.id === state.compareMode) || LEADERBOARD_MODE_OPTIONS[0]).label;
+}
+
+// Head-to-head has its own period (seeded from Board's on open) so flipping
+// it here never changes the Board.
+function buildCompareModel(selfUser, otherUser) {
+  const cached = getCachedData();
+  // All sessions, not the Board's group-scoped pool: the two people being
+  // compared are what matters, and a shared #compare link opens before the
+  // Board has ever rendered.
+  return comparisonModel(getAllSessionsForDisplay(), {
+    userA: selfUser,
+    userB: otherUser,
+    mode: state.compareMode,
+    modeLabel: compareModeLabel(),
+    periodStartMs: periodStart(state.comparePeriod).getTime(),
+    now: new Date(),
+    games: { horseGames: cached.horseGames || [], towGames: cached.towGames || [] },
+  });
+}
+
+function compareRowHTML(row) {
+  const metric = { format: row.format };
+  return `
+      <div class="compare-row${row.comparable ? "" : " compare-row-unavailable"}">
+        <div class="compare-metric-line">
+          <div class="compare-row-value${row.aWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.aValue)}</div>
+          <div class="compare-bars">
+            <div class="compare-bar-track compare-bar-track-a"><span class="compare-bar-fill${row.aWinner || row.tied ? " is-strong" : ""}" style="width:${row.aPercent}%"></span></div>
+            <div class="compare-bar-center"></div>
+            <div class="compare-bar-track compare-bar-track-b"><span class="compare-bar-fill${row.bWinner || row.tied ? " is-strong" : ""}" style="width:${row.bPercent}%"></span></div>
+          </div>
+          <div class="compare-row-value compare-value-b${row.bWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.bValue)}</div>
+        </div>
+        <div class="compare-row-label">${challengeStatIconHTML(row.icon)}<span>${escapeHtml(row.label)}</span></div>
+      </div>`;
+}
+
 function renderUserCompare() {
   const otherUser = state.compareUser;
   const selfUser = state.compareUserA || state.currentUser;
   if (!otherUser || !selfUser) return;
   renderCompareModeControl();
-  const model = comparisonModel(state.lastSessions || [], {
-    userA: selfUser,
-    userB: otherUser,
-    mode: state.compareMode,
-    periodStartMs: periodStart(state.dashboardPeriod).getTime(),
-    now: new Date(),
-  });
+  document.querySelectorAll("[data-compare-period]").forEach((tab) => tab.classList.toggle("active", tab.dataset.comparePeriod === state.comparePeriod));
+  const model = buildCompareModel(selfUser, otherUser);
 
   const avatarA = avatarForUser(selfUser);
   const avatarB = avatarForUser(otherUser);
@@ -7776,23 +7976,11 @@ function renderUserCompare() {
   $("compare-table").classList.toggle("hidden", model.empty);
   $("compare-empty").classList.toggle("hidden", !model.empty);
   $("compare-tally").classList.toggle("hidden", model.empty);
-  $("compare-table").innerHTML = model.rows.map((row) => {
-    const metric = { format: row.format };
-    return `
-      <div class="compare-row${row.comparable ? "" : " compare-row-unavailable"}">
-        <div class="compare-metric-line">
-          <div class="compare-row-value${row.aWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.aValue)}</div>
-          <div class="compare-bars">
-            <div class="compare-bar-track compare-bar-track-a"><span class="compare-bar-fill${row.aWinner || row.tied ? " is-strong" : ""}" style="width:${row.aPercent}%"></span></div>
-            <div class="compare-bar-center"></div>
-            <div class="compare-bar-track compare-bar-track-b"><span class="compare-bar-fill${row.bWinner || row.tied ? " is-strong" : ""}" style="width:${row.bPercent}%"></span></div>
-          </div>
-          <div class="compare-row-value compare-value-b${row.bWinner ? " compare-winner" : ""}">${formatModeMetric(metric, row.bValue)}</div>
-        </div>
-        <div class="compare-row-label">${row.label}</div>
-      </div>
-    `;
-  }).join("");
+  $("compare-table").innerHTML = model.groups.map((group) => `
+    <section class="compare-group">
+      <div class="tier1-eyebrow">${escapeHtml(group.label)}</div>
+      ${group.rows.map(compareRowHTML).join("")}
+    </section>`).join("");
 
   const tallyEl = $("compare-tally");
   if (model.aWins === model.bWins) {
@@ -7806,6 +7994,12 @@ function renderUserCompare() {
 }
 
 $("btn-compare-back").addEventListener("click", () => showScreen("screen-dashboard"));
+$("compare-period-select").addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-compare-period]");
+  if (!tab) return;
+  state.comparePeriod = tab.dataset.comparePeriod;
+  renderUserCompare();
+});
 $("compare-mode-trigger").addEventListener("click", () => {
   setCompareModeMenuOpen($("compare-mode-trigger").getAttribute("aria-expanded") !== "true");
 });
@@ -7896,8 +8090,11 @@ function exportCompareImage(model, selfUser, otherUser, modeLabel, tallyText) {
   wrapCenteredText(ctx, tallyText, W / 2, 660, W - 160, 52);
 
   const rowsY = 760;
-  const rowH = Math.min(150, (H - 260 - rowsY) / Math.max(1, model.rows.length));
-  model.rows.forEach((row, i) => {
+  // Each row needs ~110px, so the image keeps the first 8 rows both people
+  // have numbers for (the screen itself shows every group).
+  const rows = model.rows.filter((row) => row.comparable).slice(0, 8);
+  const rowH = Math.min(150, (H - 260 - rowsY) / Math.max(1, rows.length));
+  rows.forEach((row, i) => {
     const y = rowsY + i * rowH;
     ctx.textAlign = "left";
     ctx.fillStyle = "#8a7c68";
@@ -7971,13 +8168,7 @@ async function shareUserCompare() {
   const otherUser = state.compareUser;
   const selfUser = state.compareUserA || state.currentUser;
   if (!otherUser || !selfUser) return;
-  const model = comparisonModel(state.lastSessions || [], {
-    userA: selfUser,
-    userB: otherUser,
-    mode: state.compareMode,
-    periodStartMs: periodStart(state.dashboardPeriod).getTime(),
-    now: new Date(),
-  });
+  const model = buildCompareModel(selfUser, otherUser);
   const activityWord = activityLabel(state.activityType, true);
   let message;
   if (model.aWins === model.bWins) {
@@ -7996,7 +8187,7 @@ async function shareUserCompare() {
   const tallyText = model.aWins === model.bWins
     ? `Tied ${model.aWins}-${model.aWins}`
     : `${model.aWins > model.bWins ? selfUser : otherUser} leads ${Math.max(model.aWins, model.bWins)}-${Math.min(model.aWins, model.bWins)}`;
-  const modeLabel = (LEADERBOARD_MODE_OPTIONS.find((option) => option.id === state.compareMode) || LEADERBOARD_MODE_OPTIONS[0]).label;
+  const modeLabel = compareModeLabel();
 
   if (!model.empty) {
     try {
@@ -8035,6 +8226,9 @@ $("btn-compare-share").addEventListener("click", shareUserCompare);
 function openSessionDetail(session, originScreenId) {
   state.sessionDetailSession = session;
   state.sessionDetailOrigin = originScreenId;
+  // The header's back button mirrors this label (see syncHeaderBack).
+  const backLabel = { "screen-dashboard": "Board", "screen-settings": "Settings", "screen-challenge-detail": "Challenge", "screen-summary": "Summary" }[originScreenId] || "Back";
+  $("btn-session-detail-back").textContent = `← ${backLabel}`;
   showScreen("screen-session-detail");
 }
 
@@ -8064,8 +8258,16 @@ function renderSessionDetail() {
   const allBadges = sessionBadges(session);
   const modeBadge = allBadges.find((b) => b.id === "mode");
   const modifierBadge = allBadges.find((b) => b.id === "modifier");
-  $("session-detail-hero-mode").innerHTML = modeBadge ? badgeHTML(modeBadge) : "";
-  $("session-detail-hero-modifier").innerHTML = modifierBadge ? badgeHTML(modifierBadge) : "";
+  // The mode pill is a shortcut: tap it to land on Home set up for the same
+  // workout (see startSimilarWorkout).
+  $("session-detail-hero-mode").innerHTML = modeBadge
+    ? `<button type="button" id="btn-session-detail-mode" class="session-badge session-badge-link" aria-label="Start a ${escapeHtml(modeBadge.label)} workout">${modeBadge.icon} ${escapeHtml(modeBadge.label)}</button>`
+    : "";
+  // Exercises that take a modifier show an empty pill when none was used, so
+  // the hero reads the same either way; combo/kettlebell modes have none.
+  const takesModifier = !isHolland && !isChainOfPain && !isKettlebell;
+  $("session-detail-hero-modifier").innerHTML = modifierBadge ? badgeHTML(modifierBadge)
+    : takesModifier ? `<span class="session-badge session-badge-empty">No modifier</span>` : "";
   $("session-detail-badges").innerHTML = allBadges.filter((b) => b.id !== "mode" && b.id !== "modifier").map(badgeHTML).join("");
   renderSessionProgression(session);
 
@@ -8094,7 +8296,7 @@ function renderSessionDetail() {
   }).join("");
 
   $("session-detail-metrics").innerHTML = sessionKeyMetrics(session).map((metric) => `
-    <div class="stats-table-row"><span class="stats-table-label">${metric.label}</span><span class="stats-table-value">${formatSessionMetric(metric)}</span></div>
+    <div class="stats-table-row"><span class="stats-table-label">${challengeStatIconHTML(sessionMetricIcon(metric))}<span>${metric.label}</span></span><span class="stats-table-value">${formatSessionMetric(metric)}</span></div>
   `).join("");
 
   // Matches the old My Sessions delete button's scope — only your own
@@ -8149,6 +8351,32 @@ async function shareSessionDetail() {
   }
 }
 
+// Home's Type/Mode ids for a saved session — sessionModeId names some
+// exercises by their type ("planks"), Home's mode picker by mode ("plank").
+function homeModeForSession(session) {
+  const id = sessionModeId(session);
+  const typeIdToMode = { planks: "plank", squats: "squat", pullups: "pullup", situps: "situp" };
+  if (id === "kettlebell") return session.kettlebellWorkoutId ? `kb-${session.kettlebellWorkoutId}` : null;
+  return typeIdToMode[id] || id;
+}
+
+// Jump from a reviewed session to Home with the same Type + Mode selected,
+// and its modifier applied when it had one. A mode that's since locked
+// (Chase/Pulse/Cock unlocks) falls back to its type's default.
+function startSimilarWorkout(session) {
+  const wanted = homeModeForSession(session);
+  const type = workoutTypeForMode(wanted || "kb-");
+  const modeId = wanted && modeSelectableForHome(type, wanted) ? wanted : workoutTypeById(type).defaultMode;
+  if (session.modifier && modifiersForType(type).some((m) => m.id === session.modifier)) {
+    if (type === "pushups") state.modifier = session.modifier;
+    else if (type in state.typeModifiers) state.typeModifiers[type] = session.modifier;
+  }
+  selectHomeMode(type, modeId);
+}
+
+$("session-detail-hero-mode").addEventListener("click", (e) => {
+  if (e.target.closest("#btn-session-detail-mode") && state.sessionDetailSession) startSimilarWorkout(state.sessionDetailSession);
+});
 $("btn-session-detail-back").addEventListener("click", () => showScreen(state.sessionDetailOrigin || "screen-dashboard"));
 $("btn-session-detail-share").addEventListener("click", shareSessionDetail);
 $("btn-session-detail-delete").addEventListener("click", async () => {
@@ -8229,7 +8457,7 @@ function paintMyBonanza(sessions) {
       </div>
     </div>` : "";
   statsEl.innerHTML = secondary.map((metric) => `
-    <div class="stats-table-row"><span class="stats-table-label">${challengeStatIconHTML(modeStatIcon(metric.format))}<span>${metric.label}</span></span><span class="stats-table-value">${formatModeMetric(metric)}</span></div>
+    <div class="stats-table-row"><span class="stats-table-label">${challengeStatIconHTML(modeStatIcon(metric))}<span>${metric.label}</span></span><span class="stats-table-value">${formatModeMetric(metric)}</span></div>
   `).join("") + achievementMarkup;
 }
 
@@ -8812,11 +9040,17 @@ function challengeWinners(c) {
   return board.filter((row) => row.score === top).map((row) => row.name);
 }
 
+// Paints straight from cache, then refreshes data and the scheduled list
+// in parallel and repaints only if either actually came back new.
 async function renderChallengesScreen() {
-  await flushQueue().catch(() => {});
-  await refreshFromRemote();
-  await loadChallenges();
-  paintChallengeList();
+  const hadCache = !!staticChallenges;
+  if (hadCache) {
+    rebuildChallengeDefs();
+    paintChallengeList();
+  }
+  const [dataFetched, listFetched] = await Promise.all([refreshFromRemoteIfStale(), loadChallenges()]);
+  if (state.screen !== "screen-challenges") return;
+  if (!hadCache || dataFetched || listFetched) paintChallengeList();
 }
 
 function paintChallengeList() {
@@ -8913,6 +9147,11 @@ function challengeStatIconHTML(icon) {
     award: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
     shuffle: '<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
     layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+    flame: '<path d="M12 22c4 0 7-2.8 7-7 0-3.2-2-5.6-3.5-7.2-.4 1.6-1.3 2.7-2.5 3.2.3-3-1-6-4-9 0 3.5-4 6.4-4 11.5C5 18.7 8 22 12 22z"/>',
+    hash: '<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    check: '<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9.5"/>',
+    flag: '<path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/>',
   };
   return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
 }
@@ -8922,9 +9161,29 @@ function challengeStatIconHTML(icon) {
 // A couple of cross-mode stats (id-keyed) get their own glyph regardless of
 // their (shared, generic) "integer" format.
 function modeStatIcon(metric) {
-  const byId = { modifiersUsed: "shuffle", modesUsed: "layers" };
+  const byId = { modifiersUsed: "shuffle", modesUsed: "layers", sessions: "duration" };
   if (byId[metric.id]) return byId[metric.id];
+  if (metric.qualifier === "group best") return "award";
   return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";
+}
+
+// Session-detail metrics reuse the leaderboard's stroke icons; the mode-
+// specific ones get a glyph by id, anything else falls back by format.
+const SESSION_METRIC_ICONS = {
+  duration: "time", pace: "pace", rawCount: "hash",
+  pulseBand: "target", pulseEndReason: "flag", pulseBreakRpm: "pace",
+  cockResult: "award", cockFinalCockRpm: "pace",
+  pyramidSize: "layers", pyramidCompleted: "check", ladderMaxRung: "trend",
+  countdownTarget: "target", countdownBeat: "check", cardsCleared: "layers",
+  pokerHandsCompleted: "hash", pokerBestHand: "award", diceRollsCleared: "hash",
+  sharpshooterTargets: "target", sharpshooterLongestShot: "trend",
+  hollandCircuits: "shuffle", chainOfPainCycles: "shuffle", chainOfPainPlankSeconds: "time",
+  chaseFinalLead: "trend", kettlebellSets: "layers",
+};
+function sessionMetricIcon(metric) {
+  if (SESSION_METRIC_ICONS[metric.id]) return SESSION_METRIC_ICONS[metric.id];
+  if (metric.format === "boolean") return "check";
+  return modeStatIcon(metric);
 }
 
 // One row per challenge, matching the Games/Roadtrip lists: icon, title,
@@ -10532,15 +10791,18 @@ function renderSessionProgression(session) {
   const model = progressionChartModel(session);
   const chart = $("session-detail-progression");
   const unavailable = $("session-detail-progression-unavailable");
+  // No meaningful progression → no chart and no placeholder either.
+  unavailable.classList.add("hidden");
   if (!model.available) {
     chart.classList.add("hidden");
-    unavailable.classList.remove("hidden");
     return;
   }
-  unavailable.classList.add("hidden");
   chart.classList.remove("hidden");
-  $("session-progression-title").textContent = model.title;
-  $("session-progression-legend").innerHTML = model.series.map((series) => `
+  chart.setAttribute("aria-label", model.title);
+  // Single-series charts need no legend — the bars are the session's own unit.
+  const legend = $("session-progression-legend");
+  legend.classList.toggle("hidden", model.series.length < 2);
+  legend.innerHTML = model.series.length < 2 ? "" : model.series.map((series) => `
     <span class="progression-legend-item"><span class="progression-swatch progression-${series.id}"></span>${escapeHtml(series.label)}</span>
   `).join("");
 
@@ -10562,12 +10824,10 @@ function renderSessionProgression(session) {
     const tick = index % stride === 0 || index === model.buckets.length - 1
       ? `<span class="progression-time-tick">${bucket.startLabel}</span>` : "";
     return `<div class="progression-bar-column" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
-      <div class="progression-bar-track"><div class="progression-bar-stack" style="height:${stackHeight}%">${segments}</div></div>${tick}
+      <div class="progression-bar-track"><div class="progression-bar-stack" style="height:${stackHeight}%">${segments}</div><span class="progression-bar-total" style="bottom:${stackHeight}%">${bucket.total}</span></div>${tick}
     </div>`;
   }).join("");
   $("session-progression-plot").innerHTML = `
-    <div class="progression-y-max">${model.max} ${escapeHtml(model.unit)}</div>
-    <div class="progression-y-zero">0</div>
     ${band}
     <div class="progression-bars" style="--progression-columns:${model.buckets.length}">${bars}</div>
   `;
@@ -10806,7 +11066,9 @@ function renderHeroForCount(count) {
     // focal point (see setupWorkoutModeState, which hides #rep-count/#rep-label
     // for this mode). Both counts live together in one subordinate line.
     const remaining = model.remaining;
-    $("cards-session-total").textContent = `${remaining} left on this card · ${formatNumber(count)} total`;
+    // The badge on the card already shows reps left, so this line is just the
+    // running total.
+    $("cards-session-total").innerHTML = `<strong>${formatNumber(count)}</strong> pushup${count === 1 ? "" : "s"}`;
     updateModeCounterBadge("card-counter-badge", remaining, pulseIntensityFromCardValue(state.cardTarget, remaining));
   } else if (model.kind === "poker") {
     const remaining = model.remaining;
@@ -10875,8 +11137,7 @@ function heroSpokenNumber(count) {
 
 // Pops the "reps left" badge over the mode's focal art (card or dice pair).
 // Re-triggered on every rep by removing/re-adding "pop" with a forced reflow
-// in between — the same restart pattern playCardFlip uses for the flip
-// transition — so back-to-back reps each get their own full grow-then-fade
+// in between — the same forced-reflow restart pattern used elsewhere — so back-to-back reps each get their own full grow-then-fade
 // cycle. Shared by Cards (#card-counter-badge) and Dice (#dice-counter-badge).
 // `intensity` (0-1, default 0) feeds --pulse-intensity in CSS for the
 // bigger-pulse-as-you-approach-the-peak effect — see pulseIntensityFromCardValue
@@ -11330,59 +11591,37 @@ function advancePokerCard() {
   }
 }
 
-let cardFlipTimer = null;
-let cardFlipRafId = null;
-// Single 3D flip: front face shows the outgoing card, back face the
-// incoming one. After the transition, the incoming card is swapped onto the
-// front and rotation is reset to 0 with transitions off, so the next flip
-// always starts from a clean, unflipped state — including if this flip
-// interrupts one still finishing (fast reps landing back-to-back on 1-value
-// cards can trigger that). The pending rAF is explicitly cancelled by the
-// cleanup timeout so a rAF that gets delayed (backgrounded tab, dropped
-// frame) can never fire *after* cleanup and re-add "flipped" onto an
-// already-settled card.
-function playCardFlip(outgoing, incoming) {
+// Toss: the incoming card is put on the front face straight away (it was
+// "underneath" the outgoing one), and a throwaway copy of the outgoing card
+// is flung off a random side of the screen over it, spinning as it goes. Each
+// toss is its own element and removes itself, so back-to-back reps on
+// 1-value cards just throw several at once instead of interrupting a flip.
+function playCardToss(outgoing, incoming) {
   const scene = $("card-flip");
   const front = $("card-face-front");
-  const back = $("card-face-back");
   if (!scene) return;
-  clearTimeout(cardFlipTimer);
-  if (cardFlipRafId != null) {
-    cancelAnimationFrame(cardFlipRafId);
-    cardFlipRafId = null;
-  }
-
-  scene.classList.add("no-transition");
-  scene.classList.remove("flipped");
-  setCardFace(front, outgoing);
-  setCardFace(back, incoming);
-  void scene.offsetWidth; // force reflow so the snap above lands before transitions re-enable
-  scene.classList.remove("no-transition");
-
+  setCardFace(front, incoming);
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduceMotion) {
-    setCardFace(front, incoming);
-    return;
-  }
+  if (reduceMotion || !outgoing) return;
 
-  cardFlipRafId = requestAnimationFrame(() => {
-    cardFlipRafId = null;
-    scene.classList.add("flipped");
-  });
-  cardFlipTimer = setTimeout(() => {
-    if (cardFlipRafId != null) {
-      cancelAnimationFrame(cardFlipRafId);
-      cardFlipRafId = null;
-    }
-    scene.classList.add("no-transition");
-    scene.classList.remove("flipped");
-    setCardFace(front, incoming);
-    void scene.offsetWidth;
-    scene.classList.remove("no-transition");
-  }, 460);
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  const tossed = document.createElement("div");
+  tossed.className = "card-face card-toss";
+  tossed.setAttribute("aria-hidden", "true");
+  tossed.style.backgroundImage = `url("${cardImageUrl(outgoing)}")`;
+  tossed.style.setProperty("--toss-dir", dir);
+  tossed.style.setProperty("--toss-y", `${Math.round(-30 + Math.random() * 45)}vh`);
+  tossed.style.setProperty("--toss-spin", `${Math.round(35 + Math.random() * 45)}deg`);
+  tossed.addEventListener("animationend", () => tossed.remove(), { once: true });
+  setTimeout(() => tossed.remove(), 1200); // safety net if animationend never fires
+  scene.parentElement.appendChild(tossed);
+
+  scene.classList.remove("card-settle");
+  void scene.offsetWidth;
+  scene.classList.add("card-settle");
 }
 
-// Draws the next card, plays its flip, and resets the per-card rep count.
+// Draws the next card, plays its toss, and resets the per-card rep count.
 // Detection/counting never waits on this — it's pure DOM/CSS from here.
 function advanceToNextCard() {
   const next = drawNextCard();
@@ -11392,7 +11631,7 @@ function advanceToNextCard() {
     renderCardsCompletedStack();
   }
   preloadCard(peekNextCard());
-  playCardFlip(state.currentCard, next);
+  playCardToss(state.currentCard, next);
   state.currentCard = next;
   state.cardTarget = next.value;
   state.cardRepsDone = 0;
@@ -11706,6 +11945,7 @@ function checkFaceLostTimeout() {
 }
 
 const camera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
@@ -11891,7 +12131,8 @@ async function setupWorkoutModeState() {
     preloadCard(peekNextCard());
     state.currentCard = first;
     state.cardTarget = first.value;
-    $("card-flip").classList.remove("flipped", "no-transition");
+    $("card-flip").classList.remove("card-settle");
+    document.querySelectorAll(".card-toss").forEach((el) => el.remove());
     setCardFace($("card-face-front"), first);
     setCardFace($("card-face-back"), first);
   } else {
@@ -13067,8 +13308,9 @@ function renderSummaryPaceNote(rawCount, durationMs) {
 
 function adjustMissedReps(delta) {
   if (!state.summarySessionId) return;
-  const nextExtra = state.summaryExtra + delta;
-  if (state.summaryBaseCount + nextExtra < 0) return;
+  // −5 near zero clamps to a total of 0 rather than doing nothing.
+  const nextExtra = Math.max(state.summaryExtra + delta, -state.summaryBaseCount);
+  if (nextExtra === state.summaryExtra) return;
   state.summaryExtra = nextExtra;
   $("missed-reps-count").textContent = String(state.summaryExtra);
   const { rawTotal, adjustedTotal: newTotal } = correctedSummaryTotals(state.summaryBaseCount, state.summaryExtra, state.summaryMultiplier);
@@ -13172,6 +13414,8 @@ async function reconcileSummaryCount() {
 
 $("btn-missed-plus").addEventListener("click", () => adjustMissedReps(1));
 $("btn-missed-minus").addEventListener("click", () => adjustMissedReps(-1));
+$("btn-missed-plus5").addEventListener("click", () => adjustMissedReps(5));
+$("btn-missed-minus5").addEventListener("click", () => adjustMissedReps(-5));
 
 // Let's go: Home-run pushup modes start the camera here; everything else
 // opens that mode's own screen (setup or its own START), as Explore did.
@@ -13900,6 +14144,7 @@ function advanceDeadhangCamera(hanging) {
 }
 
 const deadhangCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: POSE_LANDMARKER_MODEL_URL,
@@ -14089,6 +14334,39 @@ $("btn-deadhang-cancel").addEventListener("click", stopDeadhangHard);
 // createCameraController bakes its callbacks in at construction and the
 // pushup/plank/squat screens are never active at the same time.
 
+// Lock-after-warmup auto-framing for the body-tracked views (camera-framing.js):
+// begin at warmup, lock when counting starts, reset when the set ends.
+const bodyFraming = createFramingTracker();
+function applyBodyFraming(videoId, framing) {
+  const video = $(videoId);
+  video.style.transformOrigin = "0 0";
+  video.style.transform = framing.zoom === 1 ? "" : `translate(${framing.tx}px, ${framing.ty}px) scale(${framing.zoom})`;
+}
+function beginBodyFraming(videoId) {
+  bodyFraming.begin(videoId);
+  applyBodyFraming(videoId, IDENTITY_FRAMING);
+}
+function resetBodyFraming(videoId) {
+  bodyFraming.reset(videoId);
+  applyBodyFraming(videoId, IDENTITY_FRAMING);
+}
+function lockBodyFraming(videoId) {
+  const video = $(videoId);
+  const wrap = video.closest(".camera-wrap");
+  if (!wrap) return;
+  applyBodyFraming(videoId, bodyFraming.lock(videoId, { vw: video.videoWidth, vh: video.videoHeight, cw: wrap.clientWidth, ch: wrap.clientHeight }));
+}
+// Body box given in un-zoomed element pixels, drawn where it lands on the
+// framed (zoomed/panned) video.
+function placeBodyBox(box, videoId, left, top, width, height) {
+  const rect = mapRect({ left, top, width, height }, bodyFraming.framing(videoId));
+  box.style.left = `${rect.left}px`;
+  box.style.top = `${rect.top}px`;
+  box.style.width = `${rect.width}px`;
+  box.style.height = `${rect.height}px`;
+  box.classList.remove("hidden");
+}
+
 function updateSquatFaceBox(bbox) {
   const video = $("squat-camera-video");
   const container = document.querySelector("#screen-squat-workout .camera-wrap");
@@ -14097,12 +14375,8 @@ function updateSquatFaceBox(bbox) {
   if (!vw || !vh) return;
   const scale = Math.max(cw / vw, ch / vh);
   const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
-  const box = $("squat-face-box");
-  box.style.left = `${bbox.originX * scale + offsetX}px`;
-  box.style.top = `${bbox.originY * scale + offsetY}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("squat-camera-video", bbox);
+  placeBodyBox($("squat-face-box"), "squat-camera-video", bbox.originX * scale + offsetX, bbox.originY * scale + offsetY, bbox.width * scale, bbox.height * scale);
 }
 function hideSquatFaceBox() { $("squat-face-box").classList.add("hidden"); }
 
@@ -14311,6 +14585,7 @@ function squatBodyBBox(landmarks, video) {
 }
 
 const squatCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: POSE_LANDMARKER_MODEL_URL,
@@ -14360,6 +14635,7 @@ function beginSquatWarmup() {
   squatState.calSamples = [];
   squatState.warmupStartedAt = performance.now();
   squatState.stage = "warmup";
+  beginBodyFraming("squat-camera-video");
   $("squat-cal-stage").classList.remove("hidden");
   $("squat-count-stage").classList.add("hidden");
   $("btn-squat-stop").classList.add("hidden");
@@ -14409,6 +14685,7 @@ function beginSquatCounting(thresholds) {
   squatState.clapGesture = createClapGestureDetector();
   squatState.clapBannerShown = false;
   squatState.stage = "counting";
+  lockBodyFraming("squat-camera-video");
   state.squatBest = getSquatBest(state.currentUser);
   state.squatLast = getSquatLast(state.currentUser);
   squatState.ghostActive = ghostModeEnabled() && !!state.squatLast;
@@ -14470,6 +14747,7 @@ function stopSquatHard() {
   releaseWakeLock();
   state.squatActive = false;
   squatState.stage = "idle";
+  resetBodyFraming("squat-camera-video");
   hideSquatStatusBanner();
   $("squat-in-progress").classList.add("hidden");
   $("squat-idle").classList.remove("hidden");
@@ -14492,6 +14770,7 @@ async function completeSquat() {
   await releaseWakeLock();
   state.squatActive = false;
   squatState.stage = "idle";
+  resetBodyFraming("squat-camera-video");
   hideSquatStatusBanner();
   $("squat-in-progress").classList.add("hidden");
   $("squat-idle").classList.remove("hidden");
@@ -14571,12 +14850,8 @@ function updatePullupPoseBox(bbox) {
   const scale = Math.max(container.clientWidth / video.videoWidth, container.clientHeight / video.videoHeight);
   const offsetX = (container.clientWidth - video.videoWidth * scale) / 2;
   const offsetY = (container.clientHeight - video.videoHeight * scale) / 2;
-  const box = $("pullup-pose-box");
-  box.style.left = `${bbox.originX * scale + offsetX}px`;
-  box.style.top = `${bbox.originY * scale + offsetY}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("pullup-camera-video", bbox);
+  placeBodyBox($("pullup-pose-box"), "pullup-camera-video", bbox.originX * scale + offsetX, bbox.originY * scale + offsetY, bbox.width * scale, bbox.height * scale);
 }
 
 function hidePullupPoseBox() { $("pullup-pose-box").classList.add("hidden"); }
@@ -14717,6 +14992,7 @@ function tickPullupWarmup() {
     if (pullupState.count > 0) recordProgression(state.pullupProgression, Date.now() - state.pullupStartedAt.getTime(), pullupState.count);
     pullupState.phase = pullupState.counter.phase;
     pullupState.stage = "counting";
+    lockBodyFraming("pullup-camera-video");
     pullupState.lastSeenAt = performance.now();
     pullupState.paused = false;
     state.pullupBest = getPullupBest(state.currentUser);
@@ -14744,6 +15020,7 @@ function tickPullupWarmup() {
 }
 
 const pullupCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: POSE_LANDMARKER_MODEL_URL,
@@ -14792,6 +15069,7 @@ async function startPullup() {
   state.pullupStartedAt = new Date();
   state.pullupProgression = createRepProgression();
   pullupState.stage = "warmup";
+  beginBodyFraming("pullup-camera-video");
   pullupState.calSamples = [];
   pullupState.warmupStartedAt = performance.now();
   pullupState.count = 0;
@@ -14812,6 +15090,7 @@ function stopPullupHard() {
   releaseWakeLock();
   state.pullupActive = false;
   pullupState.stage = "idle";
+  resetBodyFraming("pullup-camera-video");
   hidePullupStatusBanner();
   $("pullup-in-progress").classList.add("hidden");
   $("pullup-idle").classList.remove("hidden");
@@ -14837,6 +15116,7 @@ async function completePullup() {
   await releaseWakeLock();
   state.pullupActive = false;
   pullupState.stage = "idle";
+  resetBodyFraming("pullup-camera-video");
   hidePullupStatusBanner();
   $("pullup-in-progress").classList.add("hidden");
   $("pullup-idle").classList.remove("hidden");
@@ -14952,6 +15232,7 @@ async function ensureHollandCamera(detectorType) {
   if (hollandCamera && hollandState.detectorType === detectorType) return hollandCamera;
   if (hollandCamera) hollandCamera.stop();
   hollandCamera = createCameraController({
+    detectorPool: trackerPool,
     moduleUrl: FACE_DETECTOR_MODULE_URL,
     wasmUrl: FACE_DETECTOR_WASM_URL,
     modelUrl: detectorType === "pose" ? POSE_LANDMARKER_MODEL_URL : FACE_DETECTOR_MODEL_URL,
@@ -14979,12 +15260,8 @@ function updateHollandBox(bbox) {
   if (!vw || !vh) return;
   const scale = Math.max(cw / vw, ch / vh);
   const offsetX = (cw - vw * scale) / 2, offsetY = (ch - vh * scale) / 2;
-  const box = $("holland-pose-box");
-  box.style.left = `${bbox.originX * scale + offsetX}px`;
-  box.style.top = `${bbox.originY * scale + offsetY}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("holland-camera-video", bbox);
+  placeBodyBox($("holland-pose-box"), "holland-camera-video", bbox.originX * scale + offsetX, bbox.originY * scale + offsetY, bbox.width * scale, bbox.height * scale);
 }
 function hideHollandBox() { $("holland-pose-box").classList.add("hidden"); }
 function hideHollandStatusBanner() { $("holland-status-banner").classList.add("hidden"); }
@@ -15122,6 +15399,7 @@ function onHollandRepCounted() {
 
 function triggerHollandTransition() {
   hollandState.stage = "transition";
+  resetBodyFraming("holland-camera-video");
   hollandCamera?.stop();
   const completedExercise = hollandCurrentExercise(hollandState.rules);
   const completedTarget = hollandSegmentTarget(hollandState.rules);
@@ -15159,6 +15437,7 @@ function beginHollandCounting(exercise, thresholds, calSamples = null) {
     : hollandAdapterModule.hollandCreateCounter(exercise, thresholds);
   hollandState.counter = counter;
   hollandState.stage = "counting";
+  lockBodyFraming("holland-camera-video");
   hollandState.lastSeenAt = performance.now();
   hollandState.paused = false;
   $("holland-cal-stage").classList.add("hidden");
@@ -15185,6 +15464,7 @@ function renderHollandWarmup(exercise) {
 
 function beginHollandWarmup(exercise) {
   hollandState.stage = "warmup";
+  beginBodyFraming("holland-camera-video");
   hollandState.calSamples = [];
   hollandState.warmupStartedAt = performance.now();
   $("holland-cal-stage").classList.remove("hidden");
@@ -15284,6 +15564,7 @@ function stopHollandHard() {
   releaseWakeLock();
   state.hollandActive = false;
   hollandState.stage = "idle";
+  resetBodyFraming("holland-camera-video");
   hollandState.counter = null;
   hideHollandStatusBanner();
   $("holland-in-progress").classList.add("hidden");
@@ -15315,6 +15596,7 @@ async function completeHolland() {
   await releaseWakeLock();
   state.hollandActive = false;
   hollandState.stage = "idle";
+  resetBodyFraming("holland-camera-video");
   hideHollandStatusBanner();
   $("holland-in-progress").classList.add("hidden");
   $("holland-idle").classList.remove("hidden");
@@ -15448,6 +15730,7 @@ async function ensureChainOfPainCamera(detectorType) {
   if (chainOfPainCamera && chainOfPainState.detectorType === detectorType) return chainOfPainCamera;
   if (chainOfPainCamera) chainOfPainCamera.stop();
   chainOfPainCamera = createCameraController({
+    detectorPool: trackerPool,
     moduleUrl: FACE_DETECTOR_MODULE_URL,
     wasmUrl: FACE_DETECTOR_WASM_URL,
     modelUrl: detectorType === "pose" ? POSE_LANDMARKER_MODEL_URL : FACE_DETECTOR_MODEL_URL,
@@ -15484,12 +15767,8 @@ function updateChainOfPainBox(bbox) {
   const scale = Math.max(container.clientWidth / video.videoWidth, container.clientHeight / video.videoHeight);
   const offsetX = (container.clientWidth - video.videoWidth * scale) / 2;
   const offsetY = (container.clientHeight - video.videoHeight * scale) / 2;
-  const box = $("chainofpain-face-box");
-  box.style.left = `${offsetX + bbox.originX * scale}px`;
-  box.style.top = `${offsetY + bbox.originY * scale}px`;
-  box.style.width = `${bbox.width * scale}px`;
-  box.style.height = `${bbox.height * scale}px`;
-  box.classList.remove("hidden");
+  bodyFraming.sample("chainofpain-camera-video", bbox);
+  placeBodyBox($("chainofpain-face-box"), "chainofpain-camera-video", offsetX + bbox.originX * scale, offsetY + bbox.originY * scale, bbox.width * scale, bbox.height * scale);
 }
 function hideChainOfPainBox() { $("chainofpain-face-box").classList.add("hidden"); }
 function hideChainOfPainStatusBanner() { $("chainofpain-status-banner").classList.add("hidden"); }
@@ -15618,6 +15897,7 @@ function beginChainOfPainWarmup() {
   $("chainofpain-setup-stage").classList.add("hidden");
   $("btn-chainofpain-cancel").classList.remove("hidden");
   chainOfPainState.stage = "warmup";
+  beginBodyFraming("chainofpain-camera-video");
   chainOfPainState.calSamples = [];
   chainOfPainState.warmupStartedAt = performance.now();
   $("chainofpain-cal-stage").classList.remove("hidden");
@@ -15651,6 +15931,7 @@ function beginChainOfPainCounting(thresholds = null) {
   chainOfPainState.down = thresholds?.down;
   chainOfPainState.up = thresholds?.up;
   chainOfPainState.stage = "counting";
+  lockBodyFraming("chainofpain-camera-video");
   chainOfPainState.lastSeenAt = performance.now();
   chainOfPainState.paused = false;
   chainOfPainState.segmentStartedAt = performance.now();
@@ -15789,6 +16070,7 @@ function renderChainOfPainRestTitle() {
 function triggerChainOfPainRest() {
   stopChainOfPainTicker();
   chainOfPainState.stage = "resting";
+  resetBodyFraming("chainofpain-camera-video");
   chainOfPainCamera?.stop();
   chainOfPainState.detectorType = null;
   const completedExercise = chainOfPainCurrentExercise(chainOfPainState.rules);
@@ -15884,6 +16166,7 @@ function stopChainOfPainHard() {
   releaseWakeLock();
   state.chainOfPainActive = false;
   chainOfPainState.stage = "idle";
+  resetBodyFraming("chainofpain-camera-video");
   chainOfPainState.counter = null;
   hideChainOfPainStatusBanner();
   $("chainofpain-in-progress").classList.add("hidden");
@@ -15912,6 +16195,7 @@ async function completeChainOfPain() {
   await releaseWakeLock();
   state.chainOfPainActive = false;
   chainOfPainState.stage = "idle";
+  resetBodyFraming("chainofpain-camera-video");
   hideChainOfPainStatusBanner();
   $("chainofpain-in-progress").classList.add("hidden");
   $("chainofpain-idle").classList.remove("hidden");
@@ -16152,6 +16436,7 @@ function processSitupRatio(ratio) {
 }
 
 const situpCamera = createCameraController({
+  detectorPool: trackerPool,
   moduleUrl: FACE_DETECTOR_MODULE_URL,
   wasmUrl: FACE_DETECTOR_WASM_URL,
   modelUrl: FACE_DETECTOR_MODEL_URL,
@@ -16701,6 +16986,7 @@ function kbEnterReady() {
   $("kettlebell-rest-next").classList.remove("hidden");
   $("kettlebell-rest-timer").classList.remove("hidden");
   $("btn-kettlebell-ready").textContent = "Start now";
+  $("btn-kettlebell-ready").setAttribute("aria-label", "Start now");
   kbStartTimer(KETTLEBELL_GET_READY_SECONDS);
   kbState.nextCued = true;
   speak(`Get ready. ${kbNextUpLine(next)}`);
@@ -16763,6 +17049,7 @@ function kbEnterRest(seconds) {
   $("kettlebell-rest-next").classList.toggle("hidden", !next);
   $("kettlebell-rest-timer").classList.toggle("hidden", final);
   $("btn-kettlebell-ready").textContent = final ? "Finish workout" : "Ready";
+  $("btn-kettlebell-ready").setAttribute("aria-label", final ? "Finish workout" : "Ready for next set");
   if (final) {
     kbStopTimer();
     return;
@@ -16991,7 +17278,18 @@ function recapValueDisplay(value, unit) {
 // City coordinates never change once resolved, so this cache never expires —
 // it just grows as new cities get logged in Roadtrip. Used only by the group
 // monthly recap's miles-from-Houston tile (see computeGroupMilesLogged).
-const CITY_COORDS_CACHE_KEY = "bpb-cityCoords";
+// v2: v1 geocoded by "City, CC" alone, which put same-named cities in the
+// wrong state (Arlington, VA → Arlington, TX), so those entries are dropped.
+const CITY_COORDS_CACHE_KEY = "bpb-cityCoords-v2";
+try { localStorage.removeItem("bpb-cityCoords"); } catch (e) { /* storage unavailable */ }
+
+// City ids carry the state ("city:us:virginia:arlington" — see the Worker's
+// territoryId), which the search needs to tell same-named cities apart.
+function cityGeocodeQuery(territory) {
+  const stateSlug = String(territory.id || "").split(":")[2] || "";
+  const state = stateSlug && stateSlug !== "unknown" ? stateSlug.replace(/-/g, " ") : "";
+  return [territory.name, state, territory.parent].filter(Boolean).join(", ");
+}
 
 function loadCityCoordsCache() {
   try {
@@ -17020,7 +17318,7 @@ async function resolveCityCoords(territories) {
     if (territory.name.trim().toLowerCase() === "houston") continue;
     if (cache[territory.id]) continue;
     try {
-      const coords = await workerGeocodeCity(`${territory.name}, ${territory.parent}`);
+      const coords = await workerGeocodeCity(cityGeocodeQuery(territory));
       if (Number.isFinite(coords?.lat) && Number.isFinite(coords?.lon)) {
         cache[territory.id] = { lat: coords.lat, lon: coords.lon };
         changed = true;
@@ -17403,6 +17701,7 @@ async function init() {
     try {
       const data = await workerFetchData();
       cacheData(data);
+      lastRemoteFetchAt = Date.now();
       renderUserList();
       renderStreakBadge();
       renderGoalThermometers();

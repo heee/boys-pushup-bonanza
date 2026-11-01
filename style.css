@@ -1225,11 +1225,18 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 }
 #squat-camera-video,
 #pullup-camera-video,
+#holland-camera-video,
 #situp-camera-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+/* Lock-after-warmup auto-framing (camera-framing.js) eases in rather than
+   snapping when counting starts. */
+#squat-camera-video,
+#pullup-camera-video,
+#holland-camera-video,
+#chainofpain-camera-video { transition: transform 0.6s ease; }
 
 /* Keep the same camera window for squats and pushups throughout the chain. */
 #chainofpain-camera-wrap.chainofpain-camera-wrap-large {
@@ -1529,7 +1536,15 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   width: 100%;
 }
 .workout-active.mode-cards .rep-count-wrap { display: none; }
-.workout-active.mode-cards .cards-session-total { margin-top: 0.35rem; }
+/* Room to breathe below the card; regular weight so only the total
+   (wrapped in <strong>) is bold. */
+#cards-session-total {
+  margin-top: 1.4rem;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+#cards-session-total strong { color: var(--text); font-weight: 800; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 .card-flip-scene {
   /* The card is the focal point of this mode: target ~40-45vh tall, but
      never wider than ~60vw. aspect-ratio keeps it exactly matched to the
@@ -1595,12 +1610,34 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   position: relative;
   width: 100%;
   height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 0.45s ease;
 }
-.card-flip.flipped { transform: rotateY(180deg); }
-/* Applied only for the instant reset between flips — never animate a snap. */
-.card-flip.no-transition { transition: none; }
+/* The card underneath gives a small "settle" as the top one is tossed off it. */
+.card-flip.card-settle { animation: card-settle 380ms ease-out; }
+@keyframes card-settle {
+  0% { transform: scale(0.95); filter: brightness(0.82); }
+  100% { transform: none; filter: none; }
+}
+
+/* Tossed card: a throwaway copy of the finished card (created in
+   playCardToss) laid exactly over the scene, then flicked off a random side.
+   It lifts slightly first, then flies off with spin. --toss-dir is ±1. */
+.card-toss {
+  z-index: 3;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: card-toss 560ms cubic-bezier(0.4, 0.1, 0.75, 0.5) forwards;
+}
+@keyframes card-toss {
+  0% { transform: none; }
+  16% { transform: translate(calc(var(--toss-dir) * -3%), -5%) rotate(calc(var(--toss-dir) * -5deg)) scale(1.05); }
+  85% { opacity: 1; }
+  100% {
+    transform: translate(calc(var(--toss-dir) * 110vw), var(--toss-y)) rotate(calc(var(--toss-dir) * var(--toss-spin))) scale(0.9);
+    opacity: 0;
+  }
+}
+/* Keep the off-screen flight from adding a horizontal scrollbar. */
+html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
 
 .card-face {
   position: absolute;
@@ -1625,10 +1662,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
      background. Softer shadow; the dark-theme one smudges here. */
   filter: drop-shadow(0 0.5rem 0.6rem rgba(90, 70, 30, 0.28));
 }
-.card-face-back { transform: rotateY(180deg); }
+.card-face-back { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .card-flip { transition: none; }
+  .card-flip.card-settle, .card-toss { animation: none; }
 }
 
 /* Completed-cards fan — floats bottom-left of the screen (fixed, out of the
@@ -3043,6 +3080,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   cursor: pointer;
 }
 .stepper-btn:active { transform: scale(0.92); }
+/* ±5 jumps flank the ±1 stepper — same circle, quieter label. */
+.stepper-btn-jump { font-size: 0.8rem; color: var(--text-dim); }
+.missed-reps-wrap .stepper-row { gap: 0.9rem; }
 /* Same contrast-inversion as .btn-secondary: this stepper sits inside the
    tier-2 Calibration & weighted mode card, so it needs tier-1 to stand out. */
 .settings-block.tier2 .stepper-btn { background: var(--bg-elevated); }
@@ -3102,6 +3142,15 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
    mask (the SVG's own stroke color is irrelevant; only its alpha shape is
    used). Used standalone in icon-only buttons, or paired with a label via
    .btn-with-icon, everywhere the app offers share/send functionality. */
+.icon-trash {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M8 6V4h8v2'/%3E%3Cpath d='M19 6l-1 14H6L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M8 6V4h8v2'/%3E%3Cpath d='M19 6l-1 14H6L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3C/svg%3E") no-repeat center / contain;
+}
 .icon-share {
   display: inline-block;
   width: 16px;
@@ -3671,14 +3720,6 @@ body:has(#screen-challenges.active) .challenge-list {
 .week-bar-col-clickable .week-bar-label {
   transition: color 0.15s ease;
 }
-.week-bar-col-selected .week-bar {
-  background: linear-gradient(180deg, var(--gold), var(--accent));
-  box-shadow: 0 0 0 2px var(--gold) inset;
-}
-.week-bar-col-selected .week-bar-label {
-  font-weight: 700;
-  color: var(--gold);
-}
 .week-chart-clear {
   display: block;
   margin: 0.35rem auto 0;
@@ -3696,7 +3737,8 @@ body:has(#screen-challenges.active) .challenge-list {
   color: var(--text-dim);
   min-height: 1em;
 }
-.week-bar-col-today .week-bar-value {
+.week-bar-col-today .week-bar-value,
+.week-bar-col-selected .week-bar-value {
   font-weight: 800;
 }
 /* The bar area only — value + bar, excluding the day label — so bar
@@ -3722,7 +3764,8 @@ body:has(#screen-challenges.active) .challenge-list {
   background: var(--bg-elevated);
   transition: height 0.25s ease;
 }
-.week-bar-col-today .week-bar {
+.week-bar-col-today .week-bar,
+.week-bar-col-selected .week-bar {
   background: linear-gradient(180deg, var(--primary-dim), var(--primary-deep));
   box-shadow: 0 0 0 2px var(--primary) inset;
 }
@@ -3731,7 +3774,8 @@ body:has(#screen-challenges.active) .challenge-list {
   color: var(--text-dim);
   font-weight: 500;
 }
-.week-bar-col-today .week-bar-label {
+.week-bar-col-today .week-bar-label,
+.week-bar-col-selected .week-bar-label {
   font-weight: 700;
   color: var(--primary);
 }
@@ -4288,7 +4332,7 @@ body:has(#screen-settings-mysessions.active) #app {
 .explore-mode-row.disabled .explore-mode-icon { filter: grayscale(1); }
 .my-session-count { font-weight: 800; text-align: right; }
 
-.session-detail-delete-btn { display: block; width: 100%; max-width: none; margin-top: 1.2rem; color: var(--danger); }
+.session-detail-delete-btn { flex: none; color: var(--danger); }
 
 /* ---------------- Modifier picker + Home slot + session cue ---------------- */
 
@@ -4419,7 +4463,8 @@ body:has(#screen-challenges.active) #app {
 .challenge-stat-icon { display: block; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; }
 .stats-table-label { display: inline-flex; align-items: center; gap: 0.55rem; }
 .stats-table-label .challenge-stat-icon { color: var(--text-tertiary); }
-#personal-stats .stats-table-label { font-weight: 500; }
+#personal-stats .stats-table-label,
+.session-detail-metrics .stats-table-label { font-weight: 500; }
 
 .join-success-check {
   flex-shrink: 0;
@@ -4576,10 +4621,7 @@ body:has(#screen-challenge-detail.active) #app {
 .session-detail-card {
   width: min(100%, 30rem);
   margin: 0 auto;
-  padding: 1.15rem 1rem 1.25rem;
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--bg-elevated) 90%, #0a0703);
-  box-shadow: var(--shadow);
+  padding: 0.25rem 0 1.25rem;
 }
 .session-detail-header {
   display: flex;
@@ -4587,7 +4629,6 @@ body:has(#screen-challenge-detail.active) #app {
   gap: 0.6rem;
   margin-bottom: 0.75rem;
 }
-.session-detail-back-btn { flex: none; font-size: 1.3rem; }
 .session-detail-title-wrap { flex: 1; min-width: 0; }
 .session-detail-title {
   font-weight: 800;
@@ -4609,7 +4650,9 @@ body:has(#screen-challenge-detail.active) #app {
 .session-detail-hero-badge { display: flex; min-width: 0; }
 .session-detail-hero-badge-left { justify-self: start; }
 .session-detail-hero-badge-right { justify-self: end; }
-.session-detail-hero-badge .session-badge { white-space: nowrap; }
+.session-detail-hero-badge .session-badge { white-space: nowrap; border-radius: 12px; }
+.session-badge-link { border: none; font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+.session-badge-link:active { transform: scale(0.96); }
 .session-detail-count {
   font-size: 3.4rem;
   font-weight: 900;
@@ -4646,45 +4689,40 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .session-badge-modifier { background: color-mix(in srgb, #4a90d9 18%, var(--bg-elevated-2)); color: #4a90d9; }
 .session-badge-weighted { background: color-mix(in srgb, var(--gold) 20%, var(--bg-elevated-2)); color: var(--gold); }
+.session-badge-empty { background: transparent; border: 1px dashed var(--border); color: var(--text-tertiary); font-weight: 600; }
 
 .session-progression {
   margin: 0.3rem 0 1.15rem;
-  padding: 0.85rem 0.85rem 0.65rem;
+  padding: 0.6rem 0.75rem 0.5rem;
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   border-radius: 18px;
   background: color-mix(in srgb, var(--bg-elevated-2) 68%, transparent);
 }
-.session-progression-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.65rem; }
-.session-progression-title { font-size: 0.88rem; font-weight: 850; color: var(--text); }
-.session-progression-subtitle { margin-top: 0.1rem; font-size: 0.68rem; color: var(--text-tertiary); }
-.session-progression-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem 0.55rem; }
+.session-progression-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem 0.55rem; margin-bottom: 0.3rem; }
 .progression-legend-item { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; font-size: 0.62rem; font-weight: 700; color: var(--text-dim); }
 .progression-swatch { width: 0.48rem; height: 0.48rem; border-radius: 2px; }
 .session-progression-scroll { overflow-x: auto; overflow-y: hidden; padding-top: 0.2rem; scrollbar-width: thin; }
 .session-progression-plot {
   position: relative;
-  height: 11.5rem;
+  height: 7rem;
   min-width: 100%;
-  border-bottom: 1px solid var(--border);
-  background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--border) 45%, transparent) 0 1px, transparent 1px 3.25rem);
 }
 .progression-bars {
   position: absolute;
-  inset: 1rem 0 1.5rem 2.15rem;
+  inset: 1rem 0 1.4rem 0;
   display: grid;
   grid-template-columns: repeat(var(--progression-columns), minmax(0.68rem, 1fr));
   gap: clamp(0.16rem, 0.8vw, 0.35rem);
-  width: max(calc(100% - 2.15rem), calc(var(--progression-columns) * 1.05rem));
+  width: max(100%, calc(var(--progression-columns) * 1.05rem));
 }
 .progression-bar-column { position: relative; display: flex; align-items: stretch; min-width: 0; }
 .progression-bar-track { position: relative; flex: 1; display: flex; align-items: flex-end; min-width: 0; }
 .progression-bar-stack { width: 100%; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; border-radius: 4px 4px 2px 2px; transition: height 220ms ease-out; }
 .progression-segment { display: block; width: 100%; min-height: 0; }
 .progression-time-tick { position: absolute; left: 0; bottom: -1.2rem; font-size: 0.56rem; font-variant-numeric: tabular-nums; color: var(--text-tertiary); transform: translateX(-10%); }
-.progression-y-max, .progression-y-zero { position: absolute; left: 0; z-index: 2; font-size: 0.56rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-.progression-y-max { top: 0.55rem; }
-.progression-y-zero { bottom: 1.2rem; }
-.progression-target-band { position: absolute; z-index: 0; left: 2.15rem; right: 0; bottom: calc(1.5rem + var(--band-bottom)); height: var(--band-height); background: color-mix(in srgb, var(--success) 12%, transparent); border-block: 1px dashed color-mix(in srgb, var(--success) 55%, transparent); pointer-events: none; }
+.progression-bar-column:first-child .progression-time-tick { transform: none; }
+.progression-bar-total { position: absolute; left: 0; right: 0; margin-bottom: 0.15rem; text-align: center; font-size: 0.56rem; font-weight: 700; line-height: 1; color: var(--text-tertiary); font-variant-numeric: tabular-nums; pointer-events: none; }
+.progression-target-band { position: absolute; z-index: 0; left: 0; right: 0; bottom: calc(1.4rem + var(--band-bottom)); height: var(--band-height); background: color-mix(in srgb, var(--success) 12%, transparent); border-block: 1px dashed color-mix(in srgb, var(--success) 55%, transparent); pointer-events: none; }
 .progression-target-band span { position: absolute; right: 0.2rem; top: 0.12rem; font-size: 0.52rem; font-weight: 700; color: var(--success); }
 .progression-reps { background: var(--primary); }
 .progression-pullup { background: #ef5350; }
@@ -4811,7 +4849,7 @@ body:has(#screen-challenge-detail.active) #app {
 .goal-type-switch:checked { background: var(--primary); }
 .goal-type-switch:checked::before { background: #fff; transform: translateX(15px); }
 
-.session-detail-metrics { margin-top: 0.25rem; }
+.session-detail-metrics { margin-top: 0.25rem; background: none; border-radius: 0; }
 
 /* ---------------- Edit profile ---------------- */
 
@@ -4893,67 +4931,43 @@ body:has(#screen-challenge-detail.active) #app {
 .compare-header-actions { display: flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; }
 .compare-screen-header .leaderboard-mode-picker { flex: 0 0 auto; }
 .compare-screen-header .leaderboard-mode-menu { z-index: 20; }
-.compare-card {
-  width: min(100%, 30rem);
-  margin: 0 auto;
-  padding: 1.15rem 1rem 1.25rem;
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--bg-elevated) 90%, #0a0703);
-  box-shadow: var(--shadow);
-}
-.compare-back {
-  display: block;
-  margin: 0 auto 0.4rem;
-  padding: 0.25rem 0.5rem;
-  border: 0;
-  background: transparent;
-  color: var(--text-dim);
-  font: inherit;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
+#compare-period-select { width: min(100%, 30rem); margin: 0 auto 0.9rem; }
+.compare-body { width: min(100%, 30rem); margin: 0 auto; }
 
-.compare-header {
-  display: flex;
+/* Slim one-line matchup — "Name (avatar) vs (avatar) Name", avatars meeting
+   at the center and sized to the names; the stats below are the focus. */
+.compare-matchup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  gap: 1.4rem;
-  margin: 0.6rem 0 0.75rem;
+  gap: 0.45rem;
 }
-.compare-avatar-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-.compare-avatar { width: 4.35rem; height: 4.35rem; border: 3px solid var(--gold); font-size: 2rem; flex-shrink: 0; }
-.compare-avatar-col:first-child .compare-avatar { border-color: var(--primary); }
+.compare-avatar { width: 1.75rem; height: 1.75rem; border: 2px solid var(--primary); font-size: 0.95rem; flex-shrink: 0; }
+.compare-avatar-b { border-color: var(--gold); }
 .compare-name {
   font-weight: 800;
   font-size: 1rem;
-  max-width: 8rem;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.compare-vs { color: var(--text-tertiary); font-weight: 700; font-size: 0.9rem; }
+.compare-name-a { text-align: right; }
+.compare-vs { color: var(--text-tertiary); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 0.15rem; }
 
 .compare-tally {
   text-align: center;
   color: var(--success);
   font-weight: 700;
-  font-size: 0.9rem;
-  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0.4rem;
 }
 
-.compare-table {
-  padding: 0 1rem;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--bg) 72%, #050301);
-}
+/* No card fills: groups sit on the page, headed like Leader statistics. */
+.compare-group { margin-top: 1.1rem; }
+.compare-group .tier1-eyebrow { margin-bottom: 0.1rem; }
 .compare-row {
-  padding: 1rem 0 0.8rem;
+  padding: 0.75rem 0 0.65rem;
   border-bottom: 1px solid var(--border);
 }
 .compare-row:last-child { border-bottom: 0; }
@@ -4979,26 +4993,28 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .compare-bar-track {
   display: flex;
-  height: 0.48rem;
+  height: 0.42rem;
   overflow: hidden;
-  background: color-mix(in srgb, var(--bg-elevated-2) 55%, #050301);
+  background: var(--bg-elevated);
 }
 .compare-bar-track-a { justify-content: flex-end; border-radius: 999px 0 0 999px; }
 .compare-bar-track-b { justify-content: flex-start; border-radius: 0 999px 999px 0; }
 .compare-bar-fill { display: block; height: 100%; background: var(--text-tertiary); transition: width 220ms ease; }
 .compare-bar-fill.is-strong { background: linear-gradient(90deg, var(--primary), var(--gold)); }
 .compare-bar-track-a .compare-bar-fill.is-strong { background: linear-gradient(90deg, var(--gold), var(--primary)); }
-.compare-bar-center { width: 3px; height: 0.75rem; border-radius: 2px; background: var(--text-tertiary); }
+.compare-bar-center { width: 3px; height: 0.7rem; border-radius: 2px; background: var(--text-tertiary); }
 .compare-row-label {
-  margin-top: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-dim);
   white-space: nowrap;
 }
+.compare-row-label .challenge-stat-icon { width: 0.95rem; height: 0.95rem; color: var(--text-tertiary); flex-shrink: 0; }
 .poker-achievements { padding: .9rem 1rem 1rem; border-top: 1px solid var(--border); }
 .poker-achievements-title { margin-bottom: .65rem; color: var(--text); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .poker-achievement-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; }
@@ -6075,7 +6091,55 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-rest-reps .stepper-value { min-width: 3.5rem; font-size: 2.2rem; }
 .kb-rest-next { font-size: 0.9rem; color: var(--text); background: var(--bg-elevated); border-radius: 12px; padding: 0.6rem 0.9rem; margin: 0.4rem 0; }
 .kb-volume-label { margin: -0.4rem 0 0; font-size: 0.85rem; font-weight: 700; color: var(--text-dim); }
-.kb-done-table { width: 100%; max-width: 29rem; background: var(--bg-elevated); border-radius: 14px; text-align: left; }
+.kb-done-table { width: 100%; max-width: 29rem; text-align: left; }
+/* Ready (green ✓) and End workout (red finish flag) as round FABs in the same spot and
+   style as the pushup end-session button (.workout-active .btn-complete).
+   End workout sits bottom-right on its own during a set, and steps left of
+   Ready while resting. Labels stay in the DOM for screen readers. */
+.kb-fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  z-index: 20;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  font-size: 0;
+  color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.kb-fab.hidden { display: none; }
+.kb-fab:active { transform: scale(0.94); }
+.kb-fab-ready { background: linear-gradient(155deg, #8fd16f, #4e9a3a); box-shadow: 0 8px 18px rgba(78, 154, 58, 0.4); }
+.kb-fab-ready::after {
+  content: "";
+  width: 18px;
+  height: 10px;
+  border-left: 2.5px solid #fff;
+  border-bottom: 2.5px solid #fff;
+  transform: rotate(-45deg) translateY(-2px);
+}
+.kb-fab-quit { background: linear-gradient(155deg, #e66a5c, #b8392c); box-shadow: 0 8px 18px rgba(184, 57, 44, 0.4); }
+/* Stroke-only finish flag, same currentColor-mask technique as .icon-share. */
+.kb-fab-quit::after {
+  content: "";
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+#screen-kettlebell-workout:has(#kettlebell-rest-stage:not(.hidden)) .kb-fab-quit { right: calc(1.25rem + 60px + 0.9rem); }
+#screen-kettlebell-workout .kb-stage { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+/* Timer no wider than the old full-width Ready button (21rem / screen width):
+   "0:13" in the display font runs ~2.4× its font size. */
+#screen-kettlebell-workout .rep-count { font-size: min(34vw, 8.75rem); }
+#screen-kettlebell-workout .kb-stage:has(.kb-clip:not(.hidden)) .rep-count { font-size: min(20vw, 5.5rem); }
 .kb-done-row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem; align-items: center; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
 .kb-done-row:last-child { border-bottom: none; }
 .kb-done-name { font-weight: 700; }
@@ -6083,7 +6147,6 @@ body:has(#screen-challenge-detail.active) #app {
 .kb-done-delta { font-size: 0.75rem; font-weight: 800; min-width: 2.6rem; text-align: right; color: var(--text-tertiary); }
 .kb-done-delta.up { color: var(--success); }
 .kb-done-delta.down { color: var(--danger); }
-#btn-kettlebell-quit { display: block; flex: 0 0 auto; width: 100%; max-width: 14rem; margin: 1.2rem auto 0; }
 
 /* Home Start button: "Let's go" + stroke flame glyph. */
 .btn-start-icon { width: 1.25em; height: 1.25em; margin-left: 0.4em; vertical-align: -0.25em; }
@@ -6296,7 +6359,6 @@ body:has(#screen-challenge-detail.active) #app {
   color: var(--text); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-align: left;
 }
 .roadtrip-scope-link span:last-child { color: var(--text-tertiary); font-size: 1.1rem; }
-.roadtrip-scope-empty { margin: 0.6rem 1rem; font-size: 0.85rem; color: var(--text-tertiary); }
 .roadtrip-map-dot.is-dimmed { opacity: 0.4; }
 .roadtrip-map-dot.is-selected { border-color: var(--primary); background: var(--text); }
 

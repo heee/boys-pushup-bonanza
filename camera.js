@@ -1,3 +1,45 @@
+// One detector per (type, model), shared by every controller handed the same
+// pool. Each MediaPipe detector boots its own copy of the ~9 MB WASM engine
+// plus its model, and the API can't share an engine between detectors — so
+// reusing detectors is what caps startups at one per type (face, pose)
+// instead of one per mode, and per Holland/Chain of Pain exercise switch.
+// Only one camera mode runs at a time, and every controller timestamps with
+// the same monotonic clock, so VIDEO-mode timestamps stay increasing.
+export function createDetectorPool() {
+  return new Map();
+}
+
+// Each detector boots its own engine instance, and by default each one also
+// recompiles the same ~9 MB engine binary. This wraps the browser's
+// WebAssembly.instantiateStreaming so the MediaPipe engine is compiled once
+// per launch and every later detector only instantiates the compiled copy
+// (~⅓ off detector creation in testing). Anything else, or any failure,
+// falls through to the browser — MediaPipe itself then retries without
+// streaming.
+const ENGINE_WASM = /\/vision_wasm(_nosimd)?_internal\.wasm$/;
+let engineCompileShared = false;
+export function shareEngineCompile() {
+  if (engineCompileShared || typeof WebAssembly?.instantiateStreaming !== "function") return;
+  engineCompileShared = true;
+  const compiled = new Map();
+  const original = WebAssembly.instantiateStreaming.bind(WebAssembly);
+  WebAssembly.instantiateStreaming = async (source, imports) => {
+    const response = await source;
+    const url = response?.url || "";
+    if (!ENGINE_WASM.test(url)) return original(response, imports);
+    let module = compiled.get(url);
+    if (module) {
+      response.body?.cancel().catch(() => {});
+    } else {
+      module = WebAssembly.compileStreaming(response);
+      compiled.set(url, module);
+      module.catch(() => compiled.delete(url));
+    }
+    const ready = await module;
+    return { module: ready, instance: await WebAssembly.instantiate(ready, imports) };
+  };
+}
+
 export function createCameraController({
   moduleUrl,
   wasmUrl,
@@ -7,23 +49,40 @@ export function createCameraController({
   // array — needed by squat mode, where the boy stands a couple meters back
   // and the short-range face model can't see him at all.
   detectorType = "face",
+  // Shared detectors (createDetectorPool); omitted → this controller keeps
+  // a private one.
+  detectorPool = null,
   getVideo,
   now = () => performance.now(),
   requestFrame = (callback) => requestAnimationFrame(callback),
   getUserMedia = (constraints) => navigator.mediaDevices.getUserMedia(constraints),
   loadVisionModule = () => import(moduleUrl),
+  // Blank frame for the warm-up detection (null skips it, e.g. in Node).
+  createWarmupFrame = () => {
+    if (typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    return canvas;
+  },
   onDetection,
   onNoDetection,
 }) {
-  let detector = null;
-  let detectorLoading = null;
-  let detectorVision = null;
-  let DetectorClass = null;
-  let delegate = null;
-  let rebuilding = false;
   let consecutiveFailures = 0;
   let stream = null;
   let running = false;
+
+  const engineKey = `${detectorType}|${modelUrl}`;
+  let privateEngine = null;
+  function engine() {
+    if (!detectorPool) return (privateEngine ??= createEngine());
+    if (!detectorPool.has(engineKey)) detectorPool.set(engineKey, createEngine());
+    return detectorPool.get(engineKey);
+  }
+
+  function createEngine() {
+    return { detector: null, loading: null, vision: null, DetectorClass: null, delegate: null, rebuilding: false };
+  }
 
   function buildDetector(vision, Detector, selectedDelegate) {
     if (detectorType === "pose") {
@@ -44,44 +103,65 @@ export function createCameraController({
   }
 
   async function ensureDetector() {
-    if (detector) return detector;
-    if (detectorLoading) return detectorLoading;
-    detectorLoading = (async () => {
+    const e = engine();
+    if (e.detector) return e.detector;
+    if (e.loading) return e.loading;
+    e.loading = (async () => {
       const visionModule = await loadVisionModule();
       const { FaceDetector, PoseLandmarker, FilesetResolver } = visionModule;
       const vision = await FilesetResolver.forVisionTasks(wasmUrl);
-      detectorVision = vision;
-      DetectorClass = detectorType === "pose" ? PoseLandmarker : FaceDetector;
+      e.vision = vision;
+      e.DetectorClass = detectorType === "pose" ? PoseLandmarker : FaceDetector;
+      // The face model is tiny: CPU runs it as fast as the GPU, and skips the
+      // GPU's shader compile (~1s on the first detection in testing). The
+      // heavier pose model still prefers the GPU.
+      const [preferred, fallback] = detectorType === "pose" ? ["GPU", "CPU"] : ["CPU", "GPU"];
+      let built;
       try {
-        detector = await buildDetector(vision, DetectorClass, "GPU");
-        delegate = "GPU";
+        built = await buildDetector(vision, e.DetectorClass, preferred);
+        e.delegate = preferred;
       } catch {
-        detector = await buildDetector(vision, DetectorClass, "CPU");
-        delegate = "CPU";
+        built = await buildDetector(vision, e.DetectorClass, fallback);
+        e.delegate = fallback;
       }
-      return detector;
+      warmUp(built);
+      e.detector = built;
+      return built;
     })();
     try {
-      return await detectorLoading;
+      return await e.loading;
     } catch (error) {
-      detectorLoading = null;
+      e.loading = null;
       throw error;
     }
   }
 
-  async function rebuildOnCpu() {
-    if (rebuilding || !detectorVision) return;
-    rebuilding = true;
+  // One throwaway detection while loading, so the first real frame doesn't
+  // pay the one-time setup cost (GPU shader compile, CPU buffer allocation)
+  // after the workout has already started.
+  function warmUp(target) {
     try {
-      const replacement = await buildDetector(detectorVision, DetectorClass, "CPU");
-      const old = detector;
-      detector = replacement;
-      delegate = "CPU";
+      const frame = createWarmupFrame();
+      if (frame) target.detectForVideo(frame, now());
+    } catch {
+      // Best effort — the first real frame just pays the cost instead.
+    }
+  }
+
+  async function rebuildOnCpu() {
+    const e = engine();
+    if (e.rebuilding || !e.vision) return;
+    e.rebuilding = true;
+    try {
+      const replacement = await buildDetector(e.vision, e.DetectorClass, "CPU");
+      const old = e.detector;
+      e.detector = replacement;
+      e.delegate = "CPU";
       try { old?.close?.(); } catch { /* ignore */ }
     } catch {
       // Keep the current detector if CPU initialization also fails.
     } finally {
-      rebuilding = false;
+      e.rebuilding = false;
     }
   }
 
@@ -105,6 +185,7 @@ export function createCameraController({
 
   function runDetectionOnce() {
     const video = getVideo();
+    const { detector, delegate, rebuilding } = engine();
     if (!detector || !video.videoWidth) return;
     const startedAt = now();
     let result;

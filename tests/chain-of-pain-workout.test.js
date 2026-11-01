@@ -40,6 +40,7 @@ function workout() {
     squatHipY: (landmarks) => landmarks.hipY, squatBodyBBox: () => null,
     cheerProbability: () => 1, REP_SPEECH_MIN_GAP_MS: 0,
     vibrate: () => {},
+    beginBodyFraming: () => {}, lockBodyFraming: () => {}, resetBodyFraming: () => {},
     updateModeCounterBadge: (id, count) => { $(id).textContent = String(count); $(id).classList.add("pop"); },
   });
   const block = source.slice(source.indexOf("const CHAINOFPAIN_WARMUP_MIN_MS"), source.indexOf("function selectChainOfPainDuration"));

@@ -22,6 +22,15 @@ test("All and Classic aggregate timed sessions and pace", () => {
   assert.equal(metric("all", "avgPace", sessions).value, 10);
 });
 
+test("Avg pace leader is closest to 37.5/min, not the fastest", () => {
+  // 1-minute sessions: pace == count.
+  const sessions = [session("Fast", 70), session("Steady", 40), session("Slow", 20)];
+  for (const mode of ["all", "classic"]) {
+    assert.deepEqual(metric(mode, "avgPace", sessions).leaders.map((x) => x.user), ["Steady"]);
+  }
+  assert.deepEqual(metric("all", "avgPace", [session("Fast", 70), session("Slow", 20)]).leaders.map((x) => x.user), ["Slow"]);
+});
+
 test("Cock Mode reports duels/wins/win-rate off cockResult, not the generic reps spec", () => {
   const sessions = [session("A", 41, { cockResult: "win" }), session("A", 12, { cockResult: "loss" }), session("A", 30, { cockResult: "win" })];
   assert.equal(metric("cock", "duels", sessions).value, 3);
