@@ -1351,7 +1351,7 @@ let diceRollTimer = null;
 // new value spinning in rather than being hidden until the animation ends —
 // simpler than Cards' true 3D flip and just as readable. Guards against a
 // roll landing mid-animation (fast reps hitting back-to-back low sums) the
-// same way playCardFlip does: clear any pending cleanup and force a reflow
+// same way the old card flip did: clear any pending cleanup and force a reflow
 // so the class always restarts cleanly.
 function playDiceRoll(dice) {
   const die1 = $("die-1");
@@ -11066,7 +11066,9 @@ function renderHeroForCount(count) {
     // focal point (see setupWorkoutModeState, which hides #rep-count/#rep-label
     // for this mode). Both counts live together in one subordinate line.
     const remaining = model.remaining;
-    $("cards-session-total").textContent = `${remaining} left on this card · ${formatNumber(count)} total`;
+    // The badge on the card already shows reps left, so this line is just the
+    // running total.
+    $("cards-session-total").innerHTML = `<strong>${formatNumber(count)}</strong> pushup${count === 1 ? "" : "s"}`;
     updateModeCounterBadge("card-counter-badge", remaining, pulseIntensityFromCardValue(state.cardTarget, remaining));
   } else if (model.kind === "poker") {
     const remaining = model.remaining;
@@ -11135,8 +11137,7 @@ function heroSpokenNumber(count) {
 
 // Pops the "reps left" badge over the mode's focal art (card or dice pair).
 // Re-triggered on every rep by removing/re-adding "pop" with a forced reflow
-// in between — the same restart pattern playCardFlip uses for the flip
-// transition — so back-to-back reps each get their own full grow-then-fade
+// in between — the same forced-reflow restart pattern used elsewhere — so back-to-back reps each get their own full grow-then-fade
 // cycle. Shared by Cards (#card-counter-badge) and Dice (#dice-counter-badge).
 // `intensity` (0-1, default 0) feeds --pulse-intensity in CSS for the
 // bigger-pulse-as-you-approach-the-peak effect — see pulseIntensityFromCardValue
@@ -11590,59 +11591,37 @@ function advancePokerCard() {
   }
 }
 
-let cardFlipTimer = null;
-let cardFlipRafId = null;
-// Single 3D flip: front face shows the outgoing card, back face the
-// incoming one. After the transition, the incoming card is swapped onto the
-// front and rotation is reset to 0 with transitions off, so the next flip
-// always starts from a clean, unflipped state — including if this flip
-// interrupts one still finishing (fast reps landing back-to-back on 1-value
-// cards can trigger that). The pending rAF is explicitly cancelled by the
-// cleanup timeout so a rAF that gets delayed (backgrounded tab, dropped
-// frame) can never fire *after* cleanup and re-add "flipped" onto an
-// already-settled card.
-function playCardFlip(outgoing, incoming) {
+// Toss: the incoming card is put on the front face straight away (it was
+// "underneath" the outgoing one), and a throwaway copy of the outgoing card
+// is flung off a random side of the screen over it, spinning as it goes. Each
+// toss is its own element and removes itself, so back-to-back reps on
+// 1-value cards just throw several at once instead of interrupting a flip.
+function playCardToss(outgoing, incoming) {
   const scene = $("card-flip");
   const front = $("card-face-front");
-  const back = $("card-face-back");
   if (!scene) return;
-  clearTimeout(cardFlipTimer);
-  if (cardFlipRafId != null) {
-    cancelAnimationFrame(cardFlipRafId);
-    cardFlipRafId = null;
-  }
-
-  scene.classList.add("no-transition");
-  scene.classList.remove("flipped");
-  setCardFace(front, outgoing);
-  setCardFace(back, incoming);
-  void scene.offsetWidth; // force reflow so the snap above lands before transitions re-enable
-  scene.classList.remove("no-transition");
-
+  setCardFace(front, incoming);
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduceMotion) {
-    setCardFace(front, incoming);
-    return;
-  }
+  if (reduceMotion || !outgoing) return;
 
-  cardFlipRafId = requestAnimationFrame(() => {
-    cardFlipRafId = null;
-    scene.classList.add("flipped");
-  });
-  cardFlipTimer = setTimeout(() => {
-    if (cardFlipRafId != null) {
-      cancelAnimationFrame(cardFlipRafId);
-      cardFlipRafId = null;
-    }
-    scene.classList.add("no-transition");
-    scene.classList.remove("flipped");
-    setCardFace(front, incoming);
-    void scene.offsetWidth;
-    scene.classList.remove("no-transition");
-  }, 460);
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  const tossed = document.createElement("div");
+  tossed.className = "card-face card-toss";
+  tossed.setAttribute("aria-hidden", "true");
+  tossed.style.backgroundImage = `url("${cardImageUrl(outgoing)}")`;
+  tossed.style.setProperty("--toss-dir", dir);
+  tossed.style.setProperty("--toss-y", `${Math.round(-30 + Math.random() * 45)}vh`);
+  tossed.style.setProperty("--toss-spin", `${Math.round(35 + Math.random() * 45)}deg`);
+  tossed.addEventListener("animationend", () => tossed.remove(), { once: true });
+  setTimeout(() => tossed.remove(), 1200); // safety net if animationend never fires
+  scene.parentElement.appendChild(tossed);
+
+  scene.classList.remove("card-settle");
+  void scene.offsetWidth;
+  scene.classList.add("card-settle");
 }
 
-// Draws the next card, plays its flip, and resets the per-card rep count.
+// Draws the next card, plays its toss, and resets the per-card rep count.
 // Detection/counting never waits on this — it's pure DOM/CSS from here.
 function advanceToNextCard() {
   const next = drawNextCard();
@@ -11652,7 +11631,7 @@ function advanceToNextCard() {
     renderCardsCompletedStack();
   }
   preloadCard(peekNextCard());
-  playCardFlip(state.currentCard, next);
+  playCardToss(state.currentCard, next);
   state.currentCard = next;
   state.cardTarget = next.value;
   state.cardRepsDone = 0;
@@ -12152,7 +12131,8 @@ async function setupWorkoutModeState() {
     preloadCard(peekNextCard());
     state.currentCard = first;
     state.cardTarget = first.value;
-    $("card-flip").classList.remove("flipped", "no-transition");
+    $("card-flip").classList.remove("card-settle");
+    document.querySelectorAll(".card-toss").forEach((el) => el.remove());
     setCardFace($("card-face-front"), first);
     setCardFace($("card-face-back"), first);
   } else {

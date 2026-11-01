@@ -1536,7 +1536,15 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   width: 100%;
 }
 .workout-active.mode-cards .rep-count-wrap { display: none; }
-.workout-active.mode-cards .cards-session-total { margin-top: 0.35rem; }
+/* Room to breathe below the card; regular weight so only the total
+   (wrapped in <strong>) is bold. */
+#cards-session-total {
+  margin-top: 1.4rem;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+#cards-session-total strong { color: var(--text); font-weight: 800; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 .card-flip-scene {
   /* The card is the focal point of this mode: target ~40-45vh tall, but
      never wider than ~60vw. aspect-ratio keeps it exactly matched to the
@@ -1602,12 +1610,34 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
   position: relative;
   width: 100%;
   height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 0.45s ease;
 }
-.card-flip.flipped { transform: rotateY(180deg); }
-/* Applied only for the instant reset between flips — never animate a snap. */
-.card-flip.no-transition { transition: none; }
+/* The card underneath gives a small "settle" as the top one is tossed off it. */
+.card-flip.card-settle { animation: card-settle 380ms ease-out; }
+@keyframes card-settle {
+  0% { transform: scale(0.95); filter: brightness(0.82); }
+  100% { transform: none; filter: none; }
+}
+
+/* Tossed card: a throwaway copy of the finished card (created in
+   playCardToss) laid exactly over the scene, then flicked off a random side.
+   It lifts slightly first, then flies off with spin. --toss-dir is ±1. */
+.card-toss {
+  z-index: 3;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: card-toss 560ms cubic-bezier(0.4, 0.1, 0.75, 0.5) forwards;
+}
+@keyframes card-toss {
+  0% { transform: none; }
+  16% { transform: translate(calc(var(--toss-dir) * -3%), -5%) rotate(calc(var(--toss-dir) * -5deg)) scale(1.05); }
+  85% { opacity: 1; }
+  100% {
+    transform: translate(calc(var(--toss-dir) * 110vw), var(--toss-y)) rotate(calc(var(--toss-dir) * var(--toss-spin))) scale(0.9);
+    opacity: 0;
+  }
+}
+/* Keep the off-screen flight from adding a horizontal scrollbar. */
+html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
 
 .card-face {
   position: absolute;
@@ -1632,10 +1662,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
      background. Softer shadow; the dark-theme one smudges here. */
   filter: drop-shadow(0 0.5rem 0.6rem rgba(90, 70, 30, 0.28));
 }
-.card-face-back { transform: rotateY(180deg); }
+.card-face-back { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .card-flip { transition: none; }
+  .card-flip.card-settle, .card-toss { animation: none; }
 }
 
 /* Completed-cards fan — floats bottom-left of the screen (fixed, out of the
