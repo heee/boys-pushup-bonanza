@@ -16,7 +16,8 @@
 //                   rendered to match --bg). loopSec ÷ repsPerLoop is the
 //                   clip's native tempo; playback is sped up/slowed to the
 //                   learned pace. aspect/zoom/origin crop the 600×800 source
-//                   so the figure fills the panel.
+//                   so the figure fills the panel; focus (object-position,
+//                   defaults to origin) picks which band a wide panel shows.
 
 export const KETTLEBELL_EXERCISES = {
   "kb-pushup": {
@@ -39,20 +40,56 @@ export const KETTLEBELL_EXERCISES = {
     name: "Goblet March", spoken: "Goblet march", paceSec: 1.5,
     clip: { base: "assets/kettlebell/goblet-march", loopSec: 3.5, repsPerLoop: 2, aspect: "3 / 4", zoom: 1.3, origin: "46% 85%" },
   },
-  "seated-press": { name: "Seated Shoulder Press", spoken: "Seated shoulder press", paceSec: 2.5 },
-  "seated-curl": { name: "Seated Curl", spoken: "Seated curls", paceSec: 2.5 },
+  "seated-press": {
+    name: "Seated Shoulder Press", spoken: "Seated shoulder press", paceSec: 2.5,
+    clip: { base: "assets/kettlebell/seated-press", loopSec: 2.85, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.25, origin: "70% 70%" },
+  },
+  "seated-curl": {
+    name: "Seated Curl", spoken: "Seated curls", paceSec: 2.5,
+    clip: { base: "assets/kettlebell/seated-curl", loopSec: 2.95, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.6, origin: "62% 85%" },
+  },
   "seated-halo": { name: "Seated Halo", spoken: "Seated halos", paceSec: 2.5 },
-  "seated-over-shoulder": { name: "Seated Over-the-Shoulder", spoken: "Seated over the shoulder", paceSec: 2.0 },
-  "plank-drag": { name: "North to South Plank Drag", spoken: "Plank drag", paceSec: 3.0 },
-  "bear-taps": { name: "Bear Plank KB Taps", spoken: "Bear plank taps", paceSec: 1.5 },
-  "side-leg-raises": { name: "Side to Side Leg Raises", spoken: "Side to side leg raises", paceSec: 2.0, bodyweight: true },
-  "overhead-situp": { name: "KB Overhead Sit Ups", spoken: "Overhead sit ups", paceSec: 3.0 },
+  "seated-over-shoulder": {
+    name: "Seated Over-the-Shoulder", spoken: "Seated over the shoulder", paceSec: 2.0,
+    clip: { base: "assets/kettlebell/seated-over-shoulder", loopSec: 3.85, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.6, origin: "50% 83%" },
+  },
+  "plank-drag": {
+    name: "North to South Plank Drag", spoken: "Plank drag", paceSec: 3.0,
+    clip: { base: "assets/kettlebell/plank-drag", loopSec: 3.25, repsPerLoop: 1, aspect: "7 / 5", zoom: 1.1, origin: "28% 50%", focus: "50% 42%" },
+  },
+  "bear-taps": {
+    name: "Bear Plank KB Taps", spoken: "Bear plank taps", paceSec: 1.5,
+    clip: { base: "assets/kettlebell/bear-taps", loopSec: 4, repsPerLoop: 2, aspect: "7 / 5", zoom: 1.35, origin: "46% 50%", focus: "50% 45%" },
+  },
+  "side-leg-raises": {
+    name: "Side to Side Leg Raises", spoken: "Side to side leg raises", paceSec: 2.0, bodyweight: true,
+    clip: { base: "assets/kettlebell/side-leg-raises", loopSec: 2.55, repsPerLoop: 1, aspect: "1 / 1", zoom: 1.3, origin: "63% 50%", focus: "50% 54%" },
+  },
+  "overhead-situp": {
+    name: "KB Overhead Sit Ups", spoken: "Overhead sit ups", paceSec: 3.0,
+    clip: { base: "assets/kettlebell/overhead-situp", loopSec: 3.25, repsPerLoop: 1, aspect: "1 / 1", zoom: 1.1, origin: "50% 50%", focus: "50% 50%" },
+  },
   "iron-trident": { name: "Iron Trident", spoken: "Iron trident", paceSec: 3.0 },
-  "plank-pull-through": { name: "Plank Pull Through", spoken: "Plank pull through", paceSec: 3.0 },
-  "kb-high-plank": { name: "KB High Plank", spoken: "High plank", paceSec: 1, bodyweight: true },
-  "wood-chop": { name: "Half Kneeling Wood Chop", spoken: "Wood chops", paceSec: 2.5 },
-  "hollow-flutter": { name: "Hollow Hold + Flutter Kicks", spoken: "Hollow hold, flutter kicks", paceSec: 1, bodyweight: true },
-  "hollow-leg-raise": { name: "Hollow Hold + Leg Raises", spoken: "Hollow hold, leg raises", paceSec: 3.0 },
+  "plank-pull-through": {
+    name: "Plank Pull Through", spoken: "Plank pull through", paceSec: 3.0,
+    clip: { base: "assets/kettlebell/plank-pull-through", loopSec: 6.55, repsPerLoop: 2, aspect: "7 / 5", zoom: 1.1, origin: "17% 50%", focus: "50% 41%" },
+  },
+  "kb-high-plank": {
+    name: "KB High Plank", spoken: "High plank", paceSec: 1, bodyweight: true,
+    clip: { base: "assets/kettlebell/kb-high-plank", loopSec: 3, repsPerLoop: 1, aspect: "1 / 1", zoom: 1, origin: "50% 50%", focus: "50% 40%" },
+  },
+  "wood-chop": {
+    name: "Half Kneeling Wood Chop", spoken: "Wood chops", paceSec: 2.5,
+    clip: { base: "assets/kettlebell/wood-chop", loopSec: 3.05, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.55, origin: "63% 57%" },
+  },
+  "hollow-flutter": {
+    name: "Hollow Hold + Flutter Kicks", spoken: "Hollow hold, flutter kicks", paceSec: 1, bodyweight: true,
+    clip: { base: "assets/kettlebell/hollow-flutter", loopSec: 2.45, repsPerLoop: 1, aspect: "7 / 5", zoom: 1, origin: "50% 50%", focus: "50% 38%" },
+  },
+  "hollow-leg-raise": {
+    name: "Hollow Hold + Leg Raises", spoken: "Hollow hold, leg raises", paceSec: 3.0,
+    clip: { base: "assets/kettlebell/hollow-leg-raise", loopSec: 2.95, repsPerLoop: 1, aspect: "7 / 5", zoom: 1, origin: "50% 50%", focus: "50% 37%" },
+  },
   "wrist-rotation": {
     name: "Wrist Rotation", spoken: "Wrist rotations", paceSec: 2.0,
     clip: { base: "assets/kettlebell/wrist-rotation", loopSec: 5, repsPerLoop: 1, aspect: "3 / 4", zoom: 1.5, origin: "52% 59%" },

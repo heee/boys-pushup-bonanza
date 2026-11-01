@@ -16603,6 +16603,7 @@ function kbShowClip(set) {
   panel.style.setProperty("--kb-clip-aspect", clip.aspect);
   panel.style.setProperty("--kb-clip-zoom", String(clip.zoom || 1));
   panel.style.setProperty("--kb-clip-origin", clip.origin || "50% 50%");
+  panel.style.setProperty("--kb-clip-focus", clip.focus || clip.origin || "50% 50%");
   const theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
   const src = `${clip.base}-${theme}.mp4`;
   if (video.getAttribute("src") !== src) video.src = src;
