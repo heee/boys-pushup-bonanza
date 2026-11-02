@@ -11610,10 +11610,10 @@ function playCardToss(outgoing, incoming) {
   tossed.setAttribute("aria-hidden", "true");
   tossed.style.backgroundImage = `url("${cardImageUrl(outgoing)}")`;
   tossed.style.setProperty("--toss-dir", dir);
-  tossed.style.setProperty("--toss-y", `${Math.round(-30 + Math.random() * 45)}vh`);
-  tossed.style.setProperty("--toss-spin", `${Math.round(35 + Math.random() * 45)}deg`);
+  tossed.style.setProperty("--toss-y", `${Math.round(-35 + Math.random() * 40)}vh`);
+  tossed.style.setProperty("--toss-spin", `${Math.round(100 + Math.random() * 80)}deg`);
   tossed.addEventListener("animationend", () => tossed.remove(), { once: true });
-  setTimeout(() => tossed.remove(), 1200); // safety net if animationend never fires
+  setTimeout(() => tossed.remove(), 900); // safety net if animationend never fires
   scene.parentElement.appendChild(tossed);
 
   scene.classList.remove("card-settle");
