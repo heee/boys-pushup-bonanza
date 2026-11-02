@@ -3113,6 +3113,9 @@ html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
 }
 .summary-roadtrip-cue-line { display: block; text-wrap: balance; }
 .summary-roadtrip-cue .nowrap { white-space: nowrap; }
+.summary-roadtrip-cue-line + .summary-roadtrip-cue-line { margin-top: 0.15rem; }
+.summary-roadtrip-cue-from { display: block; opacity: 0.75; }
+.summary-roadtrip-cue-share { font-size: 0.8em; opacity: 0.65; }
 .summary-actions {
   display: flex;
   flex-direction: column;

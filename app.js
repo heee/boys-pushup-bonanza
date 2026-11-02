@@ -13555,13 +13555,35 @@ function renderSummaryRoadtripResult() {
     return;
   }
   cue.classList.remove("hidden");
-  const lines = wins.slice(0, 3).map((win) =>
-    `Stole ${win.flag ? `${win.flag} ` : ""}${escapeHtml(win.name)} <span class="nowrap">(${roadtripPeriodPhrase(win.periods)})</span> from <span class="nowrap">${escapeHtml(win.overtaken)}</span>`
-  );
-  if (wins.length > 3) lines.push(`+${wins.length - 3} more`);
-  lines.push("tap to share");
-  if (wins.length === 1) lines.splice(0, 2, `${lines[0]} — ${lines[1]}`);
-  lines[0] = `<span class="cue-icon" aria-hidden="true">🏆</span>${lines[0]}`;
+  // Group by rival + period so "from X (this month)" is said once, with the
+  // places (already ordered neighborhood → city → country) on one line.
+  const groups = new Map();
+  for (const win of wins) {
+    const key = `${win.overtaken}|${win.periods.join(",")}`;
+    if (!groups.has(key)) groups.set(key, { overtaken: win.overtaken, periods: win.periods, wins: [] });
+    groups.get(key).wins.push(win);
+  }
+  const placesLine = (list) => {
+    const flags = [...new Set(list.map((win) => win.flag).filter(Boolean))];
+    const prefix = flags.length === 1 ? `${flags[0]} ` : "";
+    return prefix + list.map((win) =>
+      `<span class="nowrap">${flags.length > 1 && win.flag ? `${win.flag} ` : ""}${escapeHtml(win.name)}</span>`
+    ).join(" · ");
+  };
+  const fromPhrase = (group) =>
+    `from <span class="nowrap">${escapeHtml(group.overtaken)}</span> · <span class="nowrap">${roadtripPeriodPhrase(group.periods)}</span>`;
+  const crowns = `${wins.length} crown${wins.length === 1 ? "" : "s"}`;
+  const list = [...groups.values()];
+  const lines = [];
+  if (list.length === 1) {
+    lines.push(`<span class="cue-icon" aria-hidden="true">🏆</span>Stole ${crowns} ${fromPhrase(list[0])}`);
+    lines.push(placesLine(list[0].wins));
+  } else {
+    lines.push(`<span class="cue-icon" aria-hidden="true">🏆</span>Stole ${crowns}`);
+    list.slice(0, 3).forEach((group) => lines.push(`${placesLine(group.wins)} <span class="summary-roadtrip-cue-from">${fromPhrase(group)}</span>`));
+    if (list.length > 3) lines.push(`+${list.length - 3} more`);
+  }
+  lines.push(`<span class="summary-roadtrip-cue-share">tap to share</span>`);
   cue.innerHTML = lines.map((line) => `<span class="summary-roadtrip-cue-line">${line}</span>`).join("");
 }
 
