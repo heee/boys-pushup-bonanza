@@ -3352,7 +3352,7 @@ body:has(#screen-challenges.active) .challenge-list {
 
 .roadtrip-header { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
 .roadtrip-header .screen-title { margin: 0; }
-#roadtrip-period-select { margin-top: 0.8rem; overflow-x: auto; scrollbar-width: none; }
+#roadtrip-period-select { margin-top: 0.8rem; margin-bottom: 0.8rem; overflow-x: auto; scrollbar-width: none; }
 #roadtrip-period-select::-webkit-scrollbar { display: none; }
 .roadtrip-ranked-list, .roadtrip-row.pinned { display: flex; flex-direction: column; }
 .roadtrip-row {
