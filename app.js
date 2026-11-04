@@ -7552,10 +7552,18 @@ const CHART_BUCKET_LABEL_FORMAT = {
   year: { year: "numeric" },
 };
 
+// Chart-card title: the leaderboard mode's dropdown label, with pushup
+// sub-modes shown as "Pushups · Pulse" and the "All" board as "Pushups".
+function chartActivityTitle() {
+  const mode = state.leaderboardMode;
+  if (mode === "all") return "Pushups";
+  const label = (LEADERBOARD_MODE_OPTIONS.find((o) => o.id === mode) || {}).label || "Pushups";
+  return leaderboardActivity(mode) === "pushups" ? `Pushups · ${label}` : label;
+}
+
 function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false, period = "day", headerElId = null, options = {}) {
   const { selectedOffset = null, onBucketSelect = null } = options;
   const metricOf = (session) => (isHolland ? Number(session.hollandCycles) || 0 : Number(session.count) || 0);
-  const config = CHART_PERIOD_BUCKETS[period] || CHART_PERIOD_BUCKETS.day;
   const bucketCount = 7;
   const now = new Date();
   const highlightedOffset = selectedOffset !== null ? selectedOffset : 0;
@@ -7634,7 +7642,8 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
   const trendEl = $(trendElId);
   if (priorBucketTotal > 0 && hasFullPriorBucket) {
     const pct = Math.round(((highlightedTotal - priorBucketTotal) / priorBucketTotal) * 100);
-    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toLocaleString()}% vs prior period`;
+    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"}${Math.abs(pct).toLocaleString()}%`;
+    trendEl.title = "vs prior period";
     trendEl.classList.toggle("week-trend-up", pct >= 0);
     trendEl.classList.toggle("week-trend-down", pct < 0);
     trendEl.classList.remove("hidden");
@@ -7642,17 +7651,9 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     trendEl.classList.add("hidden");
   }
 
-  if (headerElId) {
-    if (selectedOffset !== null) {
-      const selectedBucket = buckets[bucketCount - 1 + selectedOffset];
-      const isCurrent = selectedOffset === 0;
-      $(headerElId).textContent = isCurrent
-        ? (period === "day" ? "Today" : `This ${period}`)
-        : selectedBucket.start.toLocaleDateString(undefined, { weekday: period === "day" ? "short" : undefined, month: "short", day: period === "day" || period === "week" ? "numeric" : undefined, year: period === "year" ? "numeric" : undefined });
-    } else {
-      $(headerElId).textContent = config.headerLabel;
-    }
-  }
+  // Header names the exercise being charted (the ‹ › arrows cycle it); the
+  // highlighted bar itself shows which period is selected.
+  if (headerElId) $(headerElId).textContent = chartActivityTitle();
 
   return buckets;
 }

@@ -3695,6 +3695,10 @@ body:has(#screen-challenges.active) .challenge-list {
 .chart-activity-arrow:active { background: var(--bg-elevated); color: var(--text); }
 .chart-activity-arrow:disabled { opacity: 0.3; cursor: default; }
 .chart-activity-arrow:disabled:active { background: none; color: var(--text-dim); }
+.chart-activity-title {
+  color: var(--text);
+  font-size: 0.8rem;
+}
 .week-trend {
   font-size: 0.75rem;
   font-weight: 700;
