@@ -6629,7 +6629,7 @@ async function renderRoadtripMap({ animate = false } = {}) {
     }
   } else {
     const activity = unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds));
-    view = state.roadtripMapWorld || shouldShowWorld(activity, MAP_W)
+    view = shouldShowWorld(activity, MAP_W)
       ? { k: 1, tx: 0, ty: 0 }
       : fitTransform(activity, MAP_W, MAP_H, { pad: 0.12, maxScale: 6 });
     marks = countries.map((c) => {
@@ -6669,8 +6669,10 @@ async function renderRoadtripMap({ animate = false } = {}) {
       : `${countries.length} ${countries.length === 1 ? "country" : "countries"}`;
   $("btn-roadtrip-map-zoom").textContent = drilledCity
     ? `‹ ${drilledCountry?.name || drilled}`
-    : drilled ? "‹ All countries" : (state.roadtripMapWorld ? "Fit" : "World");
-  $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled && shouldShowWorld(unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds)), MAP_W));
+    : "‹ All countries";
+  // Top level has no zoom control — it always fits the active countries;
+  // the pill only appears as a back link once drilled into a country.
+  $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled);
 }
 
 // The first Roadtrip visit each launch opens on the country you're in (when
@@ -6754,9 +6756,7 @@ $("roadtrip-map-marks").addEventListener("click", (e) => {
   else drillRoadtripCity(dot.dataset.mapCity);
 });
 $("btn-roadtrip-map-zoom").addEventListener("click", () => {
-  if (state.roadtripMapCountry) return leaveRoadtripMapDrill();
-  state.roadtripMapWorld = !state.roadtripMapWorld;
-  renderRoadtripMap({ animate: true });
+  if (state.roadtripMapCountry) leaveRoadtripMapDrill();
 });
 
 function renderRoadtrip() {
