@@ -200,3 +200,15 @@ test("countriesVisitedStat counts distinct countries per user from session locat
   assert.deepEqual(stat.leaders[0], { user: "A", value: 2 });
   assert.equal(countriesVisitedStat([{ user: "A", count: 1 }]).available, false);
 });
+
+test("citiesVisitedStat counts distinct city ids per user", async () => {
+  const { citiesVisitedStat } = await import("../screens/mode-stats.js");
+  const loc = (city) => ({ provider: "geoapify", country: { id: "country:us", name: "US", code: "US" }, city: { id: city, name: city } });
+  const stat = citiesVisitedStat([
+    { user: "A", location: loc("city:us:texas:houston") },
+    { user: "A", location: loc("city:us:texas:austin") },
+    { user: "B", location: loc("city:us:texas:houston") },
+  ]);
+  assert.equal(stat.value, 2);
+  assert.deepEqual(stat.leaders[0], { user: "A", value: 2 });
+});

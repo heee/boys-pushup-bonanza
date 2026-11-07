@@ -93,3 +93,8 @@ test("city rows show the state from the city id instead of the country", async (
   assert.equal(stateNameFromCityId("city:sg:unknown:singapore"), "");
   assert.equal(stateNameFromCityId("city:us:houston"), "");
 });
+
+test("neighborhood ids decode their state too", async () => {
+  const { stateNameFromCityId } = await import("../roadtrip.js");
+  assert.equal(stateNameFromCityId("neighborhood:us:texas:houston:montrose"), "Texas");
+});

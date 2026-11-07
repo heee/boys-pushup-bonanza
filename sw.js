@@ -1,7 +1,7 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API. The MediaPipe runtime/models are the one
 // cross-origin exception — see TRACKER_CACHE.
-const CACHE_NAME = "bpb-shell-v562";
+const CACHE_NAME = "bpb-shell-v563";
 
 // Pinned MediaPipe runtime + models (~15 MB). The URLs are version-pinned
 // and never change, so they're served cache-first from their own cache,
@@ -53,7 +53,7 @@ const SHELL_FILES = [
   "./stats.js",
   "./screens/summary.js",
   "./screens/dashboard.js",
-  "./screens/mode-stats.js?v=148",
+  "./screens/mode-stats.js?v=149",
   "./screens/mode-breakdown.js?v=7",
   "./screens/comparison.js?v=140",
   "./screens/session-detail.js?v=14",

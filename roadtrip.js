@@ -19,7 +19,9 @@ function sessionTime(session) {
 const LOWERCASE_WORDS = new Set(["of", "and", "the", "de", "del", "la", "da", "do", "di"]);
 export function stateNameFromCityId(cityId = "") {
   const parts = String(cityId).split(":");
-  if (parts[0] !== "city" || parts.length !== 4) return "";
+  // city:cc:state:city, or neighborhood:cc:state:city:neighborhood.
+  const expected = { city: 4, neighborhood: 5 }[parts[0]];
+  if (!expected || parts.length !== expected) return "";
   const slug = parts[2];
   if (!slug || slug === "unknown") return "";
   return slug.split("-").filter(Boolean)
@@ -32,7 +34,7 @@ function locationMeta(location, tier) {
   if (!place) return null;
   const countryCode = location.country?.code || "";
   const parentParts = tier === "neighborhood"
-    ? [location.city?.name, countryCode || location.country?.name]
+    ? [location.city?.name, stateNameFromCityId(place.id) || countryCode || location.country?.name]
     : tier === "city"
       // Cities are listed within a country, so the state says more than
       // repeating the country; fall back to the country when unknown.
