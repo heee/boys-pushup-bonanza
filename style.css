@@ -4003,6 +4003,21 @@ body:has(#screen-challenges.active) .challenge-list {
   padding: 1.5rem 0;
 }
 
+.leaderboard-empty-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+}
+.leaderboard-empty-icon { width: 22px; height: 22px; flex-shrink: 0; color: var(--text-tertiary); }
+.leaderboard-empty-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+.leaderboard-empty-text strong { font-size: 0.95rem; color: var(--text); }
+.leaderboard-empty-text span { font-size: 0.82rem; color: var(--text-tertiary); }
+.leaderboard-empty-start { flex-shrink: 0; padding: 0.45rem 1rem; font-size: 0.85rem; border-radius: 999px; box-shadow: none; }
+
 /* One tier-1 card for the whole list — dividers between user-groups do the
    separating, matching the Last-flexers list and every other grouped list
    in the app, instead of each group floating as its own gapped box. */

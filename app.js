@@ -8642,7 +8642,19 @@ function paintDashboard(sessions) {
   const lbList = $("leaderboard-list");
   lbList.innerHTML = "";
   if (!ranked.length) {
-    lbList.innerHTML = `<p class="leaderboard-empty">No ${activityWord} logged for this period yet. Get moving! ${activityEmoji(state.activityType)}</p>`;
+    // Option B empty state: inline card + Start CTA. A past bucket can't be
+    // logged into anymore, so it gets the card without the button.
+    const pastBucket = state.dashboardBucketOffset !== null && state.dashboardBucketOffset !== 0;
+    const periodPhrase = { day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year" }[state.dashboardPeriod];
+    const unitWord = { day: "day", week: "week", month: "month", quarter: "quarter", year: "year" }[chartBucketPeriod(state.dashboardPeriod)] || "period";
+    const title = pastBucket ? `No ${activityWord} that ${unitWord}` : `No ${activityWord} yet${periodPhrase ? ` ${periodPhrase}` : ""}`;
+    const sub = pastBucket ? "Nothing was logged in this stretch" : "Be first on the board";
+    lbList.innerHTML = `<div class="leaderboard-empty-card">
+      <svg class="leaderboard-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      <div class="leaderboard-empty-text"><strong>${title}</strong><span>${sub}</span></div>
+      ${pastBucket ? "" : `<button type="button" class="btn btn-primary leaderboard-empty-start">Start</button>`}
+    </div>`;
+    lbList.querySelector(".leaderboard-empty-start")?.addEventListener("click", goHome);
   } else {
     ranked.forEach(([user, total], i) => {
       const row = document.createElement("div");
