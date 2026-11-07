@@ -13,6 +13,20 @@ function sessionTime(session) {
   return Number.isFinite(value) ? value : 0;
 }
 
+// State/region isn't stored on the location, but the Worker bakes its slug
+// into the city id ("city:us:texas:houston"), so recover a readable name
+// from there. Missing states are slugged as "unknown".
+const LOWERCASE_WORDS = new Set(["of", "and", "the", "de", "del", "la", "da", "do", "di"]);
+export function stateNameFromCityId(cityId = "") {
+  const parts = String(cityId).split(":");
+  if (parts[0] !== "city" || parts.length !== 4) return "";
+  const slug = parts[2];
+  if (!slug || slug === "unknown") return "";
+  return slug.split("-").filter(Boolean)
+    .map((word, i) => (i > 0 && LOWERCASE_WORDS.has(word) ? word : word[0].toUpperCase() + word.slice(1)))
+    .join(" ");
+}
+
 function locationMeta(location, tier) {
   const place = location?.[tier];
   if (!place) return null;
@@ -20,7 +34,9 @@ function locationMeta(location, tier) {
   const parentParts = tier === "neighborhood"
     ? [location.city?.name, countryCode || location.country?.name]
     : tier === "city"
-      ? [countryCode || location.country?.name]
+      // Cities are listed within a country, so the state says more than
+      // repeating the country; fall back to the country when unknown.
+      ? [stateNameFromCityId(place.id) || countryCode || location.country?.name]
       : [];
   return {
     id: place.id,
