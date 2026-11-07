@@ -6468,7 +6468,7 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
   button.innerHTML = `
     <span class="leaderboard-rank">${row.rank}</span>
     <span class="roadtrip-place">
-      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}${row.rank === 1 ? " 👑" : ""}</span>
+      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}</span>
       ${row.parent ? `<span class="roadtrip-parent">${escapeHtml(row.parent)}</span>` : ""}
     </span>
     ${state.roadtripTier === "neighborhood" ? "" : `<span class="roadtrip-users">${formatNumber(row.contributorCount)} ${row.contributorCount === 1 ? "user" : "users"}</span>`}
