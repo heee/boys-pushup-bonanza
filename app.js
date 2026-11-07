@@ -118,7 +118,7 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=147";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat, countriesVisitedStat } from "./screens/mode-stats.js?v=148";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=7";
 import { comparisonModel } from "./screens/comparison.js?v=140";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
@@ -8571,9 +8571,14 @@ function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
   // With only one person in the selection, the leader is always them —
   // the avatar would just repeat itself on every row.
   const soloSelection = new Set([...sessions, ...allModeSessions].map((s) => s.user)).size <= 1;
-  el.innerHTML = metrics.map((metric) => {
+  metrics.push(countriesVisitedStat(allModeSessions));
+  // Only call out a leader whose value is more than 1 — "1 country" or
+  // "1 session" isn't a standout. Percent/duration compare on the shown unit.
+  const shownValue = (metric, v) => (metric.format === "percent" ? v * 100 : metric.format === "duration" ? v / 1000 : v);
+  const callouts = metrics.filter((metric) => metric.available && metric.leaders.length && shownValue(metric, metric.leaders[0].value) > 1);
+  el.closest(".boys-mode-stats-section").classList.toggle("hidden", !callouts.length);
+  el.innerHTML = callouts.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
-    if (!metric.available || !metric.leaders.length) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
     const leader = metric.leaders[0];
     const avatar = soloSelection ? "" : avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
     return `<div class="boys-mode-stat">
@@ -9165,6 +9170,7 @@ function challengeStatIconHTML(icon) {
     target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     check: '<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9.5"/>',
     flag: '<path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/>',
+    globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
   };
   return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
 }
@@ -9174,7 +9180,7 @@ function challengeStatIconHTML(icon) {
 // A couple of cross-mode stats (id-keyed) get their own glyph regardless of
 // their (shared, generic) "integer" format.
 function modeStatIcon(metric) {
-  const byId = { modifiersUsed: "shuffle", modesUsed: "layers", sessions: "duration" };
+  const byId = { modifiersUsed: "shuffle", modesUsed: "layers", sessions: "duration", countriesVisited: "globe" };
   if (byId[metric.id]) return byId[metric.id];
   if (metric.qualifier === "group best") return "award";
   return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";

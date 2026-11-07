@@ -1,4 +1,5 @@
 import { sessionModeId } from "./session-detail.js";
+import { normalizeTerritoryLocation } from "../territory-location.js";
 
 const VALID_SESSION_MAX_MS = 30 * 60 * 1000;
 
@@ -251,5 +252,27 @@ export function exerciseTypesUsedStat(sessions) {
   return {
     id: "exerciseTypesUsed", label: "Exercise types used", format: "integer", qualifier: "group unique",
     value: allTypes.size || null, leaders: topByCount(userCounts), available: allTypes.size > 0,
+  };
+}
+
+// Roadtrip callout: distinct countries each person logged a located session
+// in, across every exercise type in the period (same location data the
+// Roadtrip map uses). Callers pass the full period-filtered session list.
+export function countriesVisitedStat(sessions) {
+  const allCountries = new Set();
+  const byUser = new Map();
+  for (const s of sessions) {
+    if (!s?.user) continue;
+    const country = normalizeTerritoryLocation(s.location)?.country;
+    const countryId = country?.code || country?.id;
+    if (!countryId) continue;
+    allCountries.add(countryId);
+    if (!byUser.has(s.user)) byUser.set(s.user, new Set());
+    byUser.get(s.user).add(countryId);
+  }
+  const userCounts = new Map(Array.from(byUser, ([user, set]) => [user, set.size]));
+  return {
+    id: "countriesVisited", label: "Countries visited", format: "integer", qualifier: "group unique",
+    value: allCountries.size || null, leaders: topByCount(userCounts), available: allCountries.size > 0,
   };
 }
