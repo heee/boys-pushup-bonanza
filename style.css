@@ -6371,7 +6371,8 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .roadtrip-map-dot {
   position: absolute; transform: translate(-50%, -50%); padding: 0; border-radius: 50%; pointer-events: auto; cursor: pointer;
-  background: var(--primary); border: 2px solid var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  /* Filled with the territory leader's avatar color (set inline). */
+  background: var(--dot-color, var(--primary)); border: 2px solid var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 .roadtrip-scope-link {
   display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.6rem;
@@ -6380,7 +6381,7 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .roadtrip-scope-link span:last-child { color: var(--text-tertiary); font-size: 1.1rem; }
 .roadtrip-map-dot.is-dimmed { opacity: 0.4; }
-.roadtrip-map-dot.is-selected { border-color: var(--primary); background: var(--text); }
+.roadtrip-map-dot.is-selected { border-color: var(--text); border-width: 3px; box-shadow: 0 0 0 2px var(--primary), 0 1px 4px rgba(0, 0, 0, 0.45); }
 
 /* Challenges list: flat rows like Games/Roadtrip (see challengeRowEl). */
 .challenge-list { gap: 0; padding: 0; scrollbar-gutter: auto; }

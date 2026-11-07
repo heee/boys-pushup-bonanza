@@ -6617,7 +6617,7 @@ async function renderRoadtripMap({ animate = false } = {}) {
     }).filter(Boolean);
     const cityBounds = points.length ? [[Math.min(...points.map((p) => p.xy[0])), Math.min(...points.map((p) => p.xy[1]))], [Math.max(...points.map((p) => p.xy[0])), Math.max(...points.map((p) => p.xy[1]))]] : null;
     view = fitTransform(unionBounds([geo.byId.get(id)?.mainlandBounds, cityBounds]), MAP_W, MAP_H, { pad: 0.1, maxScale: 12 });
-    marks = points.map(({ city, xy }) => ({ kind: "city", id: city.id, total: city.total, xy, r: 5 + 9 * Math.sqrt(city.total / cityMax), label: compactCount(city.total), name: city.name }));
+    marks = points.map(({ city, xy }) => ({ kind: "city", id: city.id, total: city.total, xy, r: 5 + 9 * Math.sqrt(city.total / cityMax), label: compactCount(city.total), name: city.name, color: city.holder ? avatarForUser(city.holder).bg : "" }));
     // Cities not geocoded yet resolve in the background and appear next render.
     const missing = cities.filter((c) => !cityCoordsFor(c, cache));
     if (missing.length && !renderRoadtripMap.resolving) {
@@ -6651,7 +6651,7 @@ async function renderRoadtripMap({ animate = false } = {}) {
   const pct = (v, total) => `${((v / total) * 100).toFixed(2)}%`;
   $("roadtrip-map-marks").innerHTML = placed.map((m) => {
     const dot = m.kind === "city"
-      ? `<button type="button" class="roadtrip-map-dot${state.roadtripMapCity ? (m.id === state.roadtripMapCity ? " is-selected" : " is-dimmed") : ""}" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
+      ? `<button type="button" class="roadtrip-map-dot${state.roadtripMapCity ? (m.id === state.roadtripMapCity ? " is-selected" : " is-dimmed") : ""}" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px${m.color ? `;--dot-color:${m.color}` : ""}" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
       : "";
     const pill = labelled.has(m.id)
       ? `<span class="roadtrip-map-pill${m.kind === "country" ? " is-country" : ""}" style="left:${pct(m.x, MAP_W)};top:${pct(m.y, MAP_H)}">${m.label}</span>`
