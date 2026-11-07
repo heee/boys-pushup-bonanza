@@ -3383,11 +3383,9 @@ body:has(#screen-challenges.active) .challenge-list {
 .roadtrip-score { min-width: 3rem; color: var(--text); font-size: 1rem; font-weight: 850; text-align: right; font-variant-numeric: tabular-nums; }
 .roadtrip-pinned-label { margin: 1rem 0 0.4rem 0.2rem; color: var(--text-tertiary); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 .roadtrip-row.pinned { display: grid; opacity: 0.58; }
-.roadtrip-location-needed, .roadtrip-empty { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; padding: 1.35rem 1rem; border-radius: 16px; background: var(--bg-elevated); text-align: center; }
-.roadtrip-location-needed { margin-bottom: 1rem; }
-.roadtrip-location-needed h2 { margin: 0; font-size: 1.05rem; }
-.roadtrip-location-needed p, .roadtrip-empty span { max-width: 20rem; color: var(--text-dim); font-size: 0.78rem; line-height: 1.4; }
-.roadtrip-empty-icon { font-size: 1.7rem; }
+/* Location prompt + empty list reuse the Board's inline empty-state card. */
+.roadtrip-location-needed { margin: 0 0 1rem; }
+.roadtrip-empty { margin-top: 0; }
 /* Title and share share one row, like the main tab headers. */
 .challenge-detail-header.roadtrip-detail-header { justify-content: space-between; align-items: center; min-height: 2.4rem; }
 .roadtrip-detail-title {
