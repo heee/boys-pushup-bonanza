@@ -4848,6 +4848,9 @@ body:has(#screen-challenge-detail.active) #app {
 #grip-active .grip-clip { margin-top: auto; }
 #grip-active .grip-controls, #grip-active #btn-grip-cancel { margin-top: auto; }
 /* The clip is a right hand; mirror it while the left hand is up. */
+/* Both hands keep a transform so the video's compositing layer never gets
+   torn down mid-play on a switch (froze the clip on iOS). */
+.grip-clip video { transform: scaleX(1); }
 .grip-clip.grip-clip-left video { transform: scaleX(-1); }
 #btn-grip-cancel, #btn-grip-discard { flex: none; align-self: center; padding: 0.6rem 1.6rem; }
 .grip-laps { list-style: none; margin: 0.7rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; max-width: 20rem; }

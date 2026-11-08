@@ -14437,6 +14437,17 @@ function gripClipVideo() {
   return $("grip-clip").querySelector("video");
 }
 
+// iOS Safari can pause an inline clip when another media element (a voice
+// line) starts, or when its transform layer changes on a hand switch — and
+// it never resumes on its own. Keep it playing for as long as the set runs.
+gripClipVideo().addEventListener("pause", () => {
+  if (gripState.phase !== "countdown" && gripState.phase !== "running") return;
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  setTimeout(() => {
+    if (gripState.phase === "countdown" || gripState.phase === "running") gripClipVideo().play().catch(() => {});
+  }, 50);
+});
+
 function gripPlayClip() {
   const video = gripClipVideo();
   const theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
@@ -14540,6 +14551,7 @@ function gripSwitchHand() {
   gripState.switchMarks.push(elapsed);
   renderGripRunning();
   speak(pickFrom(GRIP_SWITCH_LINES));
+  gripPlayClip();
 }
 
 function stopGripHard() {
