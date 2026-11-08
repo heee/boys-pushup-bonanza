@@ -121,7 +121,9 @@ export function sessionKeyMetrics(session) {
   // Grip: per-hand lap splits from the Switch hand button (first lap = left).
   if (modeId === "grip" && Array.isArray(session.gripLaps) && session.gripLaps.length > 1) {
     const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-    metrics.push({ id: "gripLaps", label: "Laps", format: "text", value: session.gripLaps.map((s, i) => `${i % 2 ? "R" : "L"} ${mmss(s)}`).join(" · ") });
+    const totals = { L: 0, R: 0 };
+    session.gripLaps.forEach((s, i) => { totals[i % 2 ? "R" : "L"] += Number(s) || 0; });
+    metrics.push({ id: "gripLaps", label: "Per hand", format: "text", value: `L ${mmss(totals.L)} · R ${mmss(totals.R)}` });
   }
 
   // Pulse's `count` is seconds held in band, not reps — the generic

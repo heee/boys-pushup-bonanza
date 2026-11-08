@@ -50,3 +50,10 @@ export function gripLapDurations(switchMarks, totalSec) {
 export function gripLapHand(index) {
   return index % 2 === 0 ? "L" : "R";
 }
+
+// Laps (alternating L, R, L, …) → total seconds per hand.
+export function gripHandTotals(laps) {
+  const totals = { L: 0, R: 0 };
+  (laps || []).forEach((seconds, i) => { totals[gripLapHand(i)] += Number(seconds) || 0; });
+  return totals;
+}

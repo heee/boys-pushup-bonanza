@@ -83,7 +83,7 @@ import {
   numberToWords,
   zenCompletionLine,
 } from "./voice-lines.js?v=150";
-import { GRIP_DEFAULT_SEC_PER_SQUEEZE, gripLapDurations, gripLapHand, gripRateFor, gripSuggestedCount } from "./modes/grip.js";
+import { GRIP_DEFAULT_SEC_PER_SQUEEZE, gripHandTotals, gripLapDurations, gripLapHand, gripRateFor, gripSuggestedCount } from "./modes/grip.js?v=2";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -135,7 +135,7 @@ import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workou
 import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=6";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=15";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=16";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
 import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=16";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
@@ -14441,8 +14441,11 @@ function gripPlayClip() {
   video.play().catch(() => {});
 }
 
-function gripLapsHTML(laps, liveIndex = -1) {
-  return laps.map((seconds, i) => `<li class="grip-lap${i === liveIndex ? " live" : ""}"><span class="grip-lap-hand">${gripLapHand(i)}</span><span class="grip-lap-time">${formatDuration(seconds * 1000)}</span></li>`).join("");
+// One running total per hand (laps still recorded underneath); `liveHand`
+// highlights the hand currently counting up.
+function gripHandsHTML(laps, liveHand = null) {
+  const totals = gripHandTotals(laps);
+  return ["L", "R"].map((hand) => `<li class="grip-lap${hand === liveHand ? " live" : ""}"><span class="grip-lap-hand">${hand}</span><span class="grip-lap-time">${formatDuration(totals[hand] * 1000)}</span></li>`).join("");
 }
 
 function gripElapsedSeconds() {
@@ -14452,9 +14455,8 @@ function gripElapsedSeconds() {
 function renderGripRunning() {
   const elapsed = gripElapsedSeconds();
   $("grip-timer").textContent = formatDuration(Math.floor(elapsed) * 1000);
-  const laps = gripState.switchMarks.length ? gripLapDurations(gripState.switchMarks, elapsed) : [];
-  $("grip-laps").innerHTML = gripLapsHTML(laps, laps.length - 1);
   const left = gripLapHand(gripState.switchMarks.length) === "L";
+  $("grip-laps").innerHTML = gripHandsHTML(gripLapDurations(gripState.switchMarks, elapsed), left ? "L" : "R");
   $("grip-status").textContent = left ? "LEFT HAND" : "RIGHT HAND";
   $("grip-clip").classList.toggle("grip-clip-left", left);
 }
@@ -14577,7 +14579,7 @@ function stopGrip() {
   $("grip-review-hint").textContent = userHasHistory
     ? `Suggested from your usual pace (~${gripState.rate.toFixed(1)} s per squeeze). Fix it if it's off; your pace learns from it.`
     : `Suggested at ${GRIP_DEFAULT_SEC_PER_SQUEEZE} s per squeeze. Fix it if it's off; your pace learns from it.`;
-  $("grip-review-laps").innerHTML = gripState.laps.length > 1 ? gripLapsHTML(gripState.laps) : "";
+  $("grip-review-laps").innerHTML = gripState.laps.length > 1 ? gripHandsHTML(gripState.laps) : "";
   renderGripCount();
   showGripStage("review");
 }

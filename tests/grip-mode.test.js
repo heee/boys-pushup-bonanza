@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
-import { GRIP_DEFAULT_SEC_PER_SQUEEZE, gripLapDurations, gripLapHand, gripRateFor, gripSuggestedCount } from "../modes/grip.js";
+import { GRIP_DEFAULT_SEC_PER_SQUEEZE, gripHandTotals, gripLapDurations, gripLapHand, gripRateFor, gripSuggestedCount } from "../modes/grip.js";
 import { insertSession, sessionFromRow, validateSession } from "../worker/index.js";
 
 const grip = (user, day, seconds, count) => ({ type: "grip", user, timestamp: `2026-11-${String(day).padStart(2, "0")}T12:00:00.000Z`, gripDurationSeconds: seconds, count });
@@ -45,6 +45,8 @@ test("switch-hand marks become per-lap durations starting with left", () => {
   assert.deepEqual(gripLapDurations([11.4], 22.4), [11, 11]);
   assert.equal(gripLapHand(0), "L");
   assert.equal(gripLapHand(1), "R");
+  assert.deepEqual(gripHandTotals([45, 42, 40]), { L: 85, R: 42 });
+  assert.deepEqual(gripHandTotals([]), { L: 0, R: 0 });
 });
 
 test("worker validates grip fields and round-trips grip_json", async () => {
