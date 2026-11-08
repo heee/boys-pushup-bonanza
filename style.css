@@ -4838,7 +4838,9 @@ body:has(#screen-challenge-detail.active) #app {
 /* Dead hang start screen: Camera / Manual timing toggle. */
 .deadhang-timing-select { width: 100%; max-width: 18rem; margin: 0.4rem 0 0; }
 /* Grip: looping gripper clip, timer, per-hand lap chips, Switch hand under it. */
-.grip-clip { height: min(32vh, 260px); }
+.kb-clip.grip-clip { height: min(50vh, 440px); }
+/* The clip is the focal point; the clock steps down beneath it. */
+#grip-timer { font-size: min(14vw, 3.6rem); }
 /* The clip is a right hand; mirror it while the left hand is up. */
 .grip-clip.grip-clip-left video { transform: scaleX(-1); }
 #btn-grip-cancel, #btn-grip-discard { flex: none; align-self: center; padding: 0.6rem 1.6rem; }
