@@ -2231,6 +2231,8 @@ function showScreen(id) {
     // Type/Mode actions show the current selection's own stroke icon.
     $("summary-type-icon").innerHTML = typeIconSvg(state.homeType);
     $("summary-mode-icon").innerHTML = modeIconSvg(state.homeMode) || modeIconSvg("classic");
+    // No mode choice for single-exercise types, so no Mode action either.
+    $("btn-summary-different-mode").classList.toggle("hidden", SINGLE_MODE_TYPES.has(state.homeType));
   }
   if (id === "screen-games") repaintAfterBackgroundRefresh(id, renderGamesScreen);
   if (id === "screen-challenges") renderChallengesScreen();
@@ -3500,10 +3502,11 @@ function renderPushupModePicker() {
   const single = SINGLE_MODE_TYPES.has(type.id);
   const selected = single ? null : EXPLORE_MODES.find((mode) => mode.id === state.homeMode);
   const compactTitles = { dice: "Dice", wheel: "Wheel", chase: "Chase", poker: "Poker", zen: "Zen", holland: "Holland", cock: "Cock", chainofpain: "Chain" };
-  const selectedTitle = selected ? (compactTitles[selected.id] || selected.title) : "Classic";
+  // Single-exercise types (Grip, Squats, Planks, ...) have no mode to pick.
+  const selectedTitle = single ? "None" : selected ? (compactTitles[selected.id] || selected.title) : "Classic";
   const icon = !selected || selected.id === "classic" ? "" : modeIconSvg(selected.id);
   current.innerHTML = homeSelectorHTML("Mode", selectedTitle, icon);
-  current.title = selected?.title || "Classic";
+  current.title = single ? "No modes for this type" : selected?.title || "Classic";
   current.classList.toggle("segment-disabled", single);
   current.setAttribute("aria-disabled", String(single));
 }
