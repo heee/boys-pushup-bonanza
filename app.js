@@ -3508,6 +3508,8 @@ function renderPushupModePicker() {
   current.innerHTML = homeSelectorHTML("Mode", selectedTitle, icon);
   current.title = single ? "No modes for this type" : selected?.title || "Classic";
   current.classList.toggle("segment-disabled", single);
+  // Locked "None" matches the Modifier slot's unselected look (no fill).
+  current.classList.toggle("active", !single);
   current.setAttribute("aria-disabled", String(single));
 }
 
