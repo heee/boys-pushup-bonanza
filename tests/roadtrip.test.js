@@ -85,3 +85,16 @@ test("share message breaks into blocks with flags and plain-English periods", ()
     "The Roadtrip map has a new landlord. Pay rent in pushups, losers. 🌍👑",
   ].join("\n\n"));
 });
+
+test("city rows show the state from the city id instead of the country", async () => {
+  const { stateNameFromCityId } = await import("../roadtrip.js");
+  assert.equal(stateNameFromCityId("city:us:texas:houston"), "Texas");
+  assert.equal(stateNameFromCityId("city:us:district-of-columbia:washington"), "District of Columbia");
+  assert.equal(stateNameFromCityId("city:sg:unknown:singapore"), "");
+  assert.equal(stateNameFromCityId("city:us:houston"), "");
+});
+
+test("neighborhood ids decode their state too", async () => {
+  const { stateNameFromCityId } = await import("../roadtrip.js");
+  assert.equal(stateNameFromCityId("neighborhood:us:texas:houston:montrose"), "Texas");
+});

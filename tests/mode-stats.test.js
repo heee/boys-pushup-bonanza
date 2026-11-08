@@ -186,3 +186,29 @@ test("exerciseTypesUsedStat counts distinct base exercise types across the whole
 test("exerciseTypesUsedStat is unavailable with no sessions", () => {
   assert.equal(exerciseTypesUsedStat([]).available, false);
 });
+
+test("countriesVisitedStat counts distinct countries per user from session locations", async () => {
+  const { countriesVisitedStat } = await import("../screens/mode-stats.js");
+  const loc = (code) => ({ provider: "geoapify", country: { id: code, name: code, code } });
+  const stat = countriesVisitedStat([
+    { user: "A", count: 10, location: loc("US") },
+    { user: "A", count: 10, location: loc("MX") },
+    { user: "B", count: 10, location: loc("US") },
+    { user: "B", count: 10 },
+  ]);
+  assert.equal(stat.value, 2);
+  assert.deepEqual(stat.leaders[0], { user: "A", value: 2 });
+  assert.equal(countriesVisitedStat([{ user: "A", count: 1 }]).available, false);
+});
+
+test("citiesVisitedStat counts distinct city ids per user", async () => {
+  const { citiesVisitedStat } = await import("../screens/mode-stats.js");
+  const loc = (city) => ({ provider: "geoapify", country: { id: "country:us", name: "US", code: "US" }, city: { id: city, name: city } });
+  const stat = citiesVisitedStat([
+    { user: "A", location: loc("city:us:texas:houston") },
+    { user: "A", location: loc("city:us:texas:austin") },
+    { user: "B", location: loc("city:us:texas:houston") },
+  ]);
+  assert.equal(stat.value, 2);
+  assert.deepEqual(stat.leaders[0], { user: "A", value: 2 });
+});

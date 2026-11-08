@@ -118,7 +118,7 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat } from "./screens/mode-stats.js?v=147";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat, countriesVisitedStat, citiesVisitedStat } from "./screens/mode-stats.js?v=149";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=7";
 import { comparisonModel } from "./screens/comparison.js?v=140";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
@@ -1905,17 +1905,12 @@ function renderStreakBadge() {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const restDaySavedStreak = restDays.some((d) => d.toDateString() === yesterday.toDateString());
-  el.classList.toggle("streak-badge-rest", restDaySavedStreak);
-  let html;
-  if (streak > 0) {
-    const restBadge = restDaySavedStreak ? `<span class="streak-rest-badge">🛌</span>` : "";
-    html = `🔥${restBadge}<span class="streak-num">${streak}</span>`;
-    el.title = restDaySavedStreak ? "Rest day used — streak saved!" : "";
-  } else {
-    html = `❄️<span class="streak-num streak-zero">0</span>`;
-    el.title = "";
-  }
-  el.innerHTML = html;
+  // Color carries the state (orange active, blue rest-day-saved, grey at 0)
+  // instead of extra emoji; the capsule it sits in is shared with Settings.
+  el.classList.toggle("streak-badge-rest", streak > 0 && restDaySavedStreak);
+  el.classList.toggle("streak-badge-zero", streak === 0);
+  el.title = streak > 0 && restDaySavedStreak ? "Rest day used — streak saved!" : "";
+  el.innerHTML = `<svg class="streak-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10.9c2.3-3.3.2-7.8-1-8.9 0 3.4-2.2 5.3-3.7 6.7C5.9 10.1 5 12.3 5 14.3 5 18 8.1 21 12 21s7-3 7-6.7c0-1.7-1.2-4.4-2.3-5.6-2.1 3.4-3.3 3.4-4.7 2.2"/></svg><span class="streak-num">${streak}</span>`;
 }
 
 // ------------------- personal goals -------------------
@@ -6468,7 +6463,7 @@ function roadtripOverviewRow(row, { pinned = false } = {}) {
   button.innerHTML = `
     <span class="leaderboard-rank">${row.rank}</span>
     <span class="roadtrip-place">
-      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}${row.rank === 1 ? " 👑" : ""}</span>
+      <span class="roadtrip-place-name">${roadtripPlaceLabel(row)}</span>
       ${row.parent ? `<span class="roadtrip-parent">${escapeHtml(row.parent)}</span>` : ""}
     </span>
     ${state.roadtripTier === "neighborhood" ? "" : `<span class="roadtrip-users">${formatNumber(row.contributorCount)} ${row.contributorCount === 1 ? "user" : "users"}</span>`}
@@ -6617,7 +6612,7 @@ async function renderRoadtripMap({ animate = false } = {}) {
     }).filter(Boolean);
     const cityBounds = points.length ? [[Math.min(...points.map((p) => p.xy[0])), Math.min(...points.map((p) => p.xy[1]))], [Math.max(...points.map((p) => p.xy[0])), Math.max(...points.map((p) => p.xy[1]))]] : null;
     view = fitTransform(unionBounds([geo.byId.get(id)?.mainlandBounds, cityBounds]), MAP_W, MAP_H, { pad: 0.1, maxScale: 12 });
-    marks = points.map(({ city, xy }) => ({ kind: "city", id: city.id, total: city.total, xy, r: 5 + 9 * Math.sqrt(city.total / cityMax), label: compactCount(city.total), name: city.name }));
+    marks = points.map(({ city, xy }) => ({ kind: "city", id: city.id, total: city.total, xy, r: 5 + 9 * Math.sqrt(city.total / cityMax), label: compactCount(city.total), name: city.name, color: city.holder ? avatarForUser(city.holder).bg : "" }));
     // Cities not geocoded yet resolve in the background and appear next render.
     const missing = cities.filter((c) => !cityCoordsFor(c, cache));
     if (missing.length && !renderRoadtripMap.resolving) {
@@ -6629,7 +6624,7 @@ async function renderRoadtripMap({ animate = false } = {}) {
     }
   } else {
     const activity = unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds));
-    view = state.roadtripMapWorld || shouldShowWorld(activity, MAP_W)
+    view = shouldShowWorld(activity, MAP_W)
       ? { k: 1, tx: 0, ty: 0 }
       : fitTransform(activity, MAP_W, MAP_H, { pad: 0.12, maxScale: 6 });
     marks = countries.map((c) => {
@@ -6651,7 +6646,7 @@ async function renderRoadtripMap({ animate = false } = {}) {
   const pct = (v, total) => `${((v / total) * 100).toFixed(2)}%`;
   $("roadtrip-map-marks").innerHTML = placed.map((m) => {
     const dot = m.kind === "city"
-      ? `<button type="button" class="roadtrip-map-dot${state.roadtripMapCity ? (m.id === state.roadtripMapCity ? " is-selected" : " is-dimmed") : ""}" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
+      ? `<button type="button" class="roadtrip-map-dot${state.roadtripMapCity ? (m.id === state.roadtripMapCity ? " is-selected" : " is-dimmed") : ""}" data-map-city="${escapeHtml(m.id)}" style="left:${pct(m.x, MAP_W)};top:${pct(m.xy[1] * view.k + view.ty, MAP_H)};width:${m.r * 2}px;height:${m.r * 2}px${m.color ? `;--dot-color:${m.color}` : ""}" aria-label="${escapeHtml(m.name)}: ${formatNumber(m.total)} reps"></button>`
       : "";
     const pill = labelled.has(m.id)
       ? `<span class="roadtrip-map-pill${m.kind === "country" ? " is-country" : ""}" style="left:${pct(m.x, MAP_W)};top:${pct(m.y, MAP_H)}">${m.label}</span>`
@@ -6669,8 +6664,10 @@ async function renderRoadtripMap({ animate = false } = {}) {
       : `${countries.length} ${countries.length === 1 ? "country" : "countries"}`;
   $("btn-roadtrip-map-zoom").textContent = drilledCity
     ? `‹ ${drilledCountry?.name || drilled}`
-    : drilled ? "‹ All countries" : (state.roadtripMapWorld ? "Fit" : "World");
-  $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled && shouldShowWorld(unionBounds(countries.map((c) => geo.byId.get(ISO2_TO_NUMERIC[c.countryCode])?.mainlandBounds)), MAP_W));
+    : "‹ All countries";
+  // Top level has no zoom control — it always fits the active countries;
+  // the pill only appears as a back link once drilled into a country.
+  $("btn-roadtrip-map-zoom").classList.toggle("hidden", !drilled);
 }
 
 // The first Roadtrip visit each launch opens on the country you're in (when
@@ -6754,9 +6751,7 @@ $("roadtrip-map-marks").addEventListener("click", (e) => {
   else drillRoadtripCity(dot.dataset.mapCity);
 });
 $("btn-roadtrip-map-zoom").addEventListener("click", () => {
-  if (state.roadtripMapCountry) return leaveRoadtripMapDrill();
-  state.roadtripMapWorld = !state.roadtripMapWorld;
-  renderRoadtripMap({ animate: true });
+  if (state.roadtripMapCountry) leaveRoadtripMapDrill();
 });
 
 function renderRoadtrip() {
@@ -6808,7 +6803,7 @@ function renderRoadtrip() {
     list.appendChild(link);
   }
   if (!top.length) {
-    list.innerHTML = `<div class="roadtrip-empty"><div class="roadtrip-empty-icon">🛣️</div><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One pushup with a selected location can fix that.</span></div>`;
+    list.innerHTML = `<div class="leaderboard-empty-card roadtrip-empty"><svg class="leaderboard-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg><div class="leaderboard-empty-text"><strong>No turf claimed ${{ day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year", all: "yet" }[state.roadtripPeriod] || "yet"}</strong><span>One located session claims it</span></div></div>`;
     return;
   }
   const group = document.createElement("div");
@@ -7552,10 +7547,18 @@ const CHART_BUCKET_LABEL_FORMAT = {
   year: { year: "numeric" },
 };
 
+// Chart-card title: the leaderboard mode's dropdown label, with pushup
+// sub-modes shown as "Pushups · Pulse" and the "All" board as "Pushups".
+function chartActivityTitle() {
+  const mode = state.leaderboardMode;
+  if (mode === "all") return "Pushups";
+  const label = (LEADERBOARD_MODE_OPTIONS.find((o) => o.id === mode) || {}).label || "Pushups";
+  return leaderboardActivity(mode) === "pushups" ? `Pushups · ${label}` : label;
+}
+
 function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = false, period = "day", headerElId = null, options = {}) {
   const { selectedOffset = null, onBucketSelect = null } = options;
   const metricOf = (session) => (isHolland ? Number(session.hollandCycles) || 0 : Number(session.count) || 0);
-  const config = CHART_PERIOD_BUCKETS[period] || CHART_PERIOD_BUCKETS.day;
   const bucketCount = 7;
   const now = new Date();
   const highlightedOffset = selectedOffset !== null ? selectedOffset : 0;
@@ -7634,7 +7637,8 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
   const trendEl = $(trendElId);
   if (priorBucketTotal > 0 && hasFullPriorBucket) {
     const pct = Math.round(((highlightedTotal - priorBucketTotal) / priorBucketTotal) * 100);
-    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toLocaleString()}% vs prior period`;
+    trendEl.textContent = `${pct >= 0 ? "▲" : "▼"}${Math.abs(pct).toLocaleString()}%`;
+    trendEl.title = "vs prior period";
     trendEl.classList.toggle("week-trend-up", pct >= 0);
     trendEl.classList.toggle("week-trend-down", pct < 0);
     trendEl.classList.remove("hidden");
@@ -7642,17 +7646,9 @@ function renderWeekChart(sessions, chartElId, trendElId, isPlank, isHolland = fa
     trendEl.classList.add("hidden");
   }
 
-  if (headerElId) {
-    if (selectedOffset !== null) {
-      const selectedBucket = buckets[bucketCount - 1 + selectedOffset];
-      const isCurrent = selectedOffset === 0;
-      $(headerElId).textContent = isCurrent
-        ? (period === "day" ? "Today" : `This ${period}`)
-        : selectedBucket.start.toLocaleDateString(undefined, { weekday: period === "day" ? "short" : undefined, month: "short", day: period === "day" || period === "week" ? "numeric" : undefined, year: period === "year" ? "numeric" : undefined });
-    } else {
-      $(headerElId).textContent = config.headerLabel;
-    }
-  }
+  // Header names the exercise being charted (the ‹ › arrows cycle it); the
+  // highlighted bar itself shows which period is selected.
+  if (headerElId) $(headerElId).textContent = chartActivityTitle();
 
   return buckets;
 }
@@ -8570,9 +8566,14 @@ function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
   // With only one person in the selection, the leader is always them —
   // the avatar would just repeat itself on every row.
   const soloSelection = new Set([...sessions, ...allModeSessions].map((s) => s.user)).size <= 1;
-  el.innerHTML = metrics.map((metric) => {
+  metrics.push(citiesVisitedStat(allModeSessions), countriesVisitedStat(allModeSessions));
+  // Only call out a leader whose value is more than 1 — "1 country" or
+  // "1 session" isn't a standout. Percent/duration compare on the shown unit.
+  const shownValue = (metric, v) => (metric.format === "percent" ? v * 100 : metric.format === "duration" ? v / 1000 : v);
+  const callouts = metrics.filter((metric) => metric.available && metric.leaders.length && shownValue(metric, metric.leaders[0].value) > 1);
+  el.closest(".boys-mode-stats-section").classList.toggle("hidden", !callouts.length);
+  el.innerHTML = callouts.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
-    if (!metric.available || !metric.leaders.length) return `<div class="boys-mode-stat"><span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span><span class="boys-mode-stat-value">—</span></div>`;
     const leader = metric.leaders[0];
     const avatar = soloSelection ? "" : avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
     return `<div class="boys-mode-stat">
@@ -8641,7 +8642,19 @@ function paintDashboard(sessions) {
   const lbList = $("leaderboard-list");
   lbList.innerHTML = "";
   if (!ranked.length) {
-    lbList.innerHTML = `<p class="leaderboard-empty">No ${activityWord} logged for this period yet. Get moving! ${activityEmoji(state.activityType)}</p>`;
+    // Option B empty state: inline card + Start CTA. A past bucket can't be
+    // logged into anymore, so it gets the card without the button.
+    const pastBucket = state.dashboardBucketOffset !== null && state.dashboardBucketOffset !== 0;
+    const periodPhrase = { day: "today", week: "this week", month: "this month", quarter: "this quarter", year: "this year" }[state.dashboardPeriod];
+    const unitWord = { day: "day", week: "week", month: "month", quarter: "quarter", year: "year" }[chartBucketPeriod(state.dashboardPeriod)] || "period";
+    const title = pastBucket ? `No ${activityWord} that ${unitWord}` : `No ${activityWord} yet${periodPhrase ? ` ${periodPhrase}` : ""}`;
+    const sub = pastBucket ? "Nothing was logged in this stretch" : "Be first on the board";
+    lbList.innerHTML = `<div class="leaderboard-empty-card">
+      <svg class="leaderboard-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      <div class="leaderboard-empty-text"><strong>${title}</strong><span>${sub}</span></div>
+      ${pastBucket ? "" : `<button type="button" class="btn btn-primary leaderboard-empty-start">Start</button>`}
+    </div>`;
+    lbList.querySelector(".leaderboard-empty-start")?.addEventListener("click", goHome);
   } else {
     ranked.forEach(([user, total], i) => {
       const row = document.createElement("div");
@@ -9152,6 +9165,8 @@ function challengeStatIconHTML(icon) {
     target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     check: '<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9.5"/>',
     flag: '<path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/>',
+    pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+    globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
   };
   return `<svg class="challenge-stat-icon challenge-stat-icon-${icon}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[icon] || drawings.total}</svg>`;
 }
@@ -9161,7 +9176,7 @@ function challengeStatIconHTML(icon) {
 // A couple of cross-mode stats (id-keyed) get their own glyph regardless of
 // their (shared, generic) "integer" format.
 function modeStatIcon(metric) {
-  const byId = { modifiersUsed: "shuffle", modesUsed: "layers", sessions: "duration" };
+  const byId = { modifiersUsed: "shuffle", modesUsed: "layers", sessions: "duration", countriesVisited: "globe", citiesVisited: "pin" };
   if (byId[metric.id]) return byId[metric.id];
   if (metric.qualifier === "group best") return "award";
   return { integer: "total", duration: "time", seconds: "time", pace: "pace", percent: "percent", decimal: "trend", decimalPoints: "trend", pokerHand: "award" }[metric.format] || "total";
@@ -11610,10 +11625,10 @@ function playCardToss(outgoing, incoming) {
   tossed.setAttribute("aria-hidden", "true");
   tossed.style.backgroundImage = `url("${cardImageUrl(outgoing)}")`;
   tossed.style.setProperty("--toss-dir", dir);
-  tossed.style.setProperty("--toss-y", `${Math.round(-30 + Math.random() * 45)}vh`);
-  tossed.style.setProperty("--toss-spin", `${Math.round(35 + Math.random() * 45)}deg`);
+  tossed.style.setProperty("--toss-y", `${Math.round(-35 + Math.random() * 40)}vh`);
+  tossed.style.setProperty("--toss-spin", `${Math.round(100 + Math.random() * 80)}deg`);
   tossed.addEventListener("animationend", () => tossed.remove(), { once: true });
-  setTimeout(() => tossed.remove(), 1200); // safety net if animationend never fires
+  setTimeout(() => tossed.remove(), 900); // safety net if animationend never fires
   scene.parentElement.appendChild(tossed);
 
   scene.classList.remove("card-settle");
@@ -13555,13 +13570,35 @@ function renderSummaryRoadtripResult() {
     return;
   }
   cue.classList.remove("hidden");
-  const lines = wins.slice(0, 3).map((win) =>
-    `Stole ${win.flag ? `${win.flag} ` : ""}${escapeHtml(win.name)} <span class="nowrap">(${roadtripPeriodPhrase(win.periods)})</span> from <span class="nowrap">${escapeHtml(win.overtaken)}</span>`
-  );
-  if (wins.length > 3) lines.push(`+${wins.length - 3} more`);
-  lines.push("tap to share");
-  if (wins.length === 1) lines.splice(0, 2, `${lines[0]} — ${lines[1]}`);
-  lines[0] = `<span class="cue-icon" aria-hidden="true">🏆</span>${lines[0]}`;
+  // Group by rival + period so "from X (this month)" is said once, with the
+  // places (already ordered neighborhood → city → country) on one line.
+  const groups = new Map();
+  for (const win of wins) {
+    const key = `${win.overtaken}|${win.periods.join(",")}`;
+    if (!groups.has(key)) groups.set(key, { overtaken: win.overtaken, periods: win.periods, wins: [] });
+    groups.get(key).wins.push(win);
+  }
+  const placesLine = (list) => {
+    const flags = [...new Set(list.map((win) => win.flag).filter(Boolean))];
+    const prefix = flags.length === 1 ? `${flags[0]} ` : "";
+    return prefix + list.map((win) =>
+      `<span class="nowrap">${flags.length > 1 && win.flag ? `${win.flag} ` : ""}${escapeHtml(win.name)}</span>`
+    ).join(" · ");
+  };
+  const fromPhrase = (group) =>
+    `from <span class="nowrap">${escapeHtml(group.overtaken)}</span> · <span class="nowrap">${roadtripPeriodPhrase(group.periods)}</span>`;
+  const crowns = `${wins.length} crown${wins.length === 1 ? "" : "s"}`;
+  const list = [...groups.values()];
+  const lines = [];
+  if (list.length === 1) {
+    lines.push(`<span class="cue-icon" aria-hidden="true">🏆</span>Stole ${crowns} ${fromPhrase(list[0])}`);
+    lines.push(placesLine(list[0].wins));
+  } else {
+    lines.push(`<span class="cue-icon" aria-hidden="true">🏆</span>Stole ${crowns}`);
+    list.slice(0, 3).forEach((group) => lines.push(`${placesLine(group.wins)} <span class="summary-roadtrip-cue-from">${fromPhrase(group)}</span>`));
+    if (list.length > 3) lines.push(`+${list.length - 3} more`);
+  }
+  lines.push(`<span class="summary-roadtrip-cue-share">tap to share</span>`);
   cue.innerHTML = lines.map((line) => `<span class="summary-roadtrip-cue-line">${line}</span>`).join("");
 }
 
