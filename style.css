@@ -4847,8 +4847,12 @@ body:has(#screen-challenge-detail.active) #app {
 #grip-active .rep-count-wrap { flex: none; }
 #grip-active .grip-clip { margin-top: auto; }
 #grip-active .grip-controls, #grip-active #btn-grip-cancel { margin-top: auto; }
-/* The clip is a right hand; mirror it while the left hand is up. */
-.grip-clip.grip-clip-left video { transform: scaleX(-1); }
+/* The clip is a right hand; mirror it while the left hand is up. Switching
+   hands spins it around the vertical axis so the gripper reads as being
+   handed across — rotateY(180deg) lands as a true mirror image. */
+.kb-clip.grip-clip video { transform: perspective(900px) rotateY(0deg); transition: transform 0.55s cubic-bezier(0.45, 0, 0.2, 1); }
+.kb-clip.grip-clip.grip-clip-left video { transform: perspective(900px) rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) { .kb-clip.grip-clip video { transition: none; } }
 #btn-grip-cancel, #btn-grip-discard { flex: none; align-self: center; padding: 0.6rem 1.6rem; }
 .grip-laps { list-style: none; margin: 0.7rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; max-width: 20rem; }
 .grip-lap { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.65rem; border-radius: 999px; background: var(--bg-elevated); color: var(--text-dim); font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
