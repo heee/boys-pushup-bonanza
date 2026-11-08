@@ -1,4 +1,4 @@
-import { modeStatsModel, modesUsedStat, exerciseTypesUsedStat, PACE_TARGET } from "./mode-stats.js?v=149";
+import { modeStatsModel, modesUsedStat, exerciseTypesUsedStat, PACE_TARGET } from "./mode-stats.js?v=150";
 import { computeStreakCore, filterByMode } from "../stats.js";
 
 // Head-to-head: two people's numbers for the same mode + period, grouped

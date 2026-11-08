@@ -21,8 +21,11 @@
 - **Audio (voice-lines.js):** start countdown, a short line on each Switch hand,
   time-based encouragement ~every 30 s.
 - **Integration (Dead-hang-equivalent):** leaderboard + Board chart bucket, history,
-  record + confetti, ghost mode, voice cheers, personal goal (squeezes per
-  day/week/month, streak), session detail, sharing. **Not in v1:** Games / Challenges.
+  record + confetti, voice cheers, personal goal (squeezes per
+  day/week/month, streak), session detail (incl. lap splits), sharing.
+  **Not in v1:** Games / Challenges, Roadtrip territory, recaps. No ghost mode —
+  there's no live count to race.
+- **Shipped 2026-11-08.** The clip is a right hand, so it's mirrored during left-hand laps.
 
 ## Data & Worker
 

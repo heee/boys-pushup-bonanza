@@ -16,7 +16,9 @@
 //                          "squat" for a camera-counted squat set, "situp" for a camera-counted situp set,
 //                          "holland" for a continuous pull-up/pushup/squat circuit, "chainofpain" for a
 //                          continuous TIME-driven squat/pushup/plank circuit (see AGENTS.md), "kettlebell" for a
-//                          timer-driven preset kettlebell workout with user-confirmed reps;
+//                          timer-driven preset kettlebell workout with user-confirmed reps, "grip" for a
+//                          hand-gripper set (count = user-confirmed squeezes; gripDurationSeconds/gripLaps/
+//                          gripSuggested stored as one grip_json column, see docs/grip-mode-plan.md);
 //                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks and dead hangs,
 //                          total raw reps across all three exercises for Holland, squats+pushups for Chain of
 //                          Pain (plank has its own chainOfPainPlankSeconds field instead), seconds held in
@@ -918,6 +920,19 @@ function sanitizeKettlebell(body, count) {
   return { kettlebellWorkoutId: workoutId, kettlebellVolumeLbs: volumeLbs, kettlebellDurationSeconds: durationSeconds, kettlebellSets: sets };
 }
 
+export function sanitizeGrip(body) {
+  const duration = Math.floor(Number(body.gripDurationSeconds));
+  if (!Number.isFinite(duration) || duration < 1 || duration > 4 * 3600) return null;
+  const laps = Array.isArray(body.gripLaps) ? body.gripLaps : [];
+  if (laps.length > 200 || !laps.every((n) => Number.isInteger(n) && n >= 0 && n <= 4 * 3600)) return null;
+  const suggested = Math.floor(Number(body.gripSuggested));
+  return {
+    gripDurationSeconds: duration,
+    gripLaps: laps,
+    ...(Number.isFinite(suggested) && suggested >= 0 && suggested <= 100000 ? { gripSuggested: suggested } : {}),
+  };
+}
+
 export function validateSession(body) {
   if (!body || typeof body !== "object") return null;
   const user = String(body.user || "").trim().slice(0, 40);
@@ -941,7 +956,7 @@ export function validateSession(body) {
   if (typeof body.startedAt === "string" && !isNaN(new Date(body.startedAt).getTime())) {
     session.startedAt = body.startedAt;
   }
-  if (body.type === "plank" || body.type === "deadhang" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland" || body.type === "chainofpain" || body.type === "kettlebell") {
+  if (body.type === "plank" || body.type === "deadhang" || body.type === "pullup" || body.type === "squat" || body.type === "situp" || body.type === "holland" || body.type === "chainofpain" || body.type === "kettlebell" || body.type === "grip") {
     session.type = body.type;
   }
   // Kettlebell's own fields (see docs/kettlebell-mode-plan.md): the set log is
@@ -952,6 +967,14 @@ export function validateSession(body) {
     const kettlebell = sanitizeKettlebell(body, count);
     if (!kettlebell) return null;
     Object.assign(session, kettlebell);
+  }
+  // Grip's own fields: wall-clock duration, per-hand lap splits, and the
+  // suggestion shown before the player confirmed `count`. The duration is
+  // what the client's learned seconds-per-squeeze rate is derived from.
+  if (body.type === "grip") {
+    const grip = sanitizeGrip(body);
+    if (!grip) return null;
+    Object.assign(session, grip);
   }
   // Holland mode's own fields: difficulty catalog + per-exercise component
   // reps that also feed the existing pull-up/pushup/squat aggregations
@@ -1228,7 +1251,7 @@ function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
 
-const GOAL_TYPES = ["pushups", "planks", "deadhang", "squats", "pullups", "situps"];
+const GOAL_TYPES = ["pushups", "planks", "deadhang", "grip", "squats", "pullups", "situps"];
 const GOAL_PERIODS = ["daily", "weekly", "monthly", "streak"];
 
 function validateTypeGoal(value) {
@@ -1317,6 +1340,14 @@ export function sessionFromRow(row) {
       session.kettlebellSets = kettlebell.s;
     }
   }
+  if (row.grip_json != null) {
+    const grip = parseStoredJson(row.grip_json, null);
+    if (grip) {
+      session.gripDurationSeconds = grip.d;
+      session.gripLaps = grip.l || [];
+      if (grip.e != null) session.gripSuggested = grip.e;
+    }
+  }
   return session;
 }
 
@@ -1382,6 +1413,15 @@ export async function insertSession(db, session) {
     session.id, userId, session.timestamp, session.count, session.avatar ?? null, session.startedAt ?? null, session.type ?? null, session.rawCount ?? null, session.weightLbs ?? null, session.mode ?? null, session.ladderMaxRung ?? null, session.pyramidSize ?? null, session.pyramidDirection ?? null, session.pyramidPeakReached === undefined ? null : Number(session.pyramidPeakReached), session.pyramidCompleted === undefined ? null : Number(session.pyramidCompleted), session.pokerHandsCompleted ?? null, session.pokerBestRank ?? null, session.pokerPremiumHands ?? null, session.pokerHandRanks ? JSON.stringify(session.pokerHandRanks) : null, session.pokerAchievementsUnlocked ? JSON.stringify(session.pokerAchievementsUnlocked) : null, session.fortuneChallengeId ?? null, session.fortuneGripSide ?? null, session.modifier ?? null, session.location ? JSON.stringify(session.location) : null, session.hollandDifficulty ?? null, session.hollandPullups ?? null, session.hollandPushups ?? null, session.hollandSquats ?? null, session.hollandCycles ?? null, session.hollandCircuits ?? null, session.hollandAchievement ?? null, session.pulseBandWidth ?? null, session.pulseBandLow ?? null, session.pulseBandHigh ?? null, session.pulseEndReason ?? null, session.pulseBreakRpm ?? null, session.pulseReps ?? null, session.cockResult ?? null, session.cockEndReason ?? null, session.cockMedianRpm ?? null, session.cockFinalCockRpm ?? null, session.sessionProgression ? JSON.stringify(session.sessionProgression) : null, session.chainOfPainSquats ?? null, session.chainOfPainPushups ?? null, session.chainOfPainPlankSeconds ?? null, session.chainOfPainSegments ?? null, session.chainOfPainDurationSeconds ?? null,
     session.type === "kettlebell" ? JSON.stringify({ w: session.kettlebellWorkoutId, v: session.kettlebellVolumeLbs, d: session.kettlebellDurationSeconds, s: session.kettlebellSets }) : null,
   ).run();
+  // Separate write so a database without the grip_json column yet (pending
+  // the manual ALTER TABLE, migrations/0010_grip.sql) still keeps the session.
+  if (session.type === "grip") {
+    try {
+      await db.prepare("UPDATE sessions SET grip_json = ? WHERE id = ?")
+        .bind(JSON.stringify({ d: session.gripDurationSeconds, l: session.gripLaps, e: session.gripSuggested ?? null }), session.id)
+        .run();
+    } catch { /* column not migrated yet */ }
+  }
 }
 
 async function deleteUser(db, name) {

@@ -43,6 +43,7 @@ export function filterByMode(sessions, mode) {
   const pool = expandHollandProjections(sessions);
   if (mode === "planks") return pool.filter((session) => session.type === "plank");
   if (mode === "deadhang") return pool.filter((session) => session.type === "deadhang");
+  if (mode === "grip") return pool.filter((session) => session.type === "grip");
   if (mode === "pullups") return pool.filter((session) => session.type === "pullup");
   if (mode === "squats") return pool.filter((session) => session.type === "squat");
   if (mode === "situps") return pool.filter((session) => session.type === "situp");

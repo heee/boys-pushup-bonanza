@@ -27,6 +27,11 @@ import {
   FUN_MESSAGES_PLANK,
   FUN_MESSAGES_DEADHANG,
   DEADHANG_RECORD_LINE,
+  FUN_MESSAGES_GRIP,
+  GRIP_ENCOURAGE_LINES,
+  GRIP_RECORD_LINE,
+  GRIP_START_LINE,
+  GRIP_SWITCH_LINES,
   HOLLAND_27_LINE,
   HOLLAND_CIRCUIT_COMPLETE_LINE,
   HOLLAND_START_LINES,
@@ -77,7 +82,8 @@ import {
   WHEEL_TEMPO_LINE,
   numberToWords,
   zenCompletionLine,
-} from "./voice-lines.js?v=149";
+} from "./voice-lines.js?v=150";
+import { GRIP_DEFAULT_SEC_PER_SQUEEZE, gripLapDurations, gripLapHand, gripRateFor, gripSuggestedCount } from "./modes/grip.js";
 import {
   deactivateVoice,
   getVoicePreset,
@@ -118,20 +124,20 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat, countriesVisitedStat, citiesVisitedStat } from "./screens/mode-stats.js?v=149";
-import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=7";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat, countriesVisitedStat, citiesVisitedStat } from "./screens/mode-stats.js?v=150";
+import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=8";
 import { comparisonModel } from "./screens/comparison.js?v=140";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=154";
-import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=5";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=155";
+import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=6";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
-import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=14";
+import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=15";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=15";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=16";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -421,6 +427,7 @@ const LEADERBOARD_MODE_OPTIONS = [
   { id: "cock", label: "Cock" },
   { id: "pullups", label: "Pull-ups" },
   { id: "deadhang", label: "Dead hang" },
+  { id: "grip", label: "Grip" },
   { id: "squats", label: "Squats" },
   { id: "situps", label: "Crunches" },
   { id: "planks", label: "Planks" },
@@ -435,6 +442,7 @@ const MY_SESSIONS_MODE_OPTIONS = [
   { id: "pushups", label: "Pushups" },
   { id: "pullups", label: "Pull-ups" },
   { id: "deadhang", label: "Dead hang" },
+  { id: "grip", label: "Grip" },
   { id: "situps", label: "Crunches" },
   { id: "squats", label: "Squats" },
   { id: "planks", label: "Planks" },
@@ -444,7 +452,7 @@ const MY_SESSIONS_MODE_OPTIONS = [
 ];
 
 function sessionActivity(s) {
-  return s.type === "plank" ? "planks" : s.type === "deadhang" ? "deadhang" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups";
+  return s.type === "plank" ? "planks" : s.type === "deadhang" ? "deadhang" : s.type === "grip" ? "grip" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups";
 }
 
 // Activities whose `count` is seconds held rather than reps.
@@ -453,7 +461,7 @@ function isTimedActivity(activity) {
 }
 
 function leaderboardActivity(mode) {
-  return ["planks", "deadhang", "pullups", "squats", "situps", "holland", "chainofpain", "kettlebell"].includes(mode) ? mode : "pushups";
+  return ["planks", "deadhang", "grip", "pullups", "squats", "situps", "holland", "chainofpain", "kettlebell"].includes(mode) ? mode : "pushups";
 }
 
 function activityLabel(activity, singular = false) {
@@ -464,6 +472,7 @@ function activityLabel(activity, singular = false) {
     situps: singular ? "crunch" : "crunches",
     planks: singular ? "plank" : "planks",
     deadhang: singular ? "dead hang" : "dead hangs",
+    grip: singular ? "squeeze" : "squeezes",
     holland: singular ? "Holland cycle" : "Holland cycles",
     chainofpain: singular ? "Chain of Pain cycle" : "Chain of Pain cycles",
     kettlebell: singular ? "kettlebell workout" : "kettlebell workouts",
@@ -482,6 +491,7 @@ function activityEmoji(activity) {
     situps: "🙇",
     planks: "🪵",
     deadhang: "🙌",
+    grip: "✊",
     holland: "🇳🇱",
     chainofpain: "⛓️",
     kettlebell: "🏋️",
@@ -953,7 +963,7 @@ function invalidateSessionIndex() {
 
 function buildSessionIndex(sessions) {
   const byUser = new Map();
-  const byActivity = { pushups: [], planks: [], deadhang: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [], kettlebell: [] };
+  const byActivity = { pushups: [], planks: [], deadhang: [], grip: [], pullups: [], squats: [], situps: [], holland: [], chainofpain: [], kettlebell: [] };
   const byUserActivity = new Map();
   const byLeaderboardMode = Object.fromEntries(LEADERBOARD_MODE_OPTIONS.map((option) => [option.id, []]));
   const byUserLeaderboardMode = new Map();
@@ -1662,6 +1672,9 @@ const state = {
   deadhangLast: 0,
   deadhangStartedAt: null,
   deadhangSessionLocation: null,
+  gripActive: false,
+  gripStartedAt: null,
+  gripSessionLocation: null,
   plankBest: 0,
   plankLast: 0,
   plankStartedAt: null,
@@ -1922,6 +1935,7 @@ const GOAL_TYPE_META = {
   pushups: { activity: "pushups", label: "Pushups", icon: "💪", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
   planks: { activity: "planks", label: "Planks", icon: "🪵", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
   deadhang: { activity: "deadhang", label: "Dead hang", icon: "🙌", unit: "seconds", defaults: { daily: 60, weekly: 300, monthly: 1200, streak: 30 } },
+  grip: { activity: "grip", label: "Grip", icon: "✊", unit: "reps", defaults: { daily: 100, weekly: 500, monthly: 2000, streak: 30 } },
   squats: { activity: "squats", label: "Squats", icon: "🦵", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
   pullups: { activity: "pullups", label: "Pull-ups", icon: "💪", unit: "reps", defaults: { daily: 10, weekly: 50, monthly: 200, streak: 30 } },
   situps: { activity: "situps", label: "Crunches", icon: "🙇", unit: "reps", defaults: { daily: 50, weekly: 300, monthly: 1200, streak: 30 } },
@@ -2013,7 +2027,7 @@ function activeGoalsFor(user) {
 // exercise; tapping one already hit should jump to its leaderboard instead
 // — explore-mode ids are singular ("plank"/"squat"/"pullup") while goal
 // types and leaderboard mode ids share the plural GOAL_TYPES spelling.
-const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", deadhang: "deadhang", squats: "squat", pullups: "pullup", situps: "situp" };
+const GOAL_TYPE_EXPLORE_ID = { pushups: "classic", planks: "plank", deadhang: "deadhang", grip: "grip", squats: "squat", pullups: "pullup", situps: "situp" };
 
 // Split so the render side can force a line break after the number rather
 // than letting it wrap wherever the ~90px column happens to run out —
@@ -2089,6 +2103,7 @@ const TAB_FOR_SCREEN = {
   "screen-modifier-picker": "btn-nav-home",
   "screen-plank-workout": "btn-nav-home",
   "screen-deadhang-workout": "btn-nav-home",
+  "screen-grip-workout": "btn-nav-home",
   "screen-plank-unlock": "btn-nav-home",
   "screen-squat-workout": "btn-nav-home",
   "screen-pullup-workout": "btn-nav-home",
@@ -2168,6 +2183,7 @@ function showScreen(id) {
   const minimized = (id === "screen-workout" && state.workoutActive) ||
     (id === "screen-plank-workout" && state.plankActive) ||
     (id === "screen-deadhang-workout" && state.deadhangActive) ||
+    (id === "screen-grip-workout" && state.gripActive) ||
     (id === "screen-squat-workout" && state.squatActive) ||
     (id === "screen-pullup-workout" && state.pullupActive) ||
     (id === "screen-situp-workout" && state.situpActive) ||
@@ -2273,6 +2289,7 @@ function showScreen(id) {
     $("plank-username").textContent = state.currentUser || "Friend";
     setAvatarEl($("plank-avatar"), state.currentAvatar, "2rem");
   }
+  if (id === "screen-grip-workout" && !state.gripActive) renderGripIdle();
   if (id === "screen-deadhang-workout" && !state.deadhangActive) {
     renderDeadhangIdle();
     if (savedDeadhangTiming() === "camera") deadhangCamera.ensureDetector().catch(() => {});
@@ -2314,6 +2331,10 @@ function guardLeaveWorkout(next) {
     const ok = confirm("Leave this plank? Your in-progress time won't be saved.");
     if (!ok) return;
     stopPlankHard();
+  } else if (state.screen === "screen-grip-workout" && state.gripActive) {
+    const ok = confirm("Leave this grip set? It won't be saved.");
+    if (!ok) return;
+    stopGripHard();
   } else if (state.screen === "screen-deadhang-workout" && state.deadhangActive) {
     const ok = confirm("Leave this dead hang? Your in-progress time won't be saved.");
     if (!ok) return;
@@ -3463,7 +3484,7 @@ function selectHomeMode(type, modeId) {
   guardLeaveWorkout(() => showScreen("screen-workout"));
 }
 
-const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "deadhang", "situps", "planks"]);
+const SINGLE_MODE_TYPES = new Set(["squats", "pullups", "deadhang", "grip", "situps", "planks"]);
 
 // Each Home selector segment: small caption over the current value, so
 // Type | Mode | Modifier fit side by side in one row.
@@ -3864,6 +3885,10 @@ async function openExploreMode(modeId, { onChaseIneligible } = {}) {
   }
   if (modeId === "deadhang") {
     guardLeaveWorkout(() => showScreen("screen-deadhang-workout"));
+    return;
+  }
+  if (modeId === "grip") {
+    guardLeaveWorkout(() => showScreen("screen-grip-workout"));
     return;
   }
   if (modeId === "squat") {
@@ -7364,7 +7389,7 @@ function selectLeaderboardMode(mode) {
 // sub-modes. Landing back on pushups always resets to "All" rather than
 // restoring whichever sub-mode was last picked; Holland isn't in the cycle
 // (dropdown-only) but still needs a sane index to step from if it's active.
-const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "deadhang", "squats", "pullups", "situps", "holland", "chainofpain", "kettlebell"];
+const CHART_ACTIVITY_CYCLE = ["pushups", "planks", "deadhang", "grip", "squats", "pullups", "situps", "holland", "chainofpain", "kettlebell"];
 // Only cycle through activities that actually have a session within the
 // selected time horizon (state.dashboardPeriod), scoped to the same user
 // pool the chart card itself is drawing from — no point swiping to an
@@ -8233,6 +8258,7 @@ function renderSessionDetail() {
   if (!session) return;
   const isPlank = session.type === "plank";
   const isDeadhang = session.type === "deadhang";
+  const isGrip = session.type === "grip";
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
@@ -8248,7 +8274,7 @@ function renderSessionDetail() {
     : isChainOfPain ? chainOfPainFormatCycles(Number(session.chainOfPainCycles) || 0)
     : isKettlebell ? formatNumber(Number(session.kettlebellVolumeLbs) || 0)
     : formatNumber(session.count);
-  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isDeadhang ? "DEAD HANG" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isKettlebell ? `LB MOVED · ${(kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "KETTLEBELL").toUpperCase()}` : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
+  $("session-detail-count-label").textContent = isPlank ? "PLANK HOLD" : isDeadhang ? "DEAD HANG" : isGrip ? "TOTAL SQUEEZES" : isPullup ? "TOTAL PULL-UPS" : isSquat ? "TOTAL SQUATS" : isSitup ? "TOTAL CRUNCHES" : isHolland ? "HOLLAND CYCLES" : isChainOfPain ? "CHAIN OF PAIN CYCLES" : isKettlebell ? `LB MOVED · ${(kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "KETTLEBELL").toUpperCase()}` : isPulse ? "TIME IN BAND" : "TOTAL PUSHUPS";
 
   const badgeHTML = (badge) => `<span class="session-badge${badge.tone === "modifier" ? " session-badge-modifier" : ""}${badge.tone === "weighted" ? " session-badge-weighted" : ""}">${badge.icon} ${escapeHtml(badge.label)}</span>`;
   const allBadges = sessionBadges(session);
@@ -8311,6 +8337,7 @@ async function shareSessionDetail() {
   if (!session) return;
   const isPlank = session.type === "plank";
   const isDeadhang = session.type === "deadhang";
+  const isGrip = session.type === "grip";
   const isPullup = session.type === "pullup";
   const isSquat = session.type === "squat";
   const isSitup = session.type === "situp";
@@ -8319,7 +8346,7 @@ async function shareSessionDetail() {
   const isKettlebell = session.type === "kettlebell";
   const isPulse = session.mode === "pulse";
   const hollandDifficultyLabel = (d) => (d ? d.charAt(0).toUpperCase() + d.slice(1) : "Normal");
-  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isDeadhang ? `${formatDuration(session.count * 1000)} dead hang` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isKettlebell ? `${formatNumber(Number(session.kettlebellVolumeLbs) || 0)} lb moved in ${kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "a kettlebell workout"}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
+  const countText = isPlank ? `${formatDuration(session.count * 1000)} plank` : isDeadhang ? `${formatDuration(session.count * 1000)} dead hang` : isGrip ? `${formatNumber(session.count)} gripper squeezes` : isPullup ? `${formatNumber(session.count)} pull-ups` : isSquat ? `${formatNumber(session.count)} squats` : isSitup ? `${formatNumber(session.count)} crunches` : isHolland ? `${(Number(session.hollandCycles) || 0).toFixed(1)} Holland cycles (${hollandDifficultyLabel(session.hollandDifficulty)})` : isChainOfPain ? `${(Number(session.chainOfPainCycles) || 0).toFixed(1)} Chain of Pain cycles${[30, 60, 150, 300].includes(session.chainOfPainDurationSeconds) ? ` (${session.chainOfPainDurationSeconds} seconds per exercise)` : ""}` : isKettlebell ? `${formatNumber(Number(session.kettlebellVolumeLbs) || 0)} lb moved in ${kettlebellWorkoutById(session.kettlebellWorkoutId)?.name || "a kettlebell workout"}` : isPulse ? `${formatDuration(session.count * 1000)} held in band (Pulse)` : `${formatNumber(session.count)} pushups`;
   const modifierBadge = sessionBadges(session).find((b) => b.id === "modifier");
   const rings = sessionRings(session, getAllSessionsForDisplay());
   const statRing = [rings.find((r) => r.id === "vsPrior"), rings.find((r) => r.id === "vsAvg")].find((r) => r?.hasData && r.diffPct != null);
@@ -8333,7 +8360,7 @@ async function shareSessionDetail() {
     dateText: formatDateTime(session.timestamp),
     statLine,
   });
-  const modeId = isPlank ? "plank" : isDeadhang ? "deadhang" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
+  const modeId = isPlank ? "plank" : isDeadhang ? "deadhang" : isGrip ? "grip" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : isKettlebell ? null : isPulse ? "pulse" : (session.mode || "classic");
   const url = modeShareUrl(modeId);
   if (navigator.share) {
     try { await navigator.share(sharePayload("Boys Pushup Bonanza", message, url)); } catch (e) { /* cancelled */ }
@@ -8717,6 +8744,7 @@ function sessionActivityPhrase(s) {
   const modeId = sessionModeId(s);
   if (modeId === "holland") return "a Holland round";
   if (modeId === "deadhang") return "a dead hang";
+  if (modeId === "grip") return "a grip set";
   if (["planks", "squats", "pullups", "situps"].includes(modeId)) {
     return `a ${activityLabel(sessionActivity(s), true)}`;
   }
@@ -9714,7 +9742,7 @@ async function shareLeaderboardStats() {
   // planks) that LEADERBOARD_MODE_OPTIONS shows, but the #mode= link and
   // EXPLORE_MODES use the singular exercise ids — translate; "all" has no
   // single mode to deep-link into, so it falls back to the bare app URL.
-  const leaderboardModeToShareId = { pullups: "pullup", squats: "squat", situps: "situp", planks: "plank", deadhang: "deadhang" };
+  const leaderboardModeToShareId = { pullups: "pullup", squats: "squat", situps: "situp", planks: "plank", deadhang: "deadhang", grip: "grip" };
   const shareModeId = state.leaderboardMode === "all" ? null : (leaderboardModeToShareId[state.leaderboardMode] || state.leaderboardMode);
   const url = modeShareUrl(shareModeId);
   if (navigator.share) {
@@ -13626,17 +13654,18 @@ function modeShareUrl(modeId) {
 function buildShareContext(adjustedCount) {
   const isPlank = state.lastSessionType === "plank";
   const isDeadhang = state.lastSessionType === "deadhang";
+  const isGrip = state.lastSessionType === "grip";
   const isPullup = state.lastSessionType === "pullup";
   const isSquat = state.lastSessionType === "squat";
   const isSitup = state.lastSessionType === "situp";
   const isHolland = state.lastSessionType === "holland";
   const isChainOfPain = state.lastSessionType === "chainofpain";
   const isPulse = state.lastSessionType === "pulse";
-  const isPushup = !isPlank && !isDeadhang && !isPullup && !isSquat && !isSitup && !isHolland && !isChainOfPain;
+  const isPushup = !isPlank && !isDeadhang && !isGrip && !isPullup && !isSquat && !isSitup && !isHolland && !isChainOfPain;
   // Pulse's `count` is seconds, not reps — filtered out of the generic
   // pushups aggregate the same way plank/pullup/squat/situp already live in
   // their own activity buckets, so a week total never mixes units.
-  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isDeadhang ? "deadhang" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups")
+  const mine = indexedSessionsForUser(state.currentUser, isPlank ? "planks" : isDeadhang ? "deadhang" : isGrip ? "grip" : isPullup ? "pullups" : isSquat ? "squats" : isSitup ? "situps" : "pushups")
     .filter((s) => isPushup ? s.mode !== "pulse" || isPulse : true);
   const weekStart = periodStart("week");
   const weekStartTime = weekStart.getTime();
@@ -13644,9 +13673,10 @@ function buildShareContext(adjustedCount) {
     .filter((s) => sessionTimestamp(s) >= weekStartTime)
     .reduce((sum, s) => sum + s.count, 0);
   return {
-    mode: isPlank ? "plank" : isDeadhang ? "deadhang" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : state.pushupMode,
+    mode: isPlank ? "plank" : isDeadhang ? "deadhang" : isGrip ? "grip" : isPullup ? "pullup" : isSquat ? "squat" : isSitup ? "situp" : isHolland ? "holland" : isChainOfPain ? "chainofpain" : state.pushupMode,
     isPlank,
     isDeadhang,
+    isGrip,
     isPullup,
     isSquat,
     isSitup,
@@ -13684,7 +13714,7 @@ let workoutShareMessages = null;
 let workoutShareMessagesPromise = null;
 function preloadWorkoutShareMessages() {
   if (!workoutShareMessagesPromise) {
-    workoutShareMessagesPromise = import("./share-messages.js?v=152").then((module) => {
+    workoutShareMessagesPromise = import("./share-messages.js?v=153").then((module) => {
       workoutShareMessages = module;
       return module;
     });
@@ -13748,7 +13778,7 @@ $("btn-summary-again").addEventListener("click", () => {
     showScreen("screen-cock-setup");
     return;
   }
-  const screenByType = { plank: "screen-plank-workout", deadhang: "screen-deadhang-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout", holland: "screen-holland-workout", chainofpain: "screen-chainofpain-workout" };
+  const screenByType = { plank: "screen-plank-workout", deadhang: "screen-deadhang-workout", grip: "screen-grip-workout", pullup: "screen-pullup-workout", squat: "screen-squat-workout", situp: "screen-situp-workout", holland: "screen-holland-workout", chainofpain: "screen-chainofpain-workout" };
   const screen = screenByType[state.lastSessionType];
   if (!screen) preserveNextModeSelection = true;
   showScreen(screen || "screen-workout");
@@ -14358,6 +14388,322 @@ async function completeDeadhang() {
 $("btn-deadhang-start").addEventListener("click", startDeadhang);
 $("btn-deadhang-stop").addEventListener("click", completeDeadhang);
 $("btn-deadhang-cancel").addEventListener("click", stopDeadhangHard);
+
+// ------------------- grip -------------------
+// Hand-gripper set (see docs/grip-mode-plan.md). No detection: an open-ended
+// clock with Switch hand laps, then the player confirms a squeeze count that
+// starts from duration ÷ their learned seconds-per-squeeze (modes/grip.js,
+// derived from their last few Grip sessions, so it follows them across
+// devices). The hand-grip clip just loops for flavor.
+
+const GRIP_EMOJI = ["✊", "🤜", "💪", "🔥", "🦾"];
+const GRIP_COUNTDOWN_SECONDS = 3;
+const GRIP_ENCOURAGE_EVERY_SECONDS = 30;
+const GRIP_MIN_SECONDS = 3;
+const GRIP_MAX_COUNT = 2000;
+const GRIP_CLIP_BASE = "assets/grip/hand-grip";
+
+const gripState = {
+  phase: "idle", // idle | countdown | running | review
+  seconds: 0,
+  clockStartedAt: 0,
+  intervalId: null,
+  countdownId: null,
+  switchMarks: [],
+  laps: [],
+  durationSec: 0,
+  rate: GRIP_DEFAULT_SEC_PER_SQUEEZE,
+  suggested: 0,
+  count: 0,
+  stoppedAt: null,
+  previousBest: 0,
+};
+
+function getGripBest(name) {
+  return bestFor(indexedSessionsForUser(name, "grip"), name, () => true);
+}
+
+function renderGripIdle() {
+  $("grip-username").textContent = state.currentUser || "Friend";
+  setAvatarEl($("grip-avatar"), state.currentAvatar, "2rem");
+}
+
+function gripClipVideo() {
+  return $("grip-clip").querySelector("video");
+}
+
+function gripPlayClip() {
+  const video = gripClipVideo();
+  const theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const src = `${GRIP_CLIP_BASE}-${theme}.mp4`;
+  if (video.getAttribute("src") !== src) video.src = src;
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  video.play().catch(() => {});
+}
+
+function gripLapsHTML(laps, liveIndex = -1) {
+  return laps.map((seconds, i) => `<li class="grip-lap${i === liveIndex ? " live" : ""}"><span class="grip-lap-hand">${gripLapHand(i)}</span><span class="grip-lap-time">${formatDuration(seconds * 1000)}</span></li>`).join("");
+}
+
+function gripElapsedSeconds() {
+  return (Date.now() - gripState.clockStartedAt) / 1000;
+}
+
+function renderGripRunning() {
+  const elapsed = gripElapsedSeconds();
+  $("grip-timer").textContent = formatDuration(Math.floor(elapsed) * 1000);
+  const laps = gripState.switchMarks.length ? gripLapDurations(gripState.switchMarks, elapsed) : [];
+  $("grip-laps").innerHTML = gripLapsHTML(laps, laps.length - 1);
+  const left = gripLapHand(gripState.switchMarks.length) === "L";
+  $("grip-status").textContent = left ? "LEFT HAND" : "RIGHT HAND";
+  $("grip-clip").classList.toggle("grip-clip-left", left);
+}
+
+function onGripTick() {
+  const seconds = Math.floor(gripElapsedSeconds());
+  if (seconds === gripState.seconds) return;
+  gripState.seconds = seconds;
+  renderGripRunning();
+  if (seconds > 0 && seconds % GRIP_ENCOURAGE_EVERY_SECONDS === 0) speak(pickFrom(GRIP_ENCOURAGE_LINES));
+}
+
+function clearGripTimers() {
+  if (gripState.intervalId) clearInterval(gripState.intervalId);
+  if (gripState.countdownId) clearInterval(gripState.countdownId);
+  gripState.intervalId = null;
+  gripState.countdownId = null;
+}
+
+function showGripStage(stage) {
+  $("grip-idle").classList.toggle("hidden", stage !== "idle");
+  $("grip-active").classList.toggle("hidden", stage !== "active");
+  $("grip-review").classList.toggle("hidden", stage !== "review");
+}
+
+function beginGripClock() {
+  gripState.phase = "running";
+  gripState.clockStartedAt = Date.now();
+  state.gripStartedAt = new Date();
+  $("btn-grip-cancel").classList.add("hidden");
+  $("grip-controls").classList.remove("hidden");
+  renderGripRunning();
+  gripState.intervalId = setInterval(onGripTick, 200);
+}
+
+async function startGrip() {
+  if (soundIsEnabled()) unlockVoice();
+  renderGripIdle();
+  hideStatusBanner();
+  clearGripTimers();
+  Object.assign(gripState, { seconds: 0, switchMarks: [], laps: [], durationSec: 0, suggested: 0, count: 0, stoppedAt: null });
+  state.gripSessionLocation = currentSessionLocationSnapshot();
+  await acquireWakeLock();
+  state.gripActive = true;
+  gripState.phase = "countdown";
+  showGripStage("active");
+  $("grip-controls").classList.add("hidden");
+  $("btn-grip-cancel").classList.remove("hidden");
+  $("grip-laps").innerHTML = "";
+  $("grip-status").textContent = "GET READY";
+  $("grip-clip").classList.add("grip-clip-left");
+  setChromeMinimized(true);
+  gripPlayClip();
+  let remaining = GRIP_COUNTDOWN_SECONDS;
+  $("grip-timer").textContent = String(remaining);
+  speak(String(remaining));
+  gripState.countdownId = setInterval(() => {
+    remaining -= 1;
+    if (remaining > 0) {
+      $("grip-timer").textContent = String(remaining);
+      speak(String(remaining));
+      return;
+    }
+    clearInterval(gripState.countdownId);
+    gripState.countdownId = null;
+    speak(GRIP_START_LINE);
+    beginGripClock();
+  }, 1000);
+}
+
+function gripSwitchHand() {
+  if (gripState.phase !== "running") return;
+  const elapsed = gripElapsedSeconds();
+  const lastMark = gripState.switchMarks[gripState.switchMarks.length - 1] || 0;
+  if (elapsed - lastMark < 1) return;
+  gripState.switchMarks.push(elapsed);
+  renderGripRunning();
+  speak(pickFrom(GRIP_SWITCH_LINES));
+}
+
+function stopGripHard() {
+  clearGripTimers();
+  gripClipVideo().pause();
+  releaseWakeLock();
+  state.gripActive = false;
+  gripState.phase = "idle";
+  showGripStage("idle");
+  $("grip-count-input").classList.add("hidden");
+  $("grip-count-value").classList.remove("hidden");
+  setChromeMinimized(false);
+}
+
+function renderGripCount() {
+  $("grip-count-value").textContent = formatNumber(gripState.count);
+  $("btn-grip-count-minus").disabled = gripState.count <= 1;
+}
+
+function stopGrip() {
+  if (gripState.phase !== "running") return;
+  const elapsed = gripElapsedSeconds();
+  clearGripTimers();
+  gripClipVideo().pause();
+  releaseWakeLock();
+  if (elapsed < GRIP_MIN_SECONDS) {
+    stopGripHard();
+    toast("That set was too short to log.");
+    return;
+  }
+  gripState.phase = "review";
+  gripState.stoppedAt = new Date();
+  gripState.durationSec = Math.round(elapsed);
+  gripState.laps = gripLapDurations(gripState.switchMarks, elapsed);
+  gripState.previousBest = getGripBest(state.currentUser);
+  const sessions = getAllSessionsForDisplay();
+  const userHasHistory = sessions.some((s) => s.type === "grip" && s.user === state.currentUser && Number(s.gripDurationSeconds) > 0);
+  gripState.rate = gripRateFor(sessions, state.currentUser);
+  gripState.suggested = Math.min(GRIP_MAX_COUNT, gripSuggestedCount(elapsed, gripState.rate));
+  gripState.count = gripState.suggested;
+  $("grip-review-time").textContent = formatDuration(gripState.durationSec * 1000);
+  $("grip-review-hint").textContent = userHasHistory
+    ? `Suggested from your usual pace (~${gripState.rate.toFixed(1)} s per squeeze). Fix it if it's off; your pace learns from it.`
+    : `Suggested at ${GRIP_DEFAULT_SEC_PER_SQUEEZE} s per squeeze. Fix it if it's off; your pace learns from it.`;
+  $("grip-review-laps").innerHTML = gripState.laps.length > 1 ? gripLapsHTML(gripState.laps) : "";
+  renderGripCount();
+  showGripStage("review");
+}
+
+function adjustGripCount(delta) {
+  gripState.count = Math.min(GRIP_MAX_COUNT, Math.max(1, gripState.count + delta));
+  renderGripCount();
+}
+
+// Tap = one step; hold = keeps stepping until released.
+function bindGripRepeat(btn, delta) {
+  let delay = null;
+  let repeat = null;
+  const stop = () => {
+    clearTimeout(delay);
+    clearInterval(repeat);
+    delay = repeat = null;
+  };
+  btn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    stop();
+    adjustGripCount(delta);
+    delay = setTimeout(() => { repeat = setInterval(() => adjustGripCount(delta), 70); }, 400);
+  });
+  for (const type of ["pointerup", "pointerleave", "pointercancel"]) btn.addEventListener(type, stop);
+  btn.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    adjustGripCount(delta);
+  });
+}
+
+function openGripCountInput() {
+  const input = $("grip-count-input");
+  input.value = String(gripState.count);
+  $("grip-count-value").classList.add("hidden");
+  input.classList.remove("hidden");
+  input.focus();
+  input.select();
+}
+
+function closeGripCountInput() {
+  const input = $("grip-count-input");
+  if (input.classList.contains("hidden")) return;
+  const typed = Math.floor(Number(input.value));
+  if (Number.isFinite(typed) && typed >= 1) gripState.count = Math.min(GRIP_MAX_COUNT, typed);
+  input.classList.add("hidden");
+  $("grip-count-value").classList.remove("hidden");
+  renderGripCount();
+}
+
+let lastGripFunMessageIndex = -1;
+function pickGripFunMessage(count) {
+  let idx;
+  do { idx = Math.floor(Math.random() * FUN_MESSAGES_GRIP.length); }
+  while (idx === lastGripFunMessageIndex && FUN_MESSAGES_GRIP.length > 1);
+  lastGripFunMessageIndex = idx;
+  return FUN_MESSAGES_GRIP[idx](count);
+}
+
+async function saveGrip() {
+  if (gripState.phase !== "review") return;
+  closeGripCountInput();
+  const count = gripState.count;
+  const isRecord = gripState.previousBest > 0 && count > gripState.previousBest;
+  const session = {
+    id: uuid(),
+    user: state.currentUser,
+    timestamp: (gripState.stoppedAt || new Date()).toISOString(),
+    count,
+    avatar: state.currentAvatar,
+    startedAt: state.gripStartedAt ? state.gripStartedAt.toISOString() : undefined,
+    type: "grip",
+    gripDurationSeconds: gripState.durationSec,
+    gripLaps: gripState.laps,
+    gripSuggested: gripState.suggested,
+    ...(state.gripSessionLocation ? { location: state.gripSessionLocation } : {}),
+  };
+  stopGripHard();
+
+  const cached = getCachedData();
+  cached.sessions.push(session);
+  cacheData(cached);
+
+  const message = pickGripFunMessage(count);
+  state.lastSessionType = "grip";
+  state.summarySessionId = null;
+  state.summaryMultiplier = 1;
+  state.summaryWeightLbs = 0;
+  state.summaryPrAchieved = null;
+  state.summaryChaseResult = null;
+  state.summaryRoadtripConquests = [];
+  $("summary-count").textContent = formatNumber(count);
+  $("missed-reps-wrap").classList.add("hidden");
+  $("summary-weighted-note").classList.add("hidden");
+  renderSummaryChaseResult();
+  renderSummaryRoadtripResult();
+  $("summary-sync-status").textContent = "";
+  preloadWorkoutShareMessages();
+  showScreen("screen-summary");
+  launchConfetti("confetti", GRIP_EMOJI, isRecord ? 48 : 24);
+  speak(isRecord ? GRIP_RECORD_LINE : `Grip complete. ${message}`);
+
+  try {
+    await commitSession(session);
+  } catch (e) {
+    enqueueSession(session);
+    $("summary-sync-status").textContent = "Saved on this device — will sync automatically when back online.";
+  }
+}
+
+$("btn-grip-start").addEventListener("click", startGrip);
+$("btn-grip-cancel").addEventListener("click", stopGripHard);
+$("btn-grip-switch").addEventListener("click", gripSwitchHand);
+$("btn-grip-stop").addEventListener("click", stopGrip);
+bindGripRepeat($("btn-grip-count-minus"), -1);
+bindGripRepeat($("btn-grip-count-plus"), 1);
+$("grip-count-value").addEventListener("click", openGripCountInput);
+$("grip-count-input").addEventListener("blur", closeGripCountInput);
+$("grip-count-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") closeGripCountInput();
+});
+$("btn-grip-save").addEventListener("click", saveGrip);
+$("btn-grip-discard").addEventListener("click", () => {
+  if (confirm("Discard this grip set? It won't be saved.")) stopGripHard();
+});
 
 // ------------------- squat mode -------------------
 // Camera-counted free set, own screen (see docs/squat-mode-plan.md): an

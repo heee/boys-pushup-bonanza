@@ -4837,6 +4837,25 @@ body:has(#screen-challenge-detail.active) #app {
 }
 /* Dead hang start screen: Camera / Manual timing toggle. */
 .deadhang-timing-select { width: 100%; max-width: 18rem; margin: 0.4rem 0 0; }
+/* Grip: looping gripper clip, timer, per-hand lap chips, Switch hand under it. */
+.grip-clip { height: min(32vh, 260px); }
+/* The clip is a right hand; mirror it while the left hand is up. */
+.grip-clip.grip-clip-left video { transform: scaleX(-1); }
+#btn-grip-cancel, #btn-grip-discard { flex: none; align-self: center; padding: 0.6rem 1.6rem; }
+.grip-laps { list-style: none; margin: 0.7rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; max-width: 20rem; }
+.grip-lap { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.65rem; border-radius: 999px; background: var(--bg-elevated); color: var(--text-dim); font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.grip-lap-hand { color: var(--text); font-weight: 800; }
+.grip-lap.live { color: var(--text); box-shadow: inset 0 0 0 1.5px var(--primary); }
+.grip-controls { display: flex; justify-content: center; width: 100%; }
+.grip-switch { width: 100%; max-width: 18rem; padding: 0.9rem 1.2rem; font-size: 1.05rem; font-weight: 800; touch-action: manipulation; }
+.grip-review { gap: 0.7rem; }
+.grip-stepper { gap: 1.5rem; margin: 0.2rem 0; }
+.grip-stepper .stepper-btn { width: 3.4rem; height: 3.4rem; font-size: 1.8rem; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.grip-stepper .stepper-btn:disabled { opacity: 0.4; }
+.grip-count-value { min-width: 6rem; font-size: 3.4rem; font-variant-numeric: tabular-nums; background: none; border: none; color: var(--text); cursor: text; text-decoration: underline dotted var(--text-tertiary); text-underline-offset: 0.3em; text-decoration-thickness: 2px; }
+.grip-count-input { width: 8rem; font-size: 2.6rem; font-weight: 800; text-align: center; padding: 0.3rem; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); }
+.grip-review-hint { margin: 0; max-width: 20rem; text-align: center; font-size: 0.85rem; color: var(--text-dim); }
+.grip-review .btn-giant { width: 100%; max-width: 18rem; }
 #btn-deadhang-cancel { flex: none; align-self: center; padding: 0.6rem 1.6rem; }
 
 .goal-thermo-count { font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 0; }

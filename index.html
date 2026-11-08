@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=363">
+<link rel="stylesheet" href="style.css?v=364">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -1023,6 +1023,46 @@
       </div>
     </section>
 
+    <!-- ============ SCREEN: GRIP ============ -->
+    <section id="screen-grip-workout" class="screen">
+      <div id="grip-confetti" class="confetti" aria-hidden="true"></div>
+      <div id="grip-idle" class="workout-idle">
+        <p class="workout-eyebrow">Boys Bonanza</p>
+        <p class="workout-hello"><span id="grip-avatar" class="avatar-circle"></span>
+          Ready to grip, <span id="grip-username">Friend</span><span class="tight-q">?</span></p>
+        <p class="workout-instructions">Squeeze at your own pace. Tap Switch hand when you change hands, and Stop when you're done. You'll confirm your squeeze count at the end.</p>
+        <button id="btn-grip-start" class="btn btn-giant btn-primary">START</button>
+      </div>
+      <div id="grip-active" class="workout-active grip-active hidden">
+        <div id="grip-clip" class="kb-clip grip-clip" aria-hidden="true"><video muted loop playsinline preload="auto" disablepictureinpicture></video></div>
+        <div class="rep-count-wrap">
+          <div id="grip-status" class="squat-phase-indicator"></div>
+          <div id="grip-timer" class="rep-count" role="timer">0:00</div>
+          <div class="rep-label">GRIP TIME</div>
+          <ol id="grip-laps" class="grip-laps"></ol>
+        </div>
+        <button id="btn-grip-cancel" type="button" class="btn btn-secondary btn-small-wide hidden">Cancel</button>
+        <div id="grip-controls" class="grip-controls hidden">
+          <button id="btn-grip-switch" type="button" class="btn btn-secondary grip-switch">⇄ Switch hand</button>
+          <button id="btn-grip-stop" class="btn btn-giant btn-complete">STOP</button>
+        </div>
+      </div>
+      <div id="grip-review" class="workout-active grip-review hidden">
+        <p class="workout-eyebrow">Grip done · <span id="grip-review-time">0:00</span></p>
+        <div class="missed-reps-label">How many squeezes?</div>
+        <div class="stepper-row grip-stepper">
+          <button id="btn-grip-count-minus" type="button" class="stepper-btn" aria-label="One fewer squeeze">−</button>
+          <button id="grip-count-value" type="button" class="stepper-value grip-count-value" aria-label="Type squeeze count">0</button>
+          <button id="btn-grip-count-plus" type="button" class="stepper-btn" aria-label="One more squeeze">+</button>
+        </div>
+        <input id="grip-count-input" class="grip-count-input hidden" type="number" inputmode="numeric" min="1" max="2000" aria-label="Squeeze count">
+        <p id="grip-review-hint" class="grip-review-hint"></p>
+        <ol id="grip-review-laps" class="grip-laps"></ol>
+        <button id="btn-grip-save" class="btn btn-giant btn-primary">SAVE</button>
+        <button id="btn-grip-discard" type="button" class="btn btn-secondary btn-small-wide">Discard</button>
+      </div>
+    </section>
+
     <!-- ============ SCREEN: HOLLAND MODE ============ -->
     <section id="screen-holland-workout" class="screen">
       <div id="holland-confetti" class="confetti" aria-hidden="true"></div>
@@ -1438,6 +1478,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="cock"><span>Cock</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="deadhang"><span>Dead hang</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="grip"><span>Grip</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-leaderboard-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -1837,6 +1878,7 @@
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pushups"><span>Pushups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="pullups"><span>Pull-ups</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="deadhang"><span>Dead hang</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
+            <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="grip"><span>Grip</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="situps"><span>Crunches</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="squats"><span>Squats</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
             <button type="button" class="leaderboard-mode-option" role="option" aria-selected="false" data-mysessions-mode="planks"><span>Planks</span><span class="leaderboard-mode-check" aria-hidden="true">✓</span></button>
@@ -2173,6 +2215,13 @@
             <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="deadhang" aria-label="Track a Dead hang goal">
             <span class="settings-category-chevron" aria-hidden="true">›</span>
           </div>
+          <div class="settings-category-row goal-type-row" data-goal-type="grip">
+            <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">✊</span>
+            <span class="settings-category-title">Grip</span>
+            <span id="goal-value-grip" class="settings-category-value"></span>
+            <input type="checkbox" class="goal-type-switch" data-goal-type-toggle="grip" aria-label="Track a Grip goal">
+            <span class="settings-category-chevron" aria-hidden="true">›</span>
+          </div>
           <div class="settings-category-row goal-type-row" data-goal-type="squats">
             <span class="settings-category-icon settings-category-icon-goals" aria-hidden="true">🦵</span>
             <span class="settings-category-title">Squats</span>
@@ -2366,6 +2415,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=387"></script>
+<script type="module" src="app.js?v=388"></script>
 </body>
 </html>

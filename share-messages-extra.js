@@ -355,6 +355,63 @@ export const SHARE_EXTRA_LINES = {
       (t, ctx) => `${ctx.weekTotalDisplay} on the bar. My shoulders are now load-bearing for the whole neighborhood.`,
     ],
   },
+  SHARE_MESSAGES_GRIP: {
+    c: [
+      (n) => `${n} gripper squeezes today ✊ Forearms feeling it.`,
+      (n) => `Grip session done: ${n} squeezes ✅`,
+      (n) => `${n} squeezes on the hand gripper. Slowly getting stronger 💪`,
+      (n) => `Logged ${n} grip squeezes today.`,
+    ],
+    s: [
+      (n) => `${n} squeezes. Your grip is weaker than your excuses.`,
+      (n) => `${n} gripper reps. Shake my hand if you dare ✊`,
+      (n) => `${n} squeezes. Some of you can't even open the ketchup.`,
+      (n) => `Grip: ${n}. Soft hands need not apply.`,
+      (n) => `${n} squeezes. Your move, limp-wristed lot.`,
+    ],
+  },
+  SHARE_MESSAGES_GRIP_STREAK: {
+    c: [
+      (n, ctx) => `${ctx.streak}-day streak going strong 🔥 ${n} squeezes today.`,
+      (n, ctx) => `Kept the streak alive: day ${ctx.streak}, ${n} squeezes ✅`,
+      (n, ctx) => `${n} squeezes today makes ${ctx.streak} days in a row ✊`,
+      (n, ctx) => `Day ${ctx.streak} done. ${n} squeezes on the gripper.`,
+    ],
+    s: [
+      (n, ctx) => `Day ${ctx.streak}, ${n} squeezes. How many days have you got? Exactly.`,
+      (n, ctx) => `${ctx.streak} days straight on the gripper. Catch up or keep quiet.`,
+      (n, ctx) => `${ctx.streak}-day streak. Your grip streak died in the cereal aisle.`,
+      (n, ctx) => `Still squeezing, day ${ctx.streak}. Still waiting on any of you.`,
+    ],
+    u: [
+      (n, ctx) => `Day ${ctx.streak}. I sleep holding the gripper now. ${n} squeezes today.`,
+      (n, ctx) => `${ctx.streak} days of squeezing. My hands have become crab claws with a mortgage. ${n} today 🦀`,
+      (n, ctx) => `${n} squeezes, day ${ctx.streak}. I accidentally crushed a TV remote. No regrets.`,
+      (n, ctx) => `${ctx.streak}-day streak. The gripper and I are legally a common-law couple now. ${n} today.`,
+      (n, ctx) => `Day ${ctx.streak}: ${n} squeezes. Every handshake I give now ends in an apology.`,
+    ],
+  },
+  SHARE_MESSAGES_GRIP_WEEK: {
+    c: [
+      (n, ctx) => `${ctx.weekTotalDisplay} squeezes this week ✊ ${n} today.`,
+      (n, ctx) => `Weekly grip total: ${ctx.weekTotalDisplay} ✅`,
+      (n, ctx) => `${n} today, ${ctx.weekTotalDisplay} squeezes on the week.`,
+    ],
+    s: [
+      (n, ctx) => `${ctx.weekTotalDisplay} squeezes this week. What's your number? Thought so.`,
+      (n, ctx) => `${n} today, ${ctx.weekTotalDisplay} this week. Keep up, boys.`,
+      (n, ctx) => `Week total ${ctx.weekTotalDisplay}. Your grip quit Tuesday.`,
+      (n, ctx) => `${ctx.weekTotalDisplay} squeezes on the week. Somebody's carrying this group and it isn't you.`,
+      (n, ctx) => `${ctx.weekTotalDisplay} this week. Your handshake still feels like a wet sock 😏`,
+    ],
+    u: [
+      (n, ctx) => `${ctx.weekTotalDisplay} squeezes this week. Jars open themselves when I walk in now.`,
+      (n, ctx) => `Week total: ${ctx.weekTotalDisplay}. My forearms have their own postcode.`,
+      (n, ctx) => `${ctx.weekTotalDisplay} squeezes. I turned a lemon into a juice box with one hand.`,
+      (n, ctx) => `${n} today, ${ctx.weekTotalDisplay} this week. Tennis balls flee when they see me.`,
+      (n, ctx) => `${ctx.weekTotalDisplay} on the week. My hands are now registered as heavy machinery.`,
+    ],
+  },
   SHARE_MESSAGES_SQUAT: {
     s: [
       (n) => `${n} squats. Some of you only squat to pick up the remote.`,

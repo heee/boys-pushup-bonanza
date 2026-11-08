@@ -633,6 +633,25 @@ export const FUN_MESSAGES_DEADHANG = [
 
 export const DEADHANG_RECORD_LINE = "New dead hang record! Grip of steel!";
 
+export const FUN_MESSAGES_GRIP = [
+  (n) => `${n} squeezes! Pickle jars everywhere just got nervous.`,
+  (n) => `${n} squeezes. Your handshake is now a weapon.`,
+  (n) => `That's ${n} squeezes of pure forearm fury.`,
+  (n) => `${n} squeezes. Doorknobs fear you now.`,
+  (n) => `${n} squeezes. Your fingers have unionized.`,
+];
+
+export const GRIP_START_LINE = "Squeeze!";
+export const GRIP_RECORD_LINE = "New grip record! Crushing it!";
+export const GRIP_SWITCH_LINES = ["Switch hands!", "Other hand, go!", "Swap it!"];
+export const GRIP_ENCOURAGE_LINES = [
+  "Keep squeezing!",
+  "Full squeeze, full release!",
+  "Crush it!",
+  "Forearms on fire, keep going!",
+  "Squeeze like you mean it!",
+];
+
 // Everything the app says that isn't a number, a cheer, or a fun-message tail.
 export const FIXED_PHRASES = [
   "Let's go",
@@ -641,6 +660,11 @@ export const FIXED_PHRASES = [
   "Session complete.",
   "Plank complete.",
   "Dead hang complete.",
+  "Grip complete.",
+  GRIP_START_LINE,
+  GRIP_RECORD_LINE,
+  ...GRIP_SWITCH_LINES,
+  ...GRIP_ENCOURAGE_LINES,
   "Hang!",
   DEADHANG_RECORD_LINE,
   "New personal record! Absolute legend!",
@@ -756,6 +780,7 @@ export function buildCorpus() {
   for (const fn of FUN_MESSAGES) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_PLANK) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_DEADHANG) for (const frag of templateFragments(fn)) add(frag, "hype");
+  for (const fn of FUN_MESSAGES_GRIP) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_PULLUP) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SQUAT) for (const frag of templateFragments(fn)) add(frag, "hype");
   for (const fn of FUN_MESSAGES_SITUP) for (const frag of templateFragments(fn)) add(frag, "hype");

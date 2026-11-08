@@ -19,6 +19,7 @@ export const MODE_META = {
   chase: { label: "Chase", icon: "🏃" },
   planks: { label: "Planks", icon: "🪵" },
   deadhang: { label: "Dead hang", icon: "🙌" },
+  grip: { label: "Grip", icon: "✊" },
   squats: { label: "Squats", icon: "🦵" },
   pullups: { label: "Pull-ups", icon: "💪" },
   situps: { label: "Crunches", icon: "🙇" },
@@ -31,6 +32,7 @@ export const MODE_META = {
 export function sessionModeId(session) {
   if (session?.type === "plank") return "planks";
   if (session?.type === "deadhang") return "deadhang";
+  if (session?.type === "grip") return "grip";
   if (session?.type === "squat") return "squats";
   if (session?.type === "pullup") return "pullups";
   if (session?.type === "situp") return "situps";
@@ -114,6 +116,12 @@ export function sessionKeyMetrics(session) {
     if (modeId !== "holland" && modeId !== "chainofpain" && modeId !== "kettlebell" && plausiblePace(session)) {
       metrics.push({ id: "pace", label: "Pace", format: "pace", value: sessionPace(session) });
     }
+  }
+
+  // Grip: per-hand lap splits from the Switch hand button (first lap = left).
+  if (modeId === "grip" && Array.isArray(session.gripLaps) && session.gripLaps.length > 1) {
+    const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    metrics.push({ id: "gripLaps", label: "Laps", format: "text", value: session.gripLaps.map((s, i) => `${i % 2 ? "R" : "L"} ${mmss(s)}`).join(" · ") });
   }
 
   // Pulse's `count` is seconds held in band, not reps — the generic

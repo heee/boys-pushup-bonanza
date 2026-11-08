@@ -1,7 +1,7 @@
 // Minimal app-shell cache so the PWA opens instantly and installs cleanly.
 // Never intercepts the GitHub API. The MediaPipe runtime/models are the one
 // cross-origin exception — see TRACKER_CACHE.
-const CACHE_NAME = "bpb-shell-v564";
+const CACHE_NAME = "bpb-shell-v565";
 
 // Pinned MediaPipe runtime + models (~15 MB). The URLs are version-pinned
 // and never change, so they're served cache-first from their own cache,
@@ -15,8 +15,8 @@ function isTrackerAsset(url) {
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=363",
-  "./app.js?v=386",
+  "./style.css?v=364",
+  "./app.js?v=388",
   "./ghost-effect.js",
   "./assets/sounds/boo-laugh.mp3",
   "./wheel-mode.js?v=4",
@@ -28,7 +28,8 @@ const SHELL_FILES = [
   "./modes/kettlebell-workouts.js",
   "./modes/pulse.js",
   "./modes/cock.js",
-  "./share-messages.js?v=152",
+  "./modes/grip.js",
+  "./share-messages.js?v=153",
   "./api.js",
   "./storage.js",
   "./territory-location.js",
@@ -53,20 +54,20 @@ const SHELL_FILES = [
   "./stats.js",
   "./screens/summary.js",
   "./screens/dashboard.js",
-  "./screens/mode-stats.js?v=149",
-  "./screens/mode-breakdown.js?v=7",
+  "./screens/mode-stats.js?v=150",
+  "./screens/mode-breakdown.js?v=8",
   "./screens/comparison.js?v=140",
-  "./screens/session-detail.js?v=14",
+  "./screens/session-detail.js?v=15",
   "./screens/challenges.js",
   "./screens/bingo.js?v=6",
   "./screens/poker-collection.js?v=4",
   "./screens/settings.js",
-  "./screens/explore-modes.js?v=154",
-  "./screens/mode-icons.js?v=5",
+  "./screens/explore-modes.js?v=155",
+  "./screens/mode-icons.js?v=6",
   "./screens/modifiers.js?v=102",
   "./screens/users.js",
   "./workout-modes.js?v=154",
-  "./changelog.js?v=15",
+  "./changelog.js?v=16",
   "./horse.js",
   "./horse-words.js",
   "./screens/horse.js",
@@ -77,7 +78,7 @@ const SHELL_FILES = [
   "./chase.js",
   "./ladder-rivals.js",
   "./voice.js?v=156",
-  "./voice-lines.js?v=149",
+  "./voice-lines.js?v=150",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

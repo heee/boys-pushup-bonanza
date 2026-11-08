@@ -95,6 +95,11 @@ const SPECS = {
     { id: "totalHang", label: "Total hang time", format: "seconds", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
     { id: "avgHang", label: "Avg hang time", format: "seconds", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
   ],
+  grip: [
+    { id: "sets", label: "Grip sets", format: "integer", qualifier: "total", value: (s) => s.length },
+    { id: "totalReps", label: "Total squeezes", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
+    { id: "avgReps", label: "Avg squeezes / set", format: "decimal", qualifier: "group avg", value: (s) => s.length ? average(s.map((x) => Number(x.count) || 0)) : null },
+  ],
   pullups: [
     { id: "sets", label: "Pull-up sets", format: "integer", qualifier: "total", value: (s) => s.length },
     { id: "totalReps", label: "Total pull-ups", format: "integer", qualifier: "total", value: (s) => s.length ? sum(s, (x) => Number(x.count) || 0) : null },
@@ -238,7 +243,7 @@ export function modesUsedStat(sessions) {
 // modesUsedStat. Callers pass the full period-filtered session list (not
 // the mode-filtered one) for this.
 export function exerciseTypesUsedStat(sessions) {
-  const typeIdOf = (s) => (s.type === "plank" ? "planks" : s.type === "deadhang" ? "deadhang" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups");
+  const typeIdOf = (s) => (s.type === "plank" ? "planks" : s.type === "deadhang" ? "deadhang" : s.type === "grip" ? "grip" : s.type === "pullup" ? "pullups" : s.type === "squat" ? "squats" : s.type === "situp" ? "situps" : s.type === "holland" ? "holland" : s.type === "chainofpain" ? "chainofpain" : s.type === "kettlebell" ? "kettlebell" : "pushups");
   const allTypes = new Set();
   const byUser = new Map();
   for (const s of sessions) {
