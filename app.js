@@ -1905,17 +1905,12 @@ function renderStreakBadge() {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const restDaySavedStreak = restDays.some((d) => d.toDateString() === yesterday.toDateString());
-  el.classList.toggle("streak-badge-rest", restDaySavedStreak);
-  let html;
-  if (streak > 0) {
-    const restBadge = restDaySavedStreak ? `<span class="streak-rest-badge">🛌</span>` : "";
-    html = `🔥${restBadge}<span class="streak-num">${streak}</span>`;
-    el.title = restDaySavedStreak ? "Rest day used — streak saved!" : "";
-  } else {
-    html = `❄️<span class="streak-num streak-zero">0</span>`;
-    el.title = "";
-  }
-  el.innerHTML = html;
+  // Color carries the state (orange active, blue rest-day-saved, grey at 0)
+  // instead of extra emoji; the capsule it sits in is shared with Settings.
+  el.classList.toggle("streak-badge-rest", streak > 0 && restDaySavedStreak);
+  el.classList.toggle("streak-badge-zero", streak === 0);
+  el.title = streak > 0 && restDaySavedStreak ? "Rest day used — streak saved!" : "";
+  el.innerHTML = `<svg class="streak-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10.9c2.3-3.3.2-7.8-1-8.9 0 3.4-2.2 5.3-3.7 6.7C5.9 10.1 5 12.3 5 14.3 5 18 8.1 21 12 21s7-3 7-6.7c0-1.7-1.2-4.4-2.3-5.6-2.1 3.4-3.3 3.4-4.7 2.2"/></svg><span class="streak-num">${streak}</span>`;
 }
 
 // ------------------- personal goals -------------------
