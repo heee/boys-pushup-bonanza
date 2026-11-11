@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=368">
+<link rel="stylesheet" href="style.css?v=369">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -118,6 +118,7 @@
 
         <div id="cards-hud" class="cards-hud hidden">
           <div class="card-flip-scene">
+            <div id="card-pile-under" class="card-pile-under" aria-hidden="true"></div>
             <div id="card-flip" class="card-flip">
               <div id="card-face-front" class="card-face card-face-front"></div>
               <div id="card-face-back" class="card-face card-face-back"></div>
@@ -1388,13 +1389,18 @@
         <div id="summary-sync-status" class="sync-status" role="status" aria-live="polite"></div>
       </div>
       <div class="summary-actions">
-        <button id="btn-summary-again" class="btn btn-primary btn-large">Same again<svg class="btn-start-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10.9c2.3-3.3.2-7.8-1-8.9 0 3.4-2.2 5.3-3.7 6.7C5.9 10.1 5 12.3 5 14.3 5 18 8.1 21 12 21s7-3 7-6.7c0-1.7-1.2-4.4-2.3-5.6-2.1 3.4-3.3 3.4-4.7 2.2"/></svg></button>
+        <div class="summary-again-split">
+          <button id="btn-summary-again" class="btn btn-primary btn-large">Same again<svg class="btn-start-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10.9c2.3-3.3.2-7.8-1-8.9 0 3.4-2.2 5.3-3.7 6.7C5.9 10.1 5 12.3 5 14.3 5 18 8.1 21 12 21s7-3 7-6.7c0-1.7-1.2-4.4-2.3-5.6-2.1 3.4-3.3 3.4-4.7 2.2"/></svg></button>
+          <button id="btn-summary-more" type="button" class="btn btn-primary summary-more-toggle" aria-expanded="false" aria-controls="summary-more-drawer" aria-label="More options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+        <div id="summary-more-drawer" class="summary-more-drawer"><div class="summary-more-inner">
         <div class="summary-actions-grid">
           <button id="btn-summary-review" type="button" class="btn btn-secondary summary-action" aria-label="Review session"><span class="summary-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6"/><path d="M9 14h6"/><path d="M9 18h3"/></svg></span>Review</button>
           <button id="btn-summary-different-type" type="button" class="btn btn-secondary summary-action" aria-label="Different type"><span id="summary-type-icon" class="summary-action-icon" aria-hidden="true"></span>Type</button>
           <button id="btn-summary-different-mode" type="button" class="btn btn-secondary summary-action" aria-label="Different mode"><span id="summary-mode-icon" class="summary-action-icon" aria-hidden="true"></span>Mode</button>
           <button id="btn-summary-share" type="button" class="btn btn-secondary summary-action" aria-label="Share session"><span class="summary-action-icon" aria-hidden="true"><span class="icon-share"></span></span>Share</button>
         </div>
+        </div></div>
       </div>
     </section>
 
@@ -2414,6 +2420,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=389"></script>
+<script type="module" src="app.js?v=390"></script>
 </body>
 </html>

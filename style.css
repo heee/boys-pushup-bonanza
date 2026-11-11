@@ -6456,3 +6456,34 @@ body:has(#screen-challenge-detail.active) #app {
 .poker-toast-hand.rank-3, .poker-toast-hand.rank-4, .poker-toast-hand.rank-5 { color: var(--primary); }
 .poker-toast-hand.rank-6, .poker-toast-hand.rank-7, .poker-toast-hand.rank-8, .poker-toast-hand.rank-9 { color: var(--success); }
 .poker-toast-sub { color: var(--text-dim); }
+
+/* Session complete: Same again (80%) + attached chevron as one split pill;
+   the chevron drops down the Review/Type/Mode/Share row underneath. */
+.summary-again-split { display: flex; width: 100%; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 24px rgba(226, 147, 63, 0.25); }
+.summary-actions .summary-again-split .btn { margin: 0; border-radius: 0; box-shadow: none; }
+.summary-again-split #btn-summary-again { flex: 0 0 80%; width: auto; }
+.summary-actions .summary-again-split .summary-more-toggle { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0; border-left: 1px solid rgba(26, 16, 6, 0.22); }
+.summary-more-toggle svg { width: 1.2rem; height: 1.2rem; transition: transform 220ms ease; }
+.summary-more-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+/* Collapsed: zero height and pulled up over the parent's 0.7rem gap. */
+.summary-more-drawer { display: grid; grid-template-rows: 0fr; margin-top: -0.7rem; transition: grid-template-rows 260ms ease, margin-top 260ms ease; }
+.summary-more-drawer.open { grid-template-rows: 1fr; margin-top: -0.1rem; }
+.summary-more-inner { overflow: hidden; min-height: 0; }
+@media (prefers-reduced-motion: reduce) { .summary-more-drawer, .summary-more-toggle svg { transition: none; } }
+
+/* Cards pile: the next few cards sit face up under the active one at small
+   random offsets/tilts (set inline by renderCardPile), like a loose pile. */
+.card-pile-under { position: absolute; inset: 0; pointer-events: none; }
+.card-face.card-pile-card { transform: translate(var(--pile-x, 0), var(--pile-y, 0)) rotate(var(--pile-r, 0deg)); filter: drop-shadow(0 0.25rem 0.35rem rgba(0, 0, 0, 0.5)) brightness(0.82); }
+:root[data-theme="light"] .card-face.card-pile-card { filter: drop-shadow(0 0.25rem 0.35rem rgba(90, 70, 30, 0.22)) brightness(0.9); }
+.card-face-front { transform: translate(var(--pile-x, 0), var(--pile-y, 0)) rotate(var(--pile-r, 0deg)); }
+/* Toss v2: slid a touch toward you, then flicked up and off the pile in an
+   arc — like dealing it away by hand. Starts from the card's own pile tilt. */
+.card-toss { animation: card-swoosh 520ms forwards; }
+@keyframes card-swoosh {
+  0% { transform: translate(var(--pile-x, 0), var(--pile-y, 0)) rotate(var(--pile-r, 0deg)); animation-timing-function: cubic-bezier(0.3, 0, 0.5, 1); }
+  18% { transform: translate(calc(var(--toss-dir) * -4%), 5%) rotate(calc(var(--toss-dir) * -4deg)) scale(1.04); animation-timing-function: cubic-bezier(0.45, 0, 0.9, 0.5); }
+  55% { transform: translate(calc(var(--toss-dir) * 30%), -55%) rotate(calc(var(--toss-dir) * 18deg)) scale(0.96); opacity: 1; }
+  100% { transform: translate(calc(var(--toss-dir) * 85%), -150%) rotate(calc(var(--toss-dir) * 38deg)) scale(0.8); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .card-toss { animation: none; } }

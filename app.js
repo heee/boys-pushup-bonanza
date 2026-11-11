@@ -806,6 +806,7 @@ function applyTheme(theme) {
   if (state.currentCard) {
     setCardFace($("card-face-front"), state.currentCard);
     setCardFace($("card-face-back"), state.currentCard);
+    renderCardPile();
   }
 }
 
@@ -2177,6 +2178,9 @@ function showScreen(id) {
   // screen it's shown on goes away.
   if (id !== "screen-settings-workout" && squatTraceState.running) stopSquatCaptureTest();
   if (id !== "screen-settings-workout" && situpTraceState.running) stopSitupCaptureTest();
+  // Fresh summary starts with the extra actions tucked away; coming back from
+  // Review keeps whatever the user left open.
+  if (id === "screen-summary" && state.screen !== "screen-summary" && state.screen !== "screen-session-detail") setSummaryMoreOpen(false);
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(id).classList.add("active");
   state.screen = id;
@@ -11639,6 +11643,42 @@ function advancePokerCard() {
   }
 }
 
+// Loose-pile look: each card gets a small random offset/tilt the first time
+// it's seen, kept while it works its way up the pile; the active (top) card
+// sits squarer than the ones underneath. Purely cosmetic.
+const cardPileJitter = new Map();
+const pileRand = (a, b) => a + Math.random() * (b - a);
+function cardPileKey(card) { return `${card.col}-${card.row}`; }
+function applyPileJitter(el, card, depth) {
+  const key = cardPileKey(card) + (depth === 0 ? "-top" : "");
+  let j = cardPileJitter.get(key);
+  if (!j) {
+    j = depth === 0
+      ? { x: pileRand(-3, 3), y: pileRand(-2, 2), r: pileRand(-1, 1) }
+      : { x: pileRand(-4, 4), y: pileRand(-2, 4), r: pileRand(-2.4, 2.4) * (depth >= 2 ? 1.3 : 1) };
+    cardPileJitter.set(key, j);
+  }
+  el.style.setProperty("--pile-x", `${j.x.toFixed(1)}px`);
+  el.style.setProperty("--pile-y", `${(j.y + depth * 2).toFixed(1)}px`);
+  el.style.setProperty("--pile-r", `${j.r.toFixed(2)}deg`);
+}
+// Up to 3 upcoming cards (real faces, straight off the persisted deck) peek
+// out under the active one.
+function renderCardPile() {
+  const under = $("card-pile-under");
+  if (!under) return;
+  const upcoming = getPersistedDeck().slice(0, 3).map((c) => cardAt(c.col, c.row));
+  under.innerHTML = "";
+  for (let i = upcoming.length - 1; i >= 0; i--) {
+    const el = document.createElement("div");
+    el.className = "card-face card-pile-card";
+    el.style.backgroundImage = `url("${cardImageUrl(upcoming[i])}")`;
+    applyPileJitter(el, upcoming[i], i + 1);
+    under.appendChild(el);
+  }
+  if (state.currentCard) applyPileJitter($("card-face-front"), state.currentCard, 0);
+}
+
 // Toss: the incoming card is put on the front face straight away (it was
 // "underneath" the outgoing one), and a throwaway copy of the outgoing card
 // is flung off a random side of the screen over it, spinning as it goes. Each
@@ -11658,8 +11698,8 @@ function playCardToss(outgoing, incoming) {
   tossed.setAttribute("aria-hidden", "true");
   tossed.style.backgroundImage = `url("${cardImageUrl(outgoing)}")`;
   tossed.style.setProperty("--toss-dir", dir);
-  tossed.style.setProperty("--toss-y", `${Math.round(-35 + Math.random() * 40)}vh`);
-  tossed.style.setProperty("--toss-spin", `${Math.round(100 + Math.random() * 80)}deg`);
+  // Start the swoosh from the outgoing card's own resting tilt on the pile.
+  for (const v of ["--pile-x", "--pile-y", "--pile-r"]) tossed.style.setProperty(v, front.style.getPropertyValue(v));
   tossed.addEventListener("animationend", () => tossed.remove(), { once: true });
   setTimeout(() => tossed.remove(), 900); // safety net if animationend never fires
   scene.parentElement.appendChild(tossed);
@@ -11683,6 +11723,7 @@ function advanceToNextCard() {
   state.currentCard = next;
   state.cardTarget = next.value;
   state.cardRepsDone = 0;
+  renderCardPile();
   return next;
 }
 
@@ -12183,6 +12224,8 @@ async function setupWorkoutModeState() {
     document.querySelectorAll(".card-toss").forEach((el) => el.remove());
     setCardFace($("card-face-front"), first);
     setCardFace($("card-face-back"), first);
+    cardPileJitter.clear();
+    renderCardPile();
   } else {
     state.currentCard = null;
     state.cardTarget = 0;
@@ -13788,6 +13831,16 @@ $("btn-summary-again").addEventListener("click", () => {
   if (!screen) preserveNextModeSelection = true;
   showScreen(screen || "screen-workout");
 });
+// Split button chevron: drops down the Review/Type/Mode/Share row.
+function setSummaryMoreOpen(open) {
+  $("summary-more-drawer").classList.toggle("open", open);
+  $("summary-more-drawer").inert = !open;
+  $("btn-summary-more").setAttribute("aria-expanded", String(open));
+}
+$("btn-summary-more").addEventListener("click", () => {
+  setSummaryMoreOpen($("btn-summary-more").getAttribute("aria-expanded") !== "true");
+});
+setSummaryMoreOpen(false);
 $("btn-summary-different-mode").addEventListener("click", () => {
   modePickerOrigin = "home";
   showScreen("screen-explore-modes");
