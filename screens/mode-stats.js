@@ -150,6 +150,18 @@ const SPECS = {
   ],
 };
 
+// Every player ranked for one metric, best first (score decides "best", so
+// pace ranks by closeness to its ideal). Ties share a rank (1, 1, 3) and
+// are ordered by name.
+export function rankEntries(entries, score = (v) => v) {
+  const sorted = entries.slice().sort((a, b) => (score(b.value) - score(a.value)) || a.user.localeCompare(b.user));
+  let rank = 0;
+  return sorted.map((entry, i) => {
+    if (i === 0 || Math.abs(score(entry.value) - score(sorted[i - 1].value)) >= 1e-9) rank = i + 1;
+    return { ...entry, rank };
+  });
+}
+
 export function modeStatsModel(sessions, mode) {
   const specs = SPECS[mode] || SPECS.all;
   const byUser = new Map();
@@ -165,7 +177,7 @@ export function modeStatsModel(sessions, mode) {
     const score = spec.leaderTarget == null ? (v) => v : (v) => -Math.abs(v - spec.leaderTarget);
     const best = userValues.length ? Math.max(...userValues.map((entry) => score(entry.value))) : null;
     const leaders = best == null ? [] : userValues.filter((entry) => Math.abs(score(entry.value) - best) < 1e-9).sort((a, b) => a.user.localeCompare(b.user));
-    return { id: spec.id, label: spec.label, format: spec.format, qualifier: spec.qualifier, leaderTarget: spec.leaderTarget, value, leaders, available: value != null && Number.isFinite(value) };
+    return { id: spec.id, label: spec.label, format: spec.format, qualifier: spec.qualifier, leaderTarget: spec.leaderTarget, value, leaders, ranking: rankEntries(userValues, score), available: value != null && Number.isFinite(value) };
   });
 }
 
@@ -191,8 +203,12 @@ export function totalTimeStat(sessions, mode) {
   }
   return {
     id: "totalTime", label: "Total time", format: "duration", qualifier: "total",
-    value: total, leaders: topByCount(byUser), available: total != null,
+    value: total, leaders: topByCount(byUser), ranking: rankByCount(byUser), available: total != null,
   };
+}
+
+function rankByCount(counts) {
+  return rankEntries(Array.from(counts, ([user, value]) => ({ user, value })));
 }
 
 function topByCount(counts) {
@@ -210,7 +226,7 @@ export function modifiersUsedStat(sessions) {
   for (const s of tagged) byUser.set(s.user, (byUser.get(s.user) || 0) + 1);
   return {
     id: "modifiersUsed", label: "Modifiers used", format: "integer", qualifier: "total",
-    value: tagged.length || null, leaders: topByCount(byUser), available: tagged.length > 0,
+    value: tagged.length || null, leaders: topByCount(byUser), ranking: rankByCount(byUser), available: tagged.length > 0,
   };
 }
 
@@ -233,7 +249,7 @@ export function modesUsedStat(sessions) {
   const userCounts = new Map(Array.from(byUser, ([user, set]) => [user, set.size]));
   return {
     id: "modesUsed", label: "Modes used", format: "integer", qualifier: "group unique",
-    value: allModes.size || null, leaders: topByCount(userCounts), available: allModes.size > 0,
+    value: allModes.size || null, leaders: topByCount(userCounts), ranking: rankByCount(userCounts), available: allModes.size > 0,
   };
 }
 
@@ -256,7 +272,7 @@ export function exerciseTypesUsedStat(sessions) {
   const userCounts = new Map(Array.from(byUser, ([user, set]) => [user, set.size]));
   return {
     id: "exerciseTypesUsed", label: "Exercise types used", format: "integer", qualifier: "group unique",
-    value: allTypes.size || null, leaders: topByCount(userCounts), available: allTypes.size > 0,
+    value: allTypes.size || null, leaders: topByCount(userCounts), ranking: rankByCount(userCounts), available: allTypes.size > 0,
   };
 }
 
@@ -277,7 +293,7 @@ function placesVisitedStat(sessions, id, label, placeIdOf) {
   const userCounts = new Map(Array.from(byUser, ([user, set]) => [user, set.size]));
   return {
     id, label, format: "integer", qualifier: "group unique",
-    value: allPlaces.size || null, leaders: topByCount(userCounts), available: allPlaces.size > 0,
+    value: allPlaces.size || null, leaders: topByCount(userCounts), ranking: rankByCount(userCounts), available: allPlaces.size > 0,
   };
 }
 

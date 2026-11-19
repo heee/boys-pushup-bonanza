@@ -128,7 +128,7 @@ import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from ".
 import { bestFor, computeStreakCore as calculateStreak, filterByMode, goalPaceStatus, periodStart, weightedMultiplier } from "./stats.js?v=2";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
-import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat, countriesVisitedStat, citiesVisitedStat } from "./screens/mode-stats.js?v=150";
+import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat, countriesVisitedStat, citiesVisitedStat } from "./screens/mode-stats.js?v=151";
 import { modeBreakdownModel } from "./screens/mode-breakdown.js?v=8";
 import { comparisonModel } from "./screens/comparison.js?v=140";
 import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, challengePrProgress, challengeShareContext, challengeStatus, challengeStatusLabel, challengeWindow, challengeWindowProgress, daysLeft, daysUntilStart, formatChallengeDates, progressThermometerModel, recentChallengeSessions } from "./screens/challenges.js?v=212";
@@ -8588,6 +8588,49 @@ function boysModeStatsMetrics(sessions, allModeSessions) {
   return metrics;
 }
 
+// Tapping a Group/Leader statistics row opens that metric's full ranking in
+// a bottom sheet — every player in the current period/mode/scope selection.
+const statMetricsBySection = { group: new Map(), leader: new Map() };
+const STAT_ROW_CHEVRON = '<svg class="boys-mode-stat-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+
+function openMetricSheet(metric) {
+  $("metric-sheet-title").textContent = metric.label;
+  const groupValue = metric.available ? formatModeMetric(metric) : "—";
+  const qualifier = metric.qualifier ? metric.qualifier.charAt(0).toUpperCase() + metric.qualifier.slice(1) : "Group";
+  $("metric-sheet-sub").textContent = metric.leaderTarget != null
+    ? `${qualifier}: ${groupValue} · ranked closest to the 30–45/min ideal`
+    : `${qualifier}: ${groupValue}`;
+  $("metric-sheet-list").innerHTML = (metric.ranking || []).map((entry) => {
+    const me = entry.user === state.currentUser;
+    return `<li class="metric-sheet-row${me ? " is-me" : ""}">
+      <span class="metric-sheet-rank">${entry.rank}</span>
+      ${avatarCircleHTML(avatarForUser(entry.user), "1.6rem")}
+      <span class="metric-sheet-name">${escapeHtml(entry.user)}${me ? " (you)" : ""}</span>
+      <span class="metric-sheet-value">${formatModeMetric(metric, entry.value)}</span>
+    </li>`;
+  }).join("");
+  $("metric-sheet-backdrop").classList.remove("hidden");
+  $("metric-sheet").scrollTop = 0;
+}
+function closeMetricSheet() {
+  $("metric-sheet-backdrop").classList.add("hidden");
+}
+$("btn-metric-sheet-close").addEventListener("click", closeMetricSheet);
+$("metric-sheet-backdrop").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeMetricSheet();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("metric-sheet-backdrop").classList.contains("hidden")) closeMetricSheet();
+});
+for (const id of ["boys-mode-stats", "boys-leader-stats"]) {
+  $(id).addEventListener("click", (e) => {
+    const row = e.target.closest("[data-stat-id]");
+    if (!row) return;
+    const metric = statMetricsBySection[row.dataset.statSection]?.get(row.dataset.statId);
+    if (metric) openMetricSheet(metric);
+  });
+}
+
 function renderBoysModeStats(sessions, allModeSessions = sessions) {
   const el = $("boys-mode-stats");
   // With a single participant the group numbers are just that boy's own
@@ -8596,13 +8639,15 @@ function renderBoysModeStats(sessions, allModeSessions = sessions) {
   el.closest(".boys-mode-stats-section").classList.toggle("hidden", soloBoard);
   if (soloBoard) return;
   const metrics = boysModeStatsMetrics(sessions, allModeSessions);
+  statMetricsBySection.group = new Map(metrics.map((metric) => [metric.id, metric]));
   el.innerHTML = metrics.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
     const value = metric.available ? formatModeMetric(metric) : "—";
-    return `<div class="boys-mode-stat">
+    const tappable = metric.available && metric.ranking?.length;
+    return `<${tappable ? `button type="button" data-stat-section="group" data-stat-id="${metric.id}"` : "div"} class="boys-mode-stat${tappable ? " is-tappable" : ""}">
       <span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span>
-      <span class="boys-mode-stat-value">${value}</span>
-    </div>`;
+      <span class="boys-mode-stat-values"><span class="boys-mode-stat-value">${value}</span>${tappable ? STAT_ROW_CHEVRON : ""}</span>
+    </${tappable ? "button" : "div"}>`;
   }).join("");
 }
 
@@ -8618,17 +8663,19 @@ function renderBoysLeaderStats(sessions, allModeSessions = sessions) {
   const shownValue = (metric, v) => (metric.format === "percent" ? v * 100 : metric.format === "duration" ? v / 1000 : v);
   const callouts = metrics.filter((metric) => metric.available && metric.leaders.length && shownValue(metric, metric.leaders[0].value) > 1);
   el.closest(".boys-mode-stats-section").classList.toggle("hidden", !callouts.length);
+  statMetricsBySection.leader = new Map(callouts.map((metric) => [metric.id, metric]));
   el.innerHTML = callouts.map((metric) => {
     const icon = challengeStatIconHTML(modeStatIcon(metric));
     const leader = metric.leaders[0];
     const avatar = soloSelection ? "" : avatarCircleHTML(avatarForUser(leader.user), "0.95rem");
-    return `<div class="boys-mode-stat">
+    return `<button type="button" class="boys-mode-stat is-tappable" data-stat-section="leader" data-stat-id="${metric.id}">
       <span class="boys-mode-stat-label">${icon}<span>${metric.label}</span></span>
       <span class="boys-mode-stat-values">
         <span class="boys-mode-stat-avatars">${avatar}</span>
         <span class="boys-mode-stat-value">${formatModeMetric(metric, leader.value)}</span>
+        ${STAT_ROW_CHEVRON}
       </span>
-    </div>`;
+    </button>`;
   }).join("");
 }
 

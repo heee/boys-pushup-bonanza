@@ -3620,6 +3620,22 @@ body:has(#screen-challenges.active) .challenge-list {
 
 
 #boys-mode-stats, #boys-leader-stats { margin-top: 1.6rem; }
+/* Rows open their metric's ranking (bottom sheet); rendered as buttons. */
+button.boys-mode-stat { width: 100%; background: none; border: none; border-bottom: 1px solid var(--border); font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button.boys-mode-stat:last-child { border-bottom: none; }
+button.boys-mode-stat:active { background: var(--bg-elevated); }
+.boys-mode-stat-chev { width: 1rem; height: 1rem; color: var(--text-tertiary); flex-shrink: 0; margin-right: -0.3rem; }
+#boys-mode-stats .boys-mode-stat-values { gap: 0.35rem; }
+
+.metric-sheet-sub { margin: 0.15rem 0 0.8rem; font-size: 0.82rem; color: var(--text-dim); }
+.metric-sheet-list { list-style: none; margin: 0; padding: 0; }
+.metric-sheet-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.4rem; border-bottom: 1px solid var(--border); }
+.metric-sheet-row:last-child { border-bottom: none; }
+.metric-sheet-row.is-me { background: color-mix(in srgb, var(--primary) 14%, transparent); border-radius: 10px; border-bottom-color: transparent; }
+.metric-sheet-rank { width: 1.4rem; text-align: center; font-size: 0.85rem; font-weight: 400; color: var(--text-dim); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.metric-sheet-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; color: var(--text); }
+.metric-sheet-row.is-me .metric-sheet-name { font-weight: 650; }
+.metric-sheet-value { font-size: 1rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
 
 .mybonanza-chart-card {
   margin-bottom: 0.8rem;
