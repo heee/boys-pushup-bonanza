@@ -11282,16 +11282,10 @@ function ladderMarkerAge(days) {
   return days === 0 ? "today" : `${days}d`;
 }
 
-// Best = solid chip with a gold ★; latest = dashed "ghost" chip with ⟲ and
-// an age tag; both (latest on the best rung) = ★ + age, 🔥 if it set the PB.
-// The age tag is the ghost's identity, so it always shows there; on a merged
-// best+latest chip it only shows on the roomier current-rung pacer.
-function ladderMarkerTags(user, roomy) {
-  const star = user.kind !== "latest" ? '<span class="ladder-marker-star" aria-hidden="true">★</span>' : "";
-  const ghost = user.kind === "latest" ? '<span class="ladder-marker-ghost" aria-hidden="true">⟲</span>' : "";
-  const age = user.ageDays != null && (user.kind === "latest" || roomy) ? `<span class="ladder-marker-age">${ladderMarkerAge(user.ageDays)}</span>` : "";
-  const fire = user.freshPB ? '<span class="ladder-marker-fire" aria-hidden="true">🔥</span>' : "";
-  return `${star}${ghost}${fire}${age}`;
+// Best (incl. a latest climb that landed on the best rung) = solid chip,
+// name only. Latest = greyed-out chip with a small age tag.
+function ladderMarkerTags(user) {
+  return user.kind === "latest" && user.ageDays != null ? `<span class="ladder-marker-age">${ladderMarkerAge(user.ageDays)}</span>` : "";
 }
 
 function ladderMarkerLabel(user) {
@@ -11316,11 +11310,11 @@ function ladderRungStatusHTML(row) {
   const rivalMarkup = `<div class="${wrapClass}" aria-label="${escapeHtml(row.rival.users.map(ladderMarkerLabel).join("; "))}">
     ${row.rival.users.map((user) => {
       const { name, avatar, self } = user;
-      const cls = `${self ? " self" : ""} kind-${user.kind}${user.freshPB ? " fresh-pb" : ""}`;
+      const cls = `${self ? " self" : ""} kind-${user.kind}`;
       const label = escapeHtml(self ? "You" : name);
-      if (isCurrent && !row.compactRivals) return `<span class="ladder-pacer-chip${cls}" title="${escapeHtml(ladderMarkerLabel(user))}">${avatarCircleHTML(avatar, "20px")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user, true)}</span>`;
+      if (isCurrent && !row.compactRivals) return `<span class="ladder-pacer-chip${cls}" title="${escapeHtml(ladderMarkerLabel(user))}">${avatarCircleHTML(avatar, "20px")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user)}</span>`;
       if (row.compactRivals) return `<span class="ladder-rival-dot${cls}" title="${escapeHtml(ladderMarkerLabel(user))}" style="background:${avatar.bg}">${avatar.emoji}</span>`;
-      return `<span class="ladder-rival-chip${cls}" title="${escapeHtml(ladderMarkerLabel(user))}">${avatarCircleHTML(avatar, "1.25rem")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user, false)}</span>`;
+      return `<span class="ladder-rival-chip${cls}" title="${escapeHtml(ladderMarkerLabel(user))}">${avatarCircleHTML(avatar, "1.25rem")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user)}</span>`;
     }).join("")}
   </div>`;
   return `${rivalMarkup}${icon}`;

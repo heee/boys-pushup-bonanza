@@ -2247,41 +2247,29 @@ html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
    and a crowd (3+) collapses to the overlapping avatar pile. */
 .ladder-rivals { min-width: 0; display: flex; justify-content: flex-end; align-items: center; flex-wrap: nowrap; gap: 0.22rem; }
 .ladder-rival-chip, .ladder-pacer-chip { flex: 1 1 0; min-width: 0; max-width: max-content; }
+.ladder-pacer-chip { max-width: min(8.4rem, max-content); }
 :is(.ladder-rival-chip, .ladder-pacer-chip) > :not(.ladder-marker-name) { flex: 0 0 auto; }
 .ladder-rival-dot { display: inline-flex; align-items: center; justify-content: center; width: 1.18rem; height: 1.18rem; border: 1.5px solid var(--bg); border-radius: 50%; font-size: 0.62rem; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,0.25); flex: 0 0 auto; }
 .ladder-rivals.distant .ladder-rival-dot + .ladder-rival-dot { margin-left: -0.48rem; }
-.ladder-rival-chip { display: inline-flex; align-items: center; gap: 0.25rem; max-width: 100%; padding: 0.18rem 0.38rem 0.18rem 0.2rem; border-radius: 999px; background: var(--bg-elevated-2); color: var(--text); font-size: 0.62rem; font-weight: 800; line-height: 1.05; }
-.ladder-rival-chip .avatar-circle { flex: 0 0 auto; }
 .ladder-rival-dot.self { border-color: var(--primary); box-shadow: 0 0 0 1.5px var(--primary), 0 1px 4px rgba(0,0,0,0.25); }
-.ladder-rival-chip.self { background: var(--primary); color: var(--text-on-accent); }
-.ladder-rung-row.done .ladder-rival-chip { background: color-mix(in srgb, var(--bg) 20%, transparent); color: var(--text-on-accent); }
-/* Pacer chip: the current rung's rival readout — a named avatar, never
-   wrapping, truncated past ~10 characters. */
-.ladder-pacer-chip { display: flex; align-items: center; gap: 0.3rem; max-width: min(8.4rem, max-content); white-space: nowrap; overflow: hidden; font-size: 0.68rem; color: #f4ead8; font-weight: 700; }
-.ladder-pacer-chip .ladder-marker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.ladder-rival-chip .ladder-marker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Best vs latest markers. Best: solid chip + gold ★. Latest ("ghost" of a
-   recent climb): see-through, dashed outline, faded avatar, ⟲ + age tag.
-   Both (latest on the best rung): ★ + age; 🔥 when that climb set the PB. */
-.ladder-marker-star { color: #f2c14e; font-size: 0.85em; line-height: 1; text-shadow: 0 0 4px rgba(242, 193, 78, 0.55); }
-.ladder-marker-ghost { font-size: 0.9em; line-height: 1; opacity: 0.85; }
-.ladder-marker-fire { font-size: 0.85em; line-height: 1; }
-.ladder-marker-age { font-size: 0.82em; font-weight: 700; opacity: 0.75; letter-spacing: 0.02em; }
-.ladder-rival-chip.kind-latest { background: transparent; border: 1.5px dashed color-mix(in srgb, currentColor 55%, transparent); padding: calc(0.18rem - 1.5px) calc(0.38rem - 1.5px) calc(0.18rem - 1.5px) calc(0.2rem - 1.5px); font-style: italic; }
-.ladder-rival-chip.kind-latest.self { background: transparent; color: var(--primary); border-color: color-mix(in srgb, var(--primary) 80%, transparent); }
-.ladder-rung-row.done .ladder-rival-chip.kind-latest { background: transparent; color: #1b2a13; border-color: rgba(27, 42, 19, 0.45); }
-.kind-latest .avatar-circle { opacity: 0.55; filter: grayscale(0.35); }
-.ladder-rival-dot.kind-latest { opacity: 0.6; border-style: dashed; border-color: currentColor; filter: grayscale(0.35); }
-.ladder-pacer-chip.kind-latest { font-style: italic; }
-.ladder-pacer-chip.kind-latest .ladder-marker-name { opacity: 0.85; }
-/* The farthest rung is too narrow (perspective) for names next to the
-   markers: avatar + ★/⟲ tags only there; the name stays in title/aria. */
+/* Marker chips. Best (someone's top rung) = solid fill, name only; the
+   player's own best is orange. Latest (a recent climb below their best) =
+   greyed out: muted fill and text, desaturated avatar, small age tag.
+   Within a rung, bests come first (see groupLadderMarkers). */
+.ladder-rival-chip, .ladder-pacer-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.18rem 0.42rem 0.18rem 0.2rem; border-radius: 999px; white-space: nowrap; overflow: hidden; font-weight: 800; line-height: 1.05; background: #f4ead8; color: #1a1006; }
+.ladder-rival-chip { font-size: 0.62rem; }
+.ladder-pacer-chip { font-size: 0.68rem; }
+.ladder-rival-chip .avatar-circle, .ladder-pacer-chip .avatar-circle { flex: 0 0 auto; }
+:is(.ladder-rival-chip, .ladder-pacer-chip) .ladder-marker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+:is(.ladder-rival-chip, .ladder-pacer-chip).self { background: var(--primary); color: var(--text-on-accent); }
+:is(.ladder-rival-chip, .ladder-pacer-chip).kind-latest { background: rgba(150, 140, 126, 0.22); color: #a89d8c; font-weight: 700; }
+.ladder-rung-row.done :is(.ladder-rival-chip, .ladder-pacer-chip).kind-latest { background: rgba(27, 42, 19, 0.16); color: rgba(27, 42, 19, 0.62); }
+.kind-latest .avatar-circle, .ladder-rival-dot.kind-latest { filter: grayscale(1); opacity: 0.55; }
+.ladder-marker-age { font-size: 0.85em; font-weight: 700; opacity: 0.9; }
+/* The farthest rung is too narrow (perspective) for names, and two names
+   don't fit side by side: avatar (+ age) only there; name stays in title/aria. */
 .ladder-rung-row[data-slot="1"] .ladder-rival-chip .ladder-marker-name { display: none; }
 .ladder-rivals.pair .ladder-marker-name { display: none; }
-.ladder-rival-chip.fresh-pb { box-shadow: 0 0 0 1.5px #f2c14e, 0 0 10px rgba(242, 193, 78, 0.45); }
-.ladder-rival-dot.fresh-pb { box-shadow: 0 0 0 1.5px #f2c14e, 0 0 8px rgba(242, 193, 78, 0.5); }
-.ladder-pacer-chip.self { color: #e2933f; }
 
 @media (prefers-reduced-motion: reduce) {
   .ladder-rung-row { transition: background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease; }
