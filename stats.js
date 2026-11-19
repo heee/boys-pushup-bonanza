@@ -81,3 +81,37 @@ export function computeUserStats(sessions, now = new Date(), timestamp) {
 export function bestFor(sessions, user, predicate = () => true, field = "count") {
   return sessions.filter((s) => s.user === user && predicate(s)).reduce((max, s) => Math.max(max, s[field] || 0), 0);
 }
+
+// Goal pacing for the Home goal bars: how far through the goal's period we
+// are (0..1), and whether progress is keeping up with that share of the
+// target. Daily goals pace over a 7am–midnight waking window so an early
+// morning doesn't already read as "behind". Streaks have no pace (null).
+const DAILY_PACE_START_HOUR = 7;
+export function goalPeriodFraction(period, now = new Date()) {
+  const t = now.getTime();
+  if (period === "daily") {
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const windowStart = dayStart.getTime() + DAILY_PACE_START_HOUR * 3600e3;
+    const windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+    return Math.min(1, Math.max(0, (t - windowStart) / (windowEnd - windowStart)));
+  }
+  if (period === "weekly") {
+    const start = periodStart("week", now);
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
+    return Math.min(1, Math.max(0, (t - start.getTime()) / (end.getTime() - start.getTime())));
+  }
+  if (period === "monthly") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return Math.min(1, Math.max(0, (t - start.getTime()) / (end.getTime() - start.getTime())));
+  }
+  return null;
+}
+
+// "reached" | "on-track" | "behind" | null (no pace, e.g. streaks).
+export function goalPaceStatus(goal, now = new Date()) {
+  if (goal.current >= goal.target) return "reached";
+  const fraction = goalPeriodFraction(goal.period, now);
+  if (fraction == null) return null;
+  return goal.current >= goal.target * fraction ? "on-track" : "behind";
+}

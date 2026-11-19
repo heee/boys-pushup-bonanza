@@ -125,7 +125,7 @@ import {
 import { createCameraController, createDetectorPool, shareEngineCompile } from "./camera.js?v=4";
 import { createFramingTracker, mapRect, IDENTITY_FRAMING } from "./camera-framing.js?v=1";
 import { nextGhostCueAt, playGhostSurpassEffect, playSingleGhostEffect } from "./ghost-effect.js";
-import { bestFor, computeStreakCore as calculateStreak, filterByMode, periodStart, weightedMultiplier } from "./stats.js";
+import { bestFor, computeStreakCore as calculateStreak, filterByMode, goalPaceStatus, periodStart, weightedMultiplier } from "./stats.js?v=2";
 import { chaseSummaryResult, chaseSummaryText, correctedSummaryTotals, pushupPaceNote, weightedSummaryText } from "./screens/summary.js";
 import { personalStatsModel } from "./screens/dashboard.js";
 import { modeStatsModel, modifiersUsedStat, modesUsedStat, exerciseTypesUsedStat, totalTimeStat, countriesVisitedStat, citiesVisitedStat } from "./screens/mode-stats.js?v=150";
@@ -2064,8 +2064,13 @@ function renderGoalThermometers() {
     const reached = goal.current >= goal.target;
     const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
     const count = goalCountParts(goal);
-    return `<button type="button" class="goal-thermo" data-goal-type="${goal.type}" data-goal-reached="${reached ? "1" : "0"}">
-      <div class="thermometer-wrap"><div class="thermometer-track"><div class="thermometer-fill${reached ? " thermometer-win" : ""}" style="width:${pct}%"></div></div></div>
+    // Reached: amber + moving sheen; unmet: green when keeping pace with the
+    // period so far, red when behind (streaks: plain amber).
+    const pace = goalPaceStatus(goal);
+    const paceClass = reached ? " thermometer-win" : pace ? ` goal-pace-${pace}` : "";
+    const paceTitle = pace === "on-track" ? "On track" : pace === "behind" ? "Behind pace" : pace === "reached" ? "Goal reached" : "";
+    return `<button type="button" class="goal-thermo" data-goal-type="${goal.type}" data-goal-reached="${reached ? "1" : "0"}"${paceTitle ? ` title="${paceTitle}"` : ""}>
+      <div class="thermometer-wrap"><div class="thermometer-track"><div class="thermometer-fill${paceClass}" style="width:${pct}%"></div></div></div>
       <p class="goal-thermo-count">${escapeHtml(count.number)}${count.suffix ? `<br>${escapeHtml(count.suffix)}` : ""}</p>
       <p class="goal-thermo-label">${escapeHtml(goal.label)}</p>
     </button>`;

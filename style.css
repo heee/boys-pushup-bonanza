@@ -4833,22 +4833,19 @@ body:has(#screen-challenge-detail.active) #app {
 }
 .goal-thermo .thermometer-wrap { max-width: none; margin: 0; }
 .goal-thermo .thermometer-track { height: 7px; background: var(--bg-elevated-2); }
-/* Reached goal: gold bar with a light band sliding along it — the same
-   moving-gradient treatment as Tug of War's rope (tow-rope-flow). */
+/* Reached goal: the regular amber bar with a light sheen sliding along it
+   (same moving-gradient idea as Tug of War's rope). Unmet goals are paced
+   against how much of the day/week/month has gone: soft green when keeping
+   up, soft red when behind (see goalPaceStatus in stats.js). */
 .goal-thermo .thermometer-fill.thermometer-win {
-  background-color: var(--gold);
-  background-image: repeating-linear-gradient(
-    100deg,
-    var(--gold) 0%,
-    var(--gold) 30%,
-    color-mix(in srgb, var(--gold) 25%, #fff) 50%,
-    var(--gold) 70%,
-    var(--gold) 100%
-  );
-  background-size: 6rem 100%;
+  background:
+    linear-gradient(100deg, transparent 0%, transparent 35%, rgba(255, 244, 222, 0.55) 50%, transparent 65%, transparent 100%) 0 0 / 6rem 100% repeat-x,
+    linear-gradient(90deg, var(--primary-deep), var(--primary-dim));
   animation: goal-thermo-shimmer 1.6s linear infinite;
 }
-@keyframes goal-thermo-shimmer { from { background-position: 0 0; } to { background-position: 6rem 0; } }
+.goal-thermo .thermometer-fill.goal-pace-on-track { background: linear-gradient(90deg, color-mix(in srgb, var(--success) 72%, #000), var(--success)); }
+.goal-thermo .thermometer-fill.goal-pace-behind { background: linear-gradient(90deg, color-mix(in srgb, var(--danger) 72%, #000), var(--danger)); }
+@keyframes goal-thermo-shimmer { from { background-position: 0 0, 0 0; } to { background-position: 6rem 0, 0 0; } }
 @media (prefers-reduced-motion: reduce) {
   .goal-thermo .thermometer-fill.thermometer-win { animation: none; }
 }

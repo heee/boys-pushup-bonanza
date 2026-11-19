@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-11-19", text: "Goal bars now show your pace: green when you're on track for the day/week/month, red when behind — reached goals shimmer in amber" },
   { date: "2026-11-19", text: "Ladder: race everyone's latest climb too — greyed-out markers (with how long ago) alongside their best, plus your own last climb" },
   { date: "2026-11-08", text: "Added Grip: time your hand-gripper sets, switch hands as you go, and confirm a squeeze count that learns your pace" },
   { date: "2026-10-30", text: "Head-to-head redesigned: its own period tabs, grouped stats with icons, and your Horse / Tug of War record against each other" },
