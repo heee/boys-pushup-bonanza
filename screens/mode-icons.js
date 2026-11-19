@@ -66,3 +66,59 @@ const TYPE_ICONS = {
 export function typeIconSvg(id) {
   return TYPE_ICONS[id] || "";
 }
+
+// Stroke-only modifier icons (same grid/weight as the mode icons), keyed by
+// modifier id from screens/modifiers.js. Used in the modifier picker, the
+// Home Modifier selector and the in-session cue; badges/share text keep the
+// emoji. Anything missing falls back to the modifier's emoji.
+const FLOOR = '<path d="M3 20h18"/>';
+const PAUSE = S('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>');
+const DUMBBELL = S('<path d="M2 12h2"/><path d="M20 12h2"/><path d="M8 12h8"/><rect x="4" y="7" width="4" height="10" rx="1"/><rect x="16" y="7" width="4" height="10" rx="1"/>');
+const FLAME = S('<path d="M12 10.9c2.3-3.3.2-7.8-1-8.9 0 3.4-2.2 5.3-3.7 6.7C5.9 10.1 5 12.3 5 14.3 5 18 8.1 21 12 21s7-3 7-6.7c0-1.7-1.2-4.4-2.3-5.6-2.1 3.4-3.3 3.4-4.7 2.2"/>');
+const SHUFFLE = S('<path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/>');
+const MODIFIER_ICONS = {
+  // Pushup grips, drawn as shoulders + arms down to the floor.
+  standard: S('<path d="M6 7h12"/><path d="M8 7v13"/><path d="M16 7v13"/>' + FLOOR),
+  wide: S('<path d="M8.5 7h7"/><path d="M8.5 7 4.5 20"/><path d="m15.5 7 4 13"/>' + FLOOR),
+  close: S('<path d="M5 7h14"/><path d="m5 7 5 13"/><path d="m19 7-5 13"/>' + FLOOR),
+  diamond: S('<path d="M12 3.5 19.5 12 12 20.5 4.5 12Z"/>'),
+  staggered: S('<path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/>'),
+  archer: S('<path d="M6 3c5.5 4 5.5 14 0 18"/><path d="M6 3v18"/><path d="M3 12h18"/><path d="m18 9 3 3-3 3"/>'),
+  incline: S('<path d="M7 17 17 7"/><path d="M8 7h9v9"/>'),
+  decline: S('<path d="m7 7 10 10"/><path d="M17 8v9H8"/>'),
+  random: MODE_ICONS.dice,
+  // Plank variations.
+  "plank-standard": MODE_ICONS.plank,
+  "plank-high": MODE_ICONS.classic,
+  "plank-side": S('<circle cx="18" cy="5" r="2"/><path d="M16.5 7.5 4 19.5"/><path d="M14.5 9.5V20"/>' + FLOOR),
+  "plank-rkc": FLAME,
+  "plank-longlever": S('<path d="M3 12h18"/><path d="m6 8-4 4 4 4"/><path d="m18 8 4 4-4 4"/>'),
+  "plank-taps": MODE_ICONS["kb-five-alive"],
+  // Crunch variations.
+  "crunch-standard": MODE_ICONS.situp,
+  "crunch-crossbody": S('<path d="M6 6 18 18"/><path d="M18 6 6 18"/>'),
+  "crunch-pause": PAUSE,
+  "crunch-weighted": DUMBBELL,
+  // Pull-up grips: bar with hands over (overhand), cupped under (chin-up),
+  // or on parallel handles (neutral).
+  "pullup-overhand": S('<path d="M2 11h20"/><path d="M5.5 11V7.5a2 2 0 0 1 4 0V11"/><path d="M14.5 11V7.5a2 2 0 0 1 4 0V11"/>'),
+  "pullup-chinup": S('<path d="M2 8h20"/><path d="M5.5 8v3.5a2 2 0 0 0 4 0V8"/><path d="M14.5 8v3.5a2 2 0 0 0 4 0V8"/>'),
+  "pullup-neutral": S('<path d="M3 5h18"/><path d="M8 5v12"/><path d="M16 5v12"/>'),
+  "pullup-lsit": S('<path d="M2.5 3h19"/><circle cx="8" cy="7.5" r="2"/><path d="M8 10v7h11"/><path d="m8 3 0 2.5"/>'),
+  "pullup-weighted": DUMBBELL,
+  // Squat stances and tempos.
+  "squat-standard": MODE_ICONS.squat,
+  "squat-sumo": S('<circle cx="12" cy="4" r="2"/><path d="M12 6.5V12"/><path d="m12 12-6 3-1.5 5"/><path d="m12 12 6 3 1.5 5"/>'),
+  "squat-narrow": S('<circle cx="12" cy="4" r="2"/><path d="M12 6.5V12"/><path d="m12 12-2.5 3.5 1.5 4.5"/><path d="m12 12 2.5 3.5-1.5 4.5"/>'),
+  "squat-pause": PAUSE,
+  "squat-jump": S('<path d="M12 3v13"/><path d="m7 8 5-5 5 5"/>' + FLOOR),
+  // Dead hang styles.
+  "deadhang-passive": MODE_ICONS.deadhang,
+  "deadhang-active": S('<path d="M13 2 4 14h8l-1 8 9-12h-8l1-8Z"/>'),
+  "deadhang-mixed": SHUFFLE,
+  "deadhang-towel": S('<path d="M2.5 4h19"/><path d="M9 4v13a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V4"/><path d="M9 9.5h6"/>'),
+};
+
+export function modifierIconSvg(id) {
+  return MODIFIER_ICONS[id] || "";
+}

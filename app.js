@@ -136,7 +136,7 @@ import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresC
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=155";
-import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=6";
+import { modeIconSvg, modifierIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=7";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=16";
@@ -3576,7 +3576,7 @@ function renderModifierSlot() {
   const btn = $("pmode-modifier");
   const list = modifiersForType(state.homeType);
   const picked = list.find((m) => m.id === homeModifierId()) || null;
-  btn.innerHTML = homeSelectorHTML("Modifier", picked ? `${picked.icon} ${picked.title}` : "None");
+  btn.innerHTML = homeSelectorHTML("Modifier", picked ? picked.title : "None", picked ? modifierIconSvg(picked.id) || picked.icon : "");
   btn.classList.toggle("active", !!picked);
   // Types without a modifier list show a locked "None"; Zen strips coaching.
   const disabled = !list.length || (state.homeType === "pushups" && state.pushupMode === "zen");
@@ -3596,7 +3596,7 @@ function renderModifierPicker() {
       : '<span class="explore-mode-chev">›</span>';
     return `
     <div class="explore-mode-row${selected ? " selected" : ""}" data-modifier-id="${m.id}">
-      <div class="explore-mode-icon">${m.icon}</div>
+      <div class="explore-mode-icon is-stroke">${modifierIconSvg(m.id) || m.icon}</div>
       <div class="explore-mode-copy">
         <div class="explore-mode-title">${escapeHtml(m.title)}</div>
         <div class="explore-mode-tagline">${escapeHtml(m.sub)}</div>
@@ -12424,7 +12424,7 @@ async function setupWorkoutModeState() {
   const modifierPicked = state.resolvedModifier ? MODIFIERS.find((m) => m.id === state.resolvedModifier) : null;
   $("modifier-cue").classList.toggle("hidden", !modifierPicked);
   if (modifierPicked) {
-    $("modifier-cue-icon").textContent = modifierPicked.icon;
+    $("modifier-cue-icon").innerHTML = modifierIconSvg(modifierPicked.id) || escapeHtml(modifierPicked.icon);
     $("modifier-cue-label").textContent = modifierPicked.cueLabel;
     $("modifier-cue-sub").textContent = modifierPicked.cueSub;
   }
@@ -13982,7 +13982,7 @@ function renderTypeModifierCue(prefix, modifierId) {
   const picked = modifierId ? findModifier(modifierId) : null;
   $(`${prefix}-modifier-cue`).classList.toggle("hidden", !picked);
   if (!picked) return;
-  $(`${prefix}-modifier-cue-icon`).textContent = picked.icon;
+  $(`${prefix}-modifier-cue-icon`).innerHTML = modifierIconSvg(picked.id) || escapeHtml(picked.icon);
   $(`${prefix}-modifier-cue-label`).textContent = picked.cueLabel;
   $(`${prefix}-modifier-cue-sub`).textContent = picked.cueSub;
 }

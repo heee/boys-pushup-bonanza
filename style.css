@@ -4430,6 +4430,7 @@ body:has(#screen-settings-mysessions.active) #app {
   padding: 0.5rem 0.9rem;
 }
 .modifier-cue-icon { flex-shrink: 0; font-size: 1.15rem; }
+.modifier-cue-icon svg { display: block; width: 1.3rem; height: 1.3rem; color: var(--primary); }
 .modifier-cue-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.05rem; }
 .modifier-cue-label { color: var(--primary); font-weight: 800; font-size: 0.88rem; }
 .modifier-cue-sub { color: var(--text-dim); font-size: 0.72rem; line-height: 1.2; }
