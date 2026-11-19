@@ -11233,10 +11233,10 @@ function pulseIntensityNearZero(remaining, window = 10) {
 // here to sit over whichever row is active, since it needs to survive across
 // this function's re-renders to animate its "pop" correctly.
 const LADDER_SLOT_STYLE = {
-  1: { top: 22 / 342, inset: 77 / 260, height: 30 / 342, font: 13, pad: 10 },
-  2: { top: 80 / 342, inset: 64 / 260, height: 36 / 342, font: 15, pad: 12 },
-  3: { top: 146 / 342, inset: 50 / 260, height: 44 / 342, font: 21, pad: 12 },
-  4: { top: 216 / 342, inset: 36 / 260, height: 48 / 342, font: 19, pad: 14 },
+  1: { top: 22 / 342, inset: 54 / 260, height: 30 / 342, font: 13, pad: 10 },
+  2: { top: 80 / 342, inset: 47 / 260, height: 36 / 342, font: 15, pad: 12 },
+  3: { top: 146 / 342, inset: 39 / 260, height: 44 / 342, font: 21, pad: 12 },
+  4: { top: 216 / 342, inset: 31 / 260, height: 48 / 342, font: 19, pad: 14 },
   5: { top: 288 / 342, inset: 22 / 260, height: 52 / 342, font: 21, pad: 16 },
 };
 // Where a rung that has fallen off the bottom (slot 5 -> gone) animates to
@@ -11301,19 +11301,24 @@ function ladderMarkerLabel(user) {
   return `${who}: best rung`;
 }
 
+const LADDER_LOCK_ICON = '<svg class="ladder-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const LADDER_CHECK_ICON = '<svg class="ladder-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
 function ladderRungStatusHTML(row) {
-  const icon = row.status === "locked" ? '<span class="ladder-lock" aria-hidden="true">🔒</span>'
-    : row.status === "done" ? '<span class="ladder-check" aria-hidden="true">✓</span>'
+  const icon = row.status === "locked" ? LADDER_LOCK_ICON
+    : row.status === "done" ? LADDER_CHECK_ICON
     : "";
   if (!row.rival) return icon;
   const isCurrent = row.status === "active";
-  const wrapClass = isCurrent ? "ladder-rivals near" : `ladder-rivals ${row.compactRivals ? "distant" : "near"}`;
+  // 1 person: named chip; 2: avatar + tags (names don't fit side by side,
+  // they stay in title/aria); 3+: overlapping avatar pile.
+  const wrapClass = `ladder-rivals ${row.compactRivals ? "distant" : "near"}${row.rival.users.length === 2 ? " pair" : ""}`;
   const rivalMarkup = `<div class="${wrapClass}" aria-label="${escapeHtml(row.rival.users.map(ladderMarkerLabel).join("; "))}">
     ${row.rival.users.map((user) => {
       const { name, avatar, self } = user;
       const cls = `${self ? " self" : ""} kind-${user.kind}${user.freshPB ? " fresh-pb" : ""}`;
       const label = escapeHtml(self ? "You" : name);
-      if (isCurrent) return `<span class="ladder-pacer-chip${cls}">${avatarCircleHTML(avatar, "20px")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user, true)}</span>`;
+      if (isCurrent && !row.compactRivals) return `<span class="ladder-pacer-chip${cls}" title="${escapeHtml(ladderMarkerLabel(user))}">${avatarCircleHTML(avatar, "20px")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user, true)}</span>`;
       if (row.compactRivals) return `<span class="ladder-rival-dot${cls}" title="${escapeHtml(ladderMarkerLabel(user))}" style="background:${avatar.bg}">${avatar.emoji}</span>`;
       return `<span class="ladder-rival-chip${cls}" title="${escapeHtml(ladderMarkerLabel(user))}">${avatarCircleHTML(avatar, "1.25rem")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user, false)}</span>`;
     }).join("")}
@@ -11350,7 +11355,6 @@ function renderLadderRungWindow() {
       el.innerHTML = '<span class="ladder-rung-number"></span><span class="ladder-rung-status"></span>';
       container.appendChild(el);
     }
-    el.dataset.slot = row.slot;
     el.className = `ladder-rung-row ${row.status}`;
     el.dataset.slot = row.slot;
     el.querySelector(".ladder-rung-number").textContent = row.rung;
