@@ -13831,7 +13831,7 @@ $("btn-summary-again").addEventListener("click", () => {
   if (!screen) preserveNextModeSelection = true;
   showScreen(screen || "screen-workout");
 });
-// Split button chevron: drops down the Review/Type/Mode/Share row.
+// Split button chevron: pops the Review/Type/Mode/Share row up above the pill.
 function setSummaryMoreOpen(open) {
   $("summary-more-drawer").classList.toggle("open", open);
   $("summary-more-drawer").inert = !open;

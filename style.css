@@ -6458,17 +6458,21 @@ body:has(#screen-challenge-detail.active) #app {
 .poker-toast-sub { color: var(--text-dim); }
 
 /* Session complete: Same again (80%) + attached chevron as one split pill;
-   the chevron drops down the Review/Type/Mode/Share row underneath. */
+   the chevron pops the Review/Type/Mode/Share row up ABOVE the pill as an
+   overlay, so the pill itself never moves. */
+.summary-actions { position: relative; }
 .summary-again-split { display: flex; width: 100%; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 24px rgba(226, 147, 63, 0.25); }
 .summary-actions .summary-again-split .btn { margin: 0; border-radius: 0; box-shadow: none; }
 .summary-again-split #btn-summary-again { flex: 0 0 80%; width: auto; }
 .summary-actions .summary-again-split .summary-more-toggle { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0; border-left: 1px solid rgba(26, 16, 6, 0.22); }
-.summary-more-toggle svg { width: 1.2rem; height: 1.2rem; transition: transform 220ms ease; }
-.summary-more-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-/* Collapsed: zero height and pulled up over the parent's 0.7rem gap. */
-.summary-more-drawer { display: grid; grid-template-rows: 0fr; margin-top: -0.7rem; transition: grid-template-rows 260ms ease, margin-top 260ms ease; }
-.summary-more-drawer.open { grid-template-rows: 1fr; margin-top: -0.1rem; }
+/* Chevron points up (where the menu appears); flips down when open. */
+.summary-more-toggle svg { width: 1.2rem; height: 1.2rem; transform: rotate(180deg); transition: transform 220ms ease; }
+.summary-more-toggle[aria-expanded="true"] svg { transform: rotate(0deg); }
+/* Anchored to the pill's top edge and grows upward; out of flow so nothing shifts. */
+.summary-more-drawer { position: absolute; left: 0; right: 0; bottom: calc(100% + 0.5rem); z-index: 5; display: grid; grid-template-rows: 0fr; opacity: 0; pointer-events: none; transition: grid-template-rows 260ms ease, opacity 200ms ease; }
+.summary-more-drawer.open { grid-template-rows: 1fr; opacity: 1; pointer-events: auto; }
 .summary-more-inner { overflow: hidden; min-height: 0; }
+.summary-more-drawer .summary-actions-grid .btn.summary-action { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
 @media (prefers-reduced-motion: reduce) { .summary-more-drawer, .summary-more-toggle svg { transition: none; } }
 
 /* Cards pile: the next few cards sit face up under the active one at small
