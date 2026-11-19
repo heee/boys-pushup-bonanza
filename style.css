@@ -1379,7 +1379,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); }
 
 /* Horse's "Live count" line reads secondary to the target-to-beat number,
    so unlike the other modes sharing .cards-session-total it stays unbold. */
-#horse-session-total { font-weight: 500; }
+#horse-session-total, #ladder-session-total { font-weight: 500; }
 #horse-meter { width: 100%; margin-top: 0.5rem; }
 #horse-meter .thermometer-wrap { width: 100%; max-width: none; }
 
@@ -2184,11 +2184,11 @@ html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
   z-index: 1;
 }
 .ladder-rail-left {
-  clip-path: polygon(19.23% 0, 23.85% 0, 8.46% 100%, 3.85% 100%);
+  clip-path: polygon(19.23% 0, 23.85% 0, 2.88% 100%, -1.73% 100%);
   background: linear-gradient(90deg, #2e2417, #6b5333, #33271a);
 }
 .ladder-rail-right {
-  clip-path: polygon(76.15% 0, 80.77% 0, 96.15% 100%, 91.54% 100%);
+  clip-path: polygon(76.15% 0, 80.77% 0, 101.73% 100%, 97.12% 100%);
   background: linear-gradient(90deg, #33271a, #6b5333, #2e2417);
 }
 /* Sells the "disappears into the dark" read — the topmost rung sits under
@@ -2196,8 +2196,10 @@ html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
 .ladder-top-fade {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 17.5%;
-  background: linear-gradient(180deg, #151009 20%, rgba(21, 16, 9, 0));
+  height: 22%;
+  /* Fades into the page background itself (not a brown tint), so the far
+     end of the ladder dissolves into black with no visible box edge. */
+  background: linear-gradient(180deg, var(--bg) 25%, color-mix(in srgb, var(--bg) 0%, transparent));
   z-index: 3;
   pointer-events: none;
 }

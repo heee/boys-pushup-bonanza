@@ -11233,15 +11233,15 @@ function pulseIntensityNearZero(remaining, window = 10) {
 // here to sit over whichever row is active, since it needs to survive across
 // this function's re-renders to animate its "pop" correctly.
 const LADDER_SLOT_STYLE = {
-  1: { top: 22 / 342, inset: 54 / 260, height: 30 / 342, font: 13, pad: 10 },
-  2: { top: 80 / 342, inset: 47 / 260, height: 36 / 342, font: 15, pad: 12 },
-  3: { top: 146 / 342, inset: 39 / 260, height: 44 / 342, font: 21, pad: 12 },
-  4: { top: 216 / 342, inset: 31 / 260, height: 48 / 342, font: 19, pad: 14 },
-  5: { top: 288 / 342, inset: 22 / 260, height: 52 / 342, font: 21, pad: 16 },
+  1: { top: 22 / 342, inset: 52 / 260, height: 30 / 342, font: 13, pad: 10 },
+  2: { top: 80 / 342, inset: 42 / 260, height: 36 / 342, font: 15, pad: 12 },
+  3: { top: 146 / 342, inset: 31 / 260, height: 44 / 342, font: 21, pad: 12 },
+  4: { top: 216 / 342, inset: 20 / 260, height: 48 / 342, font: 19, pad: 14 },
+  5: { top: 288 / 342, inset: 8 / 260, height: 52 / 342, font: 21, pad: 16 },
 };
 // Where a rung that has fallen off the bottom (slot 5 -> gone) animates to
 // before it's removed from the DOM.
-const LADDER_EXIT_SLOT_STYLE = { top: 1.05, inset: 8 / 260, height: 52 / 342, font: 21, pad: 16 };
+const LADDER_EXIT_SLOT_STYLE = { top: 1.05, inset: 0, height: 52 / 342, font: 21, pad: 16 };
 
 function applyLadderSlotStyle(el, slotStyle) {
   el.style.top = `${slotStyle.top * 100}%`;
