@@ -2216,7 +2216,7 @@ html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
     font-size 0.42s cubic-bezier(.2, .7, .2, 1), background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
 .ladder-rung-row.empty { visibility: hidden; }
-.ladder-rung-status { display: flex; align-items: center; gap: 0.3rem; min-width: 0; }
+.ladder-rung-status { display: flex; flex: 1; justify-content: flex-end; align-items: center; gap: 0.3rem; min-width: 0; }
 .ladder-lock, .ladder-check { line-height: 1; }
 .ladder-check { color: #1b2a13; }
 
@@ -2252,8 +2252,29 @@ html:has(.workout-active.mode-cards:not(.hidden)) { overflow-x: clip; }
 .ladder-rung-row.done .ladder-rival-chip { background: color-mix(in srgb, var(--bg) 20%, transparent); color: var(--text-on-accent); }
 /* Pacer chip: the current rung's rival readout — a named avatar, never
    wrapping, truncated past ~10 characters. */
-.ladder-pacer-chip { display: flex; align-items: center; gap: 0.3rem; max-width: 6.4rem; white-space: nowrap; overflow: hidden; font-size: 0.68rem; color: #f4ead8; font-weight: 700; }
-.ladder-pacer-chip span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.ladder-pacer-chip { display: flex; align-items: center; gap: 0.3rem; max-width: 8.4rem; white-space: nowrap; overflow: hidden; font-size: 0.68rem; color: #f4ead8; font-weight: 700; }
+.ladder-pacer-chip .ladder-marker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ladder-rival-chip .ladder-marker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Best vs latest markers. Best: solid chip + gold ★. Latest ("ghost" of a
+   recent climb): see-through, dashed outline, faded avatar, ⟲ + age tag.
+   Both (latest on the best rung): ★ + age; 🔥 when that climb set the PB. */
+.ladder-marker-star { color: #f2c14e; font-size: 0.85em; line-height: 1; text-shadow: 0 0 4px rgba(242, 193, 78, 0.55); }
+.ladder-marker-ghost { font-size: 0.9em; line-height: 1; opacity: 0.85; }
+.ladder-marker-fire { font-size: 0.85em; line-height: 1; }
+.ladder-marker-age { font-size: 0.82em; font-weight: 700; opacity: 0.75; letter-spacing: 0.02em; }
+.ladder-rival-chip.kind-latest { background: transparent; border: 1.5px dashed color-mix(in srgb, currentColor 55%, transparent); padding: calc(0.18rem - 1.5px) calc(0.38rem - 1.5px) calc(0.18rem - 1.5px) calc(0.2rem - 1.5px); font-style: italic; }
+.ladder-rival-chip.kind-latest.self { background: transparent; color: var(--primary); border-color: color-mix(in srgb, var(--primary) 80%, transparent); }
+.ladder-rung-row.done .ladder-rival-chip.kind-latest { background: transparent; color: #1b2a13; border-color: rgba(27, 42, 19, 0.45); }
+.kind-latest .avatar-circle { opacity: 0.55; filter: grayscale(0.35); }
+.ladder-rival-dot.kind-latest { opacity: 0.6; border-style: dashed; border-color: currentColor; filter: grayscale(0.35); }
+.ladder-pacer-chip.kind-latest { font-style: italic; }
+.ladder-pacer-chip.kind-latest .ladder-marker-name { opacity: 0.85; }
+/* The two far rungs are too narrow (perspective) for names next to the
+   markers: avatar + ★/⟲ tags only there; the name stays in title/aria. */
+.ladder-rung-row:is([data-slot="1"], [data-slot="2"]) .ladder-rival-chip .ladder-marker-name { display: none; }
+.ladder-rival-chip.fresh-pb { box-shadow: 0 0 0 1.5px #f2c14e, 0 0 10px rgba(242, 193, 78, 0.45); }
+.ladder-rival-dot.fresh-pb { box-shadow: 0 0 0 1.5px #f2c14e, 0 0 8px rgba(242, 193, 78, 0.5); }
 .ladder-pacer-chip.self { color: #e2933f; }
 
 @media (prefers-reduced-motion: reduce) {

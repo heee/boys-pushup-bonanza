@@ -46,6 +46,10 @@ import {
   LADDER_RIVAL_APPROACHING_LINE,
   LADDER_RIVAL_MATCHED_LINE,
   LADDER_RIVAL_PASSED_LINE,
+  LADDER_LATEST_APPROACHING_LINE,
+  LADDER_LATEST_MATCHED_LINE,
+  LADDER_LATEST_PASSED_LINE,
+  LADDER_SELF_LATEST_PASSED_LINE,
   POKER_CALLOUTS,
   PYRAMID_APEX_LINE,
   PYRAMID_COMPLETE_LINE,
@@ -101,7 +105,7 @@ import {
   unlockVoice,
 } from "./voice.js?v=156";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
-import { buildLadderRivals, ladderRivalMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js";
+import { buildLadderMarkers, buildLadderRivals, groupLadderMarkers, ladderMarkerMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js?v=2";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
 import { createWorkerApi, isRetryableError } from "./api.js";
 import { createJsonStorage, normalizeSharedData } from "./storage.js";
@@ -136,7 +140,7 @@ import { modeIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=6";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=16";
-import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=154";
+import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=155";
 import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=16";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
@@ -1252,9 +1256,10 @@ async function refreshChaseAvailability() {
 }
 
 function prepareLadderRivalsFromSessions(sessions, offline = false) {
-  state.ladderRivals = buildLadderRivals(sessions, state.currentUser).map((rival) => ({
-    ...rival,
-    users: rival.names.map((name) => ({ name, avatar: avatarForUser(name) })),
+  // Best + recent-latest markers for everyone (the player included), grouped by rung.
+  state.ladderRivals = groupLadderMarkers(buildLadderMarkers(sessions, state.currentUser)).map((group) => ({
+    ...group,
+    users: group.users.map((user) => ({ ...user, avatar: avatarForUser(user.name) })),
   }));
   state.ladderRivalsOffline = offline;
   return state.ladderRivals;
@@ -11254,19 +11259,48 @@ function ladderNames(names) {
 }
 
 function ladderRivalCallout(enteredRung) {
-  const milestones = ladderRivalMilestones(state.ladderRivals, enteredRung);
-  if (!milestones.length) return null;
-  return milestones.map((milestone) => {
-    const names = ladderNames(milestone.rival.names);
-    if (milestone.type === "passed") return LADDER_RIVAL_PASSED_LINE(names);
-    if (milestone.type === "matched") return LADDER_RIVAL_MATCHED_LINE(names);
-    return LADDER_RIVAL_APPROACHING_LINE(names);
-  }).join(" ");
+  // Per milestone rung, a rival's best outranks anyone's latest ghost, which
+  // outranks the player's own last climb — one line per rung.
+  const bestLines = { passed: LADDER_RIVAL_PASSED_LINE, matched: LADDER_RIVAL_MATCHED_LINE, approaching: LADDER_RIVAL_APPROACHING_LINE };
+  const latestLines = { passed: LADDER_LATEST_PASSED_LINE, matched: LADDER_LATEST_MATCHED_LINE, approaching: LADDER_LATEST_APPROACHING_LINE };
+  const lines = ladderMarkerMilestones(state.ladderRivals, enteredRung).map((milestone) => {
+    if (milestone.best.length) return bestLines[milestone.type](ladderNames(milestone.best));
+    if (milestone.latest.length) return latestLines[milestone.type](ladderNames(milestone.latest));
+    return milestone.selfLatest ? LADDER_SELF_LATEST_PASSED_LINE : null;
+  }).filter(Boolean);
+  // More markers means more overlaps: keep it to two lines, and only cheer
+  // the player's own last climb when no rival line is competing.
+  const rivalLines = lines.filter((line) => line !== LADDER_SELF_LATEST_PASSED_LINE);
+  const spoken = (rivalLines.length ? rivalLines : lines).slice(0, 2);
+  return spoken.length ? spoken.join(" ") : null;
 }
 
 // Right side of a rung row: a rival indicator (when someone's best sits on
 // this rung) alongside the status glyph — a pacer chip with name on the
 // current rung, a compact dot/chip elsewhere, never replacing the lock/check.
+function ladderMarkerAge(days) {
+  return days === 0 ? "today" : `${days}d`;
+}
+
+// Best = solid chip with a gold ★; latest = dashed "ghost" chip with ⟲ and
+// an age tag; both (latest on the best rung) = ★ + age, 🔥 if it set the PB.
+// The age tag is the ghost's identity, so it always shows there; on a merged
+// best+latest chip it only shows on the roomier current-rung pacer.
+function ladderMarkerTags(user, roomy) {
+  const star = user.kind !== "latest" ? '<span class="ladder-marker-star" aria-hidden="true">★</span>' : "";
+  const ghost = user.kind === "latest" ? '<span class="ladder-marker-ghost" aria-hidden="true">⟲</span>' : "";
+  const age = user.ageDays != null && (user.kind === "latest" || roomy) ? `<span class="ladder-marker-age">${ladderMarkerAge(user.ageDays)}</span>` : "";
+  const fire = user.freshPB ? '<span class="ladder-marker-fire" aria-hidden="true">🔥</span>' : "";
+  return `${star}${ghost}${fire}${age}`;
+}
+
+function ladderMarkerLabel(user) {
+  const who = user.self ? "You" : user.name;
+  if (user.kind === "latest") return `${who}: last climb, ${ladderMarkerAge(user.ageDays)}`;
+  if (user.kind === "both") return `${who}: best rung${user.freshPB ? ", set" : ", reached again"} ${ladderMarkerAge(user.ageDays)}`;
+  return `${who}: best rung`;
+}
+
 function ladderRungStatusHTML(row) {
   const icon = row.status === "locked" ? '<span class="ladder-lock" aria-hidden="true">🔒</span>'
     : row.status === "done" ? '<span class="ladder-check" aria-hidden="true">✓</span>'
@@ -11274,12 +11308,15 @@ function ladderRungStatusHTML(row) {
   if (!row.rival) return icon;
   const isCurrent = row.status === "active";
   const wrapClass = isCurrent ? "ladder-rivals near" : `ladder-rivals ${row.compactRivals ? "distant" : "near"}`;
-  const rivalMarkup = `<div class="${wrapClass}" aria-label="${escapeHtml(`Best rung for ${ladderNames(row.rival.names)}`)}">
-    ${row.rival.users.map(({ name, avatar, self }) => isCurrent
-      ? `<span class="ladder-pacer-chip${self ? " self" : ""}">${avatarCircleHTML(avatar, "20px")}<span>${escapeHtml(name)}${self ? " (you)" : ""}</span></span>`
-      : row.compactRivals
-        ? `<span class="ladder-rival-dot${self ? " self" : ""}" title="${escapeHtml(self ? "You" : name)}" style="background:${avatar.bg}">${avatar.emoji}</span>`
-        : `<span class="ladder-rival-chip${self ? " self" : ""}">${avatarCircleHTML(avatar, "1.25rem")}<span>${escapeHtml(name)}${self ? " (you)" : ""}</span></span>`).join("")}
+  const rivalMarkup = `<div class="${wrapClass}" aria-label="${escapeHtml(row.rival.users.map(ladderMarkerLabel).join("; "))}">
+    ${row.rival.users.map((user) => {
+      const { name, avatar, self } = user;
+      const cls = `${self ? " self" : ""} kind-${user.kind}${user.freshPB ? " fresh-pb" : ""}`;
+      const label = escapeHtml(self ? "You" : name);
+      if (isCurrent) return `<span class="ladder-pacer-chip${cls}">${avatarCircleHTML(avatar, "20px")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user, true)}</span>`;
+      if (row.compactRivals) return `<span class="ladder-rival-dot${cls}" title="${escapeHtml(ladderMarkerLabel(user))}" style="background:${avatar.bg}">${avatar.emoji}</span>`;
+      return `<span class="ladder-rival-chip${cls}" title="${escapeHtml(ladderMarkerLabel(user))}">${avatarCircleHTML(avatar, "1.25rem")}<span class="ladder-marker-name">${label}</span>${ladderMarkerTags(user, false)}</span>`;
+    }).join("")}
   </div>`;
   return `${rivalMarkup}${icon}`;
 }
@@ -11287,9 +11324,7 @@ function ladderRungStatusHTML(row) {
 function renderLadderRungWindow() {
   const container = $("ladder-rung-window");
   const current = state.ladderRung;
-  const selfBestRung = getLadderBestRung(state.currentUser);
-  const selfUser = selfBestRung > 0 ? { name: state.currentUser, avatar: avatarForUser(state.currentUser), rung: selfBestRung } : null;
-  const renderKey = `${current}|${state.ladderRivals.map((rival) => `${rival.rung}:${rival.names.join(",")}`).join(";")}`;
+  const renderKey = `${current}|${state.ladderRivals.map((group) => `${group.rung}:${group.users.map((user) => `${user.name}/${user.kind}`).join(",")}`).join(";")}`;
   if (container.dataset.renderKey === renderKey) return;
 
   if (!container.querySelector(".ladder-rail-left")) {
@@ -11300,7 +11335,7 @@ function renderLadderRungWindow() {
     `);
   }
 
-  const rows = ladderRungRows(current, state.ladderRivals, shouldCompactLadderRivals, selfUser);
+  const rows = ladderRungRows(current, state.ladderRivals, shouldCompactLadderRivals);
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const seenRungs = new Set();
 
@@ -11317,6 +11352,7 @@ function renderLadderRungWindow() {
     }
     el.dataset.slot = row.slot;
     el.className = `ladder-rung-row ${row.status}`;
+    el.dataset.slot = row.slot;
     el.querySelector(".ladder-rung-number").textContent = row.rung;
     el.querySelector(".ladder-rung-status").innerHTML = ladderRungStatusHTML(row);
     applyLadderSlotStyle(el, LADDER_SLOT_STYLE[row.slot]);

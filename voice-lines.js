@@ -139,6 +139,12 @@ export const CHASE_PERIOD_LABELS = ["Daily", "Weekly", "Monthly", "Quarterly", "
 export const LADDER_RIVAL_PASSED_LINE = (names) => `Just left ${names} in the dust! Their rung is now a tiny roadside memorial.`;
 export const LADDER_RIVAL_MATCHED_LINE = (names) => `You are on ${names}'s rung. Eviction proceedings have begun. Break their furniture.`;
 export const LADDER_RIVAL_APPROACHING_LINE = (names) => `${names} are two rungs away. The ladder is drafting their obituary.`;
+// Same callouts aimed at a rival's most recent climb (the dashed "ghost"
+// marker) rather than their all-time best, plus the player's own last climb.
+export const LADDER_LATEST_PASSED_LINE = (names) => `Just passed ${names}'s last climb. Fresh tracks, freshly stomped.`;
+export const LADDER_LATEST_MATCHED_LINE = (names) => `You're level with ${names}'s last climb. One more rung makes it ancient history.`;
+export const LADDER_LATEST_APPROACHING_LINE = (names) => `${names}'s last climb is two rungs up. Go collect it.`;
+export const LADDER_SELF_LATEST_PASSED_LINE = "You just beat your last climb! Past you is officially old news.";
 
 // Small connector words/phrases needed to splice multi-name callouts
 // ("Nelson, Matt, and John") back together at runtime.
@@ -793,6 +799,10 @@ export function buildCorpus() {
   for (const frag of templateFragments(LADDER_RIVAL_PASSED_LINE)) add(frag, "hype");
   for (const frag of templateFragments(LADDER_RIVAL_MATCHED_LINE)) add(frag, "hype");
   for (const frag of templateFragments(LADDER_RIVAL_APPROACHING_LINE)) add(frag, "hype");
+  for (const fn of [LADDER_LATEST_PASSED_LINE, LADDER_LATEST_MATCHED_LINE, LADDER_LATEST_APPROACHING_LINE]) {
+    for (const frag of templateFragments(fn)) add(frag, "hype");
+  }
+  add(LADDER_SELF_LATEST_PASSED_LINE, "hype");
   for (const frag of templateFragments(ZEN_COMPLETION_TEMPLATE)) add(frag, "zen");
 
   return entries;

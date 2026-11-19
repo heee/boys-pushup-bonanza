@@ -85,16 +85,12 @@ export function workoutHudModel(mode, highScore) {
 // the player's own all-time best Ladder rung — same treatment as any other
 // rival, keyed off `self.rung` rather than the live rung being climbed, so it
 // stays put on that row instead of following the player up the ladder.
-export function ladderRungRows(current, rivals, compactRivals, self) {
+export function ladderRungRows(current, groups, compactRivals = () => false) {
   return [1, 2, 3, 4, 5].map((slot) => {
     const rung = current + (3 - slot);
     if (rung < 1) return { slot, rung: null, status: "empty", rival: null, compactRivals: false };
     const status = rung < current ? "done" : rung === current ? "active" : "locked";
-    let rival = rivals.find((entry) => entry.rung === rung) || null;
-    if (self && self.rung === rung) {
-      const users = rival ? [...rival.users, { ...self, self: true }] : [{ ...self, self: true }];
-      rival = { rung, names: users.map((user) => user.name), users };
-    }
+    const rival = groups.find((entry) => entry.rung === rung) || null;
     return {
       slot,
       rung,

@@ -86,11 +86,9 @@ test("ladder rows near the start of a session leave below-rung-1 slots empty ins
   ]);
 });
 
-test("the player's own personal-best rung folds them in alongside any rivals tied there, independent of the live rung", () => {
-  const self = { name: "Dev", avatar: { emoji: "🐯" }, rung: 7 };
-  const rows = ladderRungRows(6, [{ rung: 7, names: ["Mia"], users: [{ name: "Mia" }] }], () => false, self);
-  const selfRow = rows.find((row) => row.rung === 7);
-  assert.deepEqual(selfRow.rival.users, [{ name: "Mia" }, { ...self, self: true }]);
-  const active = rows.find((row) => row.rung === 6);
-  assert.equal(active.rival, null);
+test("ladder rows attach the marker group (rivals and the player alike) sitting on each rung", () => {
+  const group = { rung: 7, users: [{ name: "Mia", kind: "best" }, { name: "Dev", kind: "latest", self: true }] };
+  const rows = ladderRungRows(6, [group], () => false);
+  assert.equal(rows.find((row) => row.rung === 7).rival, group);
+  assert.equal(rows.find((row) => row.rung === 6).rival, null);
 });
