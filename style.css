@@ -3361,11 +3361,10 @@ body:has(#screen-challenges.active) .challenge-list {
   color: var(--text);
 }
 .leaderboard-mode-option.selected { background: var(--primary); color: #fff; }
-/* Leaderboard's own mode dropdown unbolds non-selected options; the other
-   reuses of this shared component (compare mode, my-sessions mode) keep
-   every option at the same weight. */
-#leaderboard-mode-menu .leaderboard-mode-option { font-weight: 500; }
-#leaderboard-mode-menu .leaderboard-mode-option.selected { font-weight: 650; }
+/* Every dropdown built on this component (leaderboard mode, Bonanza scope,
+   compare mode, my-sessions mode): only the selected option is bold. */
+.leaderboard-mode-option { font-weight: 400; }
+.leaderboard-mode-option.selected { font-weight: 650; }
 .leaderboard-mode-check { visibility: hidden; }
 .leaderboard-mode-option.selected .leaderboard-mode-check { visibility: visible; }
 
