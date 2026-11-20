@@ -307,7 +307,7 @@ button, input {
   align-items: center;
   flex-shrink: 0;
   height: 2.1rem;
-  background: var(--bg-elevated-2);
+  background: none;
   border-radius: 999px;
 }
 
