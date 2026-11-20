@@ -9524,7 +9524,11 @@ async function shareChallengeInvite() {
   await shareViaSheetOrClipboard(message, url);
 }
 
-$("btn-challenge-share").addEventListener("click", shareChallengeInvite);
+// Share lives as a small icon inside each detail screen's hero card (the hero
+// is re-rendered, so listen on the stable body).
+$("challenge-detail-body").addEventListener("click", (e) => {
+  if (e.target.closest(".challenge-hero-share")) shareChallengeInvite();
+});
 
 // ------------------- leaderboard share -------------------
 
@@ -9894,6 +9898,7 @@ function renderChallengeDetail() {
 
   let html = `
     <div class="challenge-hero" style="background: linear-gradient(135deg, ${c.gradient[0]}, ${c.gradient[1]})">
+      <button type="button" class="challenge-hero-share" aria-label="Share challenge"><span class="icon-share" aria-hidden="true"></span></button>
       <div class="challenge-hero-emoji is-stroke">${typeIconSvg(challengeActivity(c))}</div>
       <div class="challenge-hero-title">${escapeHtml(c.title)}</div>
       <div class="challenge-hero-tagline">${escapeHtml(c.tagline)}</div>
@@ -10308,6 +10313,7 @@ function renderBingoDetail() {
 
   let html = `
     <div class="challenge-hero" style="background: linear-gradient(135deg, #4a2e6b, #f2c94c)">
+      <button type="button" class="challenge-hero-share" aria-label="Share challenge"><span class="icon-share" aria-hidden="true"></span></button>
       <div class="challenge-hero-emoji is-stroke">${BINGO_GRID_ICON}</div>
       <div class="challenge-hero-title">Reps Bingo</div>
       <div class="challenge-hero-tagline">One shared 25-square board every two weeks. Tap a square to go log it — blackout the whole card to be in the running.</div>
@@ -10535,6 +10541,7 @@ function renderPokerCollectionDetail() {
 
   let html = `
     <div class="challenge-hero" style="background: linear-gradient(135deg, #2e6b4a, #f2c94c)">
+      <button type="button" class="challenge-hero-share" aria-label="Share challenge"><span class="icon-share" aria-hidden="true"></span></button>
       <div class="challenge-hero-emoji is-stroke">${modeIconSvg("poker")}</div>
       <div class="challenge-hero-title">Royal Flush Rush</div>
       <div class="challenge-hero-tagline">Collect all ${POKER_SET_SIZE} winning hands, Pair to Straight Flush, in Poker mode before the cycle ends. A Royal Flush is a bonus that wins ties. Tap a hand to go chase it.</div>

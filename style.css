@@ -5162,7 +5162,17 @@ body:has(#screen-challenge-detail.active) #app {
   text-align: center;
   box-shadow: var(--shadow);
   margin-bottom: 1rem;
+  position: relative;
 }
+.challenge-hero-share {
+  position: absolute; top: 0.7rem; right: 0.7rem;
+  width: 2.2rem; height: 2.2rem; border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.22); color: #fff; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.challenge-hero-share .icon-share { width: 17px; height: 17px; }
+.challenge-hero-share:active { transform: scale(0.94); }
 .challenge-hero-emoji { font-size: 3.4rem; line-height: 1; }
 .challenge-hero-title { font-size: 1.4rem; font-weight: 900; margin-top: 0.4rem; }
 .challenge-hero-tagline { font-size: 0.92rem; margin-top: 0.5rem; opacity: 0.95; }
