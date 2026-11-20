@@ -137,11 +137,12 @@ import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycl
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, mostUsedOrder, usageByMode, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=156";
 import { modeIconSvg, modifierIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=7";
+import { TROPHY_SECTIONS, earnedTierKeys, trophyCaseModel } from "./screens/trophies.js?v=1";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=16";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=155";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=16";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=17";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -2127,7 +2128,8 @@ const TAB_FOR_SCREEN = {
   "screen-summary": "btn-nav-home",
   "screen-dashboard": "btn-nav-dashboard",
   "screen-user-compare": "btn-nav-dashboard",
-  "screen-games": "btn-nav-games",
+  "screen-games": null,
+  "screen-trophies": "btn-nav-trophies",
   "screen-challenges": "btn-nav-challenges",
   "screen-challenge-detail": "btn-nav-challenges",
   "screen-challenge-create": "btn-nav-challenges",
@@ -2250,6 +2252,12 @@ function showScreen(id) {
     $("btn-summary-different-mode").classList.toggle("hidden", SINGLE_MODE_TYPES.has(state.homeType));
   }
   if (id === "screen-games") repaintAfterBackgroundRefresh(id, renderGamesScreen);
+  if (id === "screen-trophies") {
+    trophyCaseUser = state.currentUser;
+    trophyOpenCard = null;
+    repaintAfterBackgroundRefresh(id, renderTrophiesScreen);
+  }
+  if (id === "screen-summary" || id === "screen-horse-summary" || id === "screen-tow-summary") checkTrophyUnlocks();
   if (id === "screen-challenges") renderChallengesScreen();
   if (id === "screen-roadtrip") {
     applyRoadtripStartingCountry();
@@ -2757,7 +2765,8 @@ $("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(goHome));
 $("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
 $("btn-nav-challenges").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-challenges")));
 $("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("boys")));
-$("btn-nav-games").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-games")));
+$("btn-nav-trophies").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-trophies")));
+$("btn-header-games").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-games")));
 $("btn-nav-roadtrip").addEventListener("click", () => guardLeaveWorkout(openRoadtrip));
 $("btn-header-settings").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-settings")));
 
@@ -5971,11 +5980,146 @@ function viewFinishedTowGame(game) {
   showScreen("screen-tow-summary");
 }
 
+// ---------------- Trophies (docs/trophies-plan.md) ----------------
+let trophyCaseUser = null;
+let trophyOpenCard = null;
+
+function trophyModelFor(user) {
+  const cached = getCachedData();
+  const sessions = getAllSessionsForDisplay().filter((s) => s.user === user);
+  const lastAt = (list, fallback) => list.reduce((max, x) => Math.max(max, Number(x?.at) || 0), Number(fallback) || 0);
+  const horseWins = (cached.horseGames || [])
+    .filter((g) => g.status === "complete" && [].concat(g.winner || []).includes(user))
+    .map((g) => lastAt(g.sets || [], g.startedAt || g.createdAt));
+  const towWins = (cached.towGames || [])
+    .filter((g) => g.status === "complete" && g.winner && g.teams?.[g.winner]?.players?.includes(user))
+    .map((g) => lastAt(g.bursts || [], g.startedAt || g.createdAt));
+  const now = new Date();
+  const challengeWins = challengeDefs
+    .filter((c) => challengeStatus(c, now) === "past" && challengeParticipantsOf(c).includes(user) && challengeWinners(c).includes(user))
+    .map((c) => challengeWindow(c).endDate.getTime());
+  return trophyCaseModel({
+    sessions, ts: sessionTimestamp, horseWins, towWins, challengeWins,
+    totalModes: EXPLORE_MODES.filter((m) => m.live).length,
+  });
+}
+
+function trophyIconHTML(icon) {
+  if (icon.kind === "mode") return modeIconSvg(icon.id);
+  if (icon.kind === "type") return typeIconSvg(icon.id);
+  return challengeStatIconHTML(icon.id);
+}
+
+function formatTrophyDate(t) {
+  return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function renderTrophiesScreen() {
+  const user = trophyCaseUser || state.currentUser;
+  const select = $("trophy-user-select");
+  const names = orderedUserNames(getAllSessionsForDisplay(), state.currentUser, { alphabetical: true });
+  const all = names.includes(state.currentUser) ? names : [state.currentUser, ...names];
+  select.innerHTML = all.map((name) => `<option value="${escapeHtml(name)}"${name === user ? " selected" : ""}>${escapeHtml(name === state.currentUser ? `${name} (you)` : name)}</option>`).join("");
+  const model = trophyModelFor(user);
+  $("trophy-summary").textContent = `${model.earned} of ${model.total} tiers earned`;
+  $("trophy-case").innerHTML = TROPHY_SECTIONS.map((section) => {
+    const cards = model.cards.filter((c) => c.section === section.id);
+    return `<p class="trophy-section-label">${escapeHtml(section.label)}</p>
+      <div class="trophy-grid">${cards.map(trophyCardHTML).join("")}</div>`;
+  }).join("");
+}
+
+function trophyCardHTML(card) {
+  const tierId = card.tier ? card.tier.id : "locked";
+  const open = trophyOpenCard === card.id;
+  const status = card.tier ? card.tier.label : "Locked";
+  const progressText = card.next ? `${card.valueText} / ${card.next.label}` : `${card.valueText} · maxed`;
+  const ladder = open ? `<ol class="trophy-ladder">${card.tiers.map((t) => `
+      <li class="trophy-ladder-row${t.unlockedAt != null ? " earned" : ""}" data-tier="${t.id}">
+        <span class="trophy-ladder-dot" aria-hidden="true"></span>
+        <span class="trophy-ladder-name">${TROPHY_TIER_NAME[t.id]}</span>
+        <span class="trophy-ladder-goal">${escapeHtml(t.label)}</span>
+        <span class="trophy-ladder-date">${t.unlockedAt != null ? `✓ ${formatTrophyDate(t.unlockedAt)}` : ""}</span>
+      </li>`).join("")}</ol>` : "";
+  return `<button type="button" class="trophy-card tier-${tierId}${open ? " open" : ""}" data-trophy="${card.id}" aria-expanded="${open}">
+    <span class="trophy-card-top">
+      <span class="trophy-card-icon is-stroke" aria-hidden="true">${trophyIconHTML(card.icon)}</span>
+      <span class="trophy-card-tier">${escapeHtml(status)}</span>
+    </span>
+    <span class="trophy-card-title">${escapeHtml(card.title)}</span>
+    <span class="trophy-card-bar" aria-hidden="true"><span style="width:${(card.progress * 100).toFixed(1)}%"></span></span>
+    <span class="trophy-card-progress">${escapeHtml(progressText)}</span>
+    ${ladder}
+  </button>`;
+}
+const TROPHY_TIER_NAME = { bronze: "Bronze", silver: "Silver", gold: "Gold", platinum: "Platinum", diamond: "Diamond" };
+
+$("trophy-case").addEventListener("click", (e) => {
+  const card = e.target.closest(".trophy-card");
+  if (!card) return;
+  trophyOpenCard = trophyOpenCard === card.dataset.trophy ? null : card.dataset.trophy;
+  renderTrophiesScreen();
+});
+$("trophy-user-select").addEventListener("change", (e) => {
+  trophyCaseUser = e.target.value;
+  trophyOpenCard = null;
+  renderTrophiesScreen();
+});
+
+// Celebrate tiers earned since we last looked (per user, per device). The
+// first check on a device just records what's already earned, silently.
+function checkTrophyUnlocks() {
+  const user = state.currentUser;
+  if (!user) return;
+  const key = `bpb-trophies-seen:${user}`;
+  let model;
+  try { model = trophyModelFor(user); } catch { return; }
+  const earned = earnedTierKeys(model);
+  let seen = null;
+  try { seen = JSON.parse(localStorage.getItem(key) || "null"); } catch { seen = null; }
+  try { localStorage.setItem(key, JSON.stringify(earned)); } catch { /* nicety only */ }
+  if (!Array.isArray(seen)) return;
+  const seenSet = new Set(seen);
+  const fresh = earned.filter((k) => !seenSet.has(k));
+  if (!fresh.length) return;
+  // Highest new tier per card, best first.
+  const byCard = new Map();
+  for (const k of fresh) {
+    const [cardId, tierId] = k.split(":");
+    byCard.set(cardId, tierId);
+  }
+  const order = ["diamond", "platinum", "gold", "silver", "bronze"];
+  const unlocks = [...byCard].map(([cardId, tierId]) => ({ card: model.cards.find((c) => c.id === cardId), tierId }))
+    .filter((u) => u.card)
+    .sort((a, b) => order.indexOf(a.tierId) - order.indexOf(b.tierId));
+  showTrophyUnlock(unlocks);
+}
+
+function showTrophyUnlock(unlocks) {
+  const top = unlocks[0];
+  const el = $("trophy-unlock-banner");
+  const more = unlocks.length > 1 ? `<span class="trophy-unlock-more">+${unlocks.length - 1} more</span>` : "";
+  el.className = `trophy-unlock-banner tier-${top.tierId}`;
+  el.innerHTML = `<span class="trophy-unlock-icon is-stroke" aria-hidden="true">${trophyIconHTML(top.card.icon)}</span>
+    <span class="trophy-unlock-copy"><span class="trophy-unlock-eyebrow">Trophy unlocked</span>
+    <span class="trophy-unlock-title">${escapeHtml(top.card.title)} · ${TROPHY_TIER_NAME[top.tierId]}</span></span>${more}`;
+  clearTimeout(showTrophyUnlock._t);
+  showTrophyUnlock._t = setTimeout(() => el.classList.add("hidden"), 5000);
+}
+$("trophy-unlock-banner").addEventListener("click", () => {
+  $("trophy-unlock-banner").classList.add("hidden");
+  guardLeaveWorkout(() => showScreen("screen-trophies"));
+});
+
 // Cheap refresh for the nav dot alone — runs on every showScreen (any
 // screen, not just Games) so the badge stays current without repainting the
 // full list each time.
+// Games left the bottom nav (docs/trophies-plan.md): its icon sits in the
+// header pill only while you have an open/active game or a lobby/invite.
 function renderGamesNavDot() {
-  $("games-nav-dot").classList.toggle("hidden", !gamesNeedsAttention([...pendingGamesItems(), ...lobbyGamesItems()]));
+  const items = state.currentUser ? [...pendingGamesItems(), ...lobbyGamesItems()] : [];
+  $("btn-header-games").classList.toggle("hidden", items.length === 0);
+  $("games-nav-dot").classList.toggle("hidden", !gamesNeedsAttention(items));
 }
 
 function renderGamesScreen() {

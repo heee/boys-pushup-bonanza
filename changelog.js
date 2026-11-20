@@ -3,6 +3,7 @@
 // not every fix or version bump. Add a new entry at the top when shipping one.
 
 export const CHANGELOG = [
+  { date: "2026-11-20", text: "Added Trophies: a case of cards for every exercise, feat, mode and rival win that level up from Bronze to Diamond. Games moved to the top bar and show up while you have one going" },
   { date: "2026-11-19", text: "Board: tap any Group or Leader statistic to see everyone ranked on it" },
   { date: "2026-11-19", text: "Goal bars now show your pace: green when you're on track for the day/week/month, red when behind — reached goals shimmer in amber" },
   { date: "2026-11-19", text: "Ladder: race everyone's latest climb too — greyed-out markers (with how long ago) alongside their best, plus your own last climb" },

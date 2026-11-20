@@ -1,6 +1,6 @@
 # Trophies (Trophy Case) + Games-to-pill plan
 
-Status: **draft, awaiting Henning's sign-off** (2026-11-20).
+Status: **shipped 2026-11-20** (thresholds are first guesses — tune against live totals).
 
 ## Settled decisions
 - **Name:** bottom tab label "Trophies"; screen title "Trophy Case".
