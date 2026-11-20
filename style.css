@@ -4363,6 +4363,17 @@ body:has(#screen-settings-mysessions.active) #app {
 .explore-mode-title { font-weight: 800; font-size: 1rem; }
 .explore-mode-tagline { color: var(--text-dim); font-size: 0.82rem; margin-top: 0.1rem; }
 .explore-mode-chev { flex-shrink: 0; color: var(--text-tertiary); font-size: 1.1rem; }
+.explore-mode-count { flex-shrink: 0; color: var(--text-dim); font-size: 0.85rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+.picker-title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+.picker-title-row .screen-title.picker-title { margin: 0; }
+.mode-picker-flip {
+  flex-shrink: 0; width: 2.2rem; height: 2.2rem; border: none; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-elevated); color: var(--text-dim); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mode-picker-flip.active { color: var(--primary); }
+.mode-picker-flip:active { transform: scale(0.94); }
 .explore-mode-soon {
   flex-shrink: 0;
   max-width: 6.5rem;

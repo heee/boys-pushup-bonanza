@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { exploreModesModel } from "../screens/explore-modes.js";
+import { exploreModesModel, modePickerModel, mostUsedOrder, usageByMode } from "../screens/explore-modes.js";
 
 const sessions = [
   { user: "A", count: 10, mode: "dice" },
@@ -64,4 +64,15 @@ test("Mode picker filters to one type and sections Pushups", async () => {
   assert.equal(modePickerModel("kettlebell", args).length, 5);
   for (const type of WORKOUT_TYPES) assert.equal(workoutTypeForMode(type.defaultMode), type.id);
   assert.ok(HOME_START_MODES.has("classic") && !HOME_START_MODES.has("pyramid"));
+});
+
+test("mostUsedOrder ranks played modes by count, then unplayed in catalog order", () => {
+  const catalog = modePickerModel("pushups", { sessions: [], hasPR: true, refresh: false });
+  const counts = usageByMode(sessions.filter((s) => s.user === "A"));
+  const ordered = mostUsedOrder(catalog, counts);
+  assert.deepEqual(ordered.slice(0, 2).map((i) => [i.mode.id, i.count, i.sectionLabel]), [["dice", 2, "Most used"], ["cards", 1, "Most used"]]);
+  assert.equal(ordered.length, catalog.length);
+  const rest = ordered.slice(2);
+  assert.ok(rest.every((i) => i.count === 0 && i.sectionLabel === "Not played yet"));
+  assert.deepEqual(rest.map((i) => i.mode.id), catalog.filter((i) => !["dice", "cards"].includes(i.mode.id)).map((i) => i.mode.id));
 });

@@ -29,7 +29,7 @@ export const EXPLORE_MODES = [
   ...KETTLEBELL_WORKOUTS.map((workout) => ({ id: `kb-${workout.id}`, icon: workout.icon, title: workout.name, tagline: workout.tagline, live: true, kettlebellWorkoutId: workout.id })),
 ];
 
-function usageByMode(sessions) {
+export function usageByMode(sessions) {
   const counts = new Map();
   for (const session of sessions) {
     const id = session.type === "plank" ? "plank" : session.type === "deadhang" ? "deadhang" : session.type === "grip" ? "grip" : session.type === "pullup" ? "pullup" : session.type === "squat" ? "squat" : session.type === "situp" ? "situp" : session.type === "holland" ? "holland" : session.type === "chainofpain" ? "chainofpain" : session.type === "kettlebell" ? `kb-${session.kettlebellWorkoutId}` : (session.mode || "classic");
@@ -141,4 +141,16 @@ export function modePickerModel(type, args) {
   }
   return PUSHUP_MODE_SECTIONS.flatMap((section) => orderBucket(items.filter((item) => section.modes.includes(item.mode.id)))
     .map((item) => ({ ...item, sectionLabel: section.label })));
+}
+
+// "Most used" flip of the mode picker: modes you've played, by your own
+// session count (desc, ties keep catalog order), then everything you haven't
+// played in its usual order. Each item gets `count` for the row.
+export function mostUsedOrder(items, counts) {
+  const decorated = items.map((item, i) => ({ ...item, count: counts.get(item.mode.id) || 0, i }));
+  const used = decorated.filter((item) => item.count > 0).sort((a, b) => b.count - a.count || a.i - b.i)
+    .map(({ i, ...item }) => ({ ...item, sectionLabel: "Most used" }));
+  const unused = decorated.filter((item) => item.count === 0)
+    .map(({ i, ...item }) => ({ ...item, sectionLabel: used.length ? "Not played yet" : "No sessions yet" }));
+  return [...used, ...unused];
 }

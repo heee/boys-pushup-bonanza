@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=371">
+<link rel="stylesheet" href="style.css?v=372">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -345,7 +345,10 @@
     </section>
 
     <section id="screen-explore-modes" class="screen">
-      <h1 class="screen-title picker-title">Choose your mode</h1>
+      <div class="picker-title-row">
+        <h1 class="screen-title picker-title">Choose your mode</h1>
+        <button id="btn-mode-picker-flip" type="button" class="mode-picker-flip" aria-pressed="false" aria-label="Show most used modes"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="15" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg></button>
+      </div>
       <div id="explore-modes-list" class="tier1-list explore-modes-list"></div>
     </section>
 
@@ -2431,6 +2434,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=399"></script>
+<script type="module" src="app.js?v=400"></script>
 </body>
 </html>

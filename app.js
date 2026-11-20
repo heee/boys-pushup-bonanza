@@ -135,7 +135,7 @@ import { challengeActivityId, challengeLeaderboardRows, challengeOverviewStats, 
 import { bingoCompletionForUser, bingoCycleById, bingoLeaderboard, bingoSquaresChecked, bingoWinners, cycleFromStart as bingoCycleFromStart, cycleIndexForDate, cycleStartDateForIndex, generateBingoBoard, isBingoCycleId } from "./screens/bingo.js?v=6";
 import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycleFromStart, pokerCollectionHandsCollected, pokerCollectionHasBonus, pokerCollectionLeaderboard, pokerCollectionRowsForUser, pokerCollectionWinners, pokerLifetimeCollection, POKER_BONUS_RANK, POKER_COLLECTION_RANKS, POKER_HAND_EXAMPLES, POKER_HAND_KEY_CARDS, POKER_SET_SIZE } from "./screens/poker-collection.js?v=4";
 import { weightModifierText } from "./screens/settings.js";
-import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=155";
+import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, mostUsedOrder, usageByMode, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=156";
 import { modeIconSvg, modifierIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=7";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
@@ -364,6 +364,7 @@ const jsonStorage = createJsonStorage(localStorage);
 
 const LS = {
   theme: "bpb-theme",
+  modePickerView: "bpb-mode-picker-view",
   lastUser: "bpb-last-user",
   changelogSeen: "bpb-changelog-seen",
   lastAvatar: "bpb-last-avatar",
@@ -3643,15 +3644,30 @@ function renderExploreModesScreen(refresh = true) {
   const pulseUnlock = pulseUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
   const cockUnlock = cockUnlockStatus(pulseHistorySessionsForUser(state.currentUser));
   const fromGames = modePickerOrigin === "games";
-  const items = modePickerModel(fromGames ? "pushups" : state.homeType, { sessions: getAllSessionsForDisplay(), hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock })
+  const allSessions = getAllSessionsForDisplay();
+  const catalog = modePickerModel(fromGames ? "pushups" : state.homeType, { sessions: allSessions, hasPR, refresh, chasePrepared: state.chasePrepared, chaseLeaderLabel, pulseUnlock, cockUnlock })
     .filter((item) => !fromGames || GAMES_PICKER_MODES.has(item.mode.id));
+  // Flip between the categorized catalog and "most used" (your own session
+  // counts, desc). Only offered where there's an actual choice of modes.
+  const canFlip = catalog.length > 1;
+  const mostUsed = canFlip && readModePickerView() === "used";
+  const flipBtn = $("btn-mode-picker-flip");
+  flipBtn.classList.toggle("hidden", !canFlip);
+  flipBtn.classList.toggle("active", mostUsed);
+  flipBtn.setAttribute("aria-pressed", mostUsed ? "true" : "false");
+  flipBtn.setAttribute("aria-label", mostUsed ? "Show all modes by category" : "Show most used modes");
+  const items = mostUsed
+    ? mostUsedOrder(catalog, usageByMode(allSessions.filter((s) => s.user === state.currentUser)))
+    : catalog;
   let lastSection = null;
   list.innerHTML = items.map((item) => {
     const m = item.mode;
     const live = item.playable;
+    const countBadge = mostUsed && item.count > 0
+      ? `<span class="explore-mode-count" aria-label="${item.count} session${item.count === 1 ? "" : "s"}">${formatNumber(item.count)}</span>` : "";
     const badge = live
-      ? '<span class="explore-mode-chev">›</span>'
-      : `<span class="explore-mode-soon">${item.status}</span>`;
+      ? `${countBadge}<span class="explore-mode-chev">›</span>`
+      : `${countBadge}<span class="explore-mode-soon">${item.status}</span>`;
     const header = item.sectionLabel !== lastSection ? `<p class="explore-mode-section-label">${escapeHtml(item.sectionLabel)}</p>` : "";
     lastSection = item.sectionLabel;
     const selected = !fromGames && m.id === state.homeMode;
@@ -3674,6 +3690,15 @@ function renderExploreModesScreen(refresh = true) {
     });
   }
 }
+
+function readModePickerView() {
+  try { return localStorage.getItem(LS.modePickerView) === "used" ? "used" : "catalog"; } catch { return "catalog"; }
+}
+$("btn-mode-picker-flip").addEventListener("click", () => {
+  const next = readModePickerView() === "used" ? "catalog" : "used";
+  try { localStorage.setItem(LS.modePickerView, next); } catch { /* per-device nicety only */ }
+  renderExploreModesScreen(false);
+});
 
 // Jumps to the workout start screen with a specific mode pre-selected,
 // bypassing the normal reset-to-Classic that a fresh Home visit gets.
