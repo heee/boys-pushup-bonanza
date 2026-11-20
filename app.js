@@ -9325,9 +9325,20 @@ function challengeRowEl({ id, icon, title, meta, onOpen, onJoin, joined, status,
 }
 
 // Slim bar under the progress number — lighter than the full thermometer.
-function challengeRowBarHTML({ current, goal, label }) {
+// Colored like the Home goal thermometers: reached → amber + sheen; otherwise
+// green when keeping pace with the elapsed share of the window, red when
+// behind. Rows without an `elapsed` fraction (PR rate, Plank window) stay amber.
+function challengeRowBarHTML({ current, goal, label, elapsed, pace: paceable = true }) {
   const pct = goal > 0 ? Math.max(0, Math.min(100, (current / goal) * 100)) : 0;
-  return `<span class="challenge-row-bar" role="progressbar" aria-label="${escapeHtml(label)}" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${Math.min(current, goal)}"><span style="width:${pct.toFixed(1)}%"></span></span>`;
+  const pace = !paceable ? "" : goal > 0 && current >= goal ? "reached"
+    : elapsed == null ? "" : current >= goal * elapsed ? "on-track" : "behind";
+  const cls = pace === "reached" ? " thermometer-win" : pace ? ` goal-pace-${pace}` : "";
+  return `<span class="challenge-row-bar" role="progressbar" aria-label="${escapeHtml(label)}" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${Math.min(current, goal)}"><span class="${cls.trim()}" style="width:${pct.toFixed(1)}%"></span></span>`;
+}
+function windowElapsedFraction(startDate, endDate, now) {
+  if (now <= startDate) return 0;
+  if (now >= endDate) return 1;
+  return (now - startDate) / (endDate - startDate);
 }
 
 function challengeRowTiming(status, dateLabel, dateRange, participantCount) {
@@ -9377,6 +9388,8 @@ function buildChallengeCard(c, now) {
     label: isPrProgress ? `${prAchievedCount} of ${participants.length} participants set a new PR`
       : isWindowProgress ? `${current}% of challenge window elapsed`
       : `${formatNumber(current)} of ${formatNumber(goal)}`,
+    pace: !isWindowProgress,
+    elapsed: isPrProgress || isWindowProgress ? undefined : challengeWindowProgress(c, now) / 100,
   };
 
   return challengeRowEl({
@@ -10177,7 +10190,7 @@ function buildBingoCard(cycle, now) {
   if (joined && status !== "past") {
     const sessions = bingoSessionsForCycle(cycle, participants);
     const mySquares = bingoSquaresChecked(bingoCompletionForUser(board, sessions, state.currentUser, cycle, sessionTimestamp));
-    progress = { current: mySquares, goal: 25, text: `${mySquares}/25`, label: `${mySquares} of 25 squares` };
+    progress = { current: mySquares, goal: 25, text: `${mySquares}/25`, label: `${mySquares} of 25 squares`, elapsed: windowElapsedFraction(cycle.startDate, cycle.endDate, now) };
   }
 
   return challengeRowEl({
@@ -10426,7 +10439,7 @@ function buildPokerCollectionCard(cycle, now) {
     const sessions = pokerCollectionSessionsForCycle(cycle, participants);
     const rows = pokerCollectionRowsForUser(sessions, state.currentUser, cycle, sessionTimestamp);
     const myHands = pokerCollectionHandsCollected(rows);
-    progress = { current: myHands, goal: POKER_SET_SIZE, text: `${myHands}/${POKER_SET_SIZE}`, label: `${myHands} of ${POKER_SET_SIZE} hands` };
+    progress = { current: myHands, goal: POKER_SET_SIZE, text: `${myHands}/${POKER_SET_SIZE}`, label: `${myHands} of ${POKER_SET_SIZE} hands`, elapsed: windowElapsedFraction(cycle.startDate, cycle.endDate, now) };
   }
 
   return challengeRowEl({
