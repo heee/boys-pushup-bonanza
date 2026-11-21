@@ -2254,7 +2254,6 @@ function showScreen(id) {
   if (id === "screen-games") repaintAfterBackgroundRefresh(id, renderGamesScreen);
   if (id === "screen-trophies") {
     trophyCaseUser = state.currentUser;
-    trophyOpenCard = null;
     repaintAfterBackgroundRefresh(id, renderTrophiesScreen);
   }
   if (id === "screen-summary" || id === "screen-horse-summary" || id === "screen-tow-summary") checkTrophyUnlocks();
@@ -5982,7 +5981,7 @@ function viewFinishedTowGame(game) {
 
 // ---------------- Trophies (docs/trophies-plan.md) ----------------
 let trophyCaseUser = null;
-let trophyOpenCard = null;
+let trophyCaseModelShown = null;
 
 function trophyModelFor(user) {
   const cached = getCachedData();
@@ -6021,6 +6020,7 @@ function renderTrophiesScreen() {
   const all = names.includes(state.currentUser) ? names : [state.currentUser, ...names];
   select.innerHTML = all.map((name) => `<option value="${escapeHtml(name)}"${name === user ? " selected" : ""}>${escapeHtml(name === state.currentUser ? `${name} (you)` : name)}</option>`).join("");
   const model = trophyModelFor(user);
+  trophyCaseModelShown = model;
   $("trophy-summary").textContent = `${model.earned} of ${model.total} tiers earned`;
   $("trophy-case").innerHTML = TROPHY_SECTIONS.map((section) => {
     const cards = model.cards.filter((c) => c.section === section.id);
@@ -6031,17 +6031,9 @@ function renderTrophiesScreen() {
 
 function trophyCardHTML(card) {
   const tierId = card.tier ? card.tier.id : "locked";
-  const open = trophyOpenCard === card.id;
   const status = card.tier ? card.tier.label : "Locked";
   const progressText = card.next ? `${card.valueText} / ${card.next.label}` : `${card.valueText} · maxed`;
-  const ladder = open ? `<ol class="trophy-ladder">${card.tiers.map((t) => `
-      <li class="trophy-ladder-row${t.unlockedAt != null ? " earned" : ""}" data-tier="${t.id}">
-        <span class="trophy-ladder-dot" aria-hidden="true"></span>
-        <span class="trophy-ladder-name">${TROPHY_TIER_NAME[t.id]}</span>
-        <span class="trophy-ladder-goal">${escapeHtml(t.label)}</span>
-        <span class="trophy-ladder-date">${t.unlockedAt != null ? `✓ ${formatTrophyDate(t.unlockedAt)}` : ""}</span>
-      </li>`).join("")}</ol>` : "";
-  return `<button type="button" class="trophy-card tier-${tierId}${open ? " open" : ""}" data-trophy="${card.id}" aria-expanded="${open}">
+  return `<button type="button" class="trophy-card tier-${tierId}" data-trophy="${card.id}" aria-haspopup="dialog">
     <span class="trophy-card-top">
       <span class="trophy-card-icon is-stroke" aria-hidden="true">${trophyIconHTML(card.icon)}</span>
       <span class="trophy-card-tier">${escapeHtml(status)}</span>
@@ -6049,7 +6041,6 @@ function trophyCardHTML(card) {
     <span class="trophy-card-title">${escapeHtml(card.title)}</span>
     <span class="trophy-card-bar" aria-hidden="true"><span style="width:${(card.progress * 100).toFixed(1)}%"></span></span>
     <span class="trophy-card-progress">${escapeHtml(progressText)}</span>
-    ${ladder}
   </button>`;
 }
 const TROPHY_TIER_NAME = { bronze: "Bronze", silver: "Silver", gold: "Gold", platinum: "Platinum", diamond: "Diamond" };
@@ -6057,12 +6048,42 @@ const TROPHY_TIER_NAME = { bronze: "Bronze", silver: "Silver", gold: "Gold", pla
 $("trophy-case").addEventListener("click", (e) => {
   const card = e.target.closest(".trophy-card");
   if (!card) return;
-  trophyOpenCard = trophyOpenCard === card.dataset.trophy ? null : card.dataset.trophy;
-  renderTrophiesScreen();
+  const model = trophyCaseModelShown?.cards.find((c) => c.id === card.dataset.trophy);
+  if (model) openTrophySheet(model);
+});
+
+// Tapping a card opens its tier ladder in the same bottom sheet as the
+// Board's statistic rankings.
+function openTrophySheet(card) {
+  const mine = trophyCaseUser === state.currentUser || !trophyCaseUser;
+  $("trophy-sheet-title").textContent = mine ? card.title : `${card.title} · ${trophyCaseUser}`;
+  const status = card.tier ? card.tier.label : "Locked";
+  $("trophy-sheet-sub").textContent = card.next
+    ? `${status} · ${card.valueText} so far · next: ${card.next.label}`
+    : `${status} · ${card.valueText} · every tier earned`;
+  $("trophy-sheet-list").innerHTML = card.tiers.map((t, i) => {
+    const earned = t.unlockedAt != null;
+    return `<li class="metric-sheet-row trophy-sheet-row${earned ? " earned" : ""}${i === card.tierIndex ? " is-me" : ""}" data-tier="${t.id}">
+      <span class="trophy-ladder-dot" aria-hidden="true"></span>
+      <span class="metric-sheet-name">${TROPHY_TIER_NAME[t.id]}<span class="trophy-sheet-goal">${escapeHtml(t.label)}</span></span>
+      <span class="trophy-sheet-date">${earned ? formatTrophyDate(t.unlockedAt) : "Locked"}</span>
+    </li>`;
+  }).join("");
+  $("trophy-sheet-backdrop").classList.remove("hidden");
+  $("trophy-sheet").scrollTop = 0;
+}
+function closeTrophySheet() {
+  $("trophy-sheet-backdrop").classList.add("hidden");
+}
+$("btn-trophy-sheet-close").addEventListener("click", closeTrophySheet);
+$("trophy-sheet-backdrop").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeTrophySheet();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("trophy-sheet-backdrop").classList.contains("hidden")) closeTrophySheet();
 });
 $("trophy-user-select").addEventListener("change", (e) => {
   trophyCaseUser = e.target.value;
-  trophyOpenCard = null;
   renderTrophiesScreen();
 });
 

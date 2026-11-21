@@ -6579,7 +6579,6 @@ body:has(#screen-challenge-detail.active) #app {
   -webkit-tap-highlight-color: transparent;
 }
 .trophy-card:active { transform: scale(0.98); }
-.trophy-card.open { grid-column: 1 / -1; }
 .trophy-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
 .trophy-card-icon { width: 1.9rem; height: 1.9rem; display: flex; align-items: center; justify-content: center; }
 .trophy-card-icon svg { width: 1.6rem; height: 1.6rem; display: block; }
@@ -6615,11 +6614,11 @@ body:has(#screen-challenge-detail.active) #app {
 .trophy-ladder-row { display: grid; grid-template-columns: auto 4.6rem 1fr auto; align-items: center; gap: 0.5rem; font-size: 0.78rem; opacity: 0.6; }
 .trophy-ladder-row.earned { opacity: 1; }
 .trophy-ladder-dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.35); background: linear-gradient(135deg, var(--metal-a), var(--metal-b)); }
-.trophy-ladder-row[data-tier="bronze"] { --metal-a: #9a5b2e; --metal-b: #dc9a62; }
-.trophy-ladder-row[data-tier="silver"] { --metal-a: #858d96; --metal-b: #e3e7eb; }
-.trophy-ladder-row[data-tier="gold"] { --metal-a: #b9852a; --metal-b: #f5d26a; }
-.trophy-ladder-row[data-tier="platinum"] { --metal-a: #6f9aa0; --metal-b: #e2f4f5; }
-.trophy-ladder-row[data-tier="diamond"] { --metal-a: #5aa9e6; --metal-b: #cfa9f7; }
+.trophy-sheet-row[data-tier="bronze"] { --metal-a: #9a5b2e; --metal-b: #dc9a62; }
+.trophy-sheet-row[data-tier="silver"] { --metal-a: #858d96; --metal-b: #e3e7eb; }
+.trophy-sheet-row[data-tier="gold"] { --metal-a: #b9852a; --metal-b: #f5d26a; }
+.trophy-sheet-row[data-tier="platinum"] { --metal-a: #6f9aa0; --metal-b: #e2f4f5; }
+.trophy-sheet-row[data-tier="diamond"] { --metal-a: #5aa9e6; --metal-b: #cfa9f7; }
 .trophy-ladder-name { font-weight: 800; }
 .trophy-ladder-date { font-size: 0.72rem; white-space: nowrap; }
 
@@ -6638,3 +6637,10 @@ body:has(#screen-challenge-detail.active) #app {
 .trophy-unlock-title { font-weight: 800; font-size: 1rem; }
 .trophy-unlock-more { font-size: 0.75rem; font-weight: 700; opacity: 0.8; white-space: nowrap; }
 @keyframes trophy-unlock-in { from { transform: translateY(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
+.trophy-sheet-row { opacity: 0.55; }
+.trophy-sheet-row.earned { opacity: 1; }
+.trophy-sheet-row .trophy-ladder-dot { width: 1.1rem; height: 1.1rem; flex-shrink: 0; margin-left: 0.3rem; }
+.trophy-sheet-row .metric-sheet-name { display: flex; flex-direction: column; gap: 0.1rem; font-weight: 650; }
+.trophy-sheet-goal { font-size: 0.8rem; font-weight: 400; color: var(--text-dim); }
+.trophy-sheet-date { font-size: 0.82rem; color: var(--text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.trophy-sheet-row.earned .trophy-sheet-date { color: var(--text); }

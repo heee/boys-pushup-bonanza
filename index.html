@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=374">
+<link rel="stylesheet" href="style.css?v=375">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -2364,8 +2364,8 @@
   <nav id="tab-bar" class="tab-bar">
     <span id="tab-indicator" class="tab-indicator" aria-hidden="true"></span>
     <button id="btn-nav-home" class="tab-item" aria-label="Home" title="Home"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M2 9v6"/><path d="M5 7v10"/><path d="M19 7v10"/><path d="M22 9v6"/></svg></span><span class="tab-item-label">Home</span></button>
-    <button id="btn-nav-trophies" class="tab-item" aria-label="Trophies" title="Trophies"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span><span class="tab-item-label">Trophies</span></button>
     <button id="btn-nav-challenges" class="tab-item" aria-label="Challenges" title="Challenges"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span><span class="tab-item-label">Challenges</span></button>
+    <button id="btn-nav-trophies" class="tab-item" aria-label="Trophies" title="Trophies"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span><span class="tab-item-label">Trophies</span></button>
     <button id="btn-nav-roadtrip" class="tab-item" aria-label="Roadtrip" title="Roadtrip"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18"/></svg></span><span class="tab-item-label">Roadtrip</span></button>
     <button id="btn-nav-dashboard" class="tab-item" aria-label="Leaderboard" title="Leaderboard"><span class="tab-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span><span class="tab-item-label">Board</span></button>
   </nav>
@@ -2408,6 +2408,18 @@
   </section>
 </div>
 
+<div id="trophy-sheet-backdrop" class="location-sheet-backdrop hidden">
+  <section id="trophy-sheet" class="location-sheet metric-sheet" role="dialog" aria-modal="true" aria-labelledby="trophy-sheet-title">
+    <div class="location-sheet-handle" aria-hidden="true"></div>
+    <div class="location-sheet-header">
+      <h2 id="trophy-sheet-title" class="metric-sheet-title"></h2>
+      <button id="btn-trophy-sheet-close" type="button" class="location-close" aria-label="Close">&#x2715;</button>
+    </div>
+    <p id="trophy-sheet-sub" class="metric-sheet-sub"></p>
+    <ol id="trophy-sheet-list" class="metric-sheet-list"></ol>
+  </section>
+</div>
+
 <div id="avatar-sheet-backdrop" class="location-sheet-backdrop hidden">
   <section id="avatar-sheet" class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="avatar-sheet-title">
     <div class="location-sheet-handle" aria-hidden="true"></div>
@@ -2446,6 +2458,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=401"></script>
+<script type="module" src="app.js?v=402"></script>
 </body>
 </html>
