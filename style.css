@@ -6590,8 +6590,9 @@ body:has(#screen-challenge-detail.active) #app {
 
 /* Locked: greyscale, dim. */
 .trophy-card.tier-locked { color: var(--text-tertiary); border-color: var(--border); }
-.trophy-card.tier-locked .trophy-card-icon { opacity: 0.55; filter: grayscale(1); }
-.trophy-card.tier-locked .trophy-card-title { color: var(--text-dim); }
+.trophy-card.tier-locked .trophy-card-icon { opacity: 0.4; filter: grayscale(1); }
+.trophy-card.tier-locked .trophy-card-title { color: var(--text-tertiary); opacity: 0.75; }
+.trophy-card.tier-locked .trophy-card-progress, .trophy-card.tier-locked .trophy-card-tier { opacity: 0.6; }
 .trophy-card.tier-locked .trophy-card-bar { background: var(--bg-elevated-2); }
 .trophy-card.tier-locked .trophy-card-tier { background: var(--bg-elevated-2); }
 
