@@ -6565,7 +6565,7 @@ body:has(#screen-challenge-detail.active) #app {
 
 .trophies-header { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.4rem; }
 .trophies-header .screen-title { margin: 0; }
-.trophy-user-select { width: auto; max-width: 10rem; flex-shrink: 1; min-width: 0; padding-top: 0.45rem; padding-bottom: 0.45rem; font-size: 0.85rem; }
+.trophy-user-select { margin: 0; width: auto; max-width: 10rem; flex-shrink: 1; min-width: 0; padding-top: 0.45rem; padding-bottom: 0.45rem; font-size: 0.85rem; }
 .trophy-summary { margin: 0 0 0.6rem; color: var(--text-dim); font-size: 0.85rem; }
 .trophy-section-label { margin: 1.1rem 0 0.5rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); text-transform: uppercase; }
 .trophy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
