@@ -6589,7 +6589,7 @@ body:has(#screen-challenge-detail.active) #app {
 .trophy-card-progress { font-size: 0.72rem; font-weight: 400; opacity: 0.85; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Locked: greyscale, dim. */
-.trophy-card.tier-locked { color: var(--text-tertiary); border-color: var(--border); }
+.trophy-card.tier-locked { color: var(--text-tertiary); border-color: var(--border); opacity: 0.5; filter: grayscale(1); }
 .trophy-card.tier-locked .trophy-card-icon { opacity: 0.4; filter: grayscale(1); }
 .trophy-card.tier-locked .trophy-card-title { color: var(--text-tertiary); opacity: 0.75; }
 .trophy-card.tier-locked .trophy-card-progress, .trophy-card.tier-locked .trophy-card-tier { opacity: 0.6; }
