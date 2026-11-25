@@ -92,3 +92,11 @@ test("marker milestones separate best and latest names; best wins on a shared ru
     { type: "approaching", best: ["A"], latest: ["B"], selfLatest: false },
   ]);
 });
+
+test("marker age counts local calendar days, not elapsed 24h blocks", async () => {
+  const { localDaysAgo } = await import("../ladder-rivals.js");
+  const now = new Date(2026, 10, 25, 7, 0).getTime();
+  assert.equal(localDaysAgo(new Date(2026, 10, 24, 21, 0).getTime(), now), 1);
+  assert.equal(localDaysAgo(new Date(2026, 10, 25, 0, 30).getTime(), now), 0);
+  assert.equal(localDaysAgo(new Date(2026, 10, 22, 23, 59).getTime(), now), 3);
+});

@@ -105,7 +105,7 @@ import {
   unlockVoice,
 } from "./voice.js?v=156";
 import { buildChasePlan, chaseProgress, crossedLeadMilestone } from "./chase.js";
-import { buildLadderMarkers, buildLadderRivals, groupLadderMarkers, ladderMarkerMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js?v=2";
+import { buildLadderMarkers, buildLadderRivals, groupLadderMarkers, ladderMarkerMilestones, shouldCompactLadderRivals } from "./ladder-rivals.js?v=3";
 import { WHEEL_SEGMENTS, displaySegments, resolveWheelSpin, numberRangeMidpoint } from "./wheel-mode.js?v=4";
 import { createWorkerApi, isRetryableError } from "./api.js";
 import { createJsonStorage, normalizeSharedData } from "./storage.js";

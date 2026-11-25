@@ -31,6 +31,14 @@ export function shouldCompactLadderRivals(users) {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Calendar days between two instants in the viewer's local time zone, so a
+// climb from last night reads "1d" rather than "today" even if <24h ago.
+// Rounding absorbs DST's 23/25-hour days.
+export function localDaysAgo(time, now) {
+  const startOf = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  return Math.max(0, Math.round((startOf(now) - startOf(time)) / DAY_MS));
+}
 export const LADDER_LATEST_WINDOW_DAYS = 30;
 
 // Every Ladder marker to draw: each user's all-time best rung ("best") plus
@@ -55,7 +63,7 @@ export function buildLadderMarkers(sessions, currentUser, now = Date.now(), wind
     const latest = runs[runs.length - 1];
     const self = name === currentUser;
     const fresh = latest.time > 0 && now - latest.time <= windowDays * DAY_MS;
-    const ageDays = fresh ? Math.max(0, Math.floor((now - latest.time) / DAY_MS)) : null;
+    const ageDays = fresh ? localDaysAgo(latest.time, now) : null;
     if (fresh && latest.rung === best) {
       const freshPB = runs.slice(0, -1).every((run) => run.rung < best);
       markers.push({ name, rung: best, kind: "both", ageDays, freshPB, self });
