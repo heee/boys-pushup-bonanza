@@ -137,12 +137,13 @@ import { isPokerCollectionCycleId, pokerCollectionCycleById, pokerCollectionCycl
 import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, mostUsedOrder, usageByMode, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=156";
 import { modeIconSvg, modifierIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=7";
-import { TROPHY_SECTIONS, earnedTierKeys, trophyCaseModel } from "./screens/trophies.js?v=1";
+import { TROPHY_SECTIONS, earnedTierKeys, trophyCards, trophyCaseModel } from "./screens/trophies.js?v=2";
+import { FEED_REACTIONS, buildFeedItems, feedDayLabel, localDayKey, mergeReactions, reactionIndex, unreadReactions } from "./feed.js";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=16";
 import { ladderRungRows, workoutHeroModel, workoutHudModel } from "./workout-modes.js?v=155";
-import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=17";
+import { CHANGELOG, changelogEntryKey, changelogGroups, unseenChangelogCount } from "./changelog.js?v=18";
 import { applyTurn, chooseHorseTarget, createHorseGame, currentTurnPlayer, HORSE_TIME_LIMITS, horsePlayerRows, horseTargetLabel, isTimeUp } from "./horse.js";
 import { horseChoiceCopy, horseInviteUrl, horseSummaryRows, horseSummaryStats, horseTargetWasLowered, horseTurnHeroCopy, horseWordChips, openHorseJoinModel } from "./screens/horse.js";
 import { randomHorseWord } from "./horse-words.js";
@@ -1170,6 +1171,7 @@ async function flushQueue() {
     if (operation.type === "rename-user") return workerRenameUser(payload.oldName, payload.newName);
     if (operation.type === "join-challenge") return workerJoinChallenge(payload.user, payload.challengeId);
     if (operation.type === "create-challenge") return workerCreateChallenge(payload);
+    if (operation.type === "reaction") return workerApi.react(payload);
     throw new Error(`Unknown queued mutation: ${operation.type}`);
   });
   try {
@@ -2304,9 +2306,13 @@ function showScreen(id) {
     scheduleBodyTrackerPrefetch();
     renderPushupModePicker();
     renderModifierSlot();
+    syncHomePagerHeight();
+    renderFeedBadge();
+    if (homePage === 1) renderHomeFeed();
     repaintIfRefreshed(id, () => {
       renderGoalThermometers();
       renderStreakBadge();
+      refreshHomeFeed();
     });
   }
   if (id === "screen-plank-workout" && !state.plankActive) {
@@ -2760,7 +2766,10 @@ $("group-member-list").addEventListener("click", async (e) => {
     if (await runGroupAction({ action: "remove", groupId: group.id, target })) renderGroupDetail();
   }
 });
-$("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(goHome));
+$("btn-nav-home").addEventListener("click", () => guardLeaveWorkout(() => {
+  setHomePage(0, { animate: state.screen === "screen-workout" });
+  goHome();
+}));
 $("streak-badge").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("mine")));
 $("btn-nav-challenges").addEventListener("click", () => guardLeaveWorkout(() => showScreen("screen-challenges")));
 $("btn-nav-dashboard").addEventListener("click", () => guardLeaveWorkout(() => goToDashboard("boys")));
@@ -8457,7 +8466,7 @@ function openSessionDetail(session, originScreenId) {
   state.sessionDetailSession = session;
   state.sessionDetailOrigin = originScreenId;
   // The header's back button mirrors this label (see syncHeaderBack).
-  const backLabel = { "screen-dashboard": "Board", "screen-settings": "Settings", "screen-challenge-detail": "Challenge", "screen-summary": "Summary" }[originScreenId] || "Back";
+  const backLabel = { "screen-dashboard": "Board", "screen-settings": "Settings", "screen-challenge-detail": "Challenge", "screen-summary": "Summary", "screen-workout": "Feed" }[originScreenId] || "Back";
   $("btn-session-detail-back").textContent = `← ${backLabel}`;
   showScreen("screen-session-detail");
 }
@@ -8955,7 +8964,6 @@ function paintDashboard(sessions) {
 
   renderBoysModeStats(filtered, allModesInPeriod);
   renderBoysLeaderStats(filtered, allModesInPeriod);
-  renderRecentList(sessions);
 }
 
 // Short "elapsed since" label for the recent-activity statement (mirrors
@@ -9005,47 +9013,6 @@ function sessionActivityPhrase(s) {
     return `a ${activityLabel(sessionActivity(s), true)}`;
   }
   return `a ${sessionModeLabel(s).toLowerCase()}`;
-}
-
-function renderRecentList(sessions) {
-  const isPlank = isTimedActivity(state.activityType);
-  const isHolland = state.activityType === "holland";
-  const isPulse = state.leaderboardMode === "pulse";
-  const currentActivity = activityLabel(state.activityType);
-  const recentList = $("recent-list");
-  const recent = [...sessions].sort((a, b) => sessionTimestamp(b) - sessionTimestamp(a)).slice(0, 10);
-  recentList.innerHTML = "";
-  if (!recent.length) {
-    recentList.innerHTML = `<p class="history-empty">No ${currentActivity} logged yet. Get moving! ${activityEmoji(state.activityType)}</p>`;
-    return;
-  }
-  for (const s of recent) {
-    const row = document.createElement("div");
-    row.className = "recent-row compare-clickable";
-    const modifierMeta = s.modifier ? findModifier(s.modifier) : null;
-    const modifierIcon = modifierMeta
-      ? `<button type="button" class="recent-modifier" aria-label="${escapeHtml(modifierMeta.title)} modifier">${modifierMeta.icon}</button>`
-      : "";
-    row.innerHTML = `
-      ${avatarCircleHTML(avatarForUser(s.user), "1.15rem")}
-      <div class="recent-statement">
-        <span class="recent-name">${escapeHtml(s.user)}</span> · ${escapeHtml(capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, "")))} · ${shortAgoLabel(sessionTimestamp(s))}
-      </div>
-      <div class="recent-count-col">
-        ${modifierIcon}
-        <span class="recent-count">${(isPlank || isPulse) ? formatDuration(s.count * 1000) : isHolland ? (Number(s.hollandCycles) || 0).toFixed(1) : s.type === "kettlebell" ? `${formatNumber(Number(s.kettlebellVolumeLbs) || 0)} lb` : formatNumber(s.count)}</span>
-      </div>
-    `;
-    makeNameCompareClickable(row.querySelector(".recent-name"), s.user, true);
-    if (modifierMeta) {
-      row.querySelector(".recent-modifier").addEventListener("click", (e) => {
-        e.stopPropagation();
-        toast(`${modifierMeta.title} — ${modifierMeta.sub}`, 3200);
-      });
-    }
-    row.addEventListener("click", () => openSessionDetail(s, "screen-dashboard"));
-    recentList.appendChild(row);
-  }
 }
 
 function escapeHtml(str) {
@@ -18416,6 +18383,602 @@ $("recap-body").addEventListener("touchend", (event) => {
   switchRecapTab(deltaX < 0 ? 1 : -1);
 });
 
+// ------------------- Activity Feed (docs/activity-feed-plan.md) -------------------
+// Home is a two-page pager: Start (0) ↔ Feed (1). The feed model is built in
+// feed.js from data /data already returns; only reactions are new state.
+
+const FEED_PAGE_SIZE = 30;
+let homePage = 0;
+let feedMemo = null;
+let feedShown = FEED_PAGE_SIZE;
+const feedExpanded = new Set();
+let feedFresh = new Set();
+let feedItemsById = new Map();
+
+function reactionsOn() {
+  return getCachedData().reactionsEnabled === true;
+}
+
+function feedSeenKey() {
+  return `bpb-feed-seen:${state.currentUser}`;
+}
+function feedSeenAt() {
+  const raw = Number(localStorage.getItem(feedSeenKey()));
+  if (Number.isFinite(raw) && raw > 0) return raw;
+  // First look on this device: only reactions from here on count as new.
+  try { localStorage.setItem(feedSeenKey(), String(Date.now())); } catch { /* nicety only */ }
+  return Date.now();
+}
+
+function feedReactions() {
+  const queued = getQueue().filter((op) => op.type === "reaction").map((op) => op.payload);
+  return mergeReactions(getCachedData().reactions || [], queued);
+}
+
+function feedScope() {
+  if (!groupsOn()) {
+    const names = new Set(getAllSessionsForDisplay().map((s) => s.user));
+    names.add(state.currentUser);
+    return { names, groupId: "all", label: "Everyone" };
+  }
+  const group = activeGroup();
+  if (!group) return { names: new Set([state.currentUser]), groupId: null, label: "Just you" };
+  return { names: new Set(groupMemberNames(group)), groupId: group.id, label: group.name };
+}
+
+const FEED_TROPHY_THRESHOLDS = (() => {
+  const out = {};
+  for (const card of trophyCards()) out[card.id] = card.thresholds;
+  return out;
+})();
+
+function feedTrophyEvents(names) {
+  const out = [];
+  for (const user of names) {
+    let model;
+    try { model = trophyModelFor(user); } catch { continue; }
+    for (const card of model.cards) {
+      for (const tier of card.tiers) {
+        if (tier.unlockedAt == null) continue;
+        out.push({ user, cardId: card.id, title: card.title, icon: card.icon, tierId: tier.id, tierLabel: TROPHY_TIER_NAME[tier.id], goalLabel: tier.label, at: tier.unlockedAt });
+      }
+    }
+  }
+  return out;
+}
+
+function feedChallengeEvents(now) {
+  const wins = [];
+  const joins = [];
+  const byId = new Map();
+  for (const c of challengeDefs) {
+    if (!challengeVisible(c)) continue;
+    byId.set(c.id, c);
+    if (challengeStatus(c, new Date(now)) !== "past") continue;
+    let winners = [];
+    try { winners = challengeWinners(c); } catch { winners = []; }
+    if (winners.length) wins.push({ challenge: c, winners, at: challengeWindow(c).endDate.getTime() });
+  }
+  for (const j of getCachedData().challengeJoins || []) {
+    const c = byId.get(j.challengeId);
+    if (c) joins.push({ challenge: c, user: j.user, at: j.at });
+  }
+  return { wins, joins };
+}
+
+function feedItems() {
+  const sessions = getAllSessionsForDisplay();
+  const cached = getCachedData();
+  const scope = feedScope();
+  const now = Date.now();
+  const key = [scope.groupId, [...scope.names].join("|"), localDayKey(now), state.currentUser].join("\0");
+  if (feedMemo && feedMemo.sessions === sessions && feedMemo.cached === cached && feedMemo.defs === challengeDefs && feedMemo.key === key) return feedMemo;
+  const { wins, joins } = feedChallengeEvents(now);
+  const items = buildFeedItems({
+    sessions, ts: sessionTimestamp, names: scope.names, groupId: scope.groupId,
+    horseGames: cached.horseGames, towGames: cached.towGames,
+    trophies: feedTrophyEvents(scope.names), challengeWins: wins, challengeJoins: joins,
+    trophyThresholds: FEED_TROPHY_THRESHOLDS, now,
+  });
+  feedMemo = { sessions, cached, defs: challengeDefs, key, items, scope };
+  feedItemsById = new Map(items.map((i) => [i.id, i]));
+  return feedMemo;
+}
+
+function feedNames(list) {
+  if (list.length <= 2) return list.join(" & ");
+  return `${list.slice(0, -1).join(", ")} & ${list[list.length - 1]}`;
+}
+
+function feedSessionValue(s) {
+  if (s.type === "plank" || s.type === "deadhang" || s.mode === "pulse") return formatDuration((Number(s.count) || 0) * 1000);
+  if (s.type === "holland") return `${(Number(s.hollandCycles) || 0).toFixed(1)} cyc`;
+  if (s.type === "chainofpain") return `${(Number(s.chainOfPainCycles) || 0).toFixed(1)} cyc`;
+  if (s.type === "kettlebell") return `${formatNumber(Number(s.kettlebellVolumeLbs) || 0)} lb`;
+  return formatNumber(Number(s.count) || 0);
+}
+
+function feedBurstTotal(sessions) {
+  const s0 = sessions[0];
+  const sum = (fn) => sessions.reduce((n, s) => n + (Number(fn(s)) || 0), 0);
+  if (s0.type === "plank" || s0.type === "deadhang") return formatDuration(sum((s) => s.count) * 1000);
+  if (s0.type === "holland") return `${sum((s) => s.hollandCycles).toFixed(1)} cyc`;
+  if (s0.type === "chainofpain") return `${sum((s) => s.chainOfPainCycles).toFixed(1)} cyc`;
+  if (s0.type === "kettlebell") return `${formatNumber(sum((s) => s.kettlebellVolumeLbs))} lb`;
+  if (!s0.type && sessions.some((s) => s.mode === "pulse")) return formatNumber(sum((s) => (s.mode === "pulse" ? s.pulseReps : s.count)));
+  return formatNumber(sum((s) => s.count));
+}
+
+function feedSessionLabel(s) {
+  return capitalizeFirst(sessionActivityPhrase(s).replace(/^a /, ""));
+}
+
+function feedPrValue(item) {
+  return item.exercise === "planks" || item.exercise === "deadhang" ? formatDuration(item.value * 1000) : formatNumber(item.value);
+}
+function feedPrPrevious(item) {
+  return item.exercise === "planks" || item.exercise === "deadhang" ? formatDuration(item.previous * 1000) : formatNumber(item.previous);
+}
+
+const FEED_ADD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/><path d="M19 2v6M16 5h6"/></svg>';
+function feedAddButtonHTML(extraClass = "") {
+  return `<button type="button" class="feed-react-add${extraClass}" aria-label="Add reaction">${FEED_ADD_ICON}</button>`;
+}
+
+// Chips row (with its own + at the end) once an item has reactions; until
+// then just an inline + (placed by the caller), so quiet items stay compact.
+function feedReactsHTML(item, index) {
+  if (!reactionsOn()) return "";
+  const chips = index.get(item.id) || [];
+  if (!chips.length) return "";
+  return `<div class="feed-reacts">${chips.map((r) => `<button type="button" class="feed-react-chip${r.mine ? " mine" : ""}" data-emoji="${r.emoji}" aria-pressed="${r.mine}" aria-label="${r.emoji} ${r.users.length}: ${escapeHtml(r.users.join(", "))}">${r.emoji}<span>${r.users.length}</span></button>`).join("")}${feedAddButtonHTML()}</div>`;
+}
+function feedInlineAddHTML(item, index) {
+  if (!reactionsOn() || (index.get(item.id) || []).length) return "";
+  return feedAddButtonHTML(" is-inline");
+}
+
+function feedRowHTML(item, index) {
+  const fresh = feedFresh.has(item.id) ? " is-fresh" : "";
+  if (item.kind === "challengeJoin") {
+    const c = item.challenge;
+    return `<article class="feed-item feed-row${fresh}" data-feed-id="${escapeHtml(item.id)}">
+      ${avatarCircleHTML(avatarForUser(item.user), "2rem")}
+      <div class="feed-row-main">
+        <div class="feed-row-line"><span class="feed-name">${escapeHtml(item.user)}</span> joined ${escapeHtml(`${c.emoji || "🎯"} ${c.title}`)}</div>
+        <div class="feed-row-meta">${shortAgoLabel(item.at)}${feedInlineAddHTML(item, index)}</div>
+        ${feedReactsHTML(item, index)}
+      </div>
+    </article>`;
+  }
+  const sessions = item.sessions;
+  const s0 = sessions[0];
+  const burst = sessions.length > 1;
+  const expanded = burst && feedExpanded.has(item.id);
+  const line = burst ? `${sessions.length} sets of ${escapeHtml(activityLabel(item.exercise))}` : escapeHtml(feedSessionLabel(s0));
+  const modifier = !burst && s0.modifier ? findModifier(s0.modifier) : null;
+  const sets = expanded ? `<div class="feed-sets">${[...sessions].reverse().map((s) => `<button type="button" class="feed-set" data-feed-session="${escapeHtml(s.id)}">
+      <span>${escapeHtml(feedSessionLabel(s))}${s.modifier && findModifier(s.modifier) ? ` ${findModifier(s.modifier).icon}` : ""}</span>
+      <span class="feed-set-time">${new Date(sessionTimestamp(s)).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+      <span class="feed-set-count">${feedSessionValue(s)}</span>
+    </button>`).join("")}</div>` : "";
+  return `<article class="feed-item feed-row${burst ? " is-burst" : ""}${expanded ? " is-expanded" : ""}${fresh}" data-feed-id="${escapeHtml(item.id)}">
+    ${avatarCircleHTML(avatarForUser(item.user), "2rem")}
+    <div class="feed-row-main">
+      <div class="feed-row-line"><span class="feed-name">${escapeHtml(item.user)}</span> · ${line}${modifier ? ` <span class="feed-row-modifier">${modifier.icon}</span>` : ""}${burst ? `<span class="feed-burst-chev" aria-hidden="true">${expanded ? "▴" : "▾"}</span>` : ""}</div>
+      <div class="feed-row-meta">${shortAgoLabel(item.at)}${feedInlineAddHTML(item, index)}</div>
+      ${sets}
+      ${feedReactsHTML(item, index)}
+    </div>
+    <div class="feed-row-count">${burst ? feedBurstTotal(sessions) : feedSessionValue(s0)}</div>
+  </article>`;
+}
+
+function feedCardContent(item) {
+  const name = (n) => `<b>${escapeHtml(n)}</b>`;
+  const names = (list) => `<b>${escapeHtml(feedNames(list))}</b>`;
+  switch (item.kind) {
+    case "pr": return {
+      tone: "gold", kicker: "Personal record", icon: trophyIconHTML({ kind: "stat", id: "award" }),
+      headline: `${name(item.user)} smashed a ${escapeHtml(activityLabel(item.exercise, true))} PR`,
+      stat: feedPrValue(item), sub: `prev best ${feedPrPrevious(item)}`,
+    };
+    case "cock": return {
+      tone: "flame", kicker: "Cock Mode", icon: modeIconSvg("cock"),
+      headline: `${name(item.user)} beat Cock Mode`, stat: formatNumber(item.session.count), sub: "pushups",
+    };
+    case "milestone": return {
+      tone: "flame", kicker: "Milestone", icon: typeIconSvg(item.exercise),
+      headline: `${name(item.user)} crossed ${formatNumber(item.value)} lifetime ${escapeHtml(activityLabel(item.exercise))}`,
+    };
+    case "streak": return {
+      tone: "flame", kicker: "Streak", icon: trophyIconHTML({ kind: "stat", id: "flame" }),
+      headline: `${name(item.user)} hit a ${item.value}-day streak`,
+    };
+    case "daily1": return {
+      tone: "gold", kicker: "Daily #1", icon: "👑",
+      headline: `${names(item.winners)} took #1 on ${escapeHtml(new Date(item.periodStart).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }))}`,
+      stat: formatNumber(item.value), sub: `pushups · ${item.field} in the running`,
+    };
+    case "weekly1": return {
+      tone: "gold", kicker: "Weekly #1", icon: "👑",
+      headline: `${names(item.winners)} won the week of ${escapeHtml(new Date(item.periodStart).toLocaleDateString(undefined, { month: "short", day: "numeric" }))}`,
+      stat: formatNumber(item.value), sub: `pushups · ${item.field} in the running`,
+    };
+    case "trophy": return {
+      tone: `tier tier-${item.trophy.tierId}`, kicker: `${item.trophy.tierLabel} trophy`, icon: trophyIconHTML(item.trophy.icon),
+      headline: `${name(item.user)} earned ${escapeHtml(item.trophy.tierLabel)} · ${escapeHtml(item.trophy.title)}`,
+      sub: escapeHtml(item.trophy.goalLabel),
+    };
+    case "horse": {
+      const others = item.players.filter((p) => !item.winners.includes(p));
+      return {
+        tone: "primary", kicker: "Horse", icon: modeIconSvg("horse"),
+        headline: `${names(item.winners)} won Horse${others.length ? ` vs ${escapeHtml(feedNames(others))}` : ""}`,
+      };
+    }
+    case "tow": return {
+      tone: "primary", kicker: "Tug of war", icon: modeIconSvg("tow"),
+      headline: `<b>${escapeHtml(item.winTeam?.name || "Team")}</b> won Tug of war`,
+      stat: `${formatNumber(item.score[0])}–${formatNumber(item.score[1])}`,
+      sub: `${escapeHtml(feedNames(item.winTeam?.players || []))} over ${escapeHtml(item.loseTeam?.name || "the other team")}`,
+    };
+    case "challengeWin": return {
+      tone: "gold", kicker: "Challenge", icon: trophyIconHTML({ kind: "stat", id: "target" }),
+      headline: `${names(item.winners)} won ${escapeHtml(`${item.challenge.emoji || "🎯"} ${item.challenge.title}`)}`,
+    };
+    default: return null;
+  }
+}
+
+function feedCardHTML(item, index) {
+  const c = feedCardContent(item);
+  if (!c) return "";
+  const fresh = feedFresh.has(item.id) ? " is-fresh" : "";
+  const owner = item.owners[0];
+  return `<article class="feed-item feed-card tone-${c.tone}${fresh}" data-feed-id="${escapeHtml(item.id)}">
+    <div class="feed-card-top">
+      <span class="feed-card-icon is-stroke" aria-hidden="true">${c.icon}</span>
+      <span class="feed-card-kicker">${escapeHtml(c.kicker)}</span>
+      <span class="feed-card-time">${shortAgoLabel(item.at)}</span>
+      ${feedInlineAddHTML(item, index)}
+    </div>
+    <div class="feed-card-body">
+      ${owner ? avatarCircleHTML(avatarForUser(owner), "2.2rem") : ""}
+      <div class="feed-card-text">
+        <div class="feed-card-headline">${c.headline}</div>
+        ${c.stat || c.sub ? `<div class="feed-card-stat">${c.stat ? `<span class="feed-card-num">${c.stat}</span>` : ""}${c.sub ? `<span class="feed-card-sub">${c.sub}</span>` : ""}</div>` : ""}
+      </div>
+    </div>
+    ${feedReactsHTML(item, index)}
+  </article>`;
+}
+
+function feedItemHTML(item, index) {
+  return item.kind === "sessions" || item.kind === "challengeJoin" ? feedRowHTML(item, index) : feedCardHTML(item, index);
+}
+
+function renderHomeFeed() {
+  if (!state.currentUser) return;
+  const { items, scope } = feedItems();
+  $("feed-scope-label").textContent = scope.label;
+  const list = $("feed-list");
+  if (!items.length) {
+    list.innerHTML = `<p class="history-empty feed-empty">No activity yet. Get moving! 💪</p>`;
+    $("feed-sentinel").classList.add("hidden");
+    return;
+  }
+  const index = reactionIndex(feedReactions(), state.currentUser);
+  const now = Date.now();
+  let lastDay = null;
+  const html = [];
+  for (const item of items.slice(0, feedShown)) {
+    const day = localDayKey(item.at);
+    if (day !== lastDay) {
+      html.push(`<h3 class="feed-day">${escapeHtml(feedDayLabel(item.at, now))}</h3>`);
+      lastDay = day;
+    }
+    html.push(feedItemHTML(item, index));
+  }
+  list.innerHTML = html.join("");
+  $("feed-sentinel").classList.toggle("hidden", feedShown >= items.length);
+}
+
+function repaintFeedItem(itemId) {
+  const item = feedItemsById.get(itemId);
+  const el = [...document.querySelectorAll("#feed-list [data-feed-id]")].find((n) => n.dataset.feedId === itemId);
+  if (!item || !el) return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = feedItemHTML(item, reactionIndex(feedReactions(), state.currentUser));
+  if (tmp.firstElementChild) el.replaceWith(tmp.firstElementChild);
+}
+
+function renderFeedBadge() {
+  const badge = $("home-feed-badge");
+  if (!state.currentUser || !reactionsOn()) {
+    badge.classList.add("hidden");
+    return;
+  }
+  const count = unreadReactions(feedReactions(), state.currentUser, feedSeenAt()).length;
+  badge.textContent = count > 9 ? "9+" : String(count);
+  badge.classList.toggle("hidden", count === 0 || homePage === 1);
+}
+
+function onFeedOpened() {
+  const unread = reactionsOn() ? unreadReactions(feedReactions(), state.currentUser, feedSeenAt()) : [];
+  feedFresh = new Set(unread.map((r) => r.itemId));
+  try { localStorage.setItem(feedSeenKey(), String(Date.now())); } catch { /* nicety only */ }
+  feedShown = FEED_PAGE_SIZE;
+  renderHomeFeed();
+  renderFeedBadge();
+}
+
+// Called when Home's data refreshes in the background.
+function refreshHomeFeed() {
+  renderFeedBadge();
+  if (homePage === 1 && state.screen === "screen-workout") renderHomeFeed();
+}
+
+// ---- reactions ----
+function toggleFeedReaction(itemId, emoji) {
+  const item = feedItemsById.get(itemId);
+  if (!item || !state.currentUser || !FEED_REACTIONS.includes(emoji)) return;
+  const user = state.currentUser;
+  const mine = feedReactions().some((r) => r.itemId === itemId && r.user === user && r.emoji === emoji);
+  const payload = { itemId, owners: item.owners, user, emoji, on: !mine, at: Date.now() };
+  // Optimistic: apply to the cached copy too, so the chip doesn't flicker
+  // between the queue flushing and the next /data fetch.
+  const cached = getCachedData();
+  cached.reactions = mergeReactions(cached.reactions || [], [payload]);
+  try { jsonStorage.write(LS.cacheData, cached); } catch { /* memory copy still works */ }
+  enqueueMutation("reaction", payload, `reaction:${itemId}:${emoji}:${user}`);
+  vibrate(10);
+  repaintFeedItem(itemId);
+  flushQueue().catch(() => {});
+}
+
+let feedPopoverItemId = null;
+function openReactPopover(itemId, anchor) {
+  const pop = $("feed-react-popover");
+  const mine = new Set(feedReactions().filter((r) => r.itemId === itemId && r.user === state.currentUser).map((r) => r.emoji));
+  pop.innerHTML = FEED_REACTIONS.map((e) => `<button type="button" class="feed-react-option${mine.has(e) ? " mine" : ""}" data-emoji="${e}" aria-pressed="${mine.has(e)}">${e}</button>`).join("");
+  feedPopoverItemId = itemId;
+  pop.classList.remove("hidden");
+  const rect = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth;
+  const h = pop.offsetHeight;
+  const left = Math.max(8, Math.min(window.innerWidth - w - 8, rect.right - w));
+  const above = rect.top - h - 8;
+  pop.style.left = `${left}px`;
+  pop.style.top = `${above > 60 ? above : rect.bottom + 8}px`;
+}
+function closeReactPopover() {
+  feedPopoverItemId = null;
+  $("feed-react-popover").classList.add("hidden");
+}
+$("feed-react-popover").addEventListener("click", (e) => {
+  const btn = e.target.closest(".feed-react-option");
+  if (!btn || !feedPopoverItemId) return;
+  toggleFeedReaction(feedPopoverItemId, btn.dataset.emoji);
+  closeReactPopover();
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!feedPopoverItemId) return;
+  if (e.target.closest("#feed-react-popover, .feed-react-add")) return;
+  closeReactPopover();
+}, true);
+window.addEventListener("scroll", () => { if (feedPopoverItemId) closeReactPopover(); }, { passive: true });
+
+// Long-press a chip to see who reacted.
+let feedChipPress = null;
+let feedSuppressClick = false;
+$("feed-list").addEventListener("pointerdown", (e) => {
+  const chip = e.target.closest(".feed-react-chip");
+  if (!chip) return;
+  clearTimeout(feedChipPress);
+  feedChipPress = setTimeout(() => {
+    const itemId = chip.closest("[data-feed-id]")?.dataset.feedId;
+    const r = (reactionIndex(feedReactions(), state.currentUser).get(itemId) || []).find((x) => x.emoji === chip.dataset.emoji);
+    if (r) toast(`${r.emoji} ${feedNames(r.users)}`, 3200);
+    feedSuppressClick = true;
+  }, 500);
+});
+let feedChipPressAt = null;
+$("feed-list").addEventListener("pointerdown", (e) => { feedChipPressAt = { x: e.clientX, y: e.clientY }; }, true);
+$("feed-list").addEventListener("pointermove", (e) => {
+  if (feedChipPressAt && Math.hypot(e.clientX - feedChipPressAt.x, e.clientY - feedChipPressAt.y) > 8) clearTimeout(feedChipPress);
+});
+for (const type of ["pointerup", "pointercancel", "pointerleave"]) {
+  $("feed-list").addEventListener(type, () => clearTimeout(feedChipPress));
+}
+$("feed-list").addEventListener("contextmenu", (e) => { if (e.target.closest(".feed-react-chip")) e.preventDefault(); });
+
+// ---- taps ----
+function openFeedItem(item) {
+  const me = state.currentUser;
+  const owner = item.owners[0];
+  const userView = (name) => {
+    if (name === me) showScreen("screen-trophies");
+    else openUserCompare(name);
+  };
+  switch (item.kind) {
+    case "sessions":
+      if (item.sessions.length > 1) {
+        if (feedExpanded.has(item.id)) feedExpanded.delete(item.id);
+        else feedExpanded.add(item.id);
+        repaintFeedItem(item.id);
+      } else {
+        openSessionDetail(item.sessions[0], "screen-workout");
+      }
+      return;
+    case "pr":
+    case "cock":
+      openSessionDetail(item.session, "screen-workout");
+      return;
+    case "trophy": {
+      trophyCaseUser = item.user;
+      const card = trophyModelFor(item.user).cards.find((c) => c.id === item.trophy.cardId);
+      if (card) openTrophySheet(card);
+      return;
+    }
+    case "horse": viewFinishedHorseGame(item.game); return;
+    case "tow": viewFinishedTowGame(item.game); return;
+    case "challengeWin":
+    case "challengeJoin":
+      openChallengeDetail(item.challenge.id);
+      return;
+    case "daily1":
+    case "weekly1":
+      goToDashboard("boys");
+      return;
+    default:
+      if (owner) userView(owner);
+  }
+}
+
+$("feed-list").addEventListener("click", (e) => {
+  if (feedSuppressClick) {
+    feedSuppressClick = false;
+    return;
+  }
+  const itemEl = e.target.closest("[data-feed-id]");
+  if (!itemEl) return;
+  const itemId = itemEl.dataset.feedId;
+  const chip = e.target.closest(".feed-react-chip");
+  if (chip) { toggleFeedReaction(itemId, chip.dataset.emoji); return; }
+  const add = e.target.closest(".feed-react-add");
+  if (add) {
+    if (feedPopoverItemId === itemId) closeReactPopover();
+    else openReactPopover(itemId, add);
+    return;
+  }
+  const item = feedItemsById.get(itemId);
+  if (!item) return;
+  const set = e.target.closest("[data-feed-session]");
+  if (set) {
+    const s = item.sessions?.find((x) => x.id === set.dataset.feedSession);
+    if (s) openSessionDetail(s, "screen-workout");
+    return;
+  }
+  openFeedItem(item);
+});
+
+// Infinite scroll: next page once the sentinel nears the viewport.
+if ("IntersectionObserver" in window) {
+  new IntersectionObserver((entries) => {
+    if (!entries.some((en) => en.isIntersecting) || homePage !== 1 || state.screen !== "screen-workout") return;
+    const total = feedMemo?.items.length || 0;
+    if (feedShown >= total) return;
+    feedShown += FEED_PAGE_SIZE;
+    renderHomeFeed();
+  }, { rootMargin: "600px 0px" }).observe($("feed-sentinel"));
+}
+
+// ---- pager ----
+// Each page is at least one viewport tall (the start page centers in it);
+// the page that isn't showing is clipped to that height so it never adds
+// scroll length.
+// The page itself (not #app-main) is the scroll container.
+function pageScroller() {
+  return document.scrollingElement || document.documentElement;
+}
+function syncHomePagerHeight() {
+  const main = $("app-main");
+  const cs = getComputedStyle(main);
+  const top = main.getBoundingClientRect().top + window.scrollY;
+  const h = window.innerHeight - top - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - $("home-pager-dots").offsetHeight;
+  if (h > 0) $("home-pager").style.setProperty("--home-page-h", `${Math.floor(h)}px`);
+}
+window.addEventListener("resize", syncHomePagerHeight);
+
+function setHomePage(index, { animate = true } = {}) {
+  const next = Math.max(0, Math.min(1, index));
+  const changed = next !== homePage;
+  const track = $("home-pager-track");
+  track.classList.toggle("no-anim", !animate);
+  track.style.transform = `translateX(${-next * 100}%)`;
+  homePage = next;
+  $("home-page-start").classList.toggle("is-offstage", next !== 0);
+  $("home-page-feed").classList.toggle("is-offstage", next !== 1);
+  $("home-page-start").setAttribute("aria-hidden", String(next !== 0));
+  $("home-page-feed").setAttribute("aria-hidden", String(next !== 1));
+  $("screen-workout").classList.toggle("home-feed-active", next === 1);
+  document.querySelectorAll(".home-pager-dot").forEach((dot) => {
+    const on = Number(dot.dataset.homePage) === next;
+    dot.classList.toggle("active", on);
+    dot.setAttribute("aria-selected", String(on));
+  });
+  if (changed) {
+    closeReactPopover();
+    pageScroller().scrollTop = 0;
+    if (next === 1) onFeedOpened();
+  }
+  renderFeedBadge();
+  if (!animate) requestAnimationFrame(() => track.classList.remove("no-anim"));
+}
+
+$("home-pager-dots").addEventListener("click", (e) => {
+  const dot = e.target.closest(".home-pager-dot");
+  if (dot) setHomePage(Number(dot.dataset.homePage));
+});
+
+(function attachHomePagerDrag() {
+  const pager = $("home-pager");
+  const track = $("home-pager-track");
+  const start = $("home-page-start");
+  let drag = null;
+  const reset = () => { start.style.transform = ""; };
+  pager.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || state.workoutActive || !state.currentUser) { drag = null; return; }
+    if (e.target.closest("input, textarea, select") || startsInOwnHorizontalGesture(e.target, pager)) { drag = null; return; }
+    const t = e.touches[0];
+    drag = { x: t.clientX, y: t.clientY, t: performance.now(), lock: null, dx: 0, width: pager.clientWidth || window.innerWidth };
+  }, { passive: true });
+  pager.addEventListener("touchmove", (e) => {
+    if (!drag) return;
+    const t = e.touches[0];
+    const dx = t.clientX - drag.x;
+    const dy = t.clientY - drag.y;
+    if (!drag.lock) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      drag.lock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (drag.lock === "x") {
+        closeReactPopover();
+        clearTimeout(feedChipPress);
+        track.classList.add("dragging");
+        // Leaving a scrolled feed: bring the start page into view alongside it.
+        const scrolled = pageScroller().scrollTop;
+        if (homePage === 1 && scrolled > 0) start.style.transform = `translateY(${scrolled}px)`;
+        if (homePage === 0) renderHomeFeed();
+      }
+    }
+    if (drag.lock !== "x") return;
+    e.preventDefault();
+    drag.dx = dx;
+    let offset = -homePage * drag.width + dx;
+    if (offset > 0) offset /= 3;
+    if (offset < -drag.width) offset = -drag.width + (offset + drag.width) / 3;
+    track.style.transform = `translateX(${offset}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    if (d.lock !== "x") return;
+    track.classList.remove("dragging");
+    const velocity = d.dx / Math.max(1, performance.now() - d.t);
+    let target = homePage;
+    if (d.dx < -d.width * 0.25 || velocity < -0.4) target = 1;
+    if (d.dx > d.width * 0.25 || velocity > 0.4) target = 0;
+    const leavingFeed = homePage === 1 && target === 0;
+    setHomePage(target);
+    if (leavingFeed) reset();
+    else track.addEventListener("transitionend", reset, { once: true });
+  };
+  pager.addEventListener("touchend", end);
+  pager.addEventListener("touchcancel", end);
+})();
+
 // ------------------- init -------------------
 
 // Best-effort native lock — only honored by browsers/contexts that support
@@ -18458,6 +19021,7 @@ async function init() {
       renderGoalThermometers();
       renderGamesNavDot();
       syncHeaderBack();
+      refreshHomeFeed();
     } catch (e) {
       // offline or Worker unreachable; cached data (if any) is already shown
     }

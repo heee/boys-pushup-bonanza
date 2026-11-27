@@ -63,7 +63,7 @@ test("app leaderboard and recent-history buckets include Chain components exactl
   const activityFunction = source.slice(source.indexOf("function sessionActivity("));
   vm.runInContext(activityFunction.slice(0, activityFunction.indexOf("\n}") + 2), context);
   vm.runInContext(source.slice(source.indexOf("function buildSessionIndex("), source.indexOf("function indexSessions(")), context);
-  vm.runInContext(source.slice(source.indexOf("function sessionActivityPhrase("), source.indexOf("function renderRecentList(")), context);
+  vm.runInContext(source.slice(source.indexOf("function sessionActivityPhrase("), source.indexOf("function escapeHtml(")), context);
   context.sessions = [{ id: "chain", user: "Test athlete", type: "chainofpain", count: 31,
     timestamp: "2026-09-07T15:00:00.000Z", chainOfPainSquats: 19, chainOfPainPushups: 12,
     chainOfPainPlankSeconds: 42, chainOfPainSegments: 4 }];

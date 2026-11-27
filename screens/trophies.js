@@ -83,7 +83,7 @@ function streakAt(daySet, earliest, now) {
   }
   return streak;
 }
-function streakSeries(sessions, ts) {
+export function streakSeries(sessions, ts) {
   if (!sessions.length) return [];
   const daySet = new Set(sessions.map((s) => new Date(ts(s)).toDateString()));
   const first = new Date(ts(sessions[0])); first.setHours(0, 0, 0, 0);

@@ -6645,3 +6645,125 @@ body:has(#screen-challenge-detail.active) #app {
 .trophy-sheet-goal { font-size: 0.8rem; font-weight: 400; color: var(--text-dim); }
 .trophy-sheet-date { font-size: 0.82rem; color: var(--text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .trophy-sheet-row.earned .trophy-sheet-date { color: var(--text); }
+
+/* ---------------- Activity Feed (docs/activity-feed-plan.md) ----------------
+   Home is a two-page pager: Start ↔ Feed. The hidden page is clipped to one
+   viewport so it never adds scroll length. */
+#workout-idle { margin: 0; flex: 1; align-items: stretch; gap: 0; }
+#screen-workout.home-feed-active { justify-content: flex-start; }
+/* Bleeds through #app-main's side gutter so pages slide edge to edge. */
+.home-pager { --home-page-h: calc(100dvh - 12rem); display: flex; flex-direction: column; flex: 1; margin: 0 -1.1rem; overflow-x: clip; touch-action: pan-y; }
+.home-pager-dots { display: flex; justify-content: center; gap: 0.5rem; padding: 0 0 0.4rem; }
+.home-pager-dot {
+  position: relative; width: 22px; height: 18px; padding: 0; border: 0; background: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.home-pager-dot::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; border-radius: 50%;
+  transform: translate(-50%, -50%); background: var(--text-tertiary); opacity: 0.45; transition: opacity 0.2s, background 0.2s, width 0.2s;
+}
+.home-pager-dot.active::before { background: var(--primary); opacity: 1; width: 16px; border-radius: 4px; }
+.home-pager-dot:focus:not(:focus-visible) { outline: none; }
+.home-feed-badge {
+  position: absolute; top: -5px; left: 13px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px;
+  background: var(--flame); color: var(--text-on-accent); font-size: 0.6rem; font-weight: 800; line-height: 15px; text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.home-pager-track { display: flex; align-items: flex-start; width: 100%; transition: transform 0.32s cubic-bezier(0.22, 0.8, 0.3, 1); will-change: transform; }
+.home-pager-track.dragging, .home-pager-track.no-anim { transition: none; }
+@media (prefers-reduced-motion: reduce) { .home-pager-track { transition-duration: 0.01s; } }
+.home-page { flex: 0 0 100%; min-width: 0; min-height: var(--home-page-h); box-sizing: border-box; padding: 0 1.1rem; }
+.home-page.is-offstage { max-height: var(--home-page-h); overflow: hidden; }
+.home-page-start {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.6rem;
+}
+#screen-workout #device-location-row { transition: opacity 0.2s; }
+#screen-workout.home-feed-active #device-location-row { opacity: 0; pointer-events: none; }
+
+.feed-header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin: 0.2rem 0 0.4rem; }
+.feed-title { margin: 0; font-size: 1.6rem; font-weight: 800; }
+.feed-scope-label { font-size: 0.8rem; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-list { display: flex; flex-direction: column; text-align: left; }
+.feed-day {
+  margin: 1rem 0 0.25rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.feed-day:first-child { margin-top: 0.4rem; }
+.feed-empty { text-align: center; padding: 2rem 0; }
+.feed-sentinel { height: 1px; }
+
+.feed-item { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.feed-row { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.65rem 0; border-bottom: 1px solid var(--border); }
+.feed-row > .avatar-circle { flex: 0 0 auto; margin-top: 0.05rem; }
+.feed-row-main { flex: 1; min-width: 0; }
+.feed-row-line { font-size: 0.92rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-name { font-weight: 700; color: var(--text); }
+.feed-row-modifier { font-size: 0.85rem; }
+.feed-burst-chev { margin-left: 0.35rem; font-size: 0.7rem; color: var(--text-tertiary); }
+.feed-row-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.1rem; min-height: 1.5rem; }
+.feed-row-count { flex: 0 0 auto; font-weight: 800; font-size: 1rem; color: var(--text); font-variant-numeric: tabular-nums; padding-top: 0.05rem; }
+.feed-sets { display: flex; flex-direction: column; margin: 0.4rem 0 0.1rem; border-left: 2px solid var(--border); }
+.feed-set {
+  display: grid; grid-template-columns: 1fr auto 3.2rem; gap: 0.5rem; align-items: center; padding: 0.35rem 0 0.35rem 0.6rem;
+  background: none; border: 0; font: inherit; font-size: 0.8rem; color: var(--text-dim); text-align: left; cursor: pointer;
+}
+.feed-set-time { color: var(--text-tertiary); font-size: 0.72rem; }
+.feed-set-count { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+
+.feed-card {
+  --tone: var(--primary);
+  margin: 0.5rem 0; padding: 0.65rem 0.9rem 0.8rem; border-radius: 14px; background: var(--bg-elevated-2);
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  box-shadow: inset 3px 0 0 var(--tone);
+}
+.feed-card.tone-gold { --tone: var(--gold); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 16%, var(--bg-elevated-2)), var(--bg-elevated-2) 70%); }
+.feed-card.tone-flame { --tone: var(--flame); background: linear-gradient(135deg, color-mix(in srgb, var(--flame) 16%, var(--bg-elevated-2)), var(--bg-elevated-2) 70%); }
+.feed-card.tone-tier { --tone: var(--metal-b); background: linear-gradient(135deg, color-mix(in srgb, var(--metal-a) 24%, var(--bg-elevated-2)), var(--bg-elevated-2) 70%); }
+:root[data-theme="light"] .feed-card.tone-tier { --tone: var(--metal-a); }
+.feed-card-top { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.45rem; min-height: 1.75rem; }
+.feed-card-icon { display: flex; align-items: center; justify-content: center; width: 1.15rem; height: 1.15rem; color: var(--tone); font-size: 0.95rem; line-height: 1; }
+.feed-card-icon svg { width: 100%; height: 100%; display: block; }
+.feed-card-kicker { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tone); }
+.feed-card-time { margin-left: auto; font-size: 0.72rem; color: var(--text-tertiary); }
+.feed-card-body { display: flex; align-items: center; gap: 0.65rem; }
+.feed-card-body > .avatar-circle { flex: 0 0 auto; }
+.feed-card-text { flex: 1; min-width: 0; }
+.feed-card-headline { font-size: 0.98rem; line-height: 1.3; color: var(--text-dim); }
+.feed-card-headline b { color: var(--text); font-weight: 800; }
+.feed-card-stat { display: flex; align-items: baseline; gap: 0.4rem; margin-top: 0.2rem; flex-wrap: wrap; }
+.feed-card-num { font-size: 1.35rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.feed-card-sub { font-size: 0.78rem; color: var(--text-tertiary); }
+
+.feed-item.is-fresh { animation: feed-fresh 2.4s ease-out 1; }
+.feed-row.is-fresh { background: color-mix(in srgb, var(--primary) 10%, transparent); border-radius: 10px; padding-left: 0.4rem; padding-right: 0.4rem; }
+.feed-card.is-fresh { box-shadow: inset 3px 0 0 var(--tone), 0 0 0 2px color-mix(in srgb, var(--primary) 55%, transparent); }
+@keyframes feed-fresh { 0%, 30% { transform: scale(1.015); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .feed-item.is-fresh { animation: none; } }
+
+.feed-reacts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.45rem; }
+.feed-row .feed-reacts { margin-top: 0.35rem; }
+.feed-react-chip, .feed-react-add {
+  display: inline-flex; align-items: center; gap: 0.25rem; height: 1.75rem; padding: 0 0.55rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-dim); font: inherit; font-size: 0.85rem; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.feed-react-chip span { font-size: 0.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.feed-react-chip.mine { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 18%, var(--bg-elevated)); color: var(--text); }
+.feed-react-add { padding: 0 0.45rem; color: var(--text-tertiary); }
+.feed-react-add.is-inline { height: 1.5rem; padding: 0 0.35rem; border-color: transparent; background: none; }
+.feed-card .feed-react-add.is-inline { margin-right: -0.35rem; height: 1.75rem; }
+.feed-react-add svg { width: 1.05rem; height: 1.05rem; display: block; }
+.feed-react-chip:active, .feed-react-add:active { transform: scale(0.92); }
+
+.feed-react-popover {
+  position: fixed; z-index: 700; display: grid; grid-template-columns: repeat(6, 2.6rem); gap: 0.15rem; padding: 0.4rem;
+  border-radius: 16px; background: var(--bg-elevated-2); border: 1px solid var(--border); box-shadow: var(--shadow);
+  animation: feed-pop-in 0.14s ease-out;
+}
+.feed-react-popover.hidden { display: none; }
+.feed-react-option {
+  width: 2.6rem; height: 2.6rem; border-radius: 12px; border: 0; background: none; font-size: 1.45rem; line-height: 1; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.feed-react-option.mine { background: color-mix(in srgb, var(--primary) 26%, transparent); }
+.feed-react-option:active { transform: scale(0.88); }
+@keyframes feed-pop-in { from { transform: scale(0.9); opacity: 0; } to { transform: none; opacity: 1; } }

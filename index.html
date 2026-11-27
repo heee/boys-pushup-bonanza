@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonanza">
 <link rel="icon" href="icons/icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=378">
+<link rel="stylesheet" href="style.css?v=379">
 <script>
   // Apply saved theme before first paint to avoid a flash of the wrong theme.
   try {
@@ -86,6 +86,13 @@
       <div id="pushup-ghost-transition" class="ghost-transition" aria-hidden="true"></div>
 
       <div id="workout-idle" class="workout-idle">
+       <div id="home-pager" class="home-pager">
+        <div id="home-pager-dots" class="home-pager-dots" role="tablist" aria-label="Home pages">
+          <button type="button" class="home-pager-dot active" data-home-page="0" role="tab" aria-label="Start"></button>
+          <button type="button" class="home-pager-dot" data-home-page="1" role="tab" aria-label="Activity feed"><span id="home-feed-badge" class="home-feed-badge hidden"></span></button>
+        </div>
+        <div id="home-pager-track" class="home-pager-track">
+        <div id="home-page-start" class="home-page home-page-start">
         <p id="workout-eyebrow" class="workout-eyebrow">Boys Bonanza</p>
         <p id="workout-hello" class="workout-hello">
           <span id="workout-avatar" class="avatar-circle"></span>
@@ -102,6 +109,17 @@
         <button id="btn-start" class="btn btn-giant btn-primary">Let's go<svg class="btn-start-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10.9c2.3-3.3.2-7.8-1-8.9 0 3.4-2.2 5.3-3.7 6.7C5.9 10.1 5 12.3 5 14.3 5 18 8.1 21 12 21s7-3 7-6.7c0-1.7-1.2-4.4-2.3-5.6-2.1 3.4-3.3 3.4-4.7 2.2"/></svg></button>
 
         <div id="goal-thermometers" class="goal-thermometers hidden"></div>
+        </div>
+        <div id="home-page-feed" class="home-page home-page-feed is-offstage" aria-label="Activity feed">
+          <div class="feed-header">
+            <h2 class="feed-title">Activity</h2>
+            <span id="feed-scope-label" class="feed-scope-label"></span>
+          </div>
+          <div id="feed-list" class="feed-list"></div>
+          <div id="feed-sentinel" class="feed-sentinel" aria-hidden="true"></div>
+        </div>
+        </div>
+       </div>
 
         <button id="device-location-row" type="button" class="device-location-row" aria-haspopup="dialog">
           <span aria-hidden="true">&#x1F4CD;</span>
@@ -1562,11 +1580,6 @@
           <div id="boys-leader-stats" class="boys-mode-stats"></div>
         </div>
 
-        <div class="boys-mode-stats-section">
-          <span class="tier1-eyebrow boys-mode-stats-eyebrow">History</span>
-        </div>
-
-        <div id="recent-list" class="history-list"></div>
       </div>
 
       <div id="my-bonanza-view" class="hidden bonanza-scroll-view">
@@ -2408,6 +2421,8 @@
   </section>
 </div>
 
+<div id="feed-react-popover" class="feed-react-popover hidden" role="dialog" aria-label="Add a reaction"></div>
+
 <div id="trophy-sheet-backdrop" class="location-sheet-backdrop hidden">
   <section id="trophy-sheet" class="location-sheet metric-sheet" role="dialog" aria-modal="true" aria-labelledby="trophy-sheet-title">
     <div class="location-sheet-handle" aria-hidden="true"></div>
@@ -2458,6 +2473,6 @@
 <div id="poker-hand-toast" class="glass-toast hidden" role="status" aria-live="polite"></div>
 <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module" src="app.js?v=402"></script>
+<script type="module" src="app.js?v=403"></script>
 </body>
 </html>

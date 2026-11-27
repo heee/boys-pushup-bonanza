@@ -103,6 +103,9 @@
 //   pasting it whole into the Cloudflare dashboard, so it can't import sibling modules.
 //   Keep the two in sync — both are covered by tests (tests/horse-mode.test.js and
 //   tests/worker-horse.test.js).
+//   POST /react      -> { itemId, owners, user, emoji, on } -> adds (on: true) or removes an
+//                          Activity Feed reaction (docs/activity-feed-plan.md). /data returns
+//                          `reactions` + `reactionsEnabled` (false until 0011_reactions.sql runs).
 //   POST /tow-create -> { id?, target, rounds, sessionType, createdBy, teams?, rosterSize? } ->
 //                          creates a Tug of War game. Live/Online supply full team rosters up
 //                          front (teams: { a: { name, players }, b: { name, players } }) and the
@@ -397,6 +400,26 @@ export default {
 
       try {
         await joinChallenge(env.DB, user, challengeId);
+        return json({ ok: true }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 502, cors);
+      }
+    }
+
+    if (url.pathname === "/react" && request.method === "POST") {
+      if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+        return json({ error: "unauthorized" }, 401, cors);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return json({ error: "invalid JSON body" }, 400, cors);
+      }
+      const reaction = validateReaction(body);
+      if (!reaction) return json({ error: "invalid payload" }, 400, cors);
+      try {
+        await setReaction(env.DB, reaction);
         return json({ ok: true }, 200, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
@@ -1367,12 +1390,14 @@ export async function fetchData(db) {
   const challengeParticipants = {};
   for (const row of membershipRows.results) (challengeParticipants[row.challenge_id] ||= []).push(row.name);
   const { groupsEnabled, groups, scopes } = await fetchGroupData(db);
+  const { reactionsEnabled, reactions } = await fetchReactionData(db);
+  const challengeJoins = await fetchChallengeJoins(db);
   const customChallenges = challengeRows.results.map((row) => ({ id: row.id, title: row.title, tagline: row.tagline, emoji: row.emoji, goalType: row.goal_type, goal: row.goal, start: row.start, end: row.end, gradient: parseStoredJson(row.gradient_json, ["#4a2a5e", "#e8762e"]), createdBy: row.created_by, visibility: scopes[row.id]?.visibility || "personal", groupId: scopes[row.id]?.groupId || null }));
   const horseGames = horseGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
   const towGames = towGameRows.results.map((row) => parseStoredJson(row.data_json, null)).filter(Boolean);
   const goals = {};
   for (const row of goalRows.results) goals[row.name] = parseStoredJson(row.data_json, null);
-  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames, towGames, goals, groups, groupsEnabled };
+  return { sessions: sessionRows.results.map(sessionFromRow), avatars, challengeParticipants, customChallenges, horseGames, towGames, goals, groups, groupsEnabled, reactions, reactionsEnabled, challengeJoins };
 }
 
 async function loadHorseGame(db, id) {
@@ -1429,6 +1454,7 @@ async function deleteUser(db, name) {
   if (!user) return;
   // Tolerates a database without the 0009 groups migration yet.
   await db.prepare("DELETE FROM group_members WHERE user_id = ?").bind(user.id).run().catch(() => {});
+  await db.prepare("DELETE FROM reactions WHERE user_id = ?").bind(user.id).run().catch(() => {});
   await db.batch([db.prepare("DELETE FROM challenge_memberships WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM avatars WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM goals WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id), db.prepare("DELETE FROM users WHERE id = ?").bind(user.id)]);
 }
 
@@ -1461,7 +1487,62 @@ async function renameUser(db, oldName, newName) {
 
 async function joinChallenge(db, name, challengeId) {
   const userId = await ensureUser(db, name);
-  await db.prepare("INSERT OR IGNORE INTO challenge_memberships (challenge_id, user_id) VALUES (?, ?)").bind(challengeId, userId).run();
+  // joined_at arrives with 0011_reactions.sql; before that, insert without it.
+  await db.prepare("INSERT OR IGNORE INTO challenge_memberships (challenge_id, user_id, joined_at) VALUES (?, ?, ?)").bind(challengeId, userId, new Date().toISOString()).run()
+    .catch(() => db.prepare("INSERT OR IGNORE INTO challenge_memberships (challenge_id, user_id) VALUES (?, ?)").bind(challengeId, userId).run());
+}
+
+// ------------------- Activity Feed reactions -------------------
+// docs/activity-feed-plan.md. Fixed emoji set; mirrors FEED_REACTIONS in feed.js.
+export const FEED_REACTIONS = ["💪", "🔥", "😂", "👑", "😤", "👏", "💀", "🫡", "🐐", "🤡", "😮"];
+
+export function validateReaction(body) {
+  const itemId = typeof body?.itemId === "string" ? body.itemId.trim() : "";
+  const user = typeof body?.user === "string" ? body.user.trim().slice(0, 40) : "";
+  const emoji = typeof body?.emoji === "string" ? body.emoji : "";
+  if (!itemId || itemId.length > 160 || !user || !FEED_REACTIONS.includes(emoji) || typeof body?.on !== "boolean") return null;
+  const owners = Array.isArray(body.owners)
+    ? body.owners.filter((n) => typeof n === "string" && n.trim()).map((n) => n.trim().slice(0, 40)).slice(0, 12)
+    : [];
+  return { itemId, user, emoji, on: body.on, owners };
+}
+
+export async function setReaction(db, { itemId, user, emoji, on, owners }) {
+  const userId = await ensureUser(db, user);
+  if (on) {
+    await db.prepare("INSERT OR IGNORE INTO reactions (item_id, user_id, emoji, owners) VALUES (?, ?, ?, ?)").bind(itemId, userId, emoji, owners.join("|")).run();
+  } else {
+    await db.prepare("DELETE FROM reactions WHERE item_id = ? AND user_id = ? AND emoji = ?").bind(itemId, userId, emoji).run();
+  }
+}
+
+// D1's CURRENT_TIMESTAMP is "YYYY-MM-DD HH:MM:SS" in UTC.
+function d1TimestampMs(value) {
+  if (typeof value !== "string") return 0;
+  const t = Date.parse(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
+  return Number.isFinite(t) ? t : 0;
+}
+
+// Kept out of fetchData's main batch so /data keeps working before 0011 runs.
+async function fetchReactionData(db) {
+  try {
+    const rows = await db.prepare("SELECT r.item_id, r.emoji, r.owners, r.created_at, u.name FROM reactions r JOIN users u ON u.id = r.user_id ORDER BY r.created_at, r.rowid").all();
+    return {
+      reactionsEnabled: true,
+      reactions: rows.results.map((r) => ({ itemId: r.item_id, user: r.name, emoji: r.emoji, owners: r.owners ? r.owners.split("|") : [], at: d1TimestampMs(r.created_at) })),
+    };
+  } catch (e) {
+    return { reactionsEnabled: false, reactions: [] };
+  }
+}
+
+async function fetchChallengeJoins(db) {
+  try {
+    const rows = await db.prepare("SELECT m.challenge_id, m.joined_at, u.name FROM challenge_memberships m JOIN users u ON u.id = m.user_id WHERE m.joined_at IS NOT NULL").all();
+    return rows.results.map((r) => ({ challengeId: r.challenge_id, user: r.name, at: d1TimestampMs(r.joined_at) })).filter((j) => j.at);
+  } catch (e) {
+    return [];
+  }
 }
 
 async function createChallenge(db, challenge) {
