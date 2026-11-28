@@ -35,7 +35,9 @@ A second page on Home, revealed by swiping left from the start page.
 - Copy: mostly factual, punchy verbs on highlights.
 - Tapping opens the relevant detail: session detail, trophy sheet, game summary, challenge
   detail, user compare (or your own Trophies), Board for #1 cards.
-- Not included: Chase passes (the Worker doesn't persist Chase results).
+- Chase passes: a Chase session that overtook its rival (`chaseOvertaken`) shows as a card
+  ("X passed Y for the weekly lead"). The Worker stores Chase results in `sessions.chase_json`
+  (migration `0012_chase.sql`) — only sessions saved after that exist; earlier ones were never kept.
 - The Board's "History" list is removed (the feed replaces it).
 
 ## Reactions
@@ -53,4 +55,4 @@ A second page on Home, revealed by swiping left from the start page.
 ## Item ids (stable, used as reaction keys)
 `s:<firstSessionId>` burst/row · `pr:<sessionId>` · `ck:<sessionId>` · `ms:<user>:<exercise>:<value>` ·
 `st:<user>:<days>` · `tr:<user>:<card>:<tier>` · `d1:<group>:<YYYY-MM-DD>` · `w1:<group>:<YYYY-MM-DD>` ·
-`hg:<gameId>` · `tg:<gameId>` · `cw:<challengeId>` · `cj:<challengeId>:<user>`
+`cp:<sessionId>` · `hg:<gameId>` · `tg:<gameId>` · `cw:<challengeId>` · `cj:<challengeId>:<user>`

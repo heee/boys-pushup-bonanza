@@ -82,3 +82,11 @@ test("day labels", () => {
   assert.equal(feedDayLabel(now - 24 * H, now), "Yesterday");
   assert.equal(feedDayLabel(base, now), "Tue, Nov 10");
 });
+
+test("Chase passes become highlights naming the rival", () => {
+  const sessions = [s("A", base, 30, { mode: "chase", chasePeriod: "week", chaseRival: "B", chaseOvertaken: true, chaseFinalLead: 3 }), s("A", base + 5 * H, 20, { mode: "chase", chasePeriod: "day", chaseRival: "B", chaseOvertaken: false })];
+  const items = buildFeedItems({ sessions, names: new Set(["A", "B"]), now });
+  const chase = items.filter((i) => i.kind === "chase");
+  assert.equal(chase.length, 1);
+  assert.deepEqual([chase[0].id, chase[0].rival, chase[0].period, chase[0].lead], [`cp:${sessions[0].id}`, "B", "week", 3]);
+});

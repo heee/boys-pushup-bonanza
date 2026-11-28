@@ -73,3 +73,23 @@ test("joining a challenge records joined_at for the feed", async () => {
   assert.equal(data.challengeJoins[0].user, "A");
   assert.ok(data.challengeJoins[0].at > 0);
 });
+
+test("Chase results round-trip through chase_json; sessions still save without the column", async () => {
+  const { insertSession, validateSession } = await import("../worker/index.js");
+  const body = { id: "c1", user: "A", count: 30, mode: "chase", chasePeriod: "week", chaseRival: "B", chasePointsNeeded: 28, chaseOvertaken: true, chaseRemaining: 0, chaseFinalLead: 2 };
+  // Cock columns were added by hand in D1 (no migration file), as in grip-mode.test.js.
+  const withCock = (skip) => {
+    const sqlite = new DatabaseSync(":memory:");
+    const dir = new URL("../worker/migrations/", import.meta.url);
+    for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql") && !(skip && f.startsWith(skip))).sort()) sqlite.exec(readFileSync(new URL(file, dir), "utf8"));
+    for (const column of ["cock_result", "cock_end_reason", "cock_median_rpm", "cock_final_cock_rpm"]) sqlite.exec(`ALTER TABLE sessions ADD COLUMN ${column}`);
+    return d1(sqlite);
+  };
+  const db = withCock(null);
+  await insertSession(db, validateSession(body));
+  const [saved] = (await fetchData(db)).sessions;
+  assert.deepEqual([saved.chasePeriod, saved.chaseRival, saved.chaseOvertaken, saved.chaseFinalLead], ["week", "B", true, 2]);
+  const old = withCock("0012");
+  await insertSession(old, validateSession({ ...body, id: "c2" }));
+  assert.equal((await fetchData(old)).sessions.length, 1);
+});

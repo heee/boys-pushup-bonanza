@@ -19,6 +19,8 @@
 //                          timer-driven preset kettlebell workout with user-confirmed reps, "grip" for a
 //                          hand-gripper set (count = user-confirmed squeezes; gripDurationSeconds/gripLaps/
 //                          gripSuggested stored as one grip_json column, see docs/grip-mode-plan.md);
+//                          mode "chase" also carries chasePeriod/chaseRival/chasePointsNeeded/chaseOvertaken/
+//                          chaseRemaining/chaseFinalLead, stored as one chase_json column (0012_chase.sql);
 //                          count is reps for pushups, pull-ups, squats, and situps, seconds held for planks and dead hangs,
 //                          total raw reps across all three exercises for Holland, squats+pushups for Chain of
 //                          Pain (plank has its own chainOfPainPlankSeconds field instead), seconds held in
@@ -956,6 +958,23 @@ export function sanitizeGrip(body) {
   };
 }
 
+// Chase mode's result (docs/activity-feed-plan.md): which period's #1 was
+// targeted, the rival being chased, and whether they were passed. Stored as
+// one chase_json column (migrations/0012_chase.sql).
+const CHASE_PERIOD_IDS = ["day", "week", "month", "quarter", "year"];
+export function sanitizeChase(body) {
+  if (!CHASE_PERIOD_IDS.includes(body.chasePeriod)) return null;
+  const int = (v, max) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= 0 && n <= max ? n : 0; };
+  return {
+    chasePeriod: body.chasePeriod,
+    chaseRival: typeof body.chaseRival === "string" ? body.chaseRival.trim().slice(0, 40) : "",
+    chasePointsNeeded: int(body.chasePointsNeeded, 100000),
+    chaseOvertaken: body.chaseOvertaken === true,
+    chaseRemaining: int(body.chaseRemaining, 100000),
+    chaseFinalLead: int(body.chaseFinalLead, 100000),
+  };
+}
+
 export function validateSession(body) {
   if (!body || typeof body !== "object") return null;
   const user = String(body.user || "").trim().slice(0, 40);
@@ -1058,6 +1077,10 @@ export function validateSession(body) {
   }
   const VALID_MODES = ["countdown", "cards", "poker", "dice", "ladder", "fortune", "chase", "pyramid", "zen", "sharpshooter", "wheel", "pulse", "cock"];
   if (VALID_MODES.includes(body.mode)) session.mode = body.mode;
+  if (body.mode === "chase") {
+    const chase = sanitizeChase(body);
+    if (chase) Object.assign(session, chase);
+  }
   // Ladder mode's own record field: the highest rung fully cleared that session.
   const ladderMaxRung = Math.floor(Number(body.ladderMaxRung));
   if (Number.isFinite(ladderMaxRung) && ladderMaxRung > 0 && ladderMaxRung <= 2000) {
@@ -1363,6 +1386,17 @@ export function sessionFromRow(row) {
       session.kettlebellSets = kettlebell.s;
     }
   }
+  if (row.chase_json != null) {
+    const chase = parseStoredJson(row.chase_json, null);
+    if (chase) {
+      session.chasePeriod = chase.p;
+      session.chaseRival = chase.r || "";
+      session.chasePointsNeeded = chase.n || 0;
+      session.chaseOvertaken = chase.o === 1;
+      session.chaseRemaining = chase.m || 0;
+      session.chaseFinalLead = chase.l || 0;
+    }
+  }
   if (row.grip_json != null) {
     const grip = parseStoredJson(row.grip_json, null);
     if (grip) {
@@ -1446,6 +1480,13 @@ export async function insertSession(db, session) {
         .bind(JSON.stringify({ d: session.gripDurationSeconds, l: session.gripLaps, e: session.gripSuggested ?? null }), session.id)
         .run();
     } catch { /* column not migrated yet */ }
+  }
+  if (session.mode === "chase" && session.chasePeriod) {
+    try {
+      await db.prepare("UPDATE sessions SET chase_json = ? WHERE id = ?")
+        .bind(JSON.stringify({ p: session.chasePeriod, r: session.chaseRival, n: session.chasePointsNeeded, o: session.chaseOvertaken ? 1 : 0, m: session.chaseRemaining, l: session.chaseFinalLead }), session.id)
+        .run();
+    } catch { /* column not migrated yet (0012_chase.sql) */ }
   }
 }
 

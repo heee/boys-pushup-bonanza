@@ -138,7 +138,7 @@ import { weightModifierText } from "./screens/settings.js";
 import { EXPLORE_MODES, HOME_START_MODES, WORKOUT_TYPES, modePickerModel, mostUsedOrder, usageByMode, workoutTypeById, workoutTypeForMode } from "./screens/explore-modes.js?v=156";
 import { modeIconSvg, modifierIconSvg, typeIconSvg } from "./screens/mode-icons.js?v=7";
 import { TROPHY_SECTIONS, earnedTierKeys, trophyCards, trophyCaseModel } from "./screens/trophies.js?v=2";
-import { FEED_REACTIONS, buildFeedItems, feedDayLabel, localDayKey, mergeReactions, reactionIndex, unreadReactions } from "./feed.js";
+import { FEED_REACTIONS, buildFeedItems, feedDayLabel, localDayKey, mergeReactions, reactionIndex, unreadReactions } from "./feed.js?v=2";
 import { CRUNCH_MODIFIERS, DEADHANG_MODIFIERS, MODIFIERS, PLANK_MODIFIERS, PULLUP_MODIFIERS, SQUAT_MODIFIERS, RESOLVABLE_MODIFIER_IDS, findModifier, modifiersForType, resolveModifier } from "./screens/modifiers.js?v=102";
 import { orderedUserNames, renameCachedIdentity, userSelectionModel, visibleUserSessions } from "./screens/users.js";
 import { sessionBadges, sessionKeyMetrics, sessionModeId, sessionModeLabel, sessionRings } from "./screens/session-detail.js?v=16";
@@ -18587,6 +18587,14 @@ function feedCardContent(item) {
       tone: "flame", kicker: "Cock Mode", icon: modeIconSvg("cock"),
       headline: `${name(item.user)} beat Cock Mode`, stat: formatNumber(item.session.count), sub: "pushups",
     };
+    case "chase": {
+      const period = { day: "daily", week: "weekly", month: "monthly", quarter: "quarterly", year: "yearly" }[item.period] || "";
+      return {
+        tone: "flame", kicker: "Chase", icon: modeIconSvg("chase"),
+        headline: `${name(item.user)} passed ${item.rival ? name(item.rival) : "the leader"}${period ? ` for the ${period} lead` : ""}`,
+        stat: formatNumber(item.session.count), sub: `pushups${item.lead ? ` · now ${formatNumber(item.lead)} ahead` : ""}`,
+      };
+    }
     case "milestone": return {
       tone: "flame", kicker: "Milestone", icon: typeIconSvg(item.exercise),
       headline: `${name(item.user)} crossed ${formatNumber(item.value)} lifetime ${escapeHtml(activityLabel(item.exercise))}`,
@@ -18813,6 +18821,7 @@ function openFeedItem(item) {
       return;
     case "pr":
     case "cock":
+    case "chase":
       openSessionDetail(item.session, "screen-workout");
       return;
     case "trophy": {

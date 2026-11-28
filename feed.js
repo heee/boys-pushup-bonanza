@@ -67,6 +67,10 @@ function userHighlights(user, list, ts, trophyThresholds) {
       items.push({ id: `ck:${s.id}`, kind: "cock", at: ts(s), owners: [user], user, session: s });
       consumed.add(s);
     }
+    if (s.mode === "chase" && s.chaseOvertaken === true) {
+      items.push({ id: `cp:${s.id}`, kind: "chase", at: ts(s), owners: [user], user, session: s, period: s.chasePeriod, rival: s.chaseRival || "", lead: Number(s.chaseFinalLead) || 0 });
+      consumed.add(s);
+    }
     if (!prEligible(s)) continue;
     const ex = feedExercise(s);
     const value = Number(s.count) || 0;
